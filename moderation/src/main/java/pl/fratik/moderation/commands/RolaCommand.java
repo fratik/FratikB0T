@@ -65,8 +65,9 @@ public class RolaCommand extends ModerationCommand {
             Integer iloscRol = 0;
 
             for (String rId : gc.getUzytkownicyMogaNadacSobieTeRange()) {
-                context.getMember().getRoles().contains(rId);
-                iloscRol++;
+                if (context.getMember().getRoles().contains(rId)) {
+                    iloscRol++;
+                }
             }
             if (maxRoli != null && maxRoli > 0) {
                 if (iloscRol >= gc.getRoleDoKupienia().size()) {
