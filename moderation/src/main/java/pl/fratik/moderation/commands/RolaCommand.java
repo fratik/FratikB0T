@@ -31,6 +31,9 @@ import pl.fratik.core.util.CommonErrors;
 import pl.fratik.core.util.StringUtil;
 
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class RolaCommand extends ModerationCommand {
 
@@ -58,6 +61,20 @@ public class RolaCommand extends ModerationCommand {
             return false;
         }
         try {
+            Integer maxRoli = gc.getMaxRoliDoZamododania();
+            Integer iloscRol = 0;
+
+            for (String rId : gc.getUzytkownicyMogaNadacSobieTeRange()) {
+                context.getMember().getRoles().contains(rId);
+                iloscRol++;
+            }
+            if (maxRoli != null && maxRoli > 0) {
+                if (iloscRol >= gc.getRoleDoKupienia().size()) {
+                    context.send(context.getTranslated("rola.maxroles", maxRoli, context.getPrefix()));
+                    return false;
+                }
+            }
+
             context.getGuild().addRoleToMember(context.getMember(), rola).complete();
             context.send(context.getTranslated("rola.success"));
         } catch (Exception e) {
@@ -67,7 +84,7 @@ public class RolaCommand extends ModerationCommand {
         return true;
     }
 
-    @SubCommand(name="list")
+    @SubCommand(name="list", aliases = "lista")
     public boolean list(@NotNull CommandContext context) {
         ArrayList<String> strArray = new ArrayList<>();
         StringBuilder sb = new StringBuilder();
