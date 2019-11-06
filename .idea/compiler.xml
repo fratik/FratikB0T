@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile default="true" name="Default" enabled="true" />
+    </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="core-core_main" target="1.8" />
+      <module name="core-core_test" target="1.8" />
+      <module name="fratikbot.core-impl.main" target="1.8" />
+      <module name="fratikbot.core-impl.test" target="1.8" />
+      <module name="fratikbot.dziennik.main" target="1.8" />
+      <module name="fratikbot.dziennik.test" target="1.8" />
+      <module name="pl.fratik-api_main" target="1.8" />
+      <module name="pl.fratik-api_test" target="1.8" />
+      <module name="pl.fratik-arguments_main" target="1.8" />
+      <module name="pl.fratik-arguments_test" target="1.8" />
+      <module name="pl.fratik-commands_main" target="1.8" />
+      <module name="pl.fratik-commands_test" target="1.8" />
+      <module name="pl.fratik-core_main" target="1.8" />
+      <module name="pl.fratik-core_test" target="1.8" />
+      <module name="pl.fratik-fratikcoiny_main" target="1.8" />
+      <module name="pl.fratik-fratikcoiny_test" target="1.8" />
+      <module name="pl.fratik-logs_main" target="1.8" />
+      <module name="pl.fratik-logs_test" target="1.8" />
+      <module name="pl.fratik-moderation_main" target="1.8" />
+      <module name="pl.fratik-moderation_test" target="1.8" />
+      <module name="pl.fratik-music_main" target="1.8" />
+      <module name="pl.fratik-music_test" target="1.8" />
+      <module name="pl.fratik-punkty_main" target="1.8" />
+      <module name="pl.fratik-punkty_test" target="1.8" />
+      <module name="pl.fratik-starboard_main" target="1.8" />
+      <module name="pl.fratik-starboard_test" target="1.8" />
+      <module name="pl.fratik-stats_main" target="1.8" />
+      <module name="pl.fratik-stats_test" target="1.8" />
+      <module name="pl.fratik-tags_main" target="1.8" />
+      <module name="pl.fratik-tags_test" target="1.8" />
+    </bytecodeTargetLevel>
+  </component>
+</project>

@@ -1,0 +1,6 @@
+{
+  "name": "tags",
+  "main": "pl.fratik.tags.Module",
+  "dependencies": ["arguments"],
+  "coreVersion": "@core.version@"
+}

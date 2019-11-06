@@ -1,0 +1,7 @@
+{
+  "name": "commands",
+  "main": "pl.fratik.commands.Module",
+  "dependencies": ["arguments"],
+  "peerDependencies": ["music"],
+  "coreVersion": "@core.version@"
+}

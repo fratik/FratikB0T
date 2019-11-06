@@ -1,0 +1,6 @@
+{
+  "name": "dev",
+  "main": "pl.fratik.dev.Module",
+  "dependencies": ["arguments"],
+  "coreVersion": "@core.version@"
+}

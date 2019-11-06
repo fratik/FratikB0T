@@ -1,0 +1,7 @@
+{
+  "name": "moderation",
+  "main": "pl.fratik.moderation.Module",
+  "dependencies": ["api", "arguments"],
+  "peerDependencies": ["logs"],
+  "coreVersion": "@core.version@"
+}

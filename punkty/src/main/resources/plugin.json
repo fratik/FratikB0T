@@ -1,0 +1,6 @@
+{
+  "name": "punkty",
+  "main": "pl.fratik.punkty.Module",
+  "dependencies": ["arguments"],
+  "coreVersion": "@core.version@"
+}

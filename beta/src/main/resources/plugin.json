@@ -1,0 +1,5 @@
+{
+  "name": "beta",
+  "main": "pl.fratik.beta.Module",
+  "coreVersion": "@core.version@"
+}

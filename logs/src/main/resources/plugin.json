@@ -1,0 +1,5 @@
+{
+  "name": "logs",
+  "main": "pl.fratik.logs.Module",
+  "coreVersion": "@core.version@"
+}

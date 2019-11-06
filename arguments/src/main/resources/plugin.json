@@ -1,0 +1,5 @@
+{
+  "name": "arguments",
+  "main": "pl.fratik.arguments.Module",
+  "coreVersion": "@core.version@"
+}

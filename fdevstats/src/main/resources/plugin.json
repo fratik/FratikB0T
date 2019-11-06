@@ -1,0 +1,6 @@
+{
+  "name": "fdevstats",
+  "main": "pl.fratik.fdevstats.Module",
+  "dependencies": ["stats"],
+  "coreVersion": "@core.version@"
+}

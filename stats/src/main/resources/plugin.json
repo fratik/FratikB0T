@@ -1,0 +1,6 @@
+{
+  "name": "stats",
+  "main": "pl.fratik.stats.Module",
+  "peerDependencies": ["api"],
+  "coreVersion": "@core.version@"
+}

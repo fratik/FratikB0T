@@ -1,0 +1,6 @@
+{
+  "name": "starboard",
+  "main": "pl.fratik.starboard.Module",
+  "dependencies": ["arguments"],
+  "coreVersion": "@core.version@"
+}

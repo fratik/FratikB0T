@@ -1,0 +1,86 @@
+/*
+ * Copyright (C) 2019 FratikB0T Contributors
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+import org.apache.tools.ant.filters.ReplaceTokens
+
+plugins {
+    id'java'
+    id'application'
+    id'com.github.johnrengelman.shadow' version '4.0.2'
+}
+
+group 'pl.fratik'
+mainClassName = 'pl.fratik.core.Main'
+
+allprojects {
+    repositories {
+        mavenCentral()
+        jcenter()
+        maven { url "https://plugins.gradle.org/m2/" }
+        maven { url 'https://jitpack.io' }
+    }
+    sourceCompatibility = 1.8
+    targetCompatibility = 1.8
+
+    compileJava {
+        options.encoding = 'UTF-8'
+    }
+}
+
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'application'
+    apply plugin: 'com.github.johnrengelman.shadow'
+
+    group = 'pl.fratik'
+    sourceCompatibility = 1.8
+    targetCompatibility = 1.8
+
+    processResources {
+        evaluationDependsOn(":core")
+
+        from('src/main/resources') {
+            include '**/*.json'
+            filter ReplaceTokens, tokens: [
+                "version": version,
+                "core.version": project(":core").version
+            ]
+        }
+
+        from('src/main/resources') {
+            exclude '**/*.json'
+        }
+        outputs.upToDateWhen { false }
+    }
+
+    compileJava {
+        options.compilerArgs << '-parameters'
+        options.encoding = 'UTF-8'
+    }
+}
+
+build.dependsOn jar
+
+compileJava {
+    options.compilerArgs << '-parameters'
+}
+
+artifacts {
+    archives shadowJar
+}
+
+compileJava.options.encoding = 'UTF-8'
