@@ -69,7 +69,7 @@ public class Module implements Modul {
         commands.add(new PingCommand());
         commands.add(new HelpCommand(managerKomend, guildDao, shardManager));
         commands.add(new LanguageCommand(userDao));
-        commands.add(new SettingsCommand(eventWaiter, userDao, guildDao, managerArgumentow, shardManager, tlumaczenia));
+        commands.add(new UstawieniaCommand(eventWaiter, userDao, guildDao, managerArgumentow, shardManager, tlumaczenia));
         commands.add(new PoziomCommand(guildDao, shardManager));
         commands.add(new BotstatsCommand(shardManager, managerModulow));
         if (Ustawienia.instance.apiUrls.get("image-server") != null && Ustawienia.instance.apiKeys.get("image-server") != null) {

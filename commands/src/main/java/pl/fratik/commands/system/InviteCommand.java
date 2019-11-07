@@ -49,8 +49,8 @@ public class InviteCommand extends Command {
         eb.setAuthor(UserUtil.formatDiscrim(context.getEvent().getJDA().getSelfUser()), null, context.getEvent().getJDA().getSelfUser().getEffectiveAvatarUrl().replace(".webp", ".png"));
         eb.setColor(UserUtil.getPrimColor(context.getMember().getUser()));
         eb.setDescription(context.getTranslated("invite.description"));
-        eb.addField(context.getTranslated("invite.addbot"), context.getTranslated("invite.field", invite), true);
-        eb.addField(context.getTranslated("invite.joinfdev"), context.getTranslated("invite.field", dc), true);
+        eb.addField(context.getTranslated("invite.addbot"), context.getTranslated("generic.click", invite), true);
+        eb.addField(context.getTranslated("invite.joinfdev"), context.getTranslated("generic.click", dc), true);
         context.send(eb.build());
         return true;
     }
