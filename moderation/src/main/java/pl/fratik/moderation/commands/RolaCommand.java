@@ -17,7 +17,10 @@
 
 package pl.fratik.moderation.commands;
 
+import net.dv8tion.jda.api.OnlineStatus;
 import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Role;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.CommandCategory;
@@ -56,24 +59,24 @@ public class RolaCommand extends ModerationCommand {
         }
         Role rola = (Role) context.getArgs()[0];
         GuildConfig gc = guildDao.get(context.getGuild());
+
         if (!gc.getUzytkownicyMogaNadacSobieTeRange().contains(rola.getId())) {
             context.send(context.getTranslated("rola.not.defined"));
             return false;
         }
         try {
-            Integer maxRoli = gc.getMaxRoliDoZamododania();
-            Integer iloscRol = 0;
+            Integer maxRolesSize = gc.getMaxRoliDoZamododania();
+            if (maxRolesSize == null) maxRolesSize = 100;
 
-            for (String rId : gc.getUzytkownicyMogaNadacSobieTeRange()) {
-                if (context.getMember().getRoles().contains(rId)) {
-                    iloscRol++;
-                }
+            if (maxRolesSize == 0) {
+                context.send(context.getTranslated("rola.disabled"));
+                return false;
             }
-            if (maxRoli != null && maxRoli > 0) {
-                if (iloscRol >= gc.getRoleDoKupienia().size()) {
-                    context.send(context.getTranslated("rola.maxroles", maxRoli, context.getPrefix()));
-                    return false;
-                }
+
+            Integer memberRolesSize = (int) context.getMember().getRoles().stream().filter(r -> filtr(r, gc)).count();
+            if (memberRolesSize >= maxRolesSize) {
+                context.send(context.getTranslated("rola.maxroles", maxRolesSize, memberRolesSize , context.getPrefix()));
+                return false;
             }
 
             context.getGuild().addRoleToMember(context.getMember(), rola).complete();
@@ -118,6 +121,11 @@ public class RolaCommand extends ModerationCommand {
     @Override
     public PermLevel getPermLevel() {
         return PermLevel.EVERYONE;
+    }
+
+    private static boolean filtr(Role r, GuildConfig gc) {
+        if (gc.getUzytkownicyMogaNadacSobieTeRange().contains(r.getId())) { return true; }
+        return false;
     }
 
 }
