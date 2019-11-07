@@ -34,7 +34,6 @@ include 'stats'
 include 'tags'
 include 'logs'
 include 'fdevstats'
-include 'beta'
 include 'dev'
 include 'gwarny'
 
