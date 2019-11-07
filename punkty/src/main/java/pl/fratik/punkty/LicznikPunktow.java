@@ -277,7 +277,7 @@ public class LicznikPunktow {
         if (rola == null) {
 
             Language l = tlumaczenia.getLanguage(event.getMember());
-            if (uc.isLvlUpOnDM() == false) {
+            if (!uc.isLvlUpOnDM()) {
                 try {
                     String channelId = gc.getLvlupMessagesCustomChannel();
                     MessageChannel ch = null;
@@ -298,7 +298,7 @@ public class LicznikPunktow {
                             event.getLevel(), event.getMember().getGuild().getName(), prefix)).complete();
                 });
                 return;
-            } catch (ErrorResponseException e) {
+            } catch (Exception e) {
                 /*lul*/
             }
         }
