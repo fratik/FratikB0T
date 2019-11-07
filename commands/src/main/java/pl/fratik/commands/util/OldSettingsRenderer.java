@@ -346,7 +346,7 @@ public class OldSettingsRenderer implements SettingsRenderer {
 //        else builder.append("7. ").append(ctx.getTranslated("ustawienia.server.punkty.wylaczone")).append("\n");
         builder.append("\n0. ").append(ctx.getTranslated("ustawienia.footer"));
         builder.append("```\n").append(ctx.getTranslated("ustawienia.betterver.full",
-                Ustawienia.instance.botUrl + "/dashboard/" + ctx.getGuild().getId() + "/manage"));
+                ctx.getManageLink(ctx.getGuild())));
         ctx.send(builder.toString(), message -> {
             MessageWaiter waiter = new MessageWaiter(eventWaiter, ctx);
             waiter.setTimeoutHandler(() -> onTimeout(message));
