@@ -24,6 +24,8 @@ import com.google.common.eventbus.Subscribe;
 import io.sentry.Sentry;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.exceptions.ErrorResponseException;
+import net.dv8tion.jda.api.requests.RestAction;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +47,7 @@ import pl.fratik.core.util.UserUtil;
 import pl.fratik.punkty.entity.PunktyDao;
 import pl.fratik.punkty.entity.PunktyRow;
 
+import javax.naming.Reference;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -272,20 +275,32 @@ public class LicznikPunktow {
         if (rolaStr != null) rola = event.getMember().getGuild().getRoleById(rolaStr);
         else rola = null;
         if (rola == null) {
+
             Language l = tlumaczenia.getLanguage(event.getMember());
-            try {
-                String channelId = gc.getLvlupMessagesCustomChannel();
-                MessageChannel ch = null;
-                if (channelId != null && !channelId.isEmpty()) ch = shardManager.getTextChannelById(channelId);
-                if (ch == null) ch = event.getChannel();
-                if (event.getChannel().equals(ch) && !uc.isLvlupMessages()) return;
-                ch.sendMessage(tlumaczenia.get(l,
-                        "generic.lvlup", event.getMember().getUser().getName(), event.getLevel(), prefix))
-                        .queue(null, kurwa -> {});
-            } catch (Exception e) {
-                //brak permów
+            if (uc.isLvlUpOnDM() == false) {
+                try {
+                    String channelId = gc.getLvlupMessagesCustomChannel();
+                    MessageChannel ch = null;
+                    if (channelId != null && !channelId.isEmpty()) ch = shardManager.getTextChannelById(channelId);
+                    if (ch == null) ch = event.getChannel();
+                    if (event.getChannel().equals(ch) && !uc.isLvlupMessages()) return;
+                    ch.sendMessage(tlumaczenia.get(l,
+                            "generic.lvlup.channel", event.getMember().getUser().getName(), event.getLevel(), prefix))
+                            .queue(null, kurwa -> {});
+                } catch (Exception e) {
+                    //brak permów
+                }
+                return;
             }
-            return;
+            try {
+                event.getMember().getUser().openPrivateChannel().queue(e -> {
+                    e.sendMessage(tlumaczenia.get(l, "generic.lvlup.channel",
+                            event.getLevel(), event.getMember().getGuild().getName())).complete();
+                });
+                return;
+            } catch (ErrorResponseException e) {
+                /*lul*/
+            }
         }
         try {
             event.getMember().getGuild()
