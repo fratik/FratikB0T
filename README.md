@@ -7,7 +7,7 @@ _(bosh brzmię jak nadgryzione jabłko)_
 [YouTrack (tablica bugów/feature requestów)](https://issues.fratikbot.pl)  
 [TeamCity (CI)](https://ci.fratikbot.pl)  
 [Discord Bot List](https://top.gg/bot/338359366891732993)  
-Serwer Discord (patrz na sam dół)
+[Serwer Discord](#serwer-discord)
 
 ## Co to być?
 Bot na Discorda zawierajacy 131 komend, istniejący od 2 lat i posiadający ~~3000+~~ 1500+ serwerów.
