@@ -18,12 +18,15 @@
 package pl.fratik.commands.narzedzia;
 
 import com.google.gson.JsonObject;
+import com.google.inject.internal.cglib.core.$Constants;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.hypixel.api.HypixelAPI;
 import net.hypixel.api.reply.GuildReply;
 import net.hypixel.api.reply.PlayerReply;
+import net.hypixel.api.reply.WatchdogStatsReply;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import pl.fratik.core.Ustawienia;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandCategory;
@@ -31,18 +34,18 @@ import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.util.CommonErrors;
 import pl.fratik.core.util.CommonUtil;
+import pl.fratik.core.util.StringUtil;
+import pl.fratik.core.util.UserUtil;
 
 import java.awt.*;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
-import java.util.Date;
-import java.util.LinkedHashMap;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 
 public class HypixelCommand extends Command {
 
     private final HypixelAPI hypixelAPI;
+    private WatchdogStatsReply wdr;
 
     public HypixelCommand() {
         name = "hypixel";
@@ -55,43 +58,27 @@ public class HypixelCommand extends Command {
         allowInDMs = true;
         aliases = new String[] {"hp"};
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
-        cooldown = 3;
+        cooldown = 5; // Jak będzie za dużo requestów, to Hypixel pernametnie banuje token ~ Kamil
         hypixelAPI = new HypixelAPI(UUID.fromString(Ustawienia.instance.apiKeys.get("hypixelToken")));
     }
 
     @Override
     public boolean execute(@NotNull CommandContext context){
-        //Player
         String cos = null;
-        String player;
-        String wersja;
-        String tryb;
-        String jezyk;
-        String ranga = "Member";
-        Integer karma;
-        long last;
-        long first;
-        int level = 100;
-        Date lastlogin;
-        Date firstlogin;
-        //Guild
-        String name;
-        String des;
-        String tagname;
-        String tagcolor;
-        Integer members;
-        long exp;
-        Integer coins;
-        long created;
+        Object[] args = context.getArgs();
         SimpleDateFormat date = new SimpleDateFormat("dd.MM.yyyy '@' HH:mm z", context.getLanguage().getLocale());
-        if (Objects.equals(context.getArgs()[0], "player") || Objects.equals(context.getArgs()[0], "guild")) {
-            cos = (String) context.getArgs()[0];
-        }
-        if (cos == null) {
-            CommonErrors.usage(context);
-            return false;
-        }
-        if (cos.equals("player")) {
+        if (args[0].equals("player")) {
+            String player;
+            String wersja;
+            String tryb;
+            String jezyk;
+            String ranga = "Member";
+            Integer karma;
+            long last;
+            long first;
+            int level = 100;
+            Date lastlogin;
+            Date firstlogin;
             PlayerReply pr = hypixelAPI.getPlayerByName((String) context.getArgs()[1]).join();
             try {
                 JsonObject pl = pr.getPlayer();
@@ -136,7 +123,16 @@ public class HypixelCommand extends Command {
             eb.addField(context.getTranslated("hypixel.embed.player.karma"), String.valueOf(karma), true);
             context.send(eb.build());
             return true;
-        } else if (cos.equals("guild")) {
+        }
+        if (args[0].equals("guild")) {
+            String name;
+            String des;
+            String tagname;
+            String tagcolor;
+            Integer members;
+            long exp;
+            Integer coins;
+            long created;
             try {
                 GuildReply gr = hypixelAPI.getGuildByName((String) context.getArgs()[1]).join();
                 GuildReply.Guild g = gr.getGuild();
@@ -165,8 +161,35 @@ public class HypixelCommand extends Command {
             eb.addField(context.getTranslated("hypixel.embed.guild.exp"), String.valueOf(exp), true);
             context.send(eb.build());
             return true;
+        } if (args[0].equals("wdr")) {
+            EmbedBuilder eb = new EmbedBuilder();
+            eb.setColor(UserUtil.getPrimColor(context.getMember().getUser()));
+            eb.setTitle(context.getTranslated("hypixel.embed.wdr.title"));
+            eb.setDescription(context.getTranslated("hypixel.embed.wdr.description"));
+
+            eb.addField(context.getTranslated("hypixel.embed.wdr.stafftotal"), string(wdr.getStaffTotal(), context), false);
+            eb.addField(context.getTranslated("hypixel.embed.wdr.wdrtotal"), string(wdr.getWatchdogTotal(), context), false);
+
+            eb.addField(context.getTranslated("hypixel.embed.wdr.staffdaily"), string(wdr.getStaffRollingDaily(), context), false);
+            eb.addField(context.getTranslated("hypixel.embed.wdr.wdrlastminute"), string(wdr.getWatchdogLastMinute(), context), false);
+
+            eb.addField(context.getTranslated("hypixel.embed.wdr.stafflastday"), string(wdr.getStaffRollingDaily(), context), false);
+            eb.addField(context.getTranslated("hypixel.embed.wdr.wdrlastday"), string(wdr.getWatchdogRollingDaily(), context), false);
+
+
+            context.send(eb.build());
+            return true;
         }
+        CommonErrors.usage(context);
         return false;
+    }
+
+    private String string(int eldo, CommandContext ctx) {
+        return String.format("%s ban%s", String.valueOf(eldo), rzeczownik(eldo, "y", "ów"));
+    }
+
+    private String rzeczownik(int liczba, String drugaZmiana, String trzeciaZmiana) {
+        return liczba == 1 ? "" : liczba <= 4 && liczba >= 2 ? drugaZmiana : trzeciaZmiana; //NOSONAR
     }
 
     private enum Kolory {
