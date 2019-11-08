@@ -64,21 +64,18 @@ public class RolaCommand extends ModerationCommand {
             context.send(context.getTranslated("rola.not.defined"));
             return false;
         }
-        try {
-            Integer maxRolesSize = gc.getMaxRoliDoZamododania();
-            if (maxRolesSize == null) maxRolesSize = 100;
 
-            if (maxRolesSize == 0) {
-                context.send(context.getTranslated("rola.disabled"));
-                return false;
-            }
+        Integer maxRolesSize = gc.getMaxRoliDoSamododania();
+        if (maxRolesSize == null) maxRolesSize = 10;
 
-            Integer memberRolesSize = (int) context.getMember().getRoles().stream().filter(r -> filtr(r, gc)).count();
+        if (maxRolesSize > 0) {
+            int memberRolesSize = (int) context.getMember().getRoles().stream().filter(r -> filtr(r, gc)).count();
             if (memberRolesSize >= maxRolesSize) {
-                context.send(context.getTranslated("rola.maxroles", maxRolesSize, memberRolesSize , context.getPrefix()));
+                context.send(context.getTranslated("rola.maxroles", maxRolesSize, memberRolesSize, context.getPrefix()));
                 return false;
             }
-
+        }
+        try {
             context.getGuild().addRoleToMember(context.getMember(), rola).complete();
             context.send(context.getTranslated("rola.success"));
         } catch (Exception e) {
