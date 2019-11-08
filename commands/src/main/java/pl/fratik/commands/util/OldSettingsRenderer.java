@@ -30,6 +30,7 @@ import pl.fratik.core.entity.*;
 import pl.fratik.core.manager.ManagerArgumentow;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.EventWaiter;
+import pl.fratik.core.util.GuildUtil;
 import pl.fratik.core.util.MessageWaiter;
 import pl.fratik.core.util.UserUtil;
 
@@ -60,6 +61,7 @@ public class OldSettingsRenderer implements SettingsRenderer {
     private final Message wiadomoscJezyki = null;
     private GuildConfig guildConfig;
     private UserConfig userConfig;
+    private GuildUtil guildUitl;
     private boolean koniecZara;
 
     public OldSettingsRenderer(EventWaiter eventWaiter, UserDao userDao, GuildDao guildDao, Tlumaczenia tlumaczenia, ManagerArgumentow managerArgumentow, ShardManager shardManager, CommandContext ctx) {
@@ -346,7 +348,7 @@ public class OldSettingsRenderer implements SettingsRenderer {
 //        else builder.append("7. ").append(ctx.getTranslated("ustawienia.server.punkty.wylaczone")).append("\n");
         builder.append("\n0. ").append(ctx.getTranslated("ustawienia.footer"));
         builder.append("```\n").append(ctx.getTranslated("ustawienia.betterver.full",
-                ctx.getManageLink(ctx.getGuild())));
+                guildUitl.getManageLink(ctx.getGuild())));
         ctx.send(builder.toString(), message -> {
             MessageWaiter waiter = new MessageWaiter(eventWaiter, ctx);
             waiter.setTimeoutHandler(() -> onTimeout(message));
