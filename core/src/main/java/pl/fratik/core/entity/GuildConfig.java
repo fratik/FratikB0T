@@ -78,7 +78,7 @@ public class GuildConfig implements DatabaseEntity {
     private Integer warnyNaBan = 15;
     private Integer warnyNaKick = 5;
     private Integer warnyNaTymczasowegoBana = 10;
-    private Integer maxRoliDoSamododania = 10;
+    private Integer maxRoliDoSamododania = 0;
     @Deprecated
     private Boolean wymagajWeryfikacjiDwuetapowej = false;
     private Boolean wysylajDmOKickachLubBanach = true;
