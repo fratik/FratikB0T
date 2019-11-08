@@ -183,9 +183,4 @@ public class CommandContext {
                 .setFooter("© " + shard.getSelfUser().getName(),
                         UserUtil.getAvatarUrl(shard.getSelfUser()));
     }
-
-    public String getManageLink(Guild g) {
-        return Ustawienia.instance.botUrl + "/dashboard/" + g.getId() + "/manage";
-    }
-
 }
