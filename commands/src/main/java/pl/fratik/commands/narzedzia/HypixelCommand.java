@@ -61,25 +61,34 @@ public class HypixelCommand extends Command {
 
     @Override
     public boolean execute(@NotNull CommandContext context){
-        Object[] args = context.getArgs();
-
+        // Player
+        String cos = null;
+        String player;
+        String wersja;
+        String tryb;
+        String jezyk;
+        String ranga = "Member";
+        Integer karma;
+        long last;
+        long first;
+        int level = 100;
+        Date lastlogin;
+        Date firstlogin;
+        // Guild
+        String name;
+        String des;
+        String tagname;
+        String tagcolor;
+        Integer members;
+        long exp;
+        Integer coins;
+        long created;
         SimpleDateFormat date = new SimpleDateFormat("dd.MM.yyyy '@' HH:mm z", context.getLanguage().getLocale());
         if (context.getArgs()[0].equals("player")) {
             if (context.getArgs()[1] == null) {
                 CommonErrors.usage(context);
                 return false;
             }
-            String player;
-            String wersja;
-            String tryb;
-            String jezyk;
-            String ranga = "Member";
-            Integer karma;
-            long last;
-            long first;
-            int level = 100;
-            Date lastlogin;
-            Date firstlogin;
             PlayerReply pr = hypixelAPI.getPlayerByName((String) context.getArgs()[1]).join();
             try {
                 JsonObject pl = pr.getPlayer();
@@ -130,14 +139,6 @@ public class HypixelCommand extends Command {
                 CommonErrors.usage(context);
                 return false;
             }
-            String name;
-            String des;
-            String tagname;
-            String tagcolor;
-            Integer members;
-            long exp;
-            Integer coins;
-            long created;
             try {
                 GuildReply gr = hypixelAPI.getGuildByName((String) context.getArgs()[1]).join();
                 GuildReply.Guild g = gr.getGuild();
@@ -171,16 +172,12 @@ public class HypixelCommand extends Command {
             eb.setColor(UserUtil.getPrimColor(context.getMember().getUser()));
             eb.setTitle(context.getTranslated("hypixel.embed.wdr.title"));
             eb.setDescription(context.getTranslated("hypixel.embed.wdr.description"));
-
             eb.addField(context.getTranslated("hypixel.embed.wdr.stafftotal"), string(wdr.getStaffTotal(), context), false);
             eb.addField(context.getTranslated("hypixel.embed.wdr.wdrtotal"), string(wdr.getWatchdogTotal(), context), false);
-
             eb.addField(context.getTranslated("hypixel.embed.wdr.staffdaily"), string(wdr.getStaffRollingDaily(), context), false);
             eb.addField(context.getTranslated("hypixel.embed.wdr.wdrlastminute"), string(wdr.getWatchdogLastMinute(), context), false);
-
             eb.addField(context.getTranslated("hypixel.embed.wdr.stafflastday"), string(wdr.getStaffRollingDaily(), context), false);
             eb.addField(context.getTranslated("hypixel.embed.wdr.wdrlastday"), string(wdr.getWatchdogRollingDaily(), context), false);
-
 
             context.send(eb.build());
             return true;
@@ -191,10 +188,6 @@ public class HypixelCommand extends Command {
 
     private String string(int eldo, CommandContext ctx) {
         return String.format("%s %s", eldo, ctx.getTranslated("hypixel.embed.wdr.ban"));
-    }
-
-    private String rzeczownik(int liczba, String drugaZmiana, String trzeciaZmiana) {
-        return liczba == 1 ? "" : liczba <= 4 && liczba >= 2 ? drugaZmiana : trzeciaZmiana; //NOSONAR
     }
 
     private enum Kolory {
