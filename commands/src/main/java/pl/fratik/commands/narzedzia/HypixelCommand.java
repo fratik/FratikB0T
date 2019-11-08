@@ -18,7 +18,6 @@
 package pl.fratik.commands.narzedzia;
 
 import com.google.gson.JsonObject;
-import com.google.inject.internal.cglib.core.$Constants;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.hypixel.api.HypixelAPI;
@@ -26,7 +25,6 @@ import net.hypixel.api.reply.GuildReply;
 import net.hypixel.api.reply.PlayerReply;
 import net.hypixel.api.reply.WatchdogStatsReply;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import pl.fratik.core.Ustawienia;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandCategory;
@@ -34,7 +32,6 @@ import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.util.CommonErrors;
 import pl.fratik.core.util.CommonUtil;
-import pl.fratik.core.util.StringUtil;
 import pl.fratik.core.util.UserUtil;
 
 import java.awt.*;
@@ -53,7 +50,7 @@ public class HypixelCommand extends Command {
         LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
         hmap.put("typ", "string");
         hmap.put("nazwa", "string");
-        uzycie = new Uzycie(hmap, new boolean[] {true, true});
+        uzycie = new Uzycie(hmap, new boolean[] {true, false});
         uzycieDelim = " ";
         allowInDMs = true;
         aliases = new String[] {"hp"};
@@ -64,10 +61,13 @@ public class HypixelCommand extends Command {
 
     @Override
     public boolean execute(@NotNull CommandContext context){
-        String cos = null;
         Object[] args = context.getArgs();
         SimpleDateFormat date = new SimpleDateFormat("dd.MM.yyyy '@' HH:mm z", context.getLanguage().getLocale());
         if (args[0].equals("player")) {
+            if (args[1] == null) {
+                CommonErrors.usage(context);
+                return false;
+            }
             String player;
             String wersja;
             String tryb;
@@ -125,6 +125,10 @@ public class HypixelCommand extends Command {
             return true;
         }
         if (args[0].equals("guild")) {
+            if (args[1] == null) {
+                CommonErrors.usage(context);
+                return false;
+            }
             String name;
             String des;
             String tagname;
