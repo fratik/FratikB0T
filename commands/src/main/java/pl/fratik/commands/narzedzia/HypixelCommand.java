@@ -62,9 +62,10 @@ public class HypixelCommand extends Command {
     @Override
     public boolean execute(@NotNull CommandContext context){
         Object[] args = context.getArgs();
+
         SimpleDateFormat date = new SimpleDateFormat("dd.MM.yyyy '@' HH:mm z", context.getLanguage().getLocale());
-        if (args[0].equals("player")) {
-            if (args[1] == null) {
+        if (context.getArgs()[0].equals("player")) {
+            if (context.getArgs()[1] == null) {
                 CommonErrors.usage(context);
                 return false;
             }
@@ -124,8 +125,8 @@ public class HypixelCommand extends Command {
             context.send(eb.build());
             return true;
         }
-        if (args[0].equals("guild")) {
-            if (args[1] == null) {
+        if (Objects.equals(context.getArgs()[0], "guild")) {
+            if (context.getArgs()[1] == null) {
                 CommonErrors.usage(context);
                 return false;
             }
@@ -165,7 +166,7 @@ public class HypixelCommand extends Command {
             eb.addField(context.getTranslated("hypixel.embed.guild.exp"), String.valueOf(exp), true);
             context.send(eb.build());
             return true;
-        } if (args[0].equals("wdr")) {
+        } if (context.getArgs()[0].equals("wdr")) {
             EmbedBuilder eb = new EmbedBuilder();
             eb.setColor(UserUtil.getPrimColor(context.getMember().getUser()));
             eb.setTitle(context.getTranslated("hypixel.embed.wdr.title"));
@@ -189,7 +190,7 @@ public class HypixelCommand extends Command {
     }
 
     private String string(int eldo, CommandContext ctx) {
-        return String.format("%s ban%s", String.valueOf(eldo), rzeczownik(eldo, "y", "ów"));
+        return String.format("%s %s", eldo, ctx.getTranslated("hypixel.embed.wdr.ban"));
     }
 
     private String rzeczownik(int liczba, String drugaZmiana, String trzeciaZmiana) {
