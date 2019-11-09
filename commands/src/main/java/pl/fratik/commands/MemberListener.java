@@ -66,7 +66,7 @@ class MemberListener {
     @Subscribe
     public void onMemberLeaveEvent(GuildMemberLeaveEvent e) {
         GuildConfig gc = getGuildConfig(e.getGuild());
-        generateEmbed(e.getUser(), e.getGuild(), gc.getPowitania().entrySet());
+        generateEmbed(e.getUser(), e.getGuild(), gc.getPozegnania().entrySet());
     }
 
     private void przywitanie(GuildMemberJoinEvent e) {
@@ -76,7 +76,7 @@ class MemberListener {
 
     private void generateEmbed(User user, Guild guild, Set<Map.Entry<String, String>> kek) {
         EmbedBuilder eb = new EmbedBuilder();
-        String avatar = user.getEffectiveAvatarUrl().replace(".webp", ".png");
+        String avatar = UserUtil.getAvatarUrl(user);
 
         for (Map.Entry<String, String> ch : kek) {
             TextChannel cha = guild.getTextChannelById(ch.getKey());
@@ -89,6 +89,7 @@ class MemberListener {
             eb.setThumbnail(avatar);
             eb.setAuthor(UserUtil.formatDiscrim(user), avatar);
             eb.setDescription(msg);
+            eb.setColor(UserUtil.getPrimColor(user));
             cha.sendMessage(eb.build()).queue();
             break;
         }
