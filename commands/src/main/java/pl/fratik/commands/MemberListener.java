@@ -32,6 +32,7 @@ import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.event.DatabaseUpdateEvent;
 import pl.fratik.core.util.CommonUtil;
+import pl.fratik.core.util.UserUtil;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,10 +40,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 class MemberListener {
     private final GuildDao guildDao;
     private final Cache<String, GuildConfig> gcCache = Caffeine.newBuilder().expireAfterWrite(1, TimeUnit.HOURS).build();
+    private GuildMemberLeaveEvent evt;
 
     MemberListener(GuildDao guildDao) {
         this.guildDao = guildDao;
@@ -52,10 +55,13 @@ class MemberListener {
     public void onMemberJoinEvent(GuildMemberJoinEvent e) {
         autorole(e);
         przywitanie(e);
+        dajRole(e);
     }
 
     @Subscribe
     public void onMemberLeaveEvent(GuildMemberLeaveEvent e) {
+        zapiszRole(e);
+
         GuildConfig gc = getGuildConfig(e.getGuild());
         for (Map.Entry<String, String> ch : gc.getPozegnania().entrySet()) {
             TextChannel cha = e.getGuild().getTextChannelById(ch.getKey());
@@ -120,5 +126,41 @@ class MemberListener {
     public void onDatabaseUpdateEvent(DatabaseUpdateEvent e) {
         if (e.getEntity() instanceof GuildConfig)
             gcCache.put(((GuildConfig) e.getEntity()).getGuildId(), (GuildConfig) e.getEntity());
+    }
+
+    // Ponizej beda rzeczy zwiazane z ZapamietajRole, ok? ok
+
+    private void zapiszRole(GuildMemberLeaveEvent e) {
+        GuildConfig gc = getGuildConfig(e.getGuild());
+        if (!gc.getZapamietajRole() || gc.getZapamietajRole() == null) return;
+        List<Role> roles = e.getMember().getRoles().stream().filter(r -> filtr(r, e.getGuild())).collect(Collectors.toList());
+        // trzeba zapisac id listy roles do bazy danych
+    }
+
+    private void dajRole(GuildMemberJoinEvent e) {
+        GuildConfig gc = getGuildConfig(e.getGuild());
+        if (!gc.getZapamietajRole() || gc.getZapamietajRole() == null) return;
+
+        List<String> zapisaneRole = null; // zapisana lista ról
+        List<Role> dajRole = new ArrayList<>(); // role, które ma dac
+
+        for (String id : zapisaneRole) {
+            Role r = e.getGuild().getRoleById(id);
+            if (filtr(r, e.getGuild())) {
+                dajRole.add(r);
+            }
+        }
+        try {
+            e.getGuild().modifyMemberRoles(e.getMember(), dajRole, new ArrayList<>()).queue();
+        } catch (Exception xd) {
+            /*lul*/
+        }
+    }
+
+    private Boolean filtr(Role r, Guild g) {
+        GuildConfig gc = getGuildConfig(g);
+        // UwU lepiej nie zapisywać roli, która maja permlvl
+        if (r == null || gc.getModRole().equals(r.getId()) || gc.getAdminRole().equals(r.getId())) return false;
+        return true;
     }
 }
