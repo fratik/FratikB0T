@@ -21,10 +21,8 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.Subscribe;
-import net.dv8tion.jda.api.entities.ChannelType;
-import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Role;
-import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberLeaveEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
@@ -32,11 +30,9 @@ import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.event.DatabaseUpdateEvent;
 import pl.fratik.core.util.CommonUtil;
+import pl.fratik.core.util.UserUtil;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
@@ -54,18 +50,6 @@ class MemberListener {
         przywitanie(e);
     }
 
-    @Subscribe
-    public void onMemberLeaveEvent(GuildMemberLeaveEvent e) {
-        GuildConfig gc = getGuildConfig(e.getGuild());
-        for (Map.Entry<String, String> ch : gc.getPozegnania().entrySet()) {
-            TextChannel cha = e.getGuild().getTextChannelById(ch.getKey());
-            if (cha == null) continue;
-            cha.sendMessage(ch.getValue()
-                    .replaceAll("\\{\\{user}}", e.getMember().getUser().getAsTag().replaceAll("@(everyone|here)", "@\u200b$1"))
-                    .replaceAll("\\{\\{server}}", e.getGuild().getName().replaceAll("@(everyone|here)", "@\u200b$1"))).queue();
-        }
-    }
-
     private void autorole(GuildMemberJoinEvent e) {
         GuildConfig gc = getGuildConfig(e.getGuild());
         List<Role> role = new ArrayList<>();
@@ -79,15 +63,34 @@ class MemberListener {
         e.getGuild().modifyMemberRoles(e.getMember(), role, new ArrayList<>()).queue();
     }
 
+    @Subscribe
+    public void onMemberLeaveEvent(GuildMemberLeaveEvent e) {
+        GuildConfig gc = getGuildConfig(e.getGuild());
+        generateEmbed(e.getUser(), e.getGuild(), gc.getPowitania().entrySet());
+    }
+
     private void przywitanie(GuildMemberJoinEvent e) {
         GuildConfig gc = getGuildConfig(e.getGuild());
-        for (Map.Entry<String, String> ch : gc.getPowitania().entrySet()) {
-            TextChannel cha = e.getGuild().getTextChannelById(ch.getKey());
+        generateEmbed(e.getUser(), e.getGuild(), gc.getPowitania().entrySet());
+    }
+
+    private void generateEmbed(User user, Guild guild, Set<Map.Entry<String, String>> kek) {
+        EmbedBuilder eb = new EmbedBuilder();
+        String avatar = user.getEffectiveAvatarUrl().replace(".webp", ".png");
+
+        for (Map.Entry<String, String> ch : kek) {
+            TextChannel cha = guild.getTextChannelById(ch.getKey());
             if (cha == null || !cha.canTalk()) continue;
-            cha.sendMessage(ch.getValue()
-                    .replaceAll("\\{\\{user}}", e.getMember().getUser().getAsTag().replaceAll("@(everyone|here)", "@\u200b$1"))
-                    .replaceAll("\\{\\{mention}}", e.getMember().getAsMention())
-                    .replaceAll("\\{\\{server}}", e.getGuild().getName().replaceAll("@(everyone|here)", "@\u200b$1"))).queue();
+            String msg = ch.getValue()
+                    .replaceAll("\\{\\{user}}", user.getAsTag().replaceAll("@(everyone|here)", "@\u200b$1"))
+                    .replaceAll("\\{\\{mention}}", user.getAsMention())
+                    .replaceAll("\\{\\{size}}", String.valueOf(guild.getMembers().size()))
+                    .replaceAll("\\{\\{server}}", guild.getName().replaceAll("@(everyone|here)", "@\u200b$1"));
+            eb.setThumbnail(avatar);
+            eb.setAuthor(UserUtil.formatDiscrim(user), avatar);
+            eb.setDescription(msg);
+            cha.sendMessage(eb.build()).queue();
+            break;
         }
     }
 
