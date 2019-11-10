@@ -46,7 +46,7 @@ public class LiczekCommand extends Command {
 
         LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
         hmap.put("typ", "string");
-        hmap.put("kanal", "string");
+        hmap.put("kanal", "channel");
         uzycie = new Uzycie(hmap, new boolean[] {true, false});
     }
 
@@ -55,17 +55,40 @@ public class LiczekCommand extends Command {
         GuildConfig gc = guildDao.get(context.getGuild());
 
         if (context.getArgs()[0].equals("info")) {
-            String id = liczekListener.getChannelId(context.getGuild());
+            String id = gc.getLiczekKanal();
             if (id == null) {
-                context.send(context.getTranslated("liczek.notset"));
+                context.send("gc.getLiczekKanal==null");
                 return false;
             }
             TextChannel txt = context.getGuild().getTextChannelById(id);
             if (txt == null) {
-                context.send(context.getTranslated("liczek.notset"));
+                context.send("txt==null");
                 return false;
             }
             context.send(context.getTranslated("liczek.info", txt.getAsMention(), txt.getId()));
+        }
+        if (context.getArgs()[0].equals("set")) {
+            TextChannel cha = null;
+            cha = (TextChannel) context.getArgs()[1];
+
+            if (cha == null) {
+                context.send("cha==null");
+                return false;
+            }
+            String id = gc.getLiczekKanal();
+            if (cha.equals(id)) {
+                context.send("setLiczekKanal nie zmieni wartosci");
+                return false;
+            }
+
+            context.send("setLiczekKanal = " + cha.getId());
+            gc.setLiczekKanal(cha.getId());
+        }
+        if (context.getArgs()[0].equals("reset")) {
+            gc.setLiczekKanal("0");
+            gc.setLiczekLiczba(0);
+            context.send(context.getTranslated("liczek.submitreset"));
+            return true;
         }
 
         CommonErrors.usage(context);
