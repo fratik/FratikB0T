@@ -99,6 +99,12 @@ public class LiczekListener {
         return g.getJDA().getUserById(PiszeToOgodzienie1);
     }
 
+    public Boolean isChannelExist(Guild g) {
+        String id = getChannelId(g);
+        if (id == null || id.isEmpty() || id.equals("0") || g.getTextChannelById(id) == null ) return false;
+        return true;
+    }
+
     public void setLastMember(Guild g, User user) {
         guildDao.get(g).setLiczekOstatniaOsoba(user.getId());
     }
