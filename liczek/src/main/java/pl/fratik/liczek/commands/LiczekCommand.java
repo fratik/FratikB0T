@@ -56,11 +56,15 @@ public class LiczekCommand extends Command {
 
         if (context.getArgs()[0].equals("info")) {
             String id = liczekListener.getChannelId(context.getGuild());
-            if (!liczekListener.isChannelExist(context.getGuild())) {
+            if (id == null) {
                 context.send(context.getTranslated("liczek.notset"));
                 return false;
             }
             TextChannel txt = context.getGuild().getTextChannelById(id);
+            if (txt == null) {
+                context.send(context.getTranslated("liczek.notset"));
+                return false;
+            }
             context.send(context.getTranslated("liczek.info", txt.getAsMention(), txt.getId()));
         }
 

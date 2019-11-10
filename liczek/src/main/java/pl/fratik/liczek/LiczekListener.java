@@ -51,7 +51,7 @@ public class LiczekListener {
 
                 int wyslanaLiczba = Integer.parseInt(msg[0]);
 
-                if (wyslanaLiczba != liczba + 1 || getLastUser(e.getGuild()).equals(e.getMember())) {
+                if (wyslanaLiczba != liczba + 1 || getLastUser(e.getGuild()).equals(e.getMember().getUser())) {
                     e.getMessage().delete().queue();
                     return;
                 }
