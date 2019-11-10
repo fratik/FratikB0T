@@ -32,7 +32,6 @@ import java.util.ArrayList;
 public class Module implements Modul {
 
     @Inject private ManagerKomend managerKomend;
-    @Inject private ManagerArgumentow managerArgumentow;
     @Inject private GuildDao guildDao;
     @Inject private EventBus eventBus;
     @Inject private Tlumaczenia tlumaczenia;
@@ -47,7 +46,7 @@ public class Module implements Modul {
     public boolean startUp() {
         commands = new ArrayList<>();
 
-        commands.add(new LiczekCommand(guildDao, managerArgumentow, listener));
+        commands.add(new LiczekCommand(guildDao, listener));
 
         listener = new LiczekListener(guildDao, tlumaczenia);
         eventBus.register(listener);

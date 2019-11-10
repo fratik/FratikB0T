@@ -34,10 +34,9 @@ import java.util.LinkedHashMap;
 public class LiczekCommand extends Command {
 
     private final GuildDao guildDao;
-    private final ManagerArgumentow managerArgumentow;
     private final LiczekListener liczekListener;
 
-    public LiczekCommand(GuildDao guildDao, ManagerArgumentow managerArgumentow, LiczekListener liczekListener) {
+    public LiczekCommand(GuildDao guildDao, LiczekListener liczekListener) {
         this.guildDao = guildDao;
         this.managerArgumentow = managerArgumentow;
         this.liczekListener = liczekListener;
