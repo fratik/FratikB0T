@@ -47,10 +47,12 @@ public class LiczekListener {
             e.getChannel().sendMessage("DEBUG: " + "2").queue();
             if (e.getChannel().getId().equals(gc.getLiczekKanal())) {
                 e.getChannel().sendMessage("DEBUG: " + "3").queue();
-                if (e.getMember().getUser().isFake() || e.getMessage().getEmbeds().get(0) != null) {
+
+                if (e.getMember().getUser().isFake() || e.getMember().getUser().isBot()) {
                     e.getMessage().delete().queue();
                     return;
                 }
+
                 e.getChannel().sendMessage("DEBUG: " + "4").queue();
 
                 String[] msg = String.valueOf(e.getMessage()).split(" ");
@@ -59,6 +61,7 @@ public class LiczekListener {
                     return;
                 }
                 e.getChannel().sendMessage("DEBUG: " + "5").queue();
+                
                 int wyslanaLiczba = Integer.parseInt(msg[0]);
                 if (wyslanaLiczba != gc.getLiczekLiczba()+1 || e.getMember().equals(gc.getLiczekOstatniaOsoba())) {
                     e.getMessage().delete().queue();
