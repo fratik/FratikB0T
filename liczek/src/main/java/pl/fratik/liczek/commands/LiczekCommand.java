@@ -69,10 +69,14 @@ public class LiczekCommand extends Command {
             return true;
         }
         if (context.getArgs()[0].equals("set")) {
+            if (context.getArgs()[1] == null)  {
+                CommonErrors.usage(context);
+                return false;
+            }
             TextChannel cha = null;
             cha = (TextChannel) context.getArgs()[1];
 
-            if (context.getArgs()[1] == null || cha == null) {
+            if (cha == null) {
                 context.send(context.getTranslated("liczek.badchannel"));
                 return false;
             }
@@ -95,7 +99,6 @@ public class LiczekCommand extends Command {
             context.send(context.getTranslated("liczek.submitreset"));
             return true;
         }
-
         CommonErrors.usage(context);
         return false;
     }
