@@ -80,13 +80,12 @@ public class LiczekCommand extends Command {
         }
 
         if (context.getArgs()[0].equals("set")) {
-            context.send("arg1 == set");
             if (context.getArgs()[1] != null) {
                 Member botMember = context.getGuild().getMemberById(context.getEvent().getJDA().getSelfUser().getId());
                 assert botMember != null;
 
-                TextChannel channel;
-                channel = (TextChannel) context.getArgs()[1];
+                TextChannel channel = (TextChannel) context.getArgs()[1];
+                context.send("DEBUG" + channel + context.getArgs()[1]);
 
                 if (channel == null || !liczekListener.hasPermission(botMember, channel)) {
                     context.send(context.getTranslated("liczek.badchannel"));
