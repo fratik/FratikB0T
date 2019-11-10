@@ -69,7 +69,7 @@ public class LiczekCommand extends Command {
             return true;
         }
         if (context.getArgs()[0].equals("set")) {
-            if (context.getArgs()[1] == null)  {
+            if (context.getRawArgs()[1].length() < 1)  {
                 CommonErrors.usage(context);
                 return false;
             }

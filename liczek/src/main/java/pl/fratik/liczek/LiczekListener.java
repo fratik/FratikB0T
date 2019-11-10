@@ -40,36 +40,31 @@ public class LiczekListener {
 
     @Subscribe
     public void onGuildMessageReceivedEvent(GuildMessageReceivedEvent e) {
-        if (e.getMember().getUser().getId().equals("343467373417857025")) {
-            GuildConfig gc = guildDao.get(e.getGuild());
-            if (e.getChannel().getType() != ChannelType.TEXT) { return; }
-            if (e.getChannel().getId().equals(gc.getLiczekKanal())) {
-                if (e.getMember().getUser().isFake() || e.getMember().getUser().isBot()) {
-                    e.getMessage().delete().queue();
-                    return;
-                }
-
-                e.getChannel().sendMessage("DEBUG: " + "4").queue();
-                String[] msg = String.valueOf(e.getMessage()).split(" ");
-
-                if (msg[0].isEmpty() || !isNumeric(msg[0])) {
-                    e.getMessage().delete().queue();
-                    return;
-                }
-                e.getChannel().sendMessage("DEBUG: " + "5").queue();
-
-                int wyslanaLiczba = Integer.parseInt(msg[0]);
-                if (wyslanaLiczba != gc.getLiczekLiczba()+1 || e.getMember().getUser().getId().equals(gc.getLiczekOstatniaOsoba())) {
-                    e.getMessage().delete().queue();
-                    return;
-                }
-                e.getChannel().sendMessage("DEBUG: " + "6").queue();
-
-                gc.setLiczekLiczba(wyslanaLiczba);
-                gc.setLiczekOstatniaOsoba(e.getMember().getUser().getId());
-                guildDao.save(gc);
-                refreshTopic(e.getChannel());
+        GuildConfig gc = guildDao.get(e.getGuild());
+        if (e.getChannel().getType() != ChannelType.TEXT) { return; }
+        if (e.getChannel().getId().equals(gc.getLiczekKanal())) {
+            if (e.getMember().getUser().isFake() || e.getMember().getUser().isBot()) {
+                e.getMessage().delete().queue();
+                return;
             }
+
+            String kek = String.valueOf(e.getMessage());
+
+            if (!isNumeric(kek)) {
+                e.getMessage().delete().queue();
+                return;
+            }
+
+            int wyslanaLiczba = Integer.parseInt(kek);
+            if (wyslanaLiczba != gc.getLiczekLiczba()+1 || e.getMember().getUser().getId().equals(gc.getLiczekOstatniaOsoba())) {
+                e.getMessage().delete().queue();
+                return;
+            }
+
+            gc.setLiczekLiczba(wyslanaLiczba);
+            gc.setLiczekOstatniaOsoba(e.getMember().getUser().getId());
+            guildDao.save(gc);
+            refreshTopic(e.getChannel());
         }
     }
 
