@@ -60,7 +60,7 @@ public class LiczekCommand extends Command {
 
         if (context.getArgs()[0].equals("info")) {
             TextChannel cha = null;
-            if (gc.getLiczekKanal() != null) {
+            if (gc.getLiczekKanal() != null || !gc.getLiczekLiczba().equals("0")) {
                 cha = (TextChannel) context.getGuild().getGuildChannelById(gc.getLiczekKanal());
             }
 
@@ -95,9 +95,9 @@ public class LiczekCommand extends Command {
 //                return false;
 //            }
 
-//            liczekListener.setNumer(context.getGuild(), 0);
-//            liczekListener.setChannel(context.getGuild(), channel);
-//            liczekListener.refreshDescription(context.getGuild(), botMember.getUser());
+            liczekListener.setNumer(context.getGuild(), 0);
+            liczekListener.setChannel(context.getGuild(), channel);
+            liczekListener.refreshDescription(context.getGuild(), botMember.getUser());
 
             context.send(context.getTranslated("liczek.successful", channel.getId()));
             channel.sendMessage(context.getTranslated("liczek.start")).queue();
