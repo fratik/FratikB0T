@@ -80,26 +80,24 @@ public class LiczekCommand extends Command {
         }
 
         if (context.getArgs()[0].equals("set")) {
-            if (context.getArgs()[1] != null) {
-                Member botMember = context.getGuild().getMemberById(context.getEvent().getJDA().getSelfUser().getId());
-                assert botMember != null;
+            Member botMember = context.getGuild().getMemberById(context.getEvent().getJDA().getSelfUser().getId());
+            assert botMember != null;
 
-                TextChannel channel = (TextChannel) context.getArgs()[1];
-                context.send("DEBUG" + channel + context.getArgs()[1]);
+            TextChannel channel = (TextChannel) context.getArgs()[1];
 
-                if (channel == null || !liczekListener.hasPermission(botMember, channel)) {
-                    context.send(context.getTranslated("liczek.badchannel"));
-                    return false;
-                }
-
-                liczekListener.setNumer(context.getGuild(), 0);
-                liczekListener.setChannel(context.getGuild(), channel);
-                liczekListener.refreshDescription(context.getGuild(), botMember.getUser());
-
-                context.send(context.getTranslated("liczek.successful", channel.getId()));
-                channel.sendMessage(context.getTranslated("liczek.start")).queue();
-                return true;
+            if (!liczekListener.hasPermission(botMember, channel)) {
+                context.send(context.getTranslated("liczek.badchannel"));
+                return false;
             }
+
+//            liczekListener.setNumer(context.getGuild(), 0);
+//            liczekListener.setChannel(context.getGuild(), channel);
+//            liczekListener.refreshDescription(context.getGuild(), botMember.getUser());
+
+            context.send(context.getTranslated("liczek.successful", channel.getId()));
+            channel.sendMessage(context.getTranslated("liczek.start")).queue();
+            return true;
+
         }
         CommonErrors.usage(context);
         return false;
