@@ -49,10 +49,15 @@ public class LiczekCommand extends Command {
     public boolean execute(@NotNull @Nonnull CommandContext context) {
         String[] args = context.getRawArgs();
         GuildConfig gc = guildDao.get(context.getGuild());
-        TextChannel cha = (TextChannel) context.getGuild().getGuildChannelById(gc.getLiczekKanal());
+
         Integer liczba = gc.getLiczekLiczba();
 
         if (args[0].equals("info")) {
+            TextChannel cha = null;
+            if (gc.getLiczekKanal() != null) {
+                cha = (TextChannel) context.getGuild().getGuildChannelById(gc.getLiczekKanal());
+            }
+            
             if (cha == null) {
                 context.send(context.getTranslated("liczek.notset"));
                 return false;
