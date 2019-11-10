@@ -17,14 +17,12 @@
 
 package pl.fratik.liczek.commands;
 
-import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.*;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Uzycie;
-import pl.fratik.core.manager.ManagerArgumentow;
 import pl.fratik.core.util.CommonErrors;
 import pl.fratik.liczek.LiczekListener;
 
@@ -39,14 +37,16 @@ public class LiczekCommand extends Command {
     public LiczekCommand(GuildDao guildDao, LiczekListener liczekListener) {
         this.guildDao = guildDao;
         this.liczekListener = liczekListener;
+
         name = "liczek";
         category = CommandCategory.BASIC;
         permLevel = PermLevel.ADMIN;
-        aliases = new String[] {"string"};
+        aliases = new String[] {"liczydlo"};
+        uzycieDelim = " ";
+
         LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
         hmap.put("typ", "string");
-        hmap.put("kanal", "channel");
-        uzycieDelim = " ";
+        hmap.put("kanal", "string");
         uzycie = new Uzycie(hmap, new boolean[] {true, false});
     }
 
@@ -56,7 +56,7 @@ public class LiczekCommand extends Command {
 
         if (context.getArgs()[0].equals("info")) {
             String id = liczekListener.getChannelId(context.getGuild());
-            if (id == null || id.isEmpty() || id.equals("0") || !liczekListener.isChannelExist(context.getGuild())) {
+            if (!liczekListener.isChannelExist(context.getGuild())) {
                 context.send(context.getTranslated("liczek.notset"));
                 return false;
             }
