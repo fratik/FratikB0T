@@ -65,7 +65,7 @@ public class LiczekCommand extends Command {
                 context.send(context.getTranslated("liczek.badchannel"));
                 return false;
             }
-            context.send(context.getTranslated("liczek.info", txt.getAsMention(), txt.getId(), txt.getId()));
+            context.send(context.getTranslated("liczek.info", txt.getAsMention(), txt.getId(), gc.getLiczekLiczba()));
             return true;
         }
         if (context.getArgs()[0].equals("set")) {
