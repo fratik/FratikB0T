@@ -37,12 +37,11 @@ public class LiczekListener {
 
     @Subscribe
     public void onGuildMessageReceivedEvent(GuildMessageReceivedEvent e) {
-        e.getChannel();
         if (e.getChannel().getType() != ChannelType.TEXT) return;
-        if (getChannel(e.getGuild()).equals(e.getChannel())) {
+        if (e.getChannel().equals(getChannelId(e.getGuild()))) {
             Member botMember = e.getGuild().getMemberById(e.getJDA().getSelfUser().getId());
             assert botMember != null;
-            if (hasPermission(botMember, getChannel(e.getGuild()))) {
+            if (hasPermission(botMember, e.getChannel())) {
                 if (e.getMember().getUser().isBot()) {
                     e.getMessage().delete().queue();
                     return;
@@ -56,16 +55,16 @@ public class LiczekListener {
                     e.getMessage().delete().queue();
                     return;
                 }
+
                 setNumer(e.getGuild(), liczba);
                 refreshDescription(e.getGuild(), e.getMember().getUser());
+                setLastMember(e.getGuild(), e.getMember().getUser());
             }
         }
     }
 
-    public TextChannel getChannel(Guild g) {
-        String eldo = guildDao.get(g).getLiczekKanal();
-        TextChannel kek = g.getTextChannelById(eldo);
-        return kek;
+    public String getChannelId(Guild g) {
+        return guildDao.get(g).getLiczekKanal();
     }
 
     public Integer getLiczba(Guild g) {
@@ -80,7 +79,7 @@ public class LiczekListener {
     }
 
     public void refreshDescription(Guild g, User user) {
-        TextChannel cha = getChannel(g);
+        TextChannel cha = g.getTextChannelById(getChannelId(g));
         Language xd = tlumaczenia.getLanguage(g);
         String msg = tlumaczenia.get(xd, "liczek.topic", user.getAsTag(), getLiczba(g)+1, getLastUser(g).getAsTag());
         cha.getManager().setTopic(msg);
