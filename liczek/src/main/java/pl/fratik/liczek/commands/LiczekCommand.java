@@ -72,7 +72,7 @@ public class LiczekCommand extends Command {
             TextChannel cha = null;
             cha = (TextChannel) context.getArgs()[1];
 
-            if (cha == null) {
+            if (context.getArgs()[0] == null || cha == null) {
                 context.send(context.getTranslated("liczek.badchannel"));
                 return false;
             }
@@ -83,13 +83,15 @@ public class LiczekCommand extends Command {
             }
 
             context.send(context.getTranslated("liczek.successful", cha.getAsMention()));
-            cha.sendMessage(context.getTranslated("liczek.start"));
+            cha.sendMessage(context.getTranslated("liczek.start")).queue();
             gc.setLiczekKanal(cha.getId());
+            guildDao.save(gc);
             return true;
         }
         if (context.getArgs()[0].equals("reset")) {
             gc.setLiczekKanal("0");
             gc.setLiczekLiczba(0);
+            guildDao.save(gc);
             context.send(context.getTranslated("liczek.submitreset"));
             return true;
         }
