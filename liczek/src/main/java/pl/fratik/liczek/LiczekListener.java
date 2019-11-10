@@ -51,7 +51,7 @@ public class LiczekListener {
 
                 int wyslanaLiczba = Integer.parseInt(msg[0]);
 
-                if (wyslanaLiczba != liczba + 1 || getLastMember(e.getGuild()).equals(e.getMember())) {
+                if (wyslanaLiczba != liczba + 1 || getLastUser(e.getGuild()).equals(e.getMember())) {
                     e.getMessage().delete().queue();
                     return;
                 }
@@ -79,7 +79,7 @@ public class LiczekListener {
     public void refreshDescription(Guild g, User user) {
         TextChannel cha = getChannel(g);
         Language xd = tlumaczenia.getLanguage(g);
-        String msg = tlumaczenia.get(xd, "liczek.topic", user.getAsTag(), getLiczba(g)+1, getLastMember(g).getAsTag());
+        String msg = tlumaczenia.get(xd, "liczek.topic", user.getAsTag(), getLiczba(g)+1, getLastUser(g).getAsTag());
         cha.getManager().setTopic(msg);
     }
 
@@ -92,7 +92,7 @@ public class LiczekListener {
         guildDao.get(g).setLiczekKanal(ch.getId());
     }
 
-    public User getLastMember(Guild g) {
+    public User getLastUser(Guild g) {
         String PiszeToOgodzienie1 = guildDao.get(g).getLiczekOstatniaOsoba();
         return g.getJDA().getUserById(PiszeToOgodzienie1);
     }

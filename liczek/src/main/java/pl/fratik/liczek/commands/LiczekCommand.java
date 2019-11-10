@@ -83,12 +83,17 @@ public class LiczekCommand extends Command {
             Member botMember = context.getGuild().getMemberById(context.getEvent().getJDA().getSelfUser().getId());
             assert botMember != null;
 
-            TextChannel channel = (TextChannel) context.getArgs()[1];
-
-            if (!liczekListener.hasPermission(botMember, channel)) {
-                context.send(context.getTranslated("liczek.badchannel"));
+            TextChannel channel = null;
+            channel = (TextChannel) context.getArgs()[1];
+            if (channel == null) {
+                context.send("channel==null");
                 return false;
             }
+
+//            if (!liczekListener.hasPermission(botMember, channel)) {
+//                context.send(context.getTranslated("liczek.badchannel"));
+//                return false;
+//            }
 
 //            liczekListener.setNumer(context.getGuild(), 0);
 //            liczekListener.setChannel(context.getGuild(), channel);
