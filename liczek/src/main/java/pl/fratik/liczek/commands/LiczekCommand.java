@@ -23,11 +23,13 @@ import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.*;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
+import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.manager.ManagerArgumentow;
 import pl.fratik.core.util.CommonErrors;
 import pl.fratik.liczek.LiczekListener;
 
 import javax.annotation.Nonnull;
+import java.util.LinkedHashMap;
 
 public class LiczekCommand extends Command {
 
@@ -43,16 +45,19 @@ public class LiczekCommand extends Command {
         category = CommandCategory.BASIC;
         permLevel = PermLevel.ADMIN;
         aliases = new String[] {"liczydlo"};
+        LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
+        hmap.put("typ", "string");
+        hmap.put("kanal", "channel");
+        uzycie = new Uzycie(hmap, new boolean[] {true, false});
     }
 
     @Override
     public boolean execute(@NotNull @Nonnull CommandContext context) {
-        String[] args = context.getRawArgs();
         GuildConfig gc = guildDao.get(context.getGuild());
 
         Integer liczba = gc.getLiczekLiczba();
 
-        if (args[0].equals("info")) {
+        if (context.getArgs()[0].equals("info")) {
             TextChannel cha = null;
             if (gc.getLiczekKanal() != null) {
                 cha = (TextChannel) context.getGuild().getGuildChannelById(gc.getLiczekKanal());
@@ -66,26 +71,27 @@ public class LiczekCommand extends Command {
             return true;
         }
 
-        if (args[0].equals("reset")) {
+        if (context.getArgs()[0].equals("reset")) {
             gc.setLiczekKanal("0");
             gc.setLiczekLiczba(0);
             context.send(context.getTranslated("liczek.submitreset"));
             return true;
         }
 
-        if (args[0].equals("set")) {
+        if (context.getArgs()[0].equals("set")) {
             context.send("arg1 == set");
-            if (args[1] != null) {
+            if (context.getArgs()[1] != null) {
                 context.send("1");
 
                 Member botMember = context.getGuild().getMemberById(context.getEvent().getJDA().getSelfUser().getId());
                 assert botMember != null;
                 context.send("2");
-
                 TextChannel channel;
-                channel = (TextChannel) managerArgumentow.getArguments().get("channel").execute(args[1],
-                        context.getTlumaczenia(), context.getLanguage(), context.getGuild());
-                if (channel == null) { channel = context.getMessage().getMentionedChannels().get(0); }
+                channel = (TextChannel) context.getArgs()[0];
+//                TextChannel channel;
+//                channel = (TextChannel) managerArgumentow.getArguments().get("channel").execute(args[1],
+//                        context.getTlumaczenia(), context.getLanguage(), context.getGuild());
+//                if (channel == null) { channel = context.getMessage().getMentionedChannels().get(0); }
 
                 if (channel == null || !liczekListener.hasPermission(botMember, channel)) {
                     context.send(context.getTranslated("liczek.badchannel"));
@@ -96,10 +102,10 @@ public class LiczekCommand extends Command {
 
                 liczekListener.setNumer(context.getGuild(), 0);
                 liczekListener.setChannel(context.getGuild(), channel);
+                liczekListener.refreshDescription(context.getGuild(), botMember.getUser());
 
                 context.send(context.getTranslated("liczek.successful", channel.getId()));
                 channel.sendMessage(context.getTranslated("liczek.start")).queue();
-                liczekListener.refreshDescription(context.getGuild(), botMember.getUser());
                 return true;
             }
         }

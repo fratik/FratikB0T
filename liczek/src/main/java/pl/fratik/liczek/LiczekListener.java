@@ -81,7 +81,6 @@ public class LiczekListener {
         Language xd = tlumaczenia.getLanguage(g);
         String msg = tlumaczenia.get(xd, "liczek.topic", user.getAsTag(), getLiczba(g)+1, getLastMember(g).getAsTag());
         cha.getManager().setTopic(msg);
-
     }
 
     public void setNumer(Guild g, int num) {
