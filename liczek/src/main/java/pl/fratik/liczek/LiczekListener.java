@@ -40,38 +40,37 @@ public class LiczekListener {
 
     @Subscribe
     public void onGuildMessageReceivedEvent(GuildMessageReceivedEvent e) {
-        if (e.getMember().getUser().getId() != "343467373417857025") {
-            return;
-        }
-        GuildConfig gc = guildDao.get(e.getGuild());
-        e.getChannel().sendMessage("DEBUG: " + "1").queue();
-        if (e.getChannel().getType() != ChannelType.TEXT) { return; }
-        e.getChannel().sendMessage("DEBUG: " + "2").queue();
-        if (gc.getLiczekKanal().equals(e.getChannel())) {
-            e.getChannel().sendMessage("DEBUG: " + "3").queue();
-            if (e.getMember().getUser().isFake() || e.getMessage().getEmbeds().get(0) != null) {
-                e.getMessage().delete().queue();
-                return;
-            }
-            e.getChannel().sendMessage("DEBUG: " + "4").queue();
+        if (e.getMember().getUser().getId().equals("343467373417857025")) {
+            GuildConfig gc = guildDao.get(e.getGuild());
+            e.getChannel().sendMessage("DEBUG: " + "1").queue();
+            if (e.getChannel().getType() != ChannelType.TEXT) { return; }
+            e.getChannel().sendMessage("DEBUG: " + "2").queue();
+            if (gc.getLiczekKanal().equals(e.getChannel())) {
+                e.getChannel().sendMessage("DEBUG: " + "3").queue();
+                if (e.getMember().getUser().isFake() || e.getMessage().getEmbeds().get(0) != null) {
+                    e.getMessage().delete().queue();
+                    return;
+                }
+                e.getChannel().sendMessage("DEBUG: " + "4").queue();
 
-            String[] msg = String.valueOf(e.getMessage()).split(" ");
-            if (msg[0].isEmpty() || !StringUtil.isNumeric(msg[0])) {
-                e.getMessage().delete().queue();
-                return;
-            }
-            e.getChannel().sendMessage("DEBUG: " + "5").queue();
-            Integer wyslanaLiczba = Integer.parseInt(msg[0]);
-            if (wyslanaLiczba != gc.getLiczekLiczba()+1 || e.getMember().equals(gc.getLiczekOstatniaOsoba())) {
-                e.getMessage().delete().queue();
-                return;
-            }
-            e.getChannel().sendMessage("DEBUG: " + "6").queue();
+                String[] msg = String.valueOf(e.getMessage()).split(" ");
+                if (msg[0].isEmpty() || !StringUtil.isNumeric(msg[0])) {
+                    e.getMessage().delete().queue();
+                    return;
+                }
+                e.getChannel().sendMessage("DEBUG: " + "5").queue();
+                Integer wyslanaLiczba = Integer.parseInt(msg[0]);
+                if (wyslanaLiczba != gc.getLiczekLiczba()+1 || e.getMember().equals(gc.getLiczekOstatniaOsoba())) {
+                    e.getMessage().delete().queue();
+                    return;
+                }
+                e.getChannel().sendMessage("DEBUG: " + "6").queue();
 
-            gc.setLiczekLiczba(wyslanaLiczba);
-            gc.setLiczekOstatniaOsoba(e.getMember().getUser().getId());
-            guildDao.save(gc);
-            refreshTopic(e.getChannel());
+                gc.setLiczekLiczba(wyslanaLiczba);
+                gc.setLiczekOstatniaOsoba(e.getMember().getUser().getId());
+                guildDao.save(gc);
+                refreshTopic(e.getChannel());
+            }
         }
     }
 
