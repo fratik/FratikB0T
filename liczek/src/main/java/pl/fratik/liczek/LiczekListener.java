@@ -42,28 +42,24 @@ public class LiczekListener {
     public void onGuildMessageReceivedEvent(GuildMessageReceivedEvent e) {
         if (e.getMember().getUser().getId().equals("343467373417857025")) {
             GuildConfig gc = guildDao.get(e.getGuild());
-            e.getChannel().sendMessage("DEBUG: " + "1").queue();
             if (e.getChannel().getType() != ChannelType.TEXT) { return; }
-            e.getChannel().sendMessage("DEBUG: " + "2").queue();
             if (e.getChannel().getId().equals(gc.getLiczekKanal())) {
-                e.getChannel().sendMessage("DEBUG: " + "3").queue();
-
                 if (e.getMember().getUser().isFake() || e.getMember().getUser().isBot()) {
                     e.getMessage().delete().queue();
                     return;
                 }
 
                 e.getChannel().sendMessage("DEBUG: " + "4").queue();
-
                 String[] msg = String.valueOf(e.getMessage()).split(" ");
-                if (msg[0].isEmpty() || !StringUtil.isNumeric(msg[0])) {
+
+                if (msg[0].isEmpty() || !isNumeric(msg[0])) {
                     e.getMessage().delete().queue();
                     return;
                 }
                 e.getChannel().sendMessage("DEBUG: " + "5").queue();
-                
+
                 int wyslanaLiczba = Integer.parseInt(msg[0]);
-                if (wyslanaLiczba != gc.getLiczekLiczba()+1 || e.getMember().equals(gc.getLiczekOstatniaOsoba())) {
+                if (wyslanaLiczba != gc.getLiczekLiczba()+1 || e.getMember().getUser().getId().equals(gc.getLiczekOstatniaOsoba())) {
                     e.getMessage().delete().queue();
                     return;
                 }
@@ -93,5 +89,14 @@ public class LiczekListener {
         } catch (Exception xd) {
             /* brak permów, idziem sobie*/
         }
+    }
+
+    public static boolean isNumeric(String stringi) {
+        try {
+            double d = Double.parseDouble(stringi);
+        } catch (NumberFormatException | NullPointerException xd) {
+            return false;
+        }
+        return true;
     }
 }
