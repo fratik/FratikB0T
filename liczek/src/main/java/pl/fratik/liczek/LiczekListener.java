@@ -37,6 +37,7 @@ public class LiczekListener {
 
     @Subscribe
     public void onGuildMessageReceivedEvent(GuildMessageReceivedEvent e) {
+        e.getChannel();
         if (e.getChannel().getType() != ChannelType.TEXT) return;
         if (getChannel(e.getGuild()).equals(e.getChannel())) {
             Member botMember = e.getGuild().getMemberById(e.getJDA().getSelfUser().getId());
@@ -62,7 +63,9 @@ public class LiczekListener {
     }
 
     public TextChannel getChannel(Guild g) {
-        return g.getTextChannelById(guildDao.get(g).getLiczekKanal());
+        String eldo = guildDao.get(g).getLiczekKanal();
+        TextChannel kek = g.getTextChannelById(eldo);
+        return kek;
     }
 
     public Integer getLiczba(Guild g) {

@@ -85,15 +85,17 @@ public class LiczekCommand extends Command {
 
             TextChannel channel = null;
             channel = (TextChannel) context.getArgs()[1];
-            if (channel == null) {
-                context.send("channel==null");
+            String beka = (String) context.getArgs()[1];
+
+            if (channel == null || beka.isEmpty()) {
+                CommonErrors.usage(context);
                 return false;
             }
 
-//            if (!liczekListener.hasPermission(botMember, channel)) {
-//                context.send(context.getTranslated("liczek.badchannel"));
-//                return false;
-//            }
+            if (!liczekListener.hasPermission(botMember, channel)) {
+                context.send(context.getTranslated("liczek.badchannel"));
+                return false;
+            }
 
             liczekListener.setNumer(context.getGuild(), 0);
             liczekListener.setChannel(context.getGuild(), channel);
