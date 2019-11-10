@@ -48,6 +48,7 @@ public class LiczekCommand extends Command {
         LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
         hmap.put("typ", "string");
         hmap.put("kanal", "channel");
+        uzycieDelim = " ";
         uzycie = new Uzycie(hmap, new boolean[] {true, false});
     }
 
