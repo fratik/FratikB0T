@@ -1,0 +1,8 @@
+{
+  "name": "liczek",
+  "main": "pl.fratik.liczek.Module",
+  "dependencies": [
+    "arguments"
+  ],
+  "coreVersion": "@core.version@"
+}
