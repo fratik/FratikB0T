@@ -55,20 +55,17 @@ public class LiczekCommand extends Command {
     @Override
     public boolean execute(@NotNull @Nonnull CommandContext context) {
         GuildConfig gc = guildDao.get(context.getGuild());
-
-        Integer liczba = gc.getLiczekLiczba();
-
         if (context.getArgs()[0].equals("info")) {
             TextChannel cha = null;
             if (gc.getLiczekKanal() != null || !gc.getLiczekLiczba().equals("0")) {
                 cha = (TextChannel) context.getGuild().getGuildChannelById(gc.getLiczekKanal());
             }
 
-            if (cha == null) {
+            if (cha == null || cha.getId().isEmpty()) {
                 context.send(context.getTranslated("liczek.notset"));
                 return false;
             }
-            context.send(context.getTranslated("liczek.info", cha.getId(), cha.getName(), liczba));
+            context.send(context.getTranslated("liczek.info", cha.getId(), cha.getName(), gc.getLiczekLiczba()));
             return true;
         }
 
@@ -81,13 +78,10 @@ public class LiczekCommand extends Command {
 
         if (context.getArgs()[0].equals("set")) {
             Member botMember = context.getGuild().getMemberById(context.getEvent().getJDA().getSelfUser().getId());
-            assert botMember != null;
-
             TextChannel channel = null;
             channel = (TextChannel) context.getArgs()[1];
-            String beka = (String) context.getArgs()[1];
 
-            if (channel == null || beka.isEmpty()) {
+            if (channel == null || ((TextChannel) context.getArgs()[1]).getId().isEmpty()) {
                 CommonErrors.usage(context);
                 return false;
             }
