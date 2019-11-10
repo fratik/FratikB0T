@@ -65,14 +65,14 @@ public class LiczekCommand extends Command {
                 context.send(context.getTranslated("liczek.badchannel"));
                 return false;
             }
-            context.send(context.getTranslated("liczek.info", txt.getAsMention(), txt.getId()));
+            context.send(context.getTranslated("liczek.info", txt.getAsMention(), txt.getId(), txt.getId()));
             return true;
         }
         if (context.getArgs()[0].equals("set")) {
             TextChannel cha = null;
             cha = (TextChannel) context.getArgs()[1];
 
-            if (context.getArgs()[0] == null || cha == null) {
+            if (context.getArgs()[1] == null || cha == null) {
                 context.send(context.getTranslated("liczek.badchannel"));
                 return false;
             }
