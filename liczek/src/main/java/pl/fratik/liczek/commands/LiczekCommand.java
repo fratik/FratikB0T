@@ -57,32 +57,35 @@ public class LiczekCommand extends Command {
         if (context.getArgs()[0].equals("info")) {
             String id = gc.getLiczekKanal();
             if (id == null) {
-                context.send("gc.getLiczekKanal==null");
+                context.send(context.getTranslated("liczek.notset"));
                 return false;
             }
             TextChannel txt = context.getGuild().getTextChannelById(id);
             if (txt == null) {
-                context.send("txt==null");
+                context.send(context.getTranslated("liczek.badchannel"));
                 return false;
             }
             context.send(context.getTranslated("liczek.info", txt.getAsMention(), txt.getId()));
+            return true;
         }
         if (context.getArgs()[0].equals("set")) {
             TextChannel cha = null;
             cha = (TextChannel) context.getArgs()[1];
 
             if (cha == null) {
-                context.send("cha==null");
-                return false;
-            }
-            String id = gc.getLiczekKanal();
-            if (cha.equals(id)) {
-                context.send("setLiczekKanal nie zmieni wartosci");
+                context.send(context.getTranslated("liczek.badchannel"));
                 return false;
             }
 
-            context.send("setLiczekKanal = " + cha.getId());
+            if (cha.getId().equals(gc.getLiczekKanal())) {
+                context.send(context.getTranslated("liczek.alreadyset"));
+                return false;
+            }
+
+            context.send(context.getTranslated("liczek.successful", cha.getAsMention()));
+            cha.sendMessage(context.getTranslated("liczek.start"));
             gc.setLiczekKanal(cha.getId());
+            return true;
         }
         if (context.getArgs()[0].equals("reset")) {
             gc.setLiczekKanal("0");
