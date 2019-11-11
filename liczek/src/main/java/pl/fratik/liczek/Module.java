@@ -20,18 +20,21 @@ package pl.fratik.liczek;
 import com.google.common.eventbus.EventBus;
 import com.google.inject.Inject;
 import pl.fratik.core.command.Command;
-import pl.fratik.core.entity.*;
-import pl.fratik.core.manager.ManagerArgumentow;
+import pl.fratik.core.entity.GuildDao;
+import pl.fratik.core.manager.ManagerBazyDanych;
 import pl.fratik.core.manager.ManagerKomend;
 import pl.fratik.core.moduly.Modul;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.liczek.commands.LiczekCommand;
+import pl.fratik.liczek.entity.LiczekDao;
+import pl.fratik.liczek.listeners.LiczekListener;
 
 import java.util.ArrayList;
 
 public class Module implements Modul {
 
     @Inject private ManagerKomend managerKomend;
+    @Inject private ManagerBazyDanych managerBazyDanych;
     @Inject private GuildDao guildDao;
     @Inject private EventBus eventBus;
     @Inject private Tlumaczenia tlumaczenia;
@@ -44,11 +47,12 @@ public class Module implements Modul {
 
     @Override
     public boolean startUp() {
+        LiczekDao liczekDao = new LiczekDao(managerBazyDanych, eventBus);
         commands = new ArrayList<>();
 
-        commands.add(new LiczekCommand(guildDao));
+        commands.add(new LiczekCommand(guildDao, liczekDao));
 
-        listener = new LiczekListener(guildDao, tlumaczenia);
+        listener = new LiczekListener(guildDao, liczekDao, tlumaczenia);
         eventBus.register(listener);
 
         commands.forEach(managerKomend::registerCommand);
@@ -58,6 +62,7 @@ public class Module implements Modul {
     @Override
     public boolean shutDown() {
         commands.forEach(managerKomend::unregisterCommand);
+        eventBus.unregister(listener);
         return true;
     }
 

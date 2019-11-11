@@ -113,8 +113,6 @@ public class GuildConfig implements DatabaseEntity {
     private Map<String, String> pozegnania = new HashMap<>();
     private Boolean wysylajOgloszenia = false;
     private String liczekKanal = "0";
-    private Integer liczekLiczba = 0;
-    private String liczekOstatniaOsoba;
 
     @Transient
     @JsonIgnore

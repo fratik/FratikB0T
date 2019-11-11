@@ -19,12 +19,16 @@ package pl.fratik.liczek.commands;
 
 import net.dv8tion.jda.api.entities.TextChannel;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.command.*;
+import pl.fratik.core.command.Command;
+import pl.fratik.core.command.CommandCategory;
+import pl.fratik.core.command.CommandContext;
+import pl.fratik.core.command.PermLevel;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.util.CommonErrors;
-import pl.fratik.liczek.LiczekListener;
+import pl.fratik.liczek.entity.Liczek;
+import pl.fratik.liczek.entity.LiczekDao;
 
 import javax.annotation.Nonnull;
 import java.util.LinkedHashMap;
@@ -32,16 +36,16 @@ import java.util.LinkedHashMap;
 public class LiczekCommand extends Command {
 
     private final GuildDao guildDao;
+    private final LiczekDao liczekDao;
 
-    public LiczekCommand(GuildDao guildDao) {
+    public LiczekCommand(GuildDao guildDao, LiczekDao liczekDao) {
         this.guildDao = guildDao;
-
+        this.liczekDao = liczekDao;
         name = "liczek";
         category = CommandCategory.BASIC;
         permLevel = PermLevel.ADMIN;
         aliases = new String[] {"liczydlo"};
         uzycieDelim = " ";
-
         LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
         hmap.put("typ", "string");
         hmap.put("kanal", "channel");
@@ -51,6 +55,7 @@ public class LiczekCommand extends Command {
     @Override
     public boolean execute(@NotNull @Nonnull CommandContext context) {
         GuildConfig gc = guildDao.get(context.getGuild());
+        Liczek licz = liczekDao.get(context.getGuild());
 
         if (context.getArgs()[0].equals("info")) {
             String id = gc.getLiczekKanal();
@@ -64,7 +69,8 @@ public class LiczekCommand extends Command {
                 return false;
             }
             String nazwalol = "#" + txt.getName();
-            context.send(context.getTranslated("liczek.info", txt.getAsMention(), nazwalol, txt.getId(), gc.getLiczekLiczba()));
+            context.send(context.getTranslated("liczek.info", txt.getAsMention(), nazwalol, txt.getId(),
+                    licz.getLiczekLiczba()));
             return true;
         }
         if (context.getArgs()[0].equals("set")) {
@@ -94,7 +100,7 @@ public class LiczekCommand extends Command {
         }
         if (context.getArgs()[0].equals("reset")) {
             gc.setLiczekKanal("0");
-            gc.setLiczekLiczba(0);
+            liczekDao.delete(context.getGuild());
             guildDao.save(gc);
             context.send(context.getTranslated("liczek.submitreset"));
             return true;

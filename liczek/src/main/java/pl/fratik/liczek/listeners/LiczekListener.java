@@ -15,41 +15,46 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package pl.fratik.liczek;
+package pl.fratik.liczek.listeners;
 
 import com.google.common.eventbus.Subscribe;
-import lombok.Getter;
-import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.ChannelType;
+import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
-import org.apache.commons.lang.math.NumberUtils;
-import org.codehaus.stax2.ri.typed.NumberUtil;
-import org.jsoup.helper.StringUtil;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
+import pl.fratik.liczek.entity.Liczek;
+import pl.fratik.liczek.entity.LiczekDao;
 
 public class LiczekListener {
     private final GuildDao guildDao;
-    @Getter private final Tlumaczenia tlumaczenia;
+    private final LiczekDao liczekDao;
+    private final Tlumaczenia tlumaczenia;
 
-    LiczekListener(GuildDao guildDao, Tlumaczenia tlumaczenia) {
+    public LiczekListener(GuildDao guildDao, LiczekDao liczekDao, Tlumaczenia tlumaczenia) {
         this.guildDao = guildDao;
+        this.liczekDao = liczekDao;
         this.tlumaczenia = tlumaczenia;
     }
 
     @Subscribe
-    public void onGuildMessageReceivedEvent(GuildMessageReceivedEvent e) {
+    public synchronized void onGuildMessageReceivedEvent(GuildMessageReceivedEvent e) {
         GuildConfig gc = guildDao.get(e.getGuild());
-        if (e.getChannel().getType() != ChannelType.TEXT) { return; }
+        Liczek licz = liczekDao.get(e.getGuild());
+        if (e.getChannel().getType() != ChannelType.TEXT) {
+            return;
+        }
         if (e.getChannel().getId().equals(gc.getLiczekKanal())) {
-            if (e.getMember().getUser().isFake() || e.getMember().getUser().isBot()) {
+            if (e.getAuthor().isFake() || e.getAuthor().isBot()) {
                 e.getMessage().delete().queue();
                 return;
             }
 
             String[] kek = e.getMessage().getContentRaw().split(" ");
-            int wyslanaLiczba = -1;
+            int wyslanaLiczba;
 
             try {
                 wyslanaLiczba = Integer.parseInt(kek[0]);
@@ -58,21 +63,25 @@ public class LiczekListener {
                 return;
             }
 
-            if (wyslanaLiczba != gc.getLiczekLiczba()+1 || e.getMember().getUser().getId().equals(gc.getLiczekOstatniaOsoba())) {
+            if (wyslanaLiczba != licz.getLiczekLiczba() + 1 ||
+                    e.getAuthor().getId().equals(licz.getLiczekOstatniaOsoba())) {
                 e.getMessage().delete().queue();
                 return;
             }
 
-            gc.setLiczekLiczba(wyslanaLiczba);
-            gc.setLiczekOstatniaOsoba(e.getMember().getUser().getId());
-            guildDao.save(gc);
-            refreshTopic(e.getChannel(), e.getMember().getUser());
+            licz.setLiczekLiczba(wyslanaLiczba);
+            licz.setLiczekOstatniaOsoba(e.getAuthor().getId());
+            refreshTopic(e.getChannel(), e.getAuthor());
+            liczekDao.save(licz);
         }
     }
 
-    public void refreshTopic(TextChannel cha, User osoba) {
-        GuildConfig gc = guildDao.get(cha.getGuild());
-        Integer liczba = gc.getLiczekLiczba()+1;
+    private void refreshTopic(TextChannel cha, User osoba) {
+        refreshTopic(cha, osoba, liczekDao.get(cha.getGuild()));
+    }
+
+    private synchronized void refreshTopic(TextChannel cha, User osoba, Liczek licz) {
+        Integer liczba = licz.getLiczekLiczba() + 1;
 
         Language l = tlumaczenia.getLanguage(cha.getGuild());
         String msg = tlumaczenia.get(l, "liczek.topic", osoba.getAsMention(), liczba);
