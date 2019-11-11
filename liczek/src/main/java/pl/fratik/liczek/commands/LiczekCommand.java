@@ -54,6 +54,7 @@ public class LiczekCommand extends Command {
         hmap.put("typ", "string");
         hmap.put("kanal", "channel");
         uzycie = new Uzycie(hmap, new boolean[] {true, false});
+        permissions.add(Permission.MESSAGE_EMBED_LINKS);
     }
 
     @Override

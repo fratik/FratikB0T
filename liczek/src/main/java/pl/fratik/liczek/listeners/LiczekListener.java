@@ -19,7 +19,6 @@ package pl.fratik.liczek.listeners;
 
 import com.google.common.eventbus.Subscribe;
 import net.dv8tion.jda.api.entities.ChannelType;
-import net.dv8tion.jda.api.entities.IFakeable;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
