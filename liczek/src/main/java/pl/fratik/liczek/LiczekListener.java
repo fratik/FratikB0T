@@ -72,9 +72,14 @@ public class LiczekListener {
 
     public void refreshTopic(TextChannel cha) {
         GuildConfig gc = guildDao.get(cha.getGuild());
-
         Integer liczba = gc.getLiczekLiczba()+1;
-        User osoba = cha.getJDA().getUserById(gc.getLiczekLiczba());
+        User osoba;
+
+        try {
+            osoba = cha.getJDA().getUserById(gc.getLiczekLiczba());
+        } catch (Exception xd) {
+            return;
+        }
 
         if (osoba == null) return;
 

@@ -32,11 +32,9 @@ import java.util.LinkedHashMap;
 public class LiczekCommand extends Command {
 
     private final GuildDao guildDao;
-    private final LiczekListener liczekListener;
 
-    public LiczekCommand(GuildDao guildDao, LiczekListener liczekListener) {
+    public LiczekCommand(GuildDao guildDao) {
         this.guildDao = guildDao;
-        this.liczekListener = liczekListener;
 
         name = "liczek";
         category = CommandCategory.BASIC;
@@ -70,7 +68,7 @@ public class LiczekCommand extends Command {
             return true;
         }
         if (context.getArgs()[0].equals("set")) {
-            TextChannel cha = null;
+            TextChannel cha;
             try {
                 cha = (TextChannel) context.getArgs()[1];
             } catch (Exception xd) {

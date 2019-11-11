@@ -46,7 +46,7 @@ public class Module implements Modul {
     public boolean startUp() {
         commands = new ArrayList<>();
 
-        commands.add(new LiczekCommand(guildDao, listener));
+        commands.add(new LiczekCommand(guildDao));
 
         listener = new LiczekListener(guildDao, tlumaczenia);
         eventBus.register(listener);
