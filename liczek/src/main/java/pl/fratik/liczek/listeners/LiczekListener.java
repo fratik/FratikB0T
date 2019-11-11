@@ -19,6 +19,7 @@ package pl.fratik.liczek.listeners;
 
 import com.google.common.eventbus.Subscribe;
 import net.dv8tion.jda.api.entities.ChannelType;
+import net.dv8tion.jda.api.entities.IFakeable;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
@@ -48,7 +49,7 @@ public class LiczekListener {
             return;
         }
         if (e.getChannel().getId().equals(gc.getLiczekKanal())) {
-            if (e.getAuthor().isFake() || e.getAuthor().isBot()) {
+            if (e.getAuthor().isBot() || e.isWebhookMessage()) {
                 e.getMessage().delete().queue();
                 return;
             }

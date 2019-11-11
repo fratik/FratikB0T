@@ -17,6 +17,9 @@
 
 package pl.fratik.liczek.commands;
 
+import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.GuildChannel;
 import net.dv8tion.jda.api.entities.TextChannel;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.Command;
@@ -27,6 +30,7 @@ import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.util.CommonErrors;
+import pl.fratik.core.util.UserUtil;
 import pl.fratik.liczek.entity.Liczek;
 import pl.fratik.liczek.entity.LiczekDao;
 
@@ -68,9 +72,20 @@ public class LiczekCommand extends Command {
                 context.send(context.getTranslated("liczek.badchannel"));
                 return false;
             }
-            String nazwalol = "#" + txt.getName();
-            context.send(context.getTranslated("liczek.info", txt.getAsMention(), nazwalol, txt.getId(),
-                    licz.getLiczekLiczba()));
+            String trans = context.getTranslated(hasPermission(context, txt));
+            EmbedBuilder eb = new EmbedBuilder();
+            eb.setColor(UserUtil.getPrimColor(context.getMember().getUser()));
+            eb.setTitle(context.getTranslated("liczek.embed.title"));
+
+            eb.addField(context.getTranslated("liczek.embed.channel"),
+                    context.getTranslated("liczek.embed.channel.value",
+                    txt.getAsMention(), "#" + txt.getName(), txt.getId()), false);
+
+            eb.addField(context.getTranslated("liczek.embed.number"),
+                    String.valueOf(licz.getLiczekLiczba()), false);
+
+            eb.addField(context.getTranslated("liczek.embed.permission"), trans, false);
+            context.send(eb.build());
             return true;
         }
         if (context.getArgs()[0].equals("set")) {
@@ -107,6 +122,12 @@ public class LiczekCommand extends Command {
         }
         CommonErrors.usage(context);
         return false;
+    }
+
+    private String hasPermission(CommandContext ctx, GuildChannel channel) {
+        if (ctx.getGuild().getSelfMember().hasPermission(channel, Permission.VIEW_CHANNEL, Permission.MESSAGE_WRITE,
+                Permission.MANAGE_CHANNEL, Permission.MESSAGE_MANAGE, Permission.MESSAGE_READ)) return "generic.yes";
+        return "liczek.perms.no";
     }
 
 }
