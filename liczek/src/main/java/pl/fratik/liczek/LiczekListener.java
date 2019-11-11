@@ -49,13 +49,14 @@ public class LiczekListener {
             }
 
             String kek = String.valueOf(e.getMessage());
-
-            if (!isNumeric(kek)) {
+            int wyslanaLiczba = -1;
+            try {
+                wyslanaLiczba = Integer.parseInt(kek);
+            } catch(NumberFormatException xd) {
                 e.getMessage().delete().queue();
                 return;
             }
 
-            int wyslanaLiczba = Integer.parseInt(kek);
             if (wyslanaLiczba != gc.getLiczekLiczba()+1 || e.getMember().getUser().getId().equals(gc.getLiczekOstatniaOsoba())) {
                 e.getMessage().delete().queue();
                 return;
@@ -84,14 +85,5 @@ public class LiczekListener {
         } catch (Exception xd) {
             /* brak permów, idziem sobie*/
         }
-    }
-
-    public static boolean isNumeric(String stringi) {
-        try {
-            double d = Double.parseDouble(stringi);
-        } catch (NumberFormatException | NullPointerException xd) {
-            return false;
-        }
-        return true;
     }
 }
