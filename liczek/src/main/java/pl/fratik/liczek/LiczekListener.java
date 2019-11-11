@@ -48,7 +48,7 @@ public class LiczekListener {
                 return;
             }
 
-            String[] kek = String.valueOf(e.getMessage()).split(" ");
+            String[] kek = e.getMessage().getContentRaw().split(" ");
             int wyslanaLiczba = -1;
             e.getChannel().sendMessage(kek[0]).queue();
             try {
