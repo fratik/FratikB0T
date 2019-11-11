@@ -134,6 +134,9 @@ public class Module implements Modul {
         commands.add(new SelfieCommand());
         commands.add(new EmojiInfoCommand());
         commands.add(new Rule34Command(eventWaiter, eventBus, managerArgumentow));
+        if (Ustawienia.instance.apiKeys.get("lolToken") != null) {
+            commands.add(new LolCommand());
+        }
 
         listener = new MemberListener(guildDao);
         eventBus.register(listener);

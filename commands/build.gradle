@@ -29,6 +29,13 @@ build.dependsOn jar
 dependencies {
     compile project(":core")
     compile project(":music")
+    compile 'com.github.taycaldwell:riot-api-java:4.3.0'
+}
+
+allprojects {
+    repositories {
+        maven { url 'https://jitpack.io' }
+    }
 }
 
 shadowJar {
