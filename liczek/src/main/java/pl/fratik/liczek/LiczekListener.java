@@ -76,7 +76,7 @@ public class LiczekListener {
         Integer liczba = gc.getLiczekLiczba()+1;
         User osoba = cha.getJDA().getUserById(gc.getLiczekLiczba());
 
-        if (liczba == null || osoba == null) return;
+        if (osoba == null) return;
 
         Language l = tlumaczenia.getLanguage(cha.getGuild());
         String msg = tlumaczenia.get(l, "liczek.topic", osoba.getAsMention(), liczba);
