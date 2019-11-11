@@ -44,21 +44,26 @@ public class LiczekListener {
         if (e.getChannel().getType() != ChannelType.TEXT) { return; }
         if (e.getChannel().getId().equals(gc.getLiczekKanal())) {
             if (e.getMember().getUser().isFake() || e.getMember().getUser().isBot()) {
-                e.getMessage().delete().queue();
+                // e.getMessage().delete().queue();
                 return;
             }
 
-            String kek = String.valueOf(e.getMessage());
+            String[] kek = String.valueOf(e.getMessage()).split(" ");
             int wyslanaLiczba = -1;
+            e.getChannel().sendMessage(kek[0]).queue();
             try {
-                wyslanaLiczba = Integer.parseInt(kek);
+                wyslanaLiczba = Integer.parseInt(kek[0]);
             } catch(NumberFormatException xd) {
-                e.getMessage().delete().queue();
+//                e.getMessage().delete().queue();
+                e.getChannel().sendMessage("wyslanaLiczba wywala NumberFormatException").queue();
                 return;
             }
+
+            e.getChannel().sendMessage("wyslanaLiczba " + wyslanaLiczba).queue();
 
             if (wyslanaLiczba != gc.getLiczekLiczba()+1 || e.getMember().getUser().getId().equals(gc.getLiczekOstatniaOsoba())) {
-                e.getMessage().delete().queue();
+//                e.getMessage().delete().queue();
+                e.getChannel().sendMessage(wyslanaLiczba + " != " + gc.getLiczekLiczba()+1 + e.getMember().getUser().getId() + " == " + gc.getLiczekOstatniaOsoba()).queue();
                 return;
             }
 

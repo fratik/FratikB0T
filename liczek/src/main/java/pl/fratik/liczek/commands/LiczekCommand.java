@@ -87,7 +87,7 @@ public class LiczekCommand extends Command {
             }
 
             context.send(context.getTranslated("liczek.successful", cha.getAsMention()));
-            cha.sendMessage(context.getTranslated("liczek.start")).queue();
+            cha.sendMessage(context.getTranslated("liczek.start")).complete();
             gc.setLiczekKanal(cha.getId());
             guildDao.save(gc);
             return true;
