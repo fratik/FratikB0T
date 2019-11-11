@@ -65,16 +65,18 @@ public class LiczekCommand extends Command {
                 context.send(context.getTranslated("liczek.badchannel"));
                 return false;
             }
-            context.send(context.getTranslated("liczek.info", txt.getAsMention(), txt.getId(), gc.getLiczekLiczba()));
+            String nazwalol = "#" + txt.getName();
+            context.send(context.getTranslated("liczek.info", txt.getAsMention(), nazwalol, txt.getId(), gc.getLiczekLiczba()));
             return true;
         }
         if (context.getArgs()[0].equals("set")) {
-            if (context.getRawArgs()[1].length() < 1)  {
+            TextChannel cha = null;
+            try {
+                cha = (TextChannel) context.getArgs()[1];
+            } catch (Exception xd) {
                 CommonErrors.usage(context);
                 return false;
             }
-            TextChannel cha = null;
-            cha = (TextChannel) context.getArgs()[1];
 
             if (cha == null) {
                 context.send(context.getTranslated("liczek.badchannel"));

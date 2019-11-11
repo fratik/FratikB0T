@@ -44,26 +44,22 @@ public class LiczekListener {
         if (e.getChannel().getType() != ChannelType.TEXT) { return; }
         if (e.getChannel().getId().equals(gc.getLiczekKanal())) {
             if (e.getMember().getUser().isFake() || e.getMember().getUser().isBot()) {
-                // e.getMessage().delete().queue();
+                e.getMessage().delete().queue();
                 return;
             }
 
             String[] kek = e.getMessage().getContentRaw().split(" ");
             int wyslanaLiczba = -1;
-            e.getChannel().sendMessage(kek[0]).queue();
+
             try {
                 wyslanaLiczba = Integer.parseInt(kek[0]);
             } catch(NumberFormatException xd) {
-//                e.getMessage().delete().queue();
-                e.getChannel().sendMessage("wyslanaLiczba wywala NumberFormatException").queue();
+                e.getMessage().delete().queue();
                 return;
             }
 
-            e.getChannel().sendMessage("wyslanaLiczba " + wyslanaLiczba).queue();
-
             if (wyslanaLiczba != gc.getLiczekLiczba()+1 || e.getMember().getUser().getId().equals(gc.getLiczekOstatniaOsoba())) {
-//                e.getMessage().delete().queue();
-                e.getChannel().sendMessage(wyslanaLiczba + " != " + gc.getLiczekLiczba()+1 + e.getMember().getUser().getId() + " == " + gc.getLiczekOstatniaOsoba()).queue();
+                e.getMessage().delete().queue();
                 return;
             }
 
@@ -86,7 +82,7 @@ public class LiczekListener {
         String msg = tlumaczenia.get(l, "liczek.topic", osoba.getAsMention(), liczba);
 
         try {
-            cha.getManager().setTopic(msg);
+            cha.getManager().setTopic(msg).queue();
         } catch (Exception xd) {
             /* brak permów, idziem sobie*/
         }
