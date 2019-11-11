@@ -44,7 +44,7 @@ public class LiczekListener {
         if (e.getChannel().getType() != ChannelType.TEXT) { return; }
         if (e.getChannel().getId().equals(gc.getLiczekKanal())) {
             if (e.getMember().getUser().isFake() || e.getMember().getUser().isBot()) {
-                e.getMessage().delete().queue();
+//                e.getMessage().delete().queue();
                 return;
             }
 
@@ -71,6 +71,7 @@ public class LiczekListener {
     }
 
     public void refreshTopic(TextChannel cha) {
+        cha.sendMessage("refreshTopic()").queue();
         GuildConfig gc = guildDao.get(cha.getGuild());
         Integer liczba = gc.getLiczekLiczba()+1;
         User osoba;
@@ -78,17 +79,20 @@ public class LiczekListener {
         try {
             osoba = cha.getJDA().getUserById(gc.getLiczekLiczba());
         } catch (Exception xd) {
+            cha.sendMessage("osoba wywala Exceptiona F " + gc.getLiczekLiczba()).queue();
             return;
         }
-
-        if (osoba == null) return;
+        if (osoba == null) { return; }
+        cha.sendMessage("osoba != null").queue();
 
         Language l = tlumaczenia.getLanguage(cha.getGuild());
         String msg = tlumaczenia.get(l, "liczek.topic", osoba.getAsMention(), liczba);
+        cha.sendMessage(msg).queue();
 
         try {
             cha.getManager().setTopic(msg).queue();
         } catch (Exception xd) {
+            cha.sendMessage("o bosze, bot pewnie permow nie ma").queue();
             /* brak permów, idziem sobie*/
         }
     }
