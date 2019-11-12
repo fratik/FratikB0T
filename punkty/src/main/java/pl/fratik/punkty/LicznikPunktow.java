@@ -279,9 +279,19 @@ public class LicznikPunktow {
                 if (channelId != null && !channelId.isEmpty()) ch = shardManager.getTextChannelById(channelId);
                 if (ch == null) ch = event.getChannel();
                 if (event.getChannel().equals(ch) && !uc.isLvlupMessages()) return;
-                ch.sendMessage(tlumaczenia.get(l,
-                        "generic.lvlup", event.getMember().getUser().getName(), event.getLevel(), prefix))
-                        .queue(null, kurwa -> {});
+                if (gc.getLvlUpMessage() != null)  {
+                    ch.sendMessage(gc.getLvlUpMessage()
+                            .replaceAll("\\{\\{mention}}", event.getMember().getUser().getAsTag().replaceAll("@(everyone|here)", "@\u200b$1"))
+                            .replaceAll("\\{\\{user}}", UserUtil.formatDiscrim(event.getMember()))
+                            .replaceAll("\\{\\{level}}", String.valueOf(event.getLevel()))
+                            .replaceAll("\\{\\{guild}}", event.getMember().getGuild().getName()))
+                            .queue(null, kurwa -> {});
+                } else {
+                    ch.sendMessage(tlumaczenia.get(l,
+                            "generic.lvlup", event.getMember().getUser().getName(), event.getLevel(), prefix))
+                            .queue(null, kurwa -> {});
+                }
+
             } catch (Exception e) {
                 //brak permów
             }
