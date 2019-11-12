@@ -32,6 +32,8 @@ import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.util.UserUtil;
 
+import java.util.LinkedHashMap;
+
 public class LolCommand extends Command {
 
     private final ApiConfig config;
@@ -39,22 +41,33 @@ public class LolCommand extends Command {
     public LolCommand() {
         name = "lol";
         category = CommandCategory.UTILITY;
-        uzycie = new Uzycie("nick", "string", true);
         aliases = new String[] {"lolstats", "leagueoflegends", "leagueoflegendsstats"};
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         cooldown = 5;
         allowInDMs = true;
         config = new ApiConfig().setKey(Ustawienia.instance.apiKeys.get("lolToken"));
+        LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
+        hmap.put("nick", "string");
+        hmap.put("platforma", "string");
+        uzycie = new Uzycie(hmap, new boolean[] {true, false});
     }
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
         RiotApi api = new RiotApi(config);
         Summoner gracz;
+        Platform platform;
+
         try {
-            gracz = api.getSummonerByName(Platform.NA, String.valueOf(context.getArgs()[0]));
+            platform = Platform.getPlatformByName(String.valueOf(context.getArgs()[1]));
+        } catch (Exception xd) {
+            platform = Platform.EUNE;
+        }
+
+        try {
+            gracz = api.getSummonerByName(platform, String.valueOf(context.getArgs()[0]));
         } catch (RiotApiException e) {
-            context.send(context.getTranslated("lol.baduser"));
+            context.send(context.getTranslated("lol.baduser", platform));
             return false;
         }
 

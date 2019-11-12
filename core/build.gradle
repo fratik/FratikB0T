@@ -15,7 +15,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-
 plugins {
     id 'java'
     id 'application'
@@ -85,6 +84,7 @@ dependencies {
     compile 'com.github.Vankka:MCDiscordReserializer:b00bafd9c6'
     compile 'net.kyori:text-api:3.0.0'
     compile 'net.kyori:text-serializer-legacy:3.0.2'
+    compile 'com.github.taycaldwell:riot-api-java:4.3.0' // lolApi
     testCompile group: 'junit', name: 'junit', version: '4.12'
 }
 
