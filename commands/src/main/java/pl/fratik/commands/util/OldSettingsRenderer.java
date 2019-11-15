@@ -168,6 +168,8 @@ public class OldSettingsRenderer implements SettingsRenderer {
         else
             builder.append("5. ").append(ctx.getTranslated("ustawienia.user.reakcjablad.isnotset")).append("\n");
         builder.append("6. ").append(ctx.getTranslated("ustawienia.user.lvlupmessages." +
+                (userConfig.isPrivWlaczone() ? "enabled" : "disabled"))).append("\n");
+        builder.append("7. ").append(ctx.getTranslated("ustawienia.user.lvlupondm." +
                 (userConfig.isPrivWlaczone() ? "enabled" : "disabled")));
         builder.append("\n");
         builder.append("\n0. ").append(ctx.getTranslated("ustawienia.footer"));
@@ -216,6 +218,13 @@ public class OldSettingsRenderer implements SettingsRenderer {
                 userConfig.setLvlupMessages(!userConfig.isLvlupMessages());
                 userDao.save(userConfig);
                 ctx.send(ctx.getTranslated("ustawienia.user.lvlupmessages.confirm." +
+                        (userConfig.isPrivWlaczone() ? "enabled" : "disabled")));
+                break;
+            case "7":
+                koniecZara = false;
+                userConfig.setLvlupMessages(!userConfig.isLvlUpOnDM());
+                userDao.save(userConfig);
+                ctx.send(ctx.getTranslated("ustawienia.user.lvlupondm.confirm." +
                         (userConfig.isPrivWlaczone() ? "enabled" : "disabled")));
                 break;
             case "0":
