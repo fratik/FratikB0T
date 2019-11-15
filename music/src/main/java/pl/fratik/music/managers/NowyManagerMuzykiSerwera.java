@@ -284,12 +284,15 @@ public class NowyManagerMuzykiSerwera implements ManagerMuzykiSerwera {
 
     @Override
     public void nodeDisconnected() {
-        if (announceChannel == null) return;
         exception = true;
         try {
             Thread.sleep(1200);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+        }
+        if (announceChannel == null) {
+            exception = false;
+            return;
         }
         announceChannel.sendMessage(tlumaczenia.get(aktualnaPiosenka.getRequesterLanguage(),
                 "play.song.error.node.disconnected")).queue();
