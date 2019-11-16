@@ -88,7 +88,7 @@ public class DailyCommand extends Command {
             return false;
         }
         if (calendar.get(Calendar.MONTH) == 11 && calendar.get(Calendar.DAY_OF_MONTH) == 24 {
-            mc.setFratikCoiny(mc.getFratikCoiny() +500);
+            mc.setFratikCoiny(mc.getFratikCoiny() + 500);
         } else
             mc.setFratikCoiny(mc.getFratikCoiny() + 250);
         }
