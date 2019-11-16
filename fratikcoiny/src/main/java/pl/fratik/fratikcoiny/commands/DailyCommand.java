@@ -49,28 +49,23 @@ public class DailyCommand extends Command {
         MemberConfig mc = memberDao.get(context.getMember());
         Date dailyDate = mc.getDailyDate();
         Date teraz = new Date();
-
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(teraz);
-
-        long dist = 0;
-        if (mc.getDailyDate() != null) dist = dailyDate.getTime() - teraz.getTime();
-        if (dist >= 0) {
-            context.send(context.getTranslated("daily.cooldown"));
-            return false;
+        if (mc.getDailyDate() != null) {
+            long dist = dailyDate.getTime() - teraz.getTime();
+            if (dist >= 0) {
+                context.send(context.getTranslated("daily.cooldown"));
+                return false;
+            }
         }
         Calendar cal = Calendar.getInstance();
         cal.setTime(teraz);
         cal.add(Calendar.DAY_OF_MONTH, 1);
         dailyDate = Date.from(cal.toInstant());
-        if (mc.getFratikCoiny() + 250 == Long.MAX_VALUE) {
+        long fc = isHoliday() ? mc.getFratikCoiny() + 500 : mc.getFratikCoiny() + 250;
+        if (fc == Long.MAX_VALUE) {
             context.send(context.getTranslated("daily.too.many.coins"));
             return false;
         }
-
-        long fc = isHoliday() ? mc.getFratikCoiny() + 500 : mc.getFratikCoiny() + 250;
         String msg = isHoliday() ? "daily.success" : "daily.success.holiday";
-
         mc.setFratikCoiny(fc);
         mc.setDailyDate(dailyDate);
         memberDao.save(mc);
