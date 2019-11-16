@@ -17,9 +17,9 @@
 
 package pl.fratik.fratikcoiny.commands;
 
+import com.sun.istack.internal.NotNull;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Emote;
-import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.Ustawienia;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandCategory;
@@ -49,29 +49,12 @@ public class DailyCommand extends Command {
         MemberConfig mc = memberDao.get(context.getMember());
         Date dailyDate = mc.getDailyDate();
         Date teraz = new Date();
-        Date date = // the date instance
+
         Calendar calendar = Calendar.getInstance();
-        calendar.setTime(date); 
-        long dist;
+        calendar.setTime(teraz);
+
+        long dist = 0;
         if (mc.getDailyDate() != null) dist = dailyDate.getTime() - teraz.getTime();
-        else {
-            Calendar cal = Calendar.getInstance();
-            cal.setTime(teraz);
-            cal.add(Calendar.DAY_OF_MONTH, 1);
-            dailyDate = Date.from(cal.toInstant());
-            if (mc.getFratikCoiny() + 250 == Long.MAX_VALUE) {
-                context.send(context.getTranslated("daily.too.many.coins"));
-                return false;
-            } else if (calendar.get(Calendar.MONTH) == 11 && calendar.get(Calendar.DAY_OF_MONTH) == 24 && mc.getFratikCoiny() + 500 == Long.MAX_VALUE) {
-                context.send(context.getTranslated("daily.too.many.coins"));
-                return false;
-            }
-            mc.setFratikCoiny(mc.getFratikCoiny() + 250);
-            mc.setDailyDate(dailyDate);
-            memberDao.save(mc);
-            context.send(context.getTranslated("daily.success", emotkaFc.getAsMention()));
-            return true;
-        }
         if (dist >= 0) {
             context.send(context.getTranslated("daily.cooldown"));
             return false;
@@ -83,18 +66,25 @@ public class DailyCommand extends Command {
         if (mc.getFratikCoiny() + 250 == Long.MAX_VALUE) {
             context.send(context.getTranslated("daily.too.many.coins"));
             return false;
-        } else if (calendar.get(Calendar.MONTH) == 11 && calendar.get(Calendar.DAY_OF_MONTH) == 24 && mc.getFratikCoiny() + 500 == Long.MAX_VALUE) {
-            context.send(context.getTranslated("daily.too.many.coins"));
-            return false;
         }
-        if (calendar.get(Calendar.MONTH) == 11 && calendar.get(Calendar.DAY_OF_MONTH) == 24 {
-            mc.setFratikCoiny(mc.getFratikCoiny() + 500);
-        } else
-            mc.setFratikCoiny(mc.getFratikCoiny() + 250);
-        }
+
+        long fc = isHoliday() ? mc.getFratikCoiny() + 500 : mc.getFratikCoiny() + 250;
+        String msg = isHoliday() ? "daily.success" : "daily.success.holiday";
+
+        mc.setFratikCoiny(fc);
         mc.setDailyDate(dailyDate);
         memberDao.save(mc);
-        context.send(context.getTranslated("daily.success", emotkaFc.getAsMention()));
+        context.send(context.getTranslated(msg, emotkaFc.getAsMention()));
         return true;
     }
+
+    private static Boolean isHoliday() { // mozna to pozniej gdzies przeniesc
+        Date teraz = new Date();
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(teraz);
+        if (calendar.get(Calendar.MONTH) == Calendar.DECEMBER && calendar.get(Calendar.DAY_OF_MONTH) == 24) return true;
+        // TODO: dodac inne swieta
+        return false;
+    }
 }
+
