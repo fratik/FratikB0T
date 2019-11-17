@@ -87,6 +87,8 @@ public class Module implements Modul {
             commands.add(new GraficznaCommand("roksana", "/api/image/roksana", "avatarURL", false));
             commands.add(new GraficznaCommand("debilizm", "/api/image/debilizm", "avatarURL", false));
             commands.add(new GraficznaCommand("god", "/api/image/god", "avatarURL", false));
+            commands.add(new GraficznaCommand("god", "/api/image/god", "avatarURL", false));
+            commands.add(new EatCommand());
             commands.add(new BigemojiCommand());
             commands.add(new ChainCommand());
         }
