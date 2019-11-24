@@ -77,7 +77,7 @@ public class Ustawienia {
         public String loading = "503651397049516053";
         public String osu300 = "648144059830894603";
         public String osu100 = "648144059877294081";
-        public String osu50 = " 648144059415789569";
+        public String osu50 = "648144059415789569";
         public String osumiss = "648144059172651010";
         public String osukatu = "648144061068214285";
         public String osugeki = "648144059478573056";
