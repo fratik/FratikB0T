@@ -89,6 +89,38 @@ public class Ustawienia {
         public String osuB = "0";
         public String osuC = "0";
         public String osuD = "0";
+        // mody, patrz OsuCommand.java:150
+        public String osuNF = "0";
+        public String osuEZ = "0";
+        public String osuTD = "0";
+        public String osuHD = "0";
+        public String osuHR = "0";
+        public String osuSD = "0";
+        public String osuDT = "0";
+        public String osuRX = "0";
+        public String osuHT = "0";
+        public String osuNC = "0";
+        public String osuFL = "0";
+        public String osuAO = "0";
+        public String osuSO = "0";
+        public String osuAP = "0";
+        public String osuPF = "0";
+        public String osu4K = "0";
+        public String osu5K = "0";
+        public String osu6K = "0";
+        public String osu7K = "0";
+        public String osu8K = "0";
+        public String osuFI = "0";
+        public String osuRD = "0";
+        public String osuCN = "0";
+        public String osuTP = "0";
+        public String osu9K = "0";
+        public String osuCOOPK = "0";
+        public String osu1K = "0";
+        public String osu3K = "0";
+        public String osu2K = "0";
+        public String osuV2 = "0";
+        public String osuLM = "0";
     }
 
     public static class ShardSettings {

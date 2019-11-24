@@ -82,50 +82,137 @@ public class OsuCommand extends Command {
     public boolean topPlay(@NotNull CommandContext context) {
         try {
             List<OsuScore> wyniki = osu.userBests
-                    .query(new EndpointUserBests.ArgumentsBuilder((String) context.getArgs()[0]).setLimit(15).build());
+                    .query(new EndpointUserBests.ArgumentsBuilder((String) context.getArgs()[0]).setLimit(100).build());
             Message mes = context.send(context.getTranslated("generic.loading"));
             List<FutureTask<EmbedBuilder>> pages = new ArrayList<>();
             for (OsuScore w : wyniki) {
-                pages.add(new FutureTask<>(() -> {
-                    OsuUser u = w.getUser().get();
-                    OsuBeatmap m = w.getBeatmap().get();
-                    EmbedBuilder eb = new EmbedBuilder();
-                    eb.setAuthor(u.getUsername(), u.getURL().toString(), "https://a.ppy.sh/" + u.getID());
-                    eb.addField(context.getTranslated("osu.topplay.beatmap"), generateBeatmapString(m),
-                            false);
-                    eb.addField(context.getTranslated("osu.topplay.score"),
-                            generateScore(w), true);
-                    eb.addField("", generateScoreSecLine(w), true);
-                    eb.addField("", generateScoreThirdLine(w), true);
-                    eb.addField(context.getTranslated("osu.topplay.pp"),
-                            String.valueOf(CommonUtil.round(w.getPp(), 2, RoundingMode.HALF_UP)), true);
-                    eb.addField(context.getTranslated("osu.topplay.combo"), w.getMaxCombo() + "x", true);
-                    eb.addField(context.getTranslated("osu.topplay.fc"), w.isPerfect() ?
-                            context.getTranslated("generic.yes") : context.getTranslated("generic.no"), true);
-                    eb.addField(context.getTranslated("osu.topplay.mods"), getMods(w), true);
-                    eb.setTimestamp(w.getDate());
-                    String imgUrl = "https://assets.ppy.sh/beatmaps/" + m.getBeatmapSetID() + "/covers/cover.jpg";
-                    eb.setImage(imgUrl);
-                    eb.setColor(CommonUtil.getPrimColorFromImageUrl(imgUrl));
-                    return eb;
-                }));
+                pages.add(new FutureTask<>(() -> renderScore(context, w)));
             }
             new DynamicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(),
-                    context.getTlumaczenia(), eventBus).create(mes);
+                    context.getTlumaczenia(), eventBus, false).setEnableShuffle(true).create(mes);
         } catch (OsuAPIException e) {
             e.printStackTrace();
         }
         return true;
     }
 
+    @NotNull
+    private EmbedBuilder renderScore(@NotNull CommandContext context, OsuScore w) throws OsuAPIException, MalformedURLException {
+        OsuUser u = w.getUser().get();
+        OsuBeatmap m = w.getBeatmap().get();
+        EmbedBuilder eb = new EmbedBuilder();
+        eb.setAuthor(u.getUsername(), u.getURL().toString(), "https://a.ppy.sh/" + u.getID());
+        eb.addField(context.getTranslated("osu.topplay.beatmap"), generateBeatmapString(m),
+                false);
+        eb.addField(context.getTranslated("osu.topplay.score"),
+                generateScore(w), true);
+        eb.addField("", generateScoreSecLine(w), true);
+        eb.addField("", generateScoreThirdLine(w), true);
+        eb.addField(context.getTranslated("osu.topplay.pp"),
+                String.valueOf(CommonUtil.round(w.getPp(), 2, RoundingMode.HALF_UP)), true);
+        eb.addField(context.getTranslated("osu.topplay.combo"), w.getMaxCombo() + "x", true);
+        eb.addField(context.getTranslated("osu.topplay.fc"), w.isPerfect() ?
+                context.getTranslated("generic.yes") : context.getTranslated("generic.no"), true);
+        eb.addField(context.getTranslated("osu.topplay.mods"), getMods(w), true);
+        eb.addField(context.getTranslated("osu.topplay.acc"),
+                CommonUtil.round(calcAcc(w) * 100, 2, RoundingMode.HALF_UP) + "%", true);
+        eb.setTimestamp(w.getDate());
+        String imgUrl = "https://assets.ppy.sh/beatmaps/" + m.getBeatmapSetID() + "/covers/cover.jpg";
+        eb.setImage(imgUrl);
+        eb.setColor(CommonUtil.getPrimColorFromImageUrl(imgUrl));
+        return eb;
+    }
+
+    private double calcAcc(OsuScore w) {
+        return (double) (50 * w.getHit50() + 100 * w.getHit100() + 300 * w.getHit300()) /
+                (300 * (w.getMisses() + w.getHit50() + w.getHit100() + w.getHit300()));
+    }
+
     private String getMods(OsuScore w) {
         if (w.getEnabledMods().length == 0) return "No Mods";
         StringBuilder sb = new StringBuilder();
         for (GameMod m : w.getEnabledMods()) {
-            sb.append(m.getName()).append("\n");
+            if (!checkEmotki(Ustawienia.instance.emotki)) {
+                sb.append(m.getName()).append("\n");
+            } else {
+                try {
+                    sb.append(getEmotka((String) Ustawienia.instance.emotki.getClass().getDeclaredField("osu" +
+                            getOsuShortMod(m)).get(Ustawienia.instance.emotki))).append("\n");
+                } catch (NoSuchFieldException | IllegalAccessException | ClassCastException | OsuAPIException e) {
+                    sb.append(m.getName()).append("\n");
+                }
+            }
         }
         sb.setLength(sb.length() - 1);
         return sb.toString();
+    }
+
+    private String getOsuShortMod(GameMod m) throws OsuAPIException {
+        switch (m) {
+            case EASY:
+                return "EZ";
+            case KEY_1:
+                return "1K";
+            case KEY_2:
+                return "2K";
+            case KEY_3:
+                return "3K";
+            case KEY_4:
+                return "4K";
+            case KEY_5:
+                return "5K";
+            case KEY_6:
+                return "6K";
+            case KEY_7:
+                return "7K";
+            case KEY_8:
+                return "8K";
+            case KEY_9:
+                return "9K";
+            case RELAX:
+                return "RX";
+            case CINEMA:
+                return "CN";
+            case HIDDEN:
+                return "HD";
+            case RANDOM:
+                return "RD";
+            case TARGET:
+                return "TP";
+            case FADE_IN:
+                return "FI";
+            case NO_FAIL:
+                return "NF";
+            case PERFECT:
+                return "PF";
+            case SPUNOUT:
+                return "SO";
+            case AUTOPLAY:
+                return "AO";
+            case KEY_COOP:
+                return "COOPK";
+            case LAST_MOD:
+                return "LM";
+            case SCORE_V2:
+                return "V2";
+            case AUTOPILOT:
+                return "AP";
+            case HALF_TIME:
+                return "HT";
+            case HARD_ROCK:
+                return "HR";
+            case NIGHTCORE:
+                return "NC";
+            case FLASHLIGHT:
+                return "FL";
+            case DOUBLE_TIME:
+                return "DT";
+            case SUDDEN_DEATH:
+                return "SD";
+            case TOUCH_DEVICE:
+                return "TD";
+        }
+        throw new OsuAPIException("kurwa co to za mod");
     }
 
     private String generateScore(OsuScore w) {
@@ -140,7 +227,7 @@ public class OsuCommand extends Command {
                         .getEmoteById(Ustawienia.instance.emotki.osuSSH)).getAsMention() : "XH";
             case "X":
                 return checkEmotkiStr(Ustawienia.instance.emotki.osuSS) ? Objects.requireNonNull(shardManager
-                        .getEmoteById(Ustawienia.instance.emotki.osuSS)).getAsMention() : "SS";
+                        .getEmoteById(Ustawienia.instance.emotki.osuSS)).getAsMention() : "X";
             case "SH":
                 return checkEmotkiStr(Ustawienia.instance.emotki.osuSH) ? Objects.requireNonNull(shardManager
                         .getEmoteById(Ustawienia.instance.emotki.osuSH)).getAsMention() : "SH";
@@ -192,7 +279,17 @@ public class OsuCommand extends Command {
                 checkEmotkiStr(emotki.osuA) && checkEmotkiStr(emotki.osuB) && checkEmotkiStr(emotki.osuC) &&
                 checkEmotkiStr(emotki.osuD) && checkEmotkiStr(emotki.osugeki) && checkEmotkiStr(emotki.osukatu) &&
                 checkEmotkiStr(emotki.osumiss) && checkEmotkiStr(emotki.osuS) && checkEmotkiStr(emotki.osuSH) &&
-                checkEmotkiStr(emotki.osuSS) && checkEmotkiStr(emotki.osuSSH);
+                checkEmotkiStr(emotki.osuSS) && checkEmotkiStr(emotki.osuSSH) && checkEmotkiStr(emotki.osu1K) &&
+                checkEmotkiStr(emotki.osu2K) && checkEmotkiStr(emotki.osu3K) && checkEmotkiStr(emotki.osu4K) &&
+                checkEmotkiStr(emotki.osu5K) && checkEmotkiStr(emotki.osu6K) && checkEmotkiStr(emotki.osu7K) &&
+                checkEmotkiStr(emotki.osu8K) && checkEmotkiStr(emotki.osu9K) && checkEmotkiStr(emotki.osuNF) &&
+                checkEmotkiStr(emotki.osuEZ) && checkEmotkiStr(emotki.osuTD) && checkEmotkiStr(emotki.osuHD) &&
+                checkEmotkiStr(emotki.osuHR) && checkEmotkiStr(emotki.osuSD) && checkEmotkiStr(emotki.osuDT) &&
+                checkEmotkiStr(emotki.osuRX) && checkEmotkiStr(emotki.osuHT) && checkEmotkiStr(emotki.osuNC) &&
+                checkEmotkiStr(emotki.osuFL) && checkEmotkiStr(emotki.osuAO) && checkEmotkiStr(emotki.osuSO) &&
+                checkEmotkiStr(emotki.osuAP) && checkEmotkiStr(emotki.osuPF) && checkEmotkiStr(emotki.osuFI) &&
+                checkEmotkiStr(emotki.osuRD) && checkEmotkiStr(emotki.osuCN) && checkEmotkiStr(emotki.osuTP) &&
+                checkEmotkiStr(emotki.osuCOOPK) && checkEmotkiStr(emotki.osuV2) && checkEmotkiStr(emotki.osuLM);
     }
     
     private boolean checkEmotkiStr(String uwuOwo) {
