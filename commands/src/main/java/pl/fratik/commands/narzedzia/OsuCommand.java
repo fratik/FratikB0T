@@ -23,6 +23,8 @@ import com.oopsjpeg.osu4j.OsuBeatmap;
 import com.oopsjpeg.osu4j.OsuScore;
 import com.oopsjpeg.osu4j.OsuUser;
 import com.oopsjpeg.osu4j.backend.EndpointUserBests;
+import com.oopsjpeg.osu4j.backend.EndpointUserRecents;
+import com.oopsjpeg.osu4j.backend.EndpointUsers;
 import com.oopsjpeg.osu4j.backend.Osu;
 import com.oopsjpeg.osu4j.exception.OsuAPIException;
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -37,18 +39,19 @@ import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.command.SubCommand;
 import pl.fratik.core.entity.Uzycie;
-import pl.fratik.core.util.CommonErrors;
-import pl.fratik.core.util.CommonUtil;
-import pl.fratik.core.util.DynamicEmbedPaginator;
-import pl.fratik.core.util.EventWaiter;
+import pl.fratik.core.util.*;
 
 import java.math.RoundingMode;
 import java.net.MalformedURLException;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.FutureTask;
+
+import static pl.fratik.core.Ustawienia.instance;
+import static pl.fratik.core.util.CommonUtil.round;
 
 public class OsuCommand extends Command {
     private final Osu osu;
@@ -68,7 +71,7 @@ public class OsuCommand extends Command {
         uzycieDelim = " ";
         allowInDMs = true;
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
-        osu = Osu.getAPI(Ustawienia.instance.apiKeys.get("osu"));
+        osu = Osu.getAPI(instance.apiKeys.get("osu"));
         cooldown = 15;
     }
 
@@ -78,49 +81,126 @@ public class OsuCommand extends Command {
         return false;
     }
 
-    @SubCommand(name = "topPlay")
-    public boolean topPlay(@NotNull CommandContext context) {
+    @SubCommand(name = "user")
+    public boolean user(@NotNull CommandContext context) {
+        NumberFormat nf = NumberFormat.getInstance(context.getLanguage().getLocale());
+        Message mes = context.send(context.getTranslated("generic.loading"));
         try {
-            List<OsuScore> wyniki = osu.userBests
-                    .query(new EndpointUserBests.ArgumentsBuilder((String) context.getArgs()[0]).setLimit(100).build());
-            Message mes = context.send(context.getTranslated("generic.loading"));
-            List<FutureTask<EmbedBuilder>> pages = new ArrayList<>();
-            for (OsuScore w : wyniki) {
-                pages.add(new FutureTask<>(() -> renderScore(context, w)));
-            }
-            new DynamicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(),
-                    context.getTlumaczenia(), eventBus, false).setEnableShuffle(true).create(mes);
-        } catch (OsuAPIException e) {
-            e.printStackTrace();
+            OsuUser u = osu.users.query(new EndpointUsers.ArgumentsBuilder((String) context.getArgs()[0]).build());
+            EmbedBuilder eb = new EmbedBuilder();
+            eb.setAuthor(u.getUsername(), u.getURL().toString(), "https://a.ppy.sh/" + u.getID());
+            eb.addField(context.getTranslated("osu.user.accuracy"),
+                    round(u.getAccuracy(), 2, RoundingMode.HALF_UP) + "%", true);
+            eb.addField(context.getTranslated("osu.user.ranks"), String.format("%s %s\n%s %s\n%s %s\n%s %s\n%s %s",
+                    getEmotka(instance.emotki.osuSSH), u.getCountRankSSH(), getEmotka(instance.emotki.osuSS),
+                    u.getCountRankSS(), getEmotka(instance.emotki.osuSH), u.getCountRankSH(),
+                    getEmotka(instance.emotki.osuS), u.getCountRankS(), getEmotka(instance.emotki.osuA),
+                    u.getCountRankA()), true);
+            eb.addField(context.getTranslated("osu.user.country"),
+                    ":flag_" + u.getCountry().name().toLowerCase() + ":", true);
+            eb.addField(context.getTranslated("osu.user.rank"), context.getTranslated("osu.user.rank.text",
+                    u.getRank(), u.getCountryRank()), true);
+            eb.addField(context.getTranslated("osu.user.total.hits"), nf.format(u.getTotalHits()), true);
+            eb.addField(context.getTranslated("osu.user.total.score"), nf.format(u.getTotalScore()), true);
+            eb.addField(context.getTranslated("osu.user.total.ranked.score"), nf.format(u.getRankedScore()), true);
+            eb.addField(context.getTranslated("osu.user.pp"), nf.format(u.getPPRaw()), true);
+            eb.addField(context.getTranslated("osu.user.level"), nf.format(round(u.getLevel(), 2,
+                    RoundingMode.HALF_UP)), true);
+            eb.addField(context.getTranslated("osu.user.play.count"), nf.format(u.getPlayCount()), true);
+            eb.addField(context.getTranslated("osu.user.played"),
+                    DurationUtil.humanReadableFormat(u.getTotalSecondsPlayed() * 1000, false),
+                    true);
+            mes.editMessage(eb.build()).override(true).complete();
+        } catch (OsuAPIException | MalformedURLException e) {
+            mes.editMessage(context.getTranslated("osu.error")).queue();
+            return false;
         }
         return true;
     }
 
+    @SubCommand(name = "topPlay")
+    public boolean topPlay(@NotNull CommandContext context) {
+        Message mes = context.send(context.getTranslated("generic.loading"));
+        try {
+            List<OsuScore> wyniki = osu.userBests
+                    .query(new EndpointUserBests.ArgumentsBuilder((String) context.getArgs()[0]).setLimit(100).build());
+            if (wyniki.isEmpty()) {
+                mes.editMessage(context.getTranslated("osu.topplay.empty")).queue();
+                return false;
+            }
+            renderScores(context, mes, wyniki);
+        } catch (OsuAPIException e) {
+            mes.editMessage(context.getTranslated("osu.error")).queue();
+            return false;
+        }
+        return true;
+    }
+
+    @SubCommand(name = "recentPlay")
+    public boolean recentPlay(@NotNull CommandContext context) {
+        Message mes = context.send(context.getTranslated("generic.loading"));
+        try {
+            List<OsuScore> wyniki = osu.userRecents
+                    .query(new EndpointUserRecents.ArgumentsBuilder((String) context.getArgs()[0]).setLimit(50).build());
+            if (wyniki.isEmpty()) {
+                mes.editMessage(context.getTranslated("osu.recentplay.empty")).queue();
+                return false;
+            }
+            renderScores(context, mes, wyniki);
+        } catch (OsuAPIException e) {
+            mes.editMessage(context.getTranslated("osu.error")).queue();
+            return false;
+        }
+        return true;
+    }
+
+    private void renderScores(@NotNull CommandContext context, Message mes, List<OsuScore> wyniki) {
+        List<FutureTask<EmbedBuilder>> pages = new ArrayList<>();
+        for (OsuScore w : wyniki) {
+            pages.add(new FutureTask<>(() -> renderScore(context, w)));
+        }
+        new DynamicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(),
+                context.getTlumaczenia(), eventBus, false).setEnableShuffle(true).create(mes);
+    }
+
     @NotNull
     private EmbedBuilder renderScore(@NotNull CommandContext context, OsuScore w) throws OsuAPIException, MalformedURLException {
+        NumberFormat nf = NumberFormat.getInstance(context.getLanguage().getLocale());
         OsuUser u = w.getUser().get();
         OsuBeatmap m = w.getBeatmap().get();
         EmbedBuilder eb = new EmbedBuilder();
         eb.setAuthor(u.getUsername(), u.getURL().toString(), "https://a.ppy.sh/" + u.getID());
-        eb.addField(context.getTranslated("osu.topplay.beatmap"), generateBeatmapString(m),
+        eb.addField(context.getTranslated("osu.score.beatmap"), generateBeatmapString(m),
                 false);
-        eb.addField(context.getTranslated("osu.topplay.score"),
+        eb.addField(context.getTranslated("osu.score.score"),
                 generateScore(w), true);
         eb.addField("", generateScoreSecLine(w), true);
         eb.addField("", generateScoreThirdLine(w), true);
-        eb.addField(context.getTranslated("osu.topplay.pp"),
-                String.valueOf(CommonUtil.round(w.getPp(), 2, RoundingMode.HALF_UP)), true);
-        eb.addField(context.getTranslated("osu.topplay.combo"), w.getMaxCombo() + "x", true);
-        eb.addField(context.getTranslated("osu.topplay.fc"), w.isPerfect() ?
-                context.getTranslated("generic.yes") : context.getTranslated("generic.no"), true);
-        eb.addField(context.getTranslated("osu.topplay.mods"), getMods(w), true);
-        eb.addField(context.getTranslated("osu.topplay.acc"),
-                CommonUtil.round(calcAcc(w) * 100, 2, RoundingMode.HALF_UP) + "%", true);
+        if (isPass(w) && w.getPp() != 0) {
+            eb.addField(context.getTranslated("osu.score.pp"),
+                    nf.format(round(w.getPp(), 2, RoundingMode.HALF_UP)), true);
+        }
+        eb.addField(context.getTranslated("osu.score.combo"), w.getMaxCombo() + "x", true);
+        if (isPass(w)) {
+            eb.addField(context.getTranslated("osu.score.fc"), w.isPerfect() ?
+                    context.getTranslated("generic.yes") : context.getTranslated("generic.no"), true);
+        }
+        eb.addField(context.getTranslated("osu.score.mods"), getMods(w), true);
+        eb.addField(context.getTranslated("osu.score.acc"),
+                round(calcAcc(w) * 100, 2, RoundingMode.HALF_UP) + "%", true);
+        eb.addField(context.getTranslated("osu.score.replay"), w.isReplayAvailable() ?
+                context.getTranslated("osu.score.replay.download", "https://osu.ppy.sh/scores/osu/" +
+                        w.getScoreID() + "/download") : context.getTranslated("osu.score.replay.unavailable"),
+                true);
         eb.setTimestamp(w.getDate());
         String imgUrl = "https://assets.ppy.sh/beatmaps/" + m.getBeatmapSetID() + "/covers/cover.jpg";
         eb.setImage(imgUrl);
         eb.setColor(CommonUtil.getPrimColorFromImageUrl(imgUrl));
         return eb;
+    }
+
+    private boolean isPass(OsuScore w) {
+        return !w.getRank().equals("F");
     }
 
     private double calcAcc(OsuScore w) {
@@ -132,12 +212,12 @@ public class OsuCommand extends Command {
         if (w.getEnabledMods().length == 0) return "No Mods";
         StringBuilder sb = new StringBuilder();
         for (GameMod m : w.getEnabledMods()) {
-            if (!checkEmotki(Ustawienia.instance.emotki)) {
+            if (!checkEmotki(instance.emotki)) {
                 sb.append(m.getName()).append("\n");
             } else {
                 try {
-                    sb.append(getEmotka((String) Ustawienia.instance.emotki.getClass().getDeclaredField("osu" +
-                            getOsuShortMod(m)).get(Ustawienia.instance.emotki))).append("\n");
+                    sb.append(getEmotka((String) instance.emotki.getClass().getDeclaredField("osu" +
+                            getOsuShortMod(m)).get(instance.emotki)).getAsMention()).append("\n");
                 } catch (NoSuchFieldException | IllegalAccessException | ClassCastException | OsuAPIException e) {
                     sb.append(m.getName()).append("\n");
                 }
@@ -223,40 +303,42 @@ public class OsuCommand extends Command {
         String rank = w.getRank();
         switch (rank) {
             case "XH":
-                return checkEmotkiStr(Ustawienia.instance.emotki.osuSSH) ? Objects.requireNonNull(shardManager
-                        .getEmoteById(Ustawienia.instance.emotki.osuSSH)).getAsMention() : "XH";
+                return checkEmotkiStr(instance.emotki.osuSSH) ? Objects.requireNonNull(shardManager
+                        .getEmoteById(instance.emotki.osuSSH)).getAsMention() : "XH";
             case "X":
-                return checkEmotkiStr(Ustawienia.instance.emotki.osuSS) ? Objects.requireNonNull(shardManager
-                        .getEmoteById(Ustawienia.instance.emotki.osuSS)).getAsMention() : "X";
+                return checkEmotkiStr(instance.emotki.osuSS) ? Objects.requireNonNull(shardManager
+                        .getEmoteById(instance.emotki.osuSS)).getAsMention() : "X";
             case "SH":
-                return checkEmotkiStr(Ustawienia.instance.emotki.osuSH) ? Objects.requireNonNull(shardManager
-                        .getEmoteById(Ustawienia.instance.emotki.osuSH)).getAsMention() : "SH";
+                return checkEmotkiStr(instance.emotki.osuSH) ? Objects.requireNonNull(shardManager
+                        .getEmoteById(instance.emotki.osuSH)).getAsMention() : "SH";
             case "S":
-                return checkEmotkiStr(Ustawienia.instance.emotki.osuS) ? Objects.requireNonNull(shardManager
-                        .getEmoteById(Ustawienia.instance.emotki.osuS)).getAsMention() : "S";
+                return checkEmotkiStr(instance.emotki.osuS) ? Objects.requireNonNull(shardManager
+                        .getEmoteById(instance.emotki.osuS)).getAsMention() : "S";
             case "A":
-                return checkEmotkiStr(Ustawienia.instance.emotki.osuA) ? Objects.requireNonNull(shardManager
-                        .getEmoteById(Ustawienia.instance.emotki.osuA)).getAsMention() : "A";
+                return checkEmotkiStr(instance.emotki.osuA) ? Objects.requireNonNull(shardManager
+                        .getEmoteById(instance.emotki.osuA)).getAsMention() : "A";
             case "B":
-                return checkEmotkiStr(Ustawienia.instance.emotki.osuB) ? Objects.requireNonNull(shardManager
-                        .getEmoteById(Ustawienia.instance.emotki.osuB)).getAsMention() : "B";
+                return checkEmotkiStr(instance.emotki.osuB) ? Objects.requireNonNull(shardManager
+                        .getEmoteById(instance.emotki.osuB)).getAsMention() : "B";
             case "C":
-                return checkEmotkiStr(Ustawienia.instance.emotki.osuC) ? Objects.requireNonNull(shardManager
-                        .getEmoteById(Ustawienia.instance.emotki.osuC)).getAsMention() : "C";
+                return checkEmotkiStr(instance.emotki.osuC) ? Objects.requireNonNull(shardManager
+                        .getEmoteById(instance.emotki.osuC)).getAsMention() : "C";
             case "D":
-                return checkEmotkiStr(Ustawienia.instance.emotki.osuD) ? Objects.requireNonNull(shardManager
-                        .getEmoteById(Ustawienia.instance.emotki.osuD)).getAsMention() : "D";
+                return checkEmotkiStr(instance.emotki.osuD) ? Objects.requireNonNull(shardManager
+                        .getEmoteById(instance.emotki.osuD)).getAsMention() : "D";
+            case "F":
+                return "FAIL";
             default:
                 return "";
         }
     }
 
     private String generateScoreSecLine(OsuScore w) {
-        if (checkEmotki(Ustawienia.instance.emotki)) {
+        if (checkEmotki(instance.emotki)) {
             return String.format("%s %s\n%s %s\n%s %s",
-                    getEmotka(Ustawienia.instance.emotki.osu300), w.getHit300(),
-                    getEmotka(Ustawienia.instance.emotki.osu100), w.getHit100(),
-                    getEmotka(Ustawienia.instance.emotki.osu50), w.getHit50());
+                    getEmotka(instance.emotki.osu300), w.getHit300(),
+                    getEmotka(instance.emotki.osu100), w.getHit100(),
+                    getEmotka(instance.emotki.osu50), w.getHit50());
         } else {
             return String.format("%s - %s\n%s - %s\n%s - %s",
                     "300", w.getHit300(), "100", w.getHit100(), "50", w.getHit50());
@@ -264,10 +346,10 @@ public class OsuCommand extends Command {
     }
 
     private String generateScoreThirdLine(OsuScore w) {
-        if (checkEmotki(Ustawienia.instance.emotki)) {
-            return String.format("%s %s\n%s %s\n%s %s", getEmotka(Ustawienia.instance.emotki.osugeki), w.getGekis(),
-                    getEmotka(Ustawienia.instance.emotki.osukatu), w.getKatus(),
-                    getEmotka(Ustawienia.instance.emotki.osumiss), w.getMisses());
+        if (checkEmotki(instance.emotki)) {
+            return String.format("%s %s\n%s %s\n%s %s", getEmotka(instance.emotki.osugeki), w.getGekis(),
+                    getEmotka(instance.emotki.osukatu), w.getKatus(),
+                    getEmotka(instance.emotki.osumiss), w.getMisses());
         } else {
             return String.format("%s %s\n%s %s\n%s %s", "\u6fc0", w.getGekis(), "\u559d", w.getKatus(), "X",
                     w.getMisses());

@@ -1,0 +1,3 @@
+<component name="DependencyValidationManager">
+  <scope name="Pliki bota" pattern="pl.fratik..*" />
+</component>
