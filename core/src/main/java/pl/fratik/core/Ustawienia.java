@@ -75,6 +75,20 @@ public class Ustawienia {
         public String dnd = "0";
         public String offline = "0";
         public String loading = "0";
+        public String osu300 = "0";
+        public String osu100 = "0";
+        public String osu50 = "0";
+        public String osumiss = "0";
+        public String osukatu = "0";
+        public String osugeki = "0";
+        public String osuSS = "0";
+        public String osuSSH = "0";
+        public String osuS = "0";
+        public String osuSH = "0";
+        public String osuA = "0";
+        public String osuB = "0";
+        public String osuC = "0";
+        public String osuD = "0";
     }
 
     public static class ShardSettings {

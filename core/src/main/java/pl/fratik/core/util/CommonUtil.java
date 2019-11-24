@@ -33,6 +33,8 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.URLEncoder;
 import java.util.List;
 import java.util.*;
@@ -131,7 +133,7 @@ public class CommonUtil {
             JSONObject zdjecie = NetworkUtil.getJson(Ustawienia.instance.apiUrls.get("image-server") +
                             "/api/image/primColor?imageURL=" + URLEncoder.encode(url, "UTF-8"),
                     Ustawienia.instance.apiKeys.get("image-server"));
-            if (zdjecie == null) return new Color(114, 137, 218);
+            if (zdjecie == null) return null;
             int r = -1;
             int g = -1;
             int b = -1;
@@ -179,5 +181,11 @@ public class CommonUtil {
         if (matcher.matches()) return matcher.group();
         if (!msg.getAttachments().isEmpty()) return msg.getAttachments().get(0).getUrl();
         return null;
+    }
+
+    public static double round(double value, int scale, RoundingMode mode) {
+        BigDecimal bd = BigDecimal.valueOf(value);
+        bd = bd.setScale(scale, mode);
+        return bd.doubleValue();
     }
 }

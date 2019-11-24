@@ -134,6 +134,7 @@ public class Module implements Modul {
         commands.add(new SelfieCommand());
         commands.add(new EmojiInfoCommand());
         commands.add(new Rule34Command(eventWaiter, eventBus, managerArgumentow));
+        commands.add(new OsuCommand(shardManager, eventWaiter, eventBus));
 
         listener = new MemberListener(guildDao);
         eventBus.register(listener);
