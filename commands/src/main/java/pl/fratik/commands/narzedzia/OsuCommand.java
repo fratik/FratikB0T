@@ -41,14 +41,14 @@ import pl.fratik.core.command.SubCommand;
 import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.util.*;
 
+import java.awt.*;
 import java.math.RoundingMode;
 import java.net.MalformedURLException;
 import java.text.NumberFormat;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.FutureTask;
+import java.util.stream.Collectors;
 
 import static pl.fratik.core.Ustawienia.instance;
 import static pl.fratik.core.util.CommonUtil.round;
@@ -67,7 +67,8 @@ public class OsuCommand extends Command {
         category = CommandCategory.UTILITY;
         LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
         hmap.put("nick", "string");
-        uzycie = new Uzycie(hmap, new boolean[] {true});
+        hmap.put("[...]", "string");
+        uzycie = new Uzycie(hmap, new boolean[] {true, false});
         uzycieDelim = " ";
         allowInDMs = true;
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
@@ -86,7 +87,11 @@ public class OsuCommand extends Command {
         NumberFormat nf = NumberFormat.getInstance(context.getLanguage().getLocale());
         Message mes = context.send(context.getTranslated("generic.loading"));
         try {
-            OsuUser u = osu.users.query(new EndpointUsers.ArgumentsBuilder((String) context.getArgs()[0]).build());
+            OsuUser u = osu.users.query(new EndpointUsers.ArgumentsBuilder(resolveUserName(context)).build());
+            if (u == null) {
+                mes.editMessage(context.getTranslated("osu.user.not.found")).complete();
+                return false;
+            }
             EmbedBuilder eb = new EmbedBuilder();
             eb.setAuthor(u.getUsername(), u.getURL().toString(), "https://a.ppy.sh/" + u.getID());
             eb.addField(context.getTranslated("osu.user.accuracy"),
@@ -110,6 +115,7 @@ public class OsuCommand extends Command {
             eb.addField(context.getTranslated("osu.user.played"),
                     DurationUtil.humanReadableFormat(u.getTotalSecondsPlayed() * 1000, false),
                     true);
+            eb.setColor(context.getMember().getColorRaw());
             mes.editMessage(eb.build()).override(true).complete();
         } catch (OsuAPIException | MalformedURLException e) {
             mes.editMessage(context.getTranslated("osu.error")).queue();
@@ -123,7 +129,7 @@ public class OsuCommand extends Command {
         Message mes = context.send(context.getTranslated("generic.loading"));
         try {
             List<OsuScore> wyniki = osu.userBests
-                    .query(new EndpointUserBests.ArgumentsBuilder((String) context.getArgs()[0]).setLimit(100).build());
+                    .query(new EndpointUserBests.ArgumentsBuilder(resolveUserName(context)).setLimit(100).build());
             if (wyniki.isEmpty()) {
                 mes.editMessage(context.getTranslated("osu.topplay.empty")).queue();
                 return false;
@@ -141,7 +147,7 @@ public class OsuCommand extends Command {
         Message mes = context.send(context.getTranslated("generic.loading"));
         try {
             List<OsuScore> wyniki = osu.userRecents
-                    .query(new EndpointUserRecents.ArgumentsBuilder((String) context.getArgs()[0]).setLimit(50).build());
+                    .query(new EndpointUserRecents.ArgumentsBuilder(resolveUserName(context)).setLimit(50).build());
             if (wyniki.isEmpty()) {
                 mes.editMessage(context.getTranslated("osu.recentplay.empty")).queue();
                 return false;
@@ -195,7 +201,7 @@ public class OsuCommand extends Command {
         eb.setTimestamp(w.getDate());
         String imgUrl = "https://assets.ppy.sh/beatmaps/" + m.getBeatmapSetID() + "/covers/cover.jpg";
         eb.setImage(imgUrl);
-        eb.setColor(CommonUtil.getPrimColorFromImageUrl(imgUrl));
+        eb.setColor(getColor(w.getRank()));
         return eb;
     }
 
@@ -386,5 +392,34 @@ public class OsuCommand extends Command {
     private String generateBeatmapString(OsuBeatmap m) throws MalformedURLException {
         return m.getTitle() +"\n" + m.getArtist() + " // " + m.getCreatorName() + "\n" + "**" + m.getVersion() + "**" +
                 "\n[Link](" + m.getURL().toString() + ")";
+    }
+
+    private Color getColor(String rank) {
+        switch (rank) {
+            case "XH":
+                return new Color(0xBDBDBD);
+            case "X":
+                return new Color(0xFFBC0D);
+            case "SH":
+                return new Color(0xE2E2E2);
+            case "S":
+                return new Color(0xFF7F31);
+            case "A":
+                return new Color(0x5CCA0B);
+            case "B":
+                return new Color(0x0562E7);
+            case "C":
+                return new Color(0xA917D7);
+            case "D":
+                return new Color(0xCA0010);
+            case "F":
+                return new Color(0XFF0000);
+        }
+        return null;
+    }
+
+    private String resolveUserName(CommandContext context) {
+        return Arrays.stream(Arrays.copyOfRange(context.getArgs(), 0, context.getArgs().length))
+                .map(e -> e == null ? "" : e).map(Objects::toString).collect(Collectors.joining(uzycieDelim));
     }
 }

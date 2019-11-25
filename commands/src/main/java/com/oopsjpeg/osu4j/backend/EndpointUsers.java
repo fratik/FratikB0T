@@ -23,6 +23,7 @@ public class EndpointUsers implements Endpoint<Arguments, OsuUser> {
 	@Override
 	public OsuUser query(Arguments arguments) throws OsuAPIException {
 		JsonArray beatmapUser = api.getRESTfulArray(API_ENDPOINT, arguments.asURLArguments());
+		if (beatmapUser.size() == 0) return null;
 		JsonObject userObject = beatmapUser.get(0).getAsJsonObject();
 		return new OsuUser(api.getAPI(), userObject, arguments.getMode());
 	}
