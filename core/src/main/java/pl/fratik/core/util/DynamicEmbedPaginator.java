@@ -61,6 +61,7 @@ public class DynamicEmbedPaginator implements EmbedPaginator {
     private long timeout = 30;
     private boolean loading = true;
     private boolean ended = false;
+    private boolean preload = true;
     private static final String PMSTO = "moderation";
     private static final String PMZAADD = "znaneAkcje-add:";
     private static final ExecutorService mainExecutor = Executors.newFixedThreadPool(4);
@@ -71,6 +72,11 @@ public class DynamicEmbedPaginator implements EmbedPaginator {
     }
 
     public DynamicEmbedPaginator(EventWaiter eventWaiter, List<FutureTask<EmbedBuilder>> pages, User user, Language language, Tlumaczenia tlumaczenia, EventBus eventBus) {
+        this(eventWaiter, pages, user, language, tlumaczenia, eventBus, true);
+    }
+
+    public DynamicEmbedPaginator(EventWaiter eventWaiter, List<FutureTask<EmbedBuilder>> pages, User user, Language language, Tlumaczenia tlumaczenia, EventBus eventBus, boolean preload) {
+        this.preload = preload;
         this.eventWaiter = eventWaiter;
         this.pages = pages;
         this.eventBus = eventBus;
@@ -78,37 +84,39 @@ public class DynamicEmbedPaginator implements EmbedPaginator {
         this.userId = user.getIdLong();
         this.language = language;
         this.tlumaczenia = tlumaczenia;
-        mainExecutor.submit(() -> {
-            LOGGER.debug("Zaczynam pobieranie stron...");
-            ExecutorService executor = Executors.newFixedThreadPool(2, r -> {
-                SecurityManager s = System.getSecurityManager();
-                ThreadGroup group = (s != null) ? s.getThreadGroup() :
-                        Thread.currentThread().getThreadGroup();
-                Thread t = new Thread(group, r,
-                        "PageLoader-" + userId + "-" + messageId + "-" + pages.size() + "-pages" ,
-                        0);
-                if (t.isDaemon())
-                    t.setDaemon(false);
-                if (t.getPriority() != Thread.NORM_PRIORITY)
-                    t.setPriority(Thread.NORM_PRIORITY);
-                return t;
-            });
-            pages.forEach(executor::execute);
-            while (!pages.stream().allMatch(FutureTask::isDone)) {
-                try {
-                    if (ended) {
-                        pages.forEach(f -> f.cancel(true));
-                        break;
+        if (this.preload) {
+            mainExecutor.submit(() -> {
+                LOGGER.debug("Zaczynam pobieranie stron...");
+                ExecutorService executor = Executors.newFixedThreadPool(2, r -> {
+                    SecurityManager s = System.getSecurityManager();
+                    ThreadGroup group = (s != null) ? s.getThreadGroup() :
+                            Thread.currentThread().getThreadGroup();
+                    Thread t = new Thread(group, r,
+                            "PageLoader-" + userId + "-" + messageId + "-" + pages.size() + "-pages",
+                            0);
+                    if (t.isDaemon())
+                        t.setDaemon(false);
+                    if (t.getPriority() != Thread.NORM_PRIORITY)
+                        t.setPriority(Thread.NORM_PRIORITY);
+                    return t;
+                });
+                pages.forEach(executor::execute);
+                while (!pages.stream().allMatch(FutureTask::isDone)) {
+                    try {
+                        if (ended) {
+                            pages.forEach(f -> f.cancel(true));
+                            break;
+                        }
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
                     }
-                    Thread.sleep(100);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
                 }
-            }
-            executor.shutdownNow();
-            setLoading(false);
-            LOGGER.debug("Gotowe!");
-        });
+                executor.shutdownNow();
+                setLoading(false);
+                LOGGER.debug("Gotowe!");
+            });
+        } else loading = false;
     }
 
     @Override
@@ -259,8 +267,9 @@ public class DynamicEmbedPaginator implements EmbedPaginator {
     }
 
     private MessageEmbed render(int page) {
-        Future<EmbedBuilder> pageEmbed = pages.get(page - 1);
+        FutureTask<EmbedBuilder> pageEmbed = pages.get(page - 1);
         EmbedBuilder eb;
+        if (!pageEmbed.isDone()) mainExecutor.submit(pageEmbed);
         try {
             if (page == 1) {
                 if (pageEmbed.get() == null) throw new IllegalStateException("pEmbed == null");
