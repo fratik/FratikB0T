@@ -79,7 +79,7 @@ dependencies {
     compile 'com.vdurmont:emoji-java:5.1.1'
 //    compile 'javax.websocket:javax.websocket-api:1.1'
     compile 'info.debatty:java-string-similarity:1.2.1'
-    compile 'club.minnced:discord-webhooks:0.1.7'
+    compile 'club.minnced:discord-webhooks:0.1.8'
     compile 'org.java-websocket:Java-WebSocket:1.4.0'
     compile 'dnsjava:dnsjava:2.1.9'
     compile 'com.github.Vankka:MCDiscordReserializer:b00bafd9c6'
