@@ -55,7 +55,7 @@ dependencies {
     compile 'org.projectlombok:lombok:1.18.2'
     compile 'io.sentry:sentry:1.7.28'
     compile 'org.slf4j:slf4j-api:1.7.5'
-    compile 'com.google.guava:guava:21.0'
+    compile 'com.google.guava:guava:23.0'
     compile 'org.apache.httpcomponents:httpasyncclient:4.1.4'
     compile 'ch.qos.logback:logback-classic:1.2.3'
     compile 'org.tuxdude.logback.extensions:logback-colorizer:1.0.1'
