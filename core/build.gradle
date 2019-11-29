@@ -75,7 +75,7 @@ dependencies {
     compile 'org.jsoup:jsoup:1.11.3'
     compile 'com.github.queer:async-postgres-jsonb-orm:e348e109f8'
     compile 'org.ocpsoft.prettytime:prettytime:4.0.1.Final'
-    compile 'com.joestelmach:natty:0.10.1'
+    compile 'com.joestelmach:natty:0.13'
     compile 'com.vdurmont:emoji-java:4.0.0'
 //    compile 'javax.websocket:javax.websocket-api:1.1'
     compile 'info.debatty:java-string-similarity:1.2.1'
