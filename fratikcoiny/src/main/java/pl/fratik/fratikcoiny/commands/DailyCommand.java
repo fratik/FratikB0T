@@ -65,7 +65,7 @@ public class DailyCommand extends Command {
             context.send(context.getTranslated("daily.too.many.coins"));
             return false;
         }
-        String msg = isHoliday() ? "daily.success" : "daily.success.holiday";
+        String msg = isHoliday() ? "daily.success.holiday" : "daily.success";
         mc.setFratikCoiny(fc);
         mc.setDailyDate(dailyDate);
         memberDao.save(mc);
