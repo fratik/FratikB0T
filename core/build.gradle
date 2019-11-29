@@ -56,7 +56,7 @@ dependencies {
     compile 'io.sentry:sentry:1.7.5'
     compile 'org.slf4j:slf4j-api:1.7.5'
     compile 'com.google.guava:guava:21.0'
-    compile 'org.apache.httpcomponents:httpasyncclient:4.1.3'
+    compile 'org.apache.httpcomponents:httpasyncclient:4.1.4'
     compile 'ch.qos.logback:logback-classic:1.2.3'
     compile 'org.tuxdude.logback.extensions:logback-colorizer:1.0.1'
     compile 'commons-io:commons-io:2.6'
