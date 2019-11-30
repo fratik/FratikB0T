@@ -290,7 +290,7 @@ public class NowyManagerMuzykiSerwera implements ManagerMuzykiSerwera {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-        if (announceChannel == null) {
+        if (announceChannel == null || aktualnaPiosenka == null) {
             exception = false;
             return;
         }

@@ -89,8 +89,8 @@ public class PrzeklenstwaListener {
     }
 
     public void checkEvent(MessageEvent e) {
-        if (!e.getTextChannel().canTalk()) return;
         if (!e.isFromType(ChannelType.TEXT) || e.getAuthor().isBot() || e.getMember() == null) return;
+        if (!e.getTextChannel().canTalk()) return;
         if (!isAntiswear(e.getTextChannel())) return;
         if (!e.getGuild().getSelfMember().canInteract(e.getMember())) return;
         String content = e.getMessage().getContentRaw();
