@@ -17,6 +17,7 @@
 
 package pl.fratik.commands.narzedzia;
 
+import com.github.francesco149.koohii.Koohii;
 import com.google.common.eventbus.EventBus;
 import com.oopsjpeg.osu4j.GameMod;
 import com.oopsjpeg.osu4j.OsuBeatmap;
@@ -42,6 +43,10 @@ import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.util.*;
 
 import java.awt.*;
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.math.RoundingMode;
 import java.net.MalformedURLException;
 import java.text.NumberFormat;
@@ -166,15 +171,17 @@ public class OsuCommand extends Command {
             pages.add(new FutureTask<>(() -> renderScore(context, w)));
         }
         new DynamicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(),
-                context.getTlumaczenia(), eventBus, false).setEnableShuffle(true).create(mes);
+                context.getTlumaczenia(), eventBus, false).setEnableShuffle(true).setCustomFooter(true)
+                .create(mes);
     }
 
     @NotNull
-    private EmbedBuilder renderScore(@NotNull CommandContext context, OsuScore w) throws OsuAPIException, MalformedURLException {
+    private EmbedBuilder renderScore(@NotNull CommandContext context, OsuScore w) throws IOException {
         NumberFormat nf = NumberFormat.getInstance(context.getLanguage().getLocale());
         OsuUser u = w.getUser().get();
         OsuBeatmap m = w.getBeatmap().get();
         EmbedBuilder eb = new EmbedBuilder();
+        eb.setFooter("%s/%s");
         eb.setAuthor(u.getUsername(), u.getURL().toString(), "https://a.ppy.sh/" + u.getID());
         eb.addField(context.getTranslated("osu.score.beatmap"), generateBeatmapString(m),
                 false);
@@ -182,9 +189,56 @@ public class OsuCommand extends Command {
                 generateScore(w), true);
         eb.addField("", generateScoreSecLine(w), true);
         eb.addField("", generateScoreThirdLine(w), true);
-        if (isPass(w) && w.getPp() != 0) {
+        // Inspirowane https://github.com/AznStevy/owo/blob/develop/cogs/osu.py
+        Koohii.Map map = null;
+        if (isPass(w)) {
+            Double pp = null;
+            if (w.getPp() == 0) {
+                map = new Koohii.Parser()
+                        .map(new BufferedReader(new InputStreamReader(new ByteArrayInputStream(NetworkUtil
+                                .download("https://osu.ppy.sh/osu/" + w.getBeatmapID())))));
+                Koohii.PPv2Parameters p = new Koohii.PPv2Parameters();
+                p.mods = Math.toIntExact(GameMod.getBit(w.getEnabledMods()));
+                Koohii.DiffCalc dc = new Koohii.DiffCalc().calc(map, p.mods);
+                p.aim_stars = dc.aim;
+                p.speed_stars = dc.speed;
+                p.max_combo = m.getMaxCombo();
+                p.nsliders = map.nsliders;
+                p.ncircles = map.ncircles;
+                p.nobjects = map.objects.size();
+                p.base_ar = map.ar;
+                p.base_od = map.od;
+                p.mode = map.mode;
+                p.combo = w.getMaxCombo();
+                p.n300 = w.getHit300();
+                p.n100 = w.getHit100();
+                p.n50 = w.getHit50();
+                p.nmiss = w.getMisses();
+                p.score_version = 1;
+                p.beatmap = map;
+                pp = new Koohii.PPv2(p).total;
+            }
             eb.addField(context.getTranslated("osu.score.pp"),
-                    nf.format(round(w.getPp(), 2, RoundingMode.HALF_UP)), true);
+                    nf.format(round(w.getPp() != 0 ? w.getPp() : pp, 2, RoundingMode.HALF_UP)), true);
+            if (pp != null) {
+                eb.setFooter(context.getTranslated("osu.score.pp.self.calc"));
+            }
+        }
+        if (!isPass(w)) {
+            if (map == null) map = new Koohii.Parser()
+                    .map(new BufferedReader(new InputStreamReader(new ByteArrayInputStream(NetworkUtil
+                            .download("https://osu.ppy.sh/osu/" + w.getBeatmapID())))));
+            List<Double> dList = new ArrayList<>();
+            for (Koohii.HitObject obj : map.objects) {
+                dList.add(obj.time);
+            }
+            Double objPierwszy = dList.get(0);
+            Double objOstatni = dList.get(dList.size() - 1);
+            Double objOstatniKlikniety = dList.get(w.getHit50() + w.getHit100() + w.getHit300() + w.getMisses() - 1);
+            Double timing = objOstatni - objPierwszy;
+            Double point = objOstatniKlikniety - objPierwszy;
+            eb.addField(context.getTranslated("osu.score.completion"), nf.format(round((point / timing)
+                    * 100, 2, RoundingMode.HALF_UP)) + "%", true);
         }
         eb.addField(context.getTranslated("osu.score.combo"), w.getMaxCombo() + "x", true);
         if (isPass(w)) {

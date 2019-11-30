@@ -65,6 +65,13 @@ public enum GameMod {
 		return mods.toArray(new GameMod[mods.size()]);
 	}
 
+	public static long getBit(GameMod[] mods) {
+		long bit = 0;
+		for (GameMod mod : mods)
+			bit |= mod.bit;
+		return bit;
+	}
+
 	public long getBit() {
 		return bit;
 	}
