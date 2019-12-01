@@ -56,7 +56,7 @@ class RundkaGa {
                 List<RundkaOdpowiedz> odpowiedzi = new ArrayList<>();
                 for (RundkaOdpowiedzFull odp : rundkaDao.get(RundkaCommand.getNumerRundy()).getZgloszenia()) {
                     if (odp.getUserId().equals(userId) ||
-                            UserUtil.isGadm(shardManager.retrieveUserById(userId).complete(), shardManager))
+                            UserUtil.isStaff(shardManager.retrieveUserById(userId).complete(), shardManager))
                         odpowiedzi.add(new RundkaOdpowiedzSanitized(odp, true, shardManager));
                     else odpowiedzi.add(new RundkaOdpowiedzSanitized(odp, false, shardManager));
                 }
@@ -103,7 +103,7 @@ class RundkaGa {
                 eb.setColor(UserUtil.getPrimColor(user));
                 eb.addField("Co Twoim zdaniem należy do obowiązków Global Admina?", odp.getObowiazki(), false);
                 eb.addField("Jakiej jesteś płci?", odp.getPlec() == Plec.KOBIETA ? "Kobieta" :
-                        odp.getPlec() == Plec.MEZCZYZNA ? "Mężczyzna" : "ty no nie wiem", false); //NOSONAR
+                        odp.getPlec() == Plec.MEZCZYZNA ? "Mężczyzna" : "Inna/Wolę nie podawać", false); //NOSONAR
                 eb.addField("Podaj sposób ustawiania konfiguracji serwera", odp.getKonfiguracja(), false);
                 eb.addField("Jak ustawić powitanie/pożegnanie?", odp.getUstawPowitaniePozegnanie(), false);
                 eb.addField("Jak usunąć powitanie/pożegnanie?", odp.getUsunPowitaniePozegnanie(), false);
