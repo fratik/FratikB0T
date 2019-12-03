@@ -32,11 +32,11 @@ import java.util.ArrayList;
 
 @SuppressWarnings("unused")
 public class Module implements Modul {
-    @Inject private PrivkanalDao privkanalDao;
     @Inject private EventBus eventBus;
     @Inject private ManagerKomend managerKomend;
     @Inject private ManagerArgumentow managerArgumentow;
     @Inject private ManagerBazyDanych managerBazyDanych;
+    private PrivkanalDao privkanalDao;
 
     private ArrayList<Command> commands;
 
