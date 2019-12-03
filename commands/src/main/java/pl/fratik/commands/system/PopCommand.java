@@ -128,7 +128,7 @@ public class PopCommand extends Command {
             }
             if (e.getMessage().getContentRaw().length() < 20) {
                 context.send(context.getTranslated("pop.min.length"));
-                retrun;
+                return;
             }
             if (e.getMessage().getContentRaw().trim().equalsIgnoreCase(context.getTranslated("pop.abort"))) {
                 context.send(context.getTranslated("pop.aborted"));
