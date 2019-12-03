@@ -1,0 +1,6 @@
+{
+  "name": "privkanal",
+  "main": "pl.kamil0024.privkanal.Module",
+  "dependencies": ["arguments"],
+  "coreVersion": "@core.version@"
+}

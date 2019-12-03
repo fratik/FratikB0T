@@ -15,26 +15,33 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-rootProject.name = 'fratikbot'
-include ':core'
-include ':commands'
-include ':arguments'
-include ':api'
-include ':punkty'
-include ':starboard'
+package pl.kamil0024.privkanal.entity;
 
-if(file('sdk').exists()){
-    include ':sdk'
-    apply from: 'sdk/settings.gradle'
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import gg.amy.pgorm.annotations.GIndex;
+import gg.amy.pgorm.annotations.Table;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.RequiredArgsConstructor;
+import pl.fratik.core.entity.DatabaseEntity;
+
+import java.beans.Transient;
+
+@Table("privkanal")
+@GIndex("id")
+@Data
+@AllArgsConstructor
+@RequiredArgsConstructor
+public class Privkanal implements DatabaseEntity {
+    private final String id;
+    private String category;
+    private String channel;
+
+    @Override
+    @JsonIgnore
+    @Transient
+    public String getTableName() {
+        return "privkanal";
+    }
+
 }
-include ':moderation'
-include ':fratikcoiny'
-include ':music'
-include 'stats'
-include 'tags'
-include 'logs'
-include 'fdevstats'
-include 'dev'
-include 'gwarny'
-include 'privkanal'
-
