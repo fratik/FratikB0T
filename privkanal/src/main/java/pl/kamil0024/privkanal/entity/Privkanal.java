@@ -19,21 +19,26 @@ package pl.kamil0024.privkanal.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import gg.amy.pgorm.annotations.GIndex;
+import gg.amy.pgorm.annotations.PrimaryKey;
 import gg.amy.pgorm.annotations.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.RequiredArgsConstructor;
 import pl.fratik.core.entity.DatabaseEntity;
 
 import java.beans.Transient;
 
 @Table("privkanal")
-@GIndex("id")
+@GIndex({"id"})
 @Data
 @AllArgsConstructor
-@RequiredArgsConstructor
 public class Privkanal implements DatabaseEntity {
-    private final String id;
+
+    public Privkanal(String guildId) {
+        this.guildId = guildId;
+    }
+
+    @PrimaryKey
+    private final String guildId;
     private String category;
     private String channel;
 
