@@ -61,8 +61,7 @@ public class PrivkanalListener {
     private void xd(VoiceChannel e) {
         Privkanal pd = privkanalDao.get(e.getGuild());
         Category cat = e.getGuild().getCategoryById(pd.getCategory());
-        if (cat == null) return;
-        if (e.getParent() == null) return;
+        if (cat == null || e.getId().equals(pd.getChannel()) || e.getParent() == null) return;
         if (e.getParent().getId().equals(pd.getCategory())) {
             e.delete().queue();
         }
