@@ -27,6 +27,7 @@ mainClassName = 'pl.kamil0024.privkanal.Module'
 build.dependsOn jar
 
 dependencies {
+    compile project(":arguments")
     compile project(":core")
 }
 
