@@ -279,10 +279,10 @@ public class LicznikPunktow {
                 if (channelId != null && !channelId.isEmpty()) ch = shardManager.getTextChannelById(channelId);
                 if (ch == null) ch = event.getChannel();
                 if (event.getChannel().equals(ch) && !uc.isLvlupMessages()) return;
-                if (gc.getLvlUpMessage() != null)  {
+                if (!gc.getLvlUpMessage().isEmpty() ||gc.getLvlUpMessage() != null)  {
                     ch.sendMessage(gc.getLvlUpMessage()
-                            .replaceAll("\\{\\{mention}}", event.getMember().getUser().getAsTag().replaceAll("@(everyone|here)", "@\u200b$1"))
-                            .replaceAll("\\{\\{user}}", UserUtil.formatDiscrim(event.getMember()))
+                            .replaceAll("\\{\\{mention}}", event.getMember().getUser().getAsMention().replaceAll("@(everyone|here)", "@\u200b$1"))
+                            .replaceAll("\\{\\{user}}", UserUtil.formatDiscrim(event.getMember()).replaceAll("@(everyone|here)", "@\u200b$1"))
                             .replaceAll("\\{\\{level}}", String.valueOf(event.getLevel()))
                             .replaceAll("\\{\\{guild}}", event.getMember().getGuild().getName()))
                             .queue(null, kurwa -> {});
