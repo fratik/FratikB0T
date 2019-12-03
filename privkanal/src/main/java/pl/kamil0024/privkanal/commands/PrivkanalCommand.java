@@ -146,7 +146,7 @@ public class PrivkanalCommand extends Command {
         LinkedHashMap<String, String> jd = new LinkedHashMap<>();
 
 
-        VoiceChannel vc = context.getGuild().getVoiceChannelById(pdao.getId());
+        VoiceChannel vc = context.getGuild().getVoiceChannelById(pdao.getChannel());
         Category cat = context.getGuild().getCategoryById(pdao.getCategory());
         if (vc != null) { jd.put("vc", vc.getName()); }
         else jd.put("vc", context.getTranslated("generic.notset"));
