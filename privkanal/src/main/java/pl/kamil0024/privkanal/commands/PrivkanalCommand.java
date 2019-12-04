@@ -77,6 +77,7 @@ public class PrivkanalCommand extends Command {
             context.send(context.getTranslated("privkanal.delete.usage", context.getPrefix()));
             return false;
         }
+        privkanalDao.save(pdao);
         context.send(context.getTranslated("privkanal.delete.done"));
         return true;
     }
@@ -101,6 +102,7 @@ public class PrivkanalCommand extends Command {
 
             Category category = (Category) managerArgumentow.getArguments().get("category").execute((String) args[1],
                     context.getTlumaczenia(), context.getLanguage(), context.getGuild());
+
             if (category == null) {
                 context.send(context.getTranslated("privkanal.set.category.badargs"));
                 return false;
