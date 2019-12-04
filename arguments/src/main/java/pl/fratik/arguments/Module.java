@@ -48,6 +48,8 @@ public class Module implements Modul {
         arguments.add(new ChannelArgument());
         arguments.add(new LongArgument());
         arguments.add(new MessageArgument());
+        arguments.add(new VoiceChannelArgument());
+        arguments.add(new GuildCategoryCommand());
 
         arguments.forEach(managerArgumentow::registerArgument);
 
