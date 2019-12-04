@@ -100,8 +100,8 @@ public class PrivkanalCommand extends Command {
 
             Category category = (Category) managerArgumentow.getArguments().get("category").execute((String) args[1],
                     context.getTlumaczenia(), context.getLanguage(), context.getGuild());
-            if (category == null || category.getId().isEmpty()) {
-                context.send(context.getTranslated("privkanal.set.usage"));
+            if (category == null) {
+                context.send(context.getTranslated("privkanal.set.category.badargs"));
                 return false;
             }
             if (pdao.getCategory() != null) {
@@ -120,11 +120,10 @@ public class PrivkanalCommand extends Command {
             VoiceChannel vc = (VoiceChannel) managerArgumentow.getArguments().get("voicechannel").execute((String) args[1],
                     context.getTlumaczenia(), context.getLanguage(), context.getGuild());
 
-            if (vc == null || vc.getId().isEmpty()) {
-                context.send(context.getTranslated("privkanal.set.channel.alreadyset"));
+            if (vc == null) {
+                context.send(context.getTranslated("privkanal.set.channel.badargs"));
                 return false;
             }
-
 
             if (pdao.getChannel() != null) {
                 if (vc.getId().equals(pdao.getChannel())) {
