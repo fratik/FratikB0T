@@ -23,19 +23,14 @@ import gg.amy.pgorm.annotations.PrimaryKey;
 import gg.amy.pgorm.annotations.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import pl.fratik.core.tlumaczenia.Language;
+import pl.fratik.core.entity.DatabaseEntity;
 
 import java.beans.Transient;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map; //TODO: Wywal niepotrzebne importy
 
 @Table("liczek")
 @GIndex({"id"})
 @Data
 @AllArgsConstructor
-@RequiredArgsConstructor
 public class Liczek implements DatabaseEntity {
     
     public Liczek(String id) {
