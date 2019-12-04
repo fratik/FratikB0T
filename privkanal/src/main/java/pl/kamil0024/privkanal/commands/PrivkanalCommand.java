@@ -42,7 +42,6 @@ public class PrivkanalCommand extends Command {
         name = "privkanal";
         category = CommandCategory.FUN;
         permLevel = PermLevel.ADMIN;
-        uzycieDelim = " ";
     }
 
     @Override
@@ -59,7 +58,6 @@ public class PrivkanalCommand extends Command {
             args = new Uzycie("typ", "string", true).resolveArgs(context);
         } catch (ArgsMissingException e) {
             context.send(context.getTranslated("privkanal.delete.usage", context.getPrefix()));
-            // Nie uzywam CommonErrors, ponieważ tak jest użytkownikowi będzie łatwiej się tym posługiwać
             return false;
         }
         String typ = (String) args[0];
@@ -78,7 +76,7 @@ public class PrivkanalCommand extends Command {
             context.send(context.getTranslated("privkanal.delete.usage", context.getPrefix()));
             return false;
         }
-        context.send(context.getTranslated("privkanal.delete.done", typ));
+        context.send(context.getTranslated("privkanal.delete.done"));
         return true;
     }
 
@@ -94,22 +92,23 @@ public class PrivkanalCommand extends Command {
             args = new Uzycie(hmap, new boolean[] {true, true}).resolveArgs(context);
         } catch (ArgsMissingException e) {
             context.send(context.getTranslated("privkanal.set.usage", context.getPrefix()));
-            // Nie uzywam CommonErrors, ponieważ tak jest użytkownikowi będzie łatwiej się tym posługiwać
             return false;
         }
 
         String typ = (String) args[0];
         if (typ.equals("category")) {
 
-            Category category = (Category) managerArgumentow.getArguments().get("member").execute((String) args[1],
+            Category category = (Category) managerArgumentow.getArguments().get("category").execute((String) args[1],
                     context.getTlumaczenia(), context.getLanguage(), context.getGuild());
             if (category == null || category.getId().isEmpty()) {
                 context.send(context.getTranslated("privkanal.set.usage"));
                 return false;
             }
-            if (category.getId().equals(pdao.getCategory())) {
-                context.send(context.getTranslated("privkanal.set.category.alreadyset"));
-                return false;
+            if (pdao.getCategory() != null) {
+                if (category.getId().equals(pdao.getCategory())) {
+                    context.send(context.getTranslated("privkanal.set.category.alreadyset"));
+                    return false;
+                }
             }
 
             pdao.setCategory(category.getId());
@@ -126,9 +125,12 @@ public class PrivkanalCommand extends Command {
                 return false;
             }
 
-            if (pdao.getChannel().equals(vc.getId())) {
-                context.send(context.getTranslated("privkanal.set.channel.alreadyset"));
-                return false;
+
+            if (pdao.getChannel() != null) {
+                if (vc.getId().equals(pdao.getChannel())) {
+                    context.send(context.getTranslated("privkanal.set.channel.alreadyset"));
+                    return false;
+                }
             }
 
             pdao.setChannel(vc.getId());
@@ -136,7 +138,7 @@ public class PrivkanalCommand extends Command {
             context.send(context.getTranslated("privkanal.set.channel.done", vc.getName()));
             return true;
         }
-        context.send(context.getTranslated("privkanal.set.usage"));
+        context.send(context.getTranslated("privkanal.set.usage", context.getPrefix()));
         return false;
     }
 
@@ -145,9 +147,19 @@ public class PrivkanalCommand extends Command {
         Privkanal pdao = privkanalDao.get(context.getGuild());
         LinkedHashMap<String, String> jd = new LinkedHashMap<>();
 
+        VoiceChannel vc = null;
+        Category cat = null;
 
-        VoiceChannel vc = context.getGuild().getVoiceChannelById(pdao.getChannel());
-        Category cat = context.getGuild().getCategoryById(pdao.getCategory());
+        if (pdao.getChannel() != null) {
+            if (!pdao.getChannel().isEmpty())
+            vc = context.getGuild().getVoiceChannelById(pdao.getChannel());
+        }
+        if (pdao.getCategory() != null) {
+            if (!pdao.getCategory().isEmpty()) {
+                cat = context.getGuild().getCategoryById(pdao.getCategory());
+            }
+        }
+
         if (vc != null) { jd.put("vc", vc.getName()); }
         else jd.put("vc", context.getTranslated("generic.notset"));
 

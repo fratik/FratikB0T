@@ -36,13 +36,18 @@ public class PrivkanalListener {
     @Subscribe
     public void onGuildVoiceJoinEvent(GuildVoiceJoinEvent e) {
         Privkanal pd = privkanalDao.get(e.getGuild());
+        if (pd.getChannel() == null || pd.getChannel().isEmpty()) return;
+
         if (!e.getChannelJoined().getId().equals(pd.getChannel())) return;
 
         Category cat = e.getGuild().getCategoryById(pd.getCategory());
         if (cat == null) return;
 
         try {
-            cat.createVoiceChannel(e.getMember().getUser().getName()).queue();
+            cat.createVoiceChannel(e.getMember().getUser().getName())
+                .setName(e.getMember().getUser().getName()).queue(xd ->
+                    e.getGuild().moveVoiceMember(e.getMember(), xd).queue());
+
         } catch (Exception jd) {
             /* lul */
         }
@@ -50,18 +55,20 @@ public class PrivkanalListener {
 
     @Subscribe
     public void onGuildVoiceLeaveEvent(GuildVoiceLeaveEvent e) {
-        xd(e.getOldValue());
+        xd(e.getChannelLeft());
     }
 
     @Subscribe
     public void onGuildVoiceMoveEvent(GuildVoiceMoveEvent e) {
-        xd(e.getOldValue());
+        xd(e.getChannelLeft());
     }
 
     private void xd(VoiceChannel e) {
         Privkanal pd = privkanalDao.get(e.getGuild());
+        if (pd.getCategory() == null || pd.getCategory().isEmpty()) return;
         Category cat = e.getGuild().getCategoryById(pd.getCategory());
-        if (cat == null || e.getId().equals(pd.getChannel()) || e.getParent() == null) return;
+        if (cat == null || e.getParent() == null) return;
+        if (pd.getChannel() != null) { if (e.getId().equals(pd.getChannel())) return; }
         if (e.getParent().getId().equals(pd.getCategory())) {
             e.delete().queue();
         }
