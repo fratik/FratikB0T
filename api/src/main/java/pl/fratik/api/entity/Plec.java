@@ -18,5 +18,5 @@
 package pl.fratik.api.entity;
 
 public enum Plec {
-    KOBIETA, MEZCZYZNA
+    KOBIETA, MEZCZYZNA, INNA
 }

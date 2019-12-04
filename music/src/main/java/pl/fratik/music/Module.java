@@ -91,7 +91,8 @@ public class Module implements Modul {
         commands.add(new SkipCommand(managerMuzyki, guildDao));
         commands.add(new YoutubeCommand(managerMuzyki, searchManager, eventWaiter, managerArgumentow, guildDao));
         commands.add(new VolumeCommand(managerMuzyki, guildDao));
-        commands.add(new QueueCommand(managerMuzyki, eventWaiter, eventBus, queueDao));
+        commands.add(new QueueCommand(managerMuzyki, eventWaiter, eventBus));
+        commands.add(new PlaylistCommand(managerMuzyki, queueDao));
         commands.add(new RepeatCommand(managerMuzyki, managerArgumentow, guildDao));
         commands.add(new LeaveCommand(managerMuzyki));
         commands.add(new NowplayingCommand(managerMuzyki));
