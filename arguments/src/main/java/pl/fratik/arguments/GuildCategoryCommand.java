@@ -18,9 +18,12 @@
 package pl.fratik.arguments;
 
 import net.dv8tion.jda.api.entities.Category;
+import net.dv8tion.jda.api.entities.Guild;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.arguments.Argument;
 import pl.fratik.core.arguments.ArgumentContext;
+import pl.fratik.core.tlumaczenia.Language;
+import pl.fratik.core.tlumaczenia.Tlumaczenia;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -37,6 +40,16 @@ public class GuildCategoryCommand extends Argument {
         List<Category> cat = context.getGuild().getCategories().stream()
                 .filter(category -> context.getArg().equals(category.getName())
                         || context.getArg().equals(category.getId())).collect(Collectors.toList());
+        if (cat.size() != 1) return null;
+        return cat.get(0);
+    }
+
+    @Override
+    public Category execute(String argument, Tlumaczenia tlumaczenia, Language language, Guild guild) {
+        if (guild == null) return null;
+        List<Category> cat = guild.getCategories().stream()
+                .filter(category -> argument.equals(category.getName())
+                        || argument.equals(category.getId())).collect(Collectors.toList());
         if (cat.size() != 1) return null;
         return cat.get(0);
     }
