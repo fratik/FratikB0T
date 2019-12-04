@@ -32,7 +32,7 @@ import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.EventWaiter;
 
 @SuppressWarnings("FieldCanBeLocal")
-public class SettingsCommand extends Command {
+public class UstawieniaCommand extends Command {
     private final EventWaiter eventWaiter;
     private final UserDao userDao;
     private final GuildDao guildDao;
@@ -40,7 +40,7 @@ public class SettingsCommand extends Command {
     private final ShardManager shardManager;
     private final Tlumaczenia tlumaczenia;
 
-    public SettingsCommand(EventWaiter eventWaiter, UserDao userDao, GuildDao guildDao, ManagerArgumentow managerArgumentow, ShardManager shardManager, Tlumaczenia tlumaczenia) {
+    public UstawieniaCommand(EventWaiter eventWaiter, UserDao userDao, GuildDao guildDao, ManagerArgumentow managerArgumentow, ShardManager shardManager, Tlumaczenia tlumaczenia) {
         name = "ustawienia";
         aliases = new String[] {"conf", "settings"};
         type = CommandType.MODERATION;

@@ -17,22 +17,38 @@
 
 package pl.fratik.commands.system;
 
+import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.Permission;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.Ustawienia;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
+import pl.fratik.core.util.GuildUtil;
+import pl.fratik.core.util.UserUtil;
 
 public class DashboardCommand extends Command {
+
     public DashboardCommand() {
         name = "dashboard";
         category = CommandCategory.SYSTEM;
         aliases = new String[] {"strona"};
+        permissions.add(Permission.MESSAGE_EMBED_LINKS);
     }
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
-        context.send(Ustawienia.instance.botUrl, false);
+        EmbedBuilder eb = new EmbedBuilder();
+        eb.setAuthor(UserUtil.formatDiscrim(context.getEvent().getJDA().getSelfUser()), null,
+                context.getEvent().getJDA().getSelfUser().getEffectiveAvatarUrl().replace(".webp", ".png"));
+        eb.addField(context.getTranslated("dashboard.embed.page"), context.getTranslated("generic.click",
+                Ustawienia.instance.botUrl), true);
+        eb.addField(context.getTranslated("dashboard.embed.managepage"), context.getTranslated("generic.click",
+                GuildUtil.getManageLink(context.getGuild())), true);
+
+        eb.setColor(UserUtil.getPrimColor(context.getMember().getUser()));
+        eb.setDescription(context.getTranslated("dashboard.embed.description"));
+        context.send(eb.build());
         return true;
     }
 }

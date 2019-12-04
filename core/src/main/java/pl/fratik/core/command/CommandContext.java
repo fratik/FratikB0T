@@ -183,5 +183,4 @@ public class CommandContext {
                 .setFooter("© " + shard.getSelfUser().getName(),
                         UserUtil.getAvatarUrl(shard.getSelfUser()));
     }
-
 }

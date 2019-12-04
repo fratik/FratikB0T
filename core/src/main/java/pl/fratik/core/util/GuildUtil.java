@@ -144,4 +144,8 @@ public class GuildUtil {
         }
     }
 
+    public static String getManageLink(Guild g) {
+        return Ustawienia.instance.botUrl + "/dashboard/" + g.getId() + "/manage";
+    }
+
 }
