@@ -87,8 +87,7 @@ public class PlaylistCommand extends MusicCommand {
         }
         q.setPiosenki(piosenki);
         context.send(context.getTranslated("playlist.loaded"));
-        mms.loadQueue(q);
-        mms.skip();
+        mms.loadQueue(q); // TODO: 04.12.2019 mozliwosc uzycia tego kiedy muzyka jest wyłączona
         return true;
     }
 }
