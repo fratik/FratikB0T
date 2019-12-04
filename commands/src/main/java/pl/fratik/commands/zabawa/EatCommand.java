@@ -31,7 +31,10 @@ import pl.fratik.core.util.NetworkUtil;
 
 import java.io.IOException;
 import java.net.URLEncoder;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class EatCommand extends Command {
     public EatCommand() {
@@ -51,11 +54,13 @@ public class EatCommand extends Command {
     @Override
     public boolean execute(@NotNull CommandContext context) {
         User user = context.getSender();
-        if (context.getArgs().length != 0 && context.getArgs()[0] != null) user = (User) context.getArgs()[0];
+        String tekst = Arrays.stream(Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length))
+                .map(e -> e == null ? "" : e).map(Objects::toString).collect(Collectors.joining(uzycieDelim));
         try {
             JSONObject zdjecie = NetworkUtil.getJson(Ustawienia.instance.apiUrls.get("image-server") +
                             "/api/image/eat?avatarURL=" + URLEncoder.encode(user.getEffectiveAvatarUrl()
-                            .replace(".webp", ".png") + "?size=2048", "UTF-8"),
+                            .replace(".webp", ".png") + "?size=2048", "UTF-8") + "&tekst=" +
+                            URLEncoder.encode(tekst, "UTF-8"),
                     Ustawienia.instance.apiKeys.get("image-server"));
             if (zdjecie == null || !zdjecie.getBoolean("success")) {
                 context.send(context.getTranslated("image.server.fail"));
@@ -66,7 +71,6 @@ public class EatCommand extends Command {
         } catch (IOException | NullPointerException e) {
             context.send(context.getTranslated("image.server.fail"));
         }
-
         return true;
     }
 }
