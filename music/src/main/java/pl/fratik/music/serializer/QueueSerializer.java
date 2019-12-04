@@ -101,7 +101,7 @@ public class QueueSerializer extends StdSerializer<Queue> {
             this.aktualnaPozycja = aktualnaPozycja;
             this.pauza = pauza;
             this.repeatMode = repeatMode;
-            this.voiceChannel = voiceChannel.getId();
+            this.voiceChannel = voiceChannel == null ? null : voiceChannel.getId();
             this.volume = volume;
         }
     }
