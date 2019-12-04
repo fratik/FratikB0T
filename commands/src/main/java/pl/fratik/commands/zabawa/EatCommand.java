@@ -53,7 +53,9 @@ public class EatCommand extends Command {
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
-        User user = context.getSender();
+        User user = (User) context.getArgs()[0];
+        if (user == null) // jezeli tak sie w ogole da
+            user = context.getSender();
         String tekst = Arrays.stream(Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length))
                 .map(e -> e == null ? "" : e).map(Objects::toString).collect(Collectors.joining(uzycieDelim));
         try {
