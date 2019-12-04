@@ -52,7 +52,7 @@ public class PrivkanalCommand extends Command {
     }
 
     @SubCommand(name="delete")
-    private boolean delete(CommandContext context) {
+    public boolean delete(CommandContext context) {
         Object[] args;
         Privkanal pdao = privkanalDao.get(context.getGuild());
         try {
@@ -83,7 +83,7 @@ public class PrivkanalCommand extends Command {
     }
 
     @SubCommand(name="set")
-    private boolean set(CommandContext context) {
+    public boolean set(CommandContext context) {
         Object[] args;
         Privkanal pdao = privkanalDao.get(context.getGuild());
 
@@ -141,7 +141,7 @@ public class PrivkanalCommand extends Command {
     }
 
     @SubCommand(name="info")
-    private boolean info(CommandContext context) {
+    public boolean info(CommandContext context) {
         Privkanal pdao = privkanalDao.get(context.getGuild());
         LinkedHashMap<String, String> jd = new LinkedHashMap<>();
 
