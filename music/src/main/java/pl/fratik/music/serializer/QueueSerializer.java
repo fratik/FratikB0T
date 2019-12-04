@@ -95,7 +95,7 @@ public class QueueSerializer extends StdSerializer<Queue> {
             this.piosenki = piosenki.stream().map(p -> new ParsedPiosenka(p.getAudioTrack().getInfo().uri,
                     p.getRequester(), p.getRequesterLanguage())).collect(Collectors.toList());
             this.autoZapisane = autoZapisane;
-            this.announceChannel = announceChannel.getId();
+            this.announceChannel = announceChannel == null ? null : announceChannel.getId();
             this.aktualnaPiosenka = new ParsedPiosenka(aktualnaPiosenka.getAudioTrack().getInfo().uri,
                     aktualnaPiosenka.getRequester(), aktualnaPiosenka.getRequesterLanguage());
             this.aktualnaPozycja = aktualnaPozycja;
