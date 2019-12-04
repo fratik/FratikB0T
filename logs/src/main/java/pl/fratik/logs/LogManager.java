@@ -100,9 +100,8 @@ class LogManager {
                         e.getContext().getGuild().getId(), pLevel.getNum(),
                         tlumaczenia.get(Language.DEFAULT, pLevel.getLanguageKey())));
             });
-            if (webhookGaLvl == null) return;
             PermLevel cmdLvl = e.getContext().getCommand().getPermLevel();
-            if (pLevel.getNum() >= cmdLvl.getNum()) return;
+            if (webhookGaLvl == null || cmdLvl.getNum() >= 5 || pLevel.getNum() >= cmdLvl.getNum()) return;
             executor.submit(() -> {
                 WebhookClient cl = getWebhook(webhookGaLvl);
                 cl.send(String.format("%s[%s] użył komendy %s(%s) na serwerze %s[%s] i tym samym nadużył swoich uprawnień.  " +
