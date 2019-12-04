@@ -100,7 +100,7 @@ public class PrivkanalCommand extends Command {
         String typ = (String) args[0];
         if (typ.equals("category")) {
 
-            Category category = (Category) managerArgumentow.getArguments().get("category").execute((String) args[1],
+            Category category = (Category) managerArgumentow.getArguments().get("guildcategory").execute((String) args[1],
                     context.getTlumaczenia(), context.getLanguage(), context.getGuild());
 
             if (category == null) {
