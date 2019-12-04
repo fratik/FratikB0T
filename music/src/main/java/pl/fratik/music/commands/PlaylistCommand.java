@@ -44,6 +44,7 @@ public class PlaylistCommand extends MusicCommand {
         this.queueDao = queueDao;
         name = "playlist";
         requireConnection = true;
+        uzycieDelim = " ";
     }
 
     @Override
