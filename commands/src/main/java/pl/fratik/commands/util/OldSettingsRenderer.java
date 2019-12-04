@@ -170,7 +170,7 @@ public class OldSettingsRenderer implements SettingsRenderer {
         builder.append("6. ").append(ctx.getTranslated("ustawienia.user.lvlupmessages." +
                 (userConfig.isPrivWlaczone() ? "enabled" : "disabled"))).append("\n");
         builder.append("7. ").append(ctx.getTranslated("ustawienia.user.lvlupondm." +
-                (userConfig.isPrivWlaczone() ? "enabled" : "disabled")));
+                (userConfig.isLvlUpOnDM() ? "enabled" : "disabled")));
         builder.append("\n");
         builder.append("\n0. ").append(ctx.getTranslated("ustawienia.footer"));
         builder.append("```");
@@ -222,10 +222,10 @@ public class OldSettingsRenderer implements SettingsRenderer {
                 break;
             case "7":
                 koniecZara = false;
-                userConfig.setLvlupMessages(!userConfig.isLvlUpOnDM());
+                userConfig.setLvlUpOnDM(!userConfig.isLvlUpOnDM());
                 userDao.save(userConfig);
                 ctx.send(ctx.getTranslated("ustawienia.user.lvlupondm.confirm." +
-                        (userConfig.isPrivWlaczone() ? "enabled" : "disabled")));
+                        (userConfig.isLvlUpOnDM() ? "enabled" : "disabled")));
                 break;
             case "0":
             case "wyjdz":
