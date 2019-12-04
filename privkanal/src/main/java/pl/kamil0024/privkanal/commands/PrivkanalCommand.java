@@ -42,6 +42,7 @@ public class PrivkanalCommand extends Command {
         name = "privkanal";
         category = CommandCategory.FUN;
         permLevel = PermLevel.ADMIN;
+        uzycieDelim = " ";
     }
 
     @Override
