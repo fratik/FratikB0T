@@ -17,17 +17,16 @@
 
 package pl.fratik.liczek.listeners;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.eventbus.Subscribe;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.audit.ActionType;
 import net.dv8tion.jda.api.audit.AuditLogEntry;
 import net.dv8tion.jda.api.audit.AuditLogOption;
-import net.dv8tion.jda.api.entities.ChannelType;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.events.message.MessageDeleteEvent;
 import net.dv8tion.jda.api.events.message.MessageUpdateEvent;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageDeleteEvent;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import net.dv8tion.jda.api.exceptions.PermissionException;
 import pl.fratik.core.entity.GuildConfig;
@@ -39,6 +38,7 @@ import pl.fratik.liczek.entity.Liczek;
 import pl.fratik.liczek.entity.LiczekDao;
 
 import java.time.OffsetDateTime;
+import java.util.concurrent.TimeUnit;
 
 public class LiczekListener {
     private final GuildDao guildDao;
@@ -88,28 +88,30 @@ public class LiczekListener {
     }
 
     @Subscribe
-    public void onGuildMessageDeleteEvent(GuildMessageDeleteEvent e) {
-        GuildConfig gc = guildDao.get(e.getGuild());
+    public void onMessageRemoved(MessageDeleteEvent messageDeleteEvent) {
+        if (!messageDeleteEvent.isFromGuild()) return;
+        GuildConfig gc = guildDao.get(messageDeleteEvent.getGuild());
         if (gc.getLiczekKanal() == null) return;
         if (gc.getLiczekKanal().isEmpty()) return;
-        if (!e.getChannel().getId().equals(gc.getLiczekKanal())) return;
+        TextChannel channel = getChannel(messageDeleteEvent.getGuild());
+        if (channel == null) return;
+        if (!channel.getId().equals(gc.getLiczekKanal())) return;
         try {
-            e.getGuild().retrieveAuditLogs().type(ActionType.MESSAGE_DELETE).queue(
+            messageDeleteEvent.getGuild().retrieveAuditLogs().type(ActionType.MESSAGE_DELETE).queue(
                     audiologi -> {
                         User deletedBy = null;
                         for (AuditLogEntry log : audiologi) {
                             if (log.getType() == ActionType.MESSAGE_DELETE
                                     && log.getTimeCreated().isAfter(OffsetDateTime.now().minusMinutes(1))
-                                    && e.getChannel().getId().equals(log.getOption(AuditLogOption.CHANNEL))) {
+                                    && messageDeleteEvent.getChannel().getId().equals(log.getOption(AuditLogOption.CHANNEL))) {
                                 deletedBy = log.getUser();
                                 break;
                             }
                         }
-                        if (deletedBy != null) dyskwalifikacja(deletedBy, e.getChannel());
+                        if (deletedBy != null) dyskwalifikacja(deletedBy, channel);
                     }
-
             );
-        } catch (Exception kek) {
+        } catch (Exception e) {
             /* lul */
         }
     }
@@ -162,6 +164,17 @@ public class LiczekListener {
                 if (adm.canTalk()) adm.sendMessage(msg).queue();
             }
         }
+    }
+
+    private TextChannel getChannel(Guild guild) {
+        Cache<Guild, TextChannel> logChannelCache = Caffeine.newBuilder().expireAfterWrite(5, TimeUnit.MINUTES)
+                .maximumSize(100).build();
+        return logChannelCache.get(guild, g -> {
+            GuildConfig gc = guildDao.get(guild);
+            if (gc.getFullLogs() == null) return null;
+            if (!gc.getFullLogs().isEmpty()) return g.getTextChannelById(gc.getFullLogs());
+            return null;
+        });
     }
 
 }
