@@ -279,7 +279,7 @@ public class LicznikPunktow {
                 if (channelId != null && !channelId.isEmpty()) ch = shardManager.getTextChannelById(channelId);
                 if (ch == null) ch = event.getChannel();
                 if (event.getChannel().equals(ch) && !uc.isLvlupMessages()) return;
-                if (!gc.getLvlUpMessage().isEmpty() ||gc.getLvlUpMessage() != null)  {
+                if (c.getLvlUpMessage() != null && !gc.getLvlUpMessage().isEmpty())  {
                     ch.sendMessage(gc.getLvlUpMessage()
                             .replaceAll("\\{\\{mention}}", event.getMember().getUser().getAsMention().replaceAll("@(everyone|here)", "@\u200b$1"))
                             .replaceAll("\\{\\{user}}", UserUtil.formatDiscrim(event.getMember()).replaceAll("@(everyone|here)", "@\u200b$1"))
