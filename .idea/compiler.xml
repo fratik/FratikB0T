@@ -13,8 +13,6 @@
       <module name="fratikbot.core-impl.test" target="1.8" />
       <module name="fratikbot.dziennik.main" target="1.8" />
       <module name="fratikbot.dziennik.test" target="1.8" />
-      <module name="fratikbot.privkanal.main" target="1.8" />
-      <module name="fratikbot.privkanal.test" target="1.8" />
       <module name="pl.fratik-api_main" target="1.8" />
       <module name="pl.fratik-api_test" target="1.8" />
       <module name="pl.fratik-arguments_main" target="1.8" />
