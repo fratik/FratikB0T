@@ -84,7 +84,7 @@ class MemberListener {
             String msg = ch.getValue()
                     .replaceAll("\\{\\{user}}", user.getAsTag().replaceAll("@(everyone|here)", "@\u200b$1"))
                     .replaceAll("\\{\\{mention}}", user.getAsMention())
-                    .replaceAll("\\{\\{size}}", String.valueOf(guild.getMembers().size()))
+                    .replaceAll("\\{\\{members}}", String.valueOf(guild.getMembers().size()))
                     .replaceAll("\\{\\{server}}", guild.getName().replaceAll("@(everyone|here)", "@\u200b$1"));
             eb.setThumbnail(avatar);
             eb.setAuthor(UserUtil.formatDiscrim(user), avatar);
