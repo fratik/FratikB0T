@@ -78,6 +78,9 @@ public class RepeatCommand extends MusicCommand {
             if (context.getArg().equalsIgnoreCase("once") ||
                     context.getArg().equalsIgnoreCase(context.getTlumaczenia()
                             .get(context.getLanguage(), "repeat.mode.once"))) return RepeatMode.ONCE;
+            if (context.getArg().equalsIgnoreCase("queue") ||
+                    context.getArg().equalsIgnoreCase(context.getTlumaczenia()
+                            .get(context.getLanguage(), "repeat.mode.queue"))) return RepeatMode.QUEUE;
             if (context.getArg().equalsIgnoreCase("off") ||
                     context.getArg().equalsIgnoreCase(context.getTlumaczenia()
                             .get(context.getLanguage(), "repeat.mode.off"))) return RepeatMode.OFF;

@@ -65,11 +65,12 @@ public class NowyManagerMuzykiSerwera implements ManagerMuzykiSerwera {
     private final ScheduledExecutorService executorService;
     private boolean init;
     private final java.util.Queue<Piosenka> kolejka = new ConcurrentLinkedQueue<>();
+    private java.util.Queue<Piosenka> kolejkaNaRepeata;
     @Getter private VoiceChannel channel;
     private IPlayer player;
     @Getter private Piosenka aktualnaPiosenka;
     @Getter @Setter private MessageChannel announceChannel;
-    @Getter @Setter private RepeatMode repeatMode = RepeatMode.OFF;
+    @Getter private RepeatMode repeatMode = RepeatMode.OFF;
     private boolean shutdown;
     private boolean exception;
     @Getter private List<String> skips;
@@ -89,6 +90,9 @@ public class NowyManagerMuzykiSerwera implements ManagerMuzykiSerwera {
     @Override
     public void addToQueue(Piosenka piosenka) {
         kolejka.add(piosenka);
+        if (kolejkaNaRepeata != null) {
+            kolejkaNaRepeata.add(piosenka);
+        }
     }
 
     @Override
@@ -162,7 +166,9 @@ public class NowyManagerMuzykiSerwera implements ManagerMuzykiSerwera {
         if (player.getPlayingTrack() != null) player.stopTrack();
         link.disconnect();
         kolejka.clear();
+        kolejkaNaRepeata = null;
         player = null;
+        repeatMode = RepeatMode.OFF;
         link.resetPlayer();
         init = false;
     }
@@ -181,6 +187,9 @@ public class NowyManagerMuzykiSerwera implements ManagerMuzykiSerwera {
         if (repeatMode == RepeatMode.ONCE) {
             play(aktualnaPiosenka);
             return;
+        }
+        if (kolejkaNaRepeata != null) {
+            kolejkaNaRepeata.poll();
         }
         if (player.getPlayingTrack() != null) player.stopTrack();
         else {
@@ -334,6 +343,14 @@ public class NowyManagerMuzykiSerwera implements ManagerMuzykiSerwera {
         }
     }
 
+    public void setRepeatMode(RepeatMode repeatMode) {
+        if (repeatMode == RepeatMode.QUEUE) {
+            if (kolejkaNaRepeata == null) kolejkaNaRepeata = new ConcurrentLinkedQueue<>();
+            kolejkaNaRepeata.addAll(kolejka);
+        } else kolejkaNaRepeata = null;
+        this.repeatMode = repeatMode;
+    }
+
     static class Listener extends PlayerEventListenerAdapter {
 
         private final NowyManagerMuzykiSerwera mms;
@@ -366,37 +383,38 @@ public class NowyManagerMuzykiSerwera implements ManagerMuzykiSerwera {
             if (mms.link.getState() == Link.State.NOT_CONNECTED) {
                 mms.announceChannel.sendMessage(mms.tlumaczenia.get(mms.aktualnaPiosenka.getRequesterLanguage(), "play.disconnected")).queue();
                 mms.disconnect();
-                try {
-                    String muzycznyKanal = mms.guildDao.get(mms.guild).getKanalMuzyczny();
-                    TextChannel ch = mms.guild.getTextChannelById(muzycznyKanal);
-                    if (ch == null) return;
-                    ch.getManager().setTopic(mms.tlumaczenia.get(mms.tlumaczenia.getLanguage(ch.getGuild()),
-                            "play.queue.empty.topic", mms.getAktualnaPiosenka().getAudioTrack().getInfo().title,
-                            mms.getAktualnaPiosenka().getRequester())).queue(null, tuTezNull -> {});
-                } catch (Exception e) {
-                    // nic
-                }
+                if (setTopic()) return;
                 return;
             }
             if (mms.repeatMode == RepeatMode.ONCE) {
                 mms.play(mms.aktualnaPiosenka);
                 return;
             }
+            if (mms.repeatMode == RepeatMode.QUEUE) {
+                if (mms.kolejka.isEmpty()) {
+                    mms.kolejka.addAll(mms.kolejkaNaRepeata);
+                }
+            }
             if (!mms.kolejka.isEmpty()) mms.play();
             else {
                 mms.announceChannel.sendMessage(mms.tlumaczenia.get(mms.aktualnaPiosenka.getRequesterLanguage(), "play.queue.empty")).queue();
-                try {
-                    String muzycznyKanal = mms.guildDao.get(mms.guild).getKanalMuzyczny();
-                    TextChannel ch = mms.guild.getTextChannelById(muzycznyKanal);
-                    if (ch == null) return;
-                    ch.getManager().setTopic(mms.tlumaczenia.get(mms.tlumaczenia.getLanguage(ch.getGuild()),
-                            "play.queue.empty.topic", mms.getAktualnaPiosenka().getAudioTrack().getInfo().title,
-                            mms.getAktualnaPiosenka().getRequester())).queue(null, tuTezNull -> {});
-                } catch (Exception e) {
-                    // nic
-                }
+                if (setTopic()) return;
                 mms.disconnect();
             }
+        }
+
+        private boolean setTopic() {
+            try {
+                String muzycznyKanal = mms.guildDao.get(mms.guild).getKanalMuzyczny();
+                TextChannel ch = mms.guild.getTextChannelById(muzycznyKanal);
+                if (ch == null) return true;
+                ch.getManager().setTopic(mms.tlumaczenia.get(mms.tlumaczenia.getLanguage(ch.getGuild()),
+                        "play.queue.empty.topic", mms.getAktualnaPiosenka().getAudioTrack().getInfo().title,
+                        mms.getAktualnaPiosenka().getRequester())).queue(null, tuTezNull -> {});
+            } catch (Exception e) {
+                // nic
+            }
+            return false;
         }
 
         @Override
