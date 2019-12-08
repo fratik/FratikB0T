@@ -51,6 +51,8 @@ import net.dv8tion.jda.api.sharding.ShardManager;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pl.fratik.api.commands.OgloszenieCommand;
+import pl.fratik.api.commands.RundkaCommand;
 import pl.fratik.api.entity.*;
 import pl.fratik.api.event.RundkaAnswerVoteEvent;
 import pl.fratik.api.event.RundkaEndEvent;
@@ -431,6 +433,19 @@ public class Module implements Modul {
                 Exchange.body().sendJson(ex, new Exceptions.GenericException("Internal server error"), 500);
             }
         });
+        routes.get("/api/ogloszenie", ex -> {
+            Message msg = OgloszenieCommand.fetchMessage(shardManager);
+            if (msg == null) {
+                Exchange.body().sendJson(ex, new Exceptions.GenericException("nie znaleziono ogłoszenia"), 404);
+                return;
+            }
+            Ogloszenie ogloszenie = new Ogloszenie(new pl.fratik.api.entity.User(msg.getAuthor(), shardManager),
+                    msg.getContentRaw(), (msg.getTimeEdited() != null ? msg.getTimeEdited() : msg.getTimeCreated())
+                    .toInstant().toEpochMilli(), UserUtil.getPrimColor(msg.getAuthor()).getRGB() & 0xFFFFFF);
+            ex.getResponseHeaders().put(Headers.CONTENT_TYPE, "application/json");
+            ex.setStatusCode(200);
+            ex.getResponseSender().send(ByteBuffer.wrap(new ObjectMapper().writeValueAsBytes(ogloszenie)));
+        });
         Rundka rundka = rundkaDao.getAll().stream().filter(Rundka::isTrwa).findAny().orElse(null);
         if (rundka != null) {
             RundkaCommand.setNumerRundy(rundka.getIdRundki());
@@ -445,6 +460,7 @@ public class Module implements Modul {
         rundkaGa = new RundkaGa(this, eventBus, rundkaDao, shardManager);
         eventBus.register(this);
         eventBus.register(rundkaGa);
+        commands.add(new OgloszenieCommand(shardManager, guildDao, eventBus, tlumaczenia, managerKomend));
         commands.add(new RundkaCommand(eventBus, rundkaDao));
 //        commands.add(new TestCommand(eventBus));
         commands.forEach(managerKomend::registerCommand);

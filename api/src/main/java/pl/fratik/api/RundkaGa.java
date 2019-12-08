@@ -28,6 +28,7 @@ import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
 import net.dv8tion.jda.api.events.message.react.MessageReactionRemoveEvent;
 import net.dv8tion.jda.api.sharding.ShardManager;
+import pl.fratik.api.commands.RundkaCommand;
 import pl.fratik.api.entity.*;
 import pl.fratik.api.event.RundkaAnswerVoteEvent;
 import pl.fratik.api.event.RundkaNewAnswerEvent;

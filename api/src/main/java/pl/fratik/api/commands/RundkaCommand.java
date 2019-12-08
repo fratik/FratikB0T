@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package pl.fratik.api;
+package pl.fratik.api.commands;
 
 import com.google.common.eventbus.EventBus;
 import lombok.Getter;

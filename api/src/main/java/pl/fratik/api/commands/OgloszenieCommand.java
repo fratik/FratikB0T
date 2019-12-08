@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package pl.fratik.commands.system;
+package pl.fratik.api.commands;
 
 import com.google.common.eventbus.EventBus;
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -67,14 +67,12 @@ public class OgloszenieCommand extends Command {
     @Override
     public boolean execute(@NotNull CommandContext context) {
         if (!Globals.inFratikDev) throw new IllegalStateException("nie na FratikDev");
-        TextChannel kanau = shardManager.getTextChannelById(Ustawienia.instance.ogloszeniaBota);
-        if (kanau == null) throw new IllegalStateException("brak kanału");
-        List<Message> msgs = kanau.getHistory().retrievePast(1).complete();
-        if (msgs.isEmpty()) {
+        Message msg = fetchMessage();
+        if (msg == null) {
             context.send(context.getTranslated("ogloszenie.no.message"));
             return false;
         }
-        EmbedBuilder eb = ogloszenieEmbed(msgs.get(0), context.getTlumaczenia(), context.getLanguage());
+        EmbedBuilder eb = ogloszenieEmbed(msg, context.getTlumaczenia(), context.getLanguage());
         context.send(eb.build());
         return true;
     }
@@ -85,10 +83,8 @@ public class OgloszenieCommand extends Command {
             return execute(context);
         }
         if (!Globals.inFratikDev) throw new IllegalStateException("nie na FratikDev");
-        TextChannel kanau = shardManager.getTextChannelById(Ustawienia.instance.ogloszeniaBota);
-        if (kanau == null) throw new IllegalStateException("brak kanału");
-        List<Message> msgs = kanau.getHistory().retrievePast(1).complete();
-        if (msgs.isEmpty()) {
+        Message msg = fetchMessage();
+        if (msg == null) {
             context.send(context.getTranslated("ogloszenie.no.message"));
             return false;
         }
@@ -110,7 +106,7 @@ public class OgloszenieCommand extends Command {
                     break;
                 }
                 try {
-                    EmbedBuilder eb = ogloszenieEmbed(msgs.get(0), tlumaczenia, tlumaczenia.getLanguage(gu));
+                    EmbedBuilder eb = ogloszenieEmbed(msg, tlumaczenia, tlumaczenia.getLanguage(gu));
                     GuildConfig gc = guildDao.get(gu.getId());
                     if (gc.getWysylajOgloszenia() == null || !gc.getWysylajOgloszenia()) {
                         udane.getAndAdd(1);
@@ -151,6 +147,18 @@ public class OgloszenieCommand extends Command {
         }
         context.send(context.getTranslated("ogloszenie.post.done"));
         return true;
+    }
+
+    private Message fetchMessage() {
+        return fetchMessage(shardManager);
+    }
+
+    public static Message fetchMessage(ShardManager shardManager) {
+        TextChannel kanau = shardManager.getTextChannelById(Ustawienia.instance.ogloszeniaBota);
+        if (kanau == null) throw new IllegalStateException("brak kanału");
+        List<Message> msgs = kanau.getHistory().retrievePast(1).complete();
+        if (msgs.isEmpty()) return null;
+        else return msgs.get(0);
     }
 
     private EmbedBuilder ogloszenieEmbed(Message msg, Tlumaczenia t, Language jezyk) {
