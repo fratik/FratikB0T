@@ -29,6 +29,7 @@ import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import pl.fratik.core.Ustawienia;
 import pl.fratik.core.entity.ArgsMissingException;
+import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.UserUtil;
@@ -53,8 +54,9 @@ public class CommandContext {
     private static final Pattern URLPATTERN = Pattern.compile("(https?://(?:www\\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\\." +
             "[^\\s]{2,}|www\\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\\.[^\\s]{2,}|https?://(?:www\\.|(?!www))[a-zA-Z0-9]" +
             "\\.[^\\s]{2,}|www\\.[a-zA-Z0-9]\\.[^\\s]{2,})");
+    private GuildDao guildDao;
 
-    public CommandContext(ShardManager shardManager, Tlumaczenia tlumaczenia, Command command, MessageReceivedEvent event, String prefix, String label) {
+    public CommandContext(ShardManager shardManager, Tlumaczenia tlumaczenia, Command command, MessageReceivedEvent event, String prefix, String label, GuildDao guildDao) {
         this.shardManager = shardManager;
         this.tlumaczenia = tlumaczenia;
         this.command = command;
@@ -65,6 +67,7 @@ public class CommandContext {
         this.label = label;
         this.rawArgs = null;
         this.args = null;
+        this.guildDao = guildDao;
     }
 
     public CommandContext(ShardManager shardManager, Tlumaczenia tlumaczenia, Command command, MessageReceivedEvent event, String prefix, String label, String[] args) throws ArgsMissingException {
@@ -106,13 +109,16 @@ public class CommandContext {
     }
 
     public Message send(CharSequence message, boolean checkUrl) {
-        if (checkUrl && URLPATTERN.matcher(message).matches()) {
-            Exception blad = new Exception("Odpowiedź zawiera link!");
-            Sentry.getContext().setUser(new io.sentry.event.User(getSender().getId(),
-                    getSender().getName(), null, null));
-            Sentry.capture(new EventBuilder().withLevel(Level.WARNING).withMessage(blad.getMessage())
-                    .withExtra("wiadomosc", message).withSentryInterface(new ExceptionInterface(blad)));
-            Sentry.clearContext();
+        
+        if (UserUtil.getPermlevel(event.getMember(), guildDao, shardManager, PermLevel.OWNER).getNum() < 5) {
+            if (checkUrl && URLPATTERN.matcher(message).matches()) {
+                Exception blad = new Exception("Odpowiedź zawiera link!");
+                Sentry.getContext().setUser(new io.sentry.event.User(getSender().getId(),
+                        getSender().getName(), null, null));
+                Sentry.capture(new EventBuilder().withLevel(Level.WARNING).withMessage(blad.getMessage())
+                        .withExtra("wiadomosc", message).withSentryInterface(new ExceptionInterface(blad)));
+                Sentry.clearContext();
+            }
         }
         return event.getChannel().sendMessage(String.valueOf(message).replaceAll("@(everyone|here)", "@\u200b$1")).complete();
     }
