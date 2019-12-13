@@ -74,6 +74,8 @@ public class GuildConfig implements DatabaseEntity {
     private String modRole = "";
     @ConfigField(holdsEntity = ConfigField.Entities.CHANNEL)
     private List<String> swearchannels = new ArrayList<>();
+    @ConfigField(holdsEntity = ConfigField.Entities.CHANNEL)
+    private List<String> nolvlchannelchange = new ArrayList<>();
     private Boolean warnAdminLubModTraciRange = true;
     private Integer warnyNaBan = 15;
     private Integer warnyNaKick = 5;
