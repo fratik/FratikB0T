@@ -445,7 +445,8 @@ public class OsuCommand extends Command {
 
     private String generateBeatmapString(OsuBeatmap m) throws MalformedURLException {
         return m.getTitle() +"\n" + m.getArtist() + " // " + m.getCreatorName() + "\n" + "**" + m.getVersion() + "**" +
-                "\n[Link](" + m.getURL().toString() + ")";
+                " [" + round(m.getDifficulty(), 2, RoundingMode.HALF_UP) + " \u2605]" +
+                "\n[Link](" + m.getURL().toString() + ")" + " [osu!direct](https://fratikbot.pl/osu/b/" + m.getID() + ")";
     }
 
     private Color getColor(String rank) {
