@@ -21,10 +21,14 @@ import club.minnced.discord.webhook.WebhookClient;
 import club.minnced.discord.webhook.WebhookClientBuilder;
 import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.Subscribe;
+import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.events.guild.GuildJoinEvent;
 import net.dv8tion.jda.api.events.guild.GuildLeaveEvent;
 import net.dv8tion.jda.api.sharding.ShardManager;
+import pl.fratik.core.Ustawienia;
 import pl.fratik.core.command.PermLevel;
 import pl.fratik.core.entity.GbanData;
 import pl.fratik.core.entity.GuildDao;
@@ -39,7 +43,9 @@ import pl.fratik.core.util.NetworkUtil;
 import pl.fratik.core.util.UserUtil;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -105,12 +111,13 @@ class LogManager {
             executor.submit(() -> {
                 WebhookClient cl = getWebhook(webhookGaLvl);
                 cl.send(String.format("%s[%s] użył komendy %s(%s) na serwerze %s[%s] i tym samym nadużył swoich uprawnień.  " +
-                                "Jego permisje na serwerze to %s(%s), a komenda wymaga permisji %s(%s).",
+                                "Jego permisje na serwerze to %s(%s), a komenda wymaga permisji %s (%s) Serwer %s.",
                         e.getContext().getSender().getAsTag(), e.getContext().getSender().getId(),
                         e.getContext().getCommand().getName(), String.join(",", e.getContext().getRawArgs()),
                         e.getContext().getGuild().getName(), e.getContext().getGuild().getId(),
                         pLevel.getNum(), tlumaczenia.get(Language.DEFAULT, pLevel.getLanguageKey()),
-                        cmdLvl.getNum(), tlumaczenia.get(Language.DEFAULT, cmdLvl.getLanguageKey())));
+                        cmdLvl.getNum(), tlumaczenia.get(Language.DEFAULT, cmdLvl.getLanguageKey()),
+                        isPomoc(e.getContext().getGuild()) ? "ma prośbę o pomoc." : "nie ma prośby o pomoc."));
             });
         }
     }
@@ -214,5 +221,20 @@ class LogManager {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
+    }
+
+    private boolean isPomoc(Guild g) {
+        TextChannel kanal = Objects.requireNonNull(shardManager.getGuildById(Ustawienia.instance.botGuild))
+                .getTextChannelById(Ustawienia.instance.popChannel);
+        if (kanal == null) throw new NullPointerException("nieprawidłowy popChannel");
+        List<Message> wiads = kanal.getHistory().retrievePast(50).complete();
+        for (Message mess : wiads) {
+            if (mess.getEmbeds().isEmpty()) continue;
+            //noinspection ConstantConditions
+            String id = mess.getEmbeds().get(0).getFooter().getText().split(" \\| ")[1];
+            if (id.equals(g.getId())) {
+                return true;
+            }
+        } return false;
     }
 }

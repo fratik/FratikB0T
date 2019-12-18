@@ -93,6 +93,11 @@ public class YoutubeCommand extends MusicCommand {
             numerkiFilmow = Arrays.stream(content.split(",")).map(String::trim).mapToInt(Integer::parseInt).toArray();
             deleted.set(true);
             m.delete().queue();
+            if (context.getMember().getVoiceState().getChannel() != finalKanal) {
+                context.send(context.getTranslated("youtube.badchannel"));
+                udaloSie.set(false);
+                return;
+            }
             for (int numerek : numerkiFilmow) {
                 if (numerek < 1 || numerek > liczba) {
                     context.send(context.getTranslated("youtube.invalid.reply"));
