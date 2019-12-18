@@ -24,8 +24,6 @@ import com.google.common.eventbus.Subscribe;
 import io.sentry.Sentry;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
-import net.dv8tion.jda.api.exceptions.ErrorResponseException;
-import net.dv8tion.jda.api.requests.RestAction;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,7 +45,6 @@ import pl.fratik.core.util.UserUtil;
 import pl.fratik.punkty.entity.PunktyDao;
 import pl.fratik.punkty.entity.PunktyRow;
 
-import javax.naming.Reference;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -172,6 +169,10 @@ public class LicznikPunktow {
                 log.debug("{} ({}) jest na cooldownie!", event.getAuthor(), event.getGuild());
             else if (!punktyWlaczone(event.getGuild()))
                 log.debug("Punkty na serwerze {} są wyłączone", event.getGuild());
+            else if (guildDao.get(event.getGuild()).getNolvlchannelchange().contains(event.getChannel().getId())) {
+                log.debug("Naliczanie punktow na kanale {} na serwerze {} jest wylaczone", event.getChannel().getId(),
+                        event.getGuild().getId());
+            }
             return;
         }
         ConcurrentHashMap<String, Integer> mapa = cache.getIfPresent(event.getGuild().getId());
