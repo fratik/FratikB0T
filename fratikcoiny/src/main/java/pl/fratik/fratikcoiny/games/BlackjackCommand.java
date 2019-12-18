@@ -56,7 +56,7 @@ public class BlackjackCommand extends Command {
         }
         MemberConfig mc = memberDao.get(context.getMember());
         long zaklad = (Long) context.getArgs()[0];
-        if (mc.getFratikCoiny() < zaklad) {
+        if (zaklad == 0 || mc.getFratikCoiny() < zaklad) {
             context.send(context.getTranslated("blackjack.no.money"));
             return false;
         }
