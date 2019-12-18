@@ -34,7 +34,6 @@ import net.dv8tion.jda.api.entities.ChannelType;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
-import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -256,6 +255,9 @@ public class ManagerKomendImpl implements ManagerKomend, ThreadFactory {
 
                 if (!direct) {
                     plvl = UserUtil.getPermlevel(event.getMember(), guildDao, shardManager);
+                    if (c.isIgnoreGaPerm() && plvl != PermLevel.BOTOWNER && plvl.getNum() >= PermLevel.GADMIN.getNum()) {
+                        plvl = UserUtil.getPermlevel(event.getMember(), guildDao, shardManager, PermLevel.OWNER);
+                    }
                 } else {
                     plvl = UserUtil.getPermlevel(event.getAuthor(), shardManager);
                 }
