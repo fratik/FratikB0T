@@ -132,6 +132,8 @@ public class CytujCommand extends Command {
         Matcher matcher = Pattern.compile("[(http(s)?)://(www\\.)?a-zA-Z0-9@:%._\\+~#=]{2,256}\\.[a-z]{2,6" +
                 "}\\b([-a-zA-Z0-9@:%_\\+.~#?&//=]*)", Pattern.CASE_INSENSITIVE | Pattern.DOTALL).matcher(tresc);
         tresc = matcher.replaceAll("[URL]");
+        if (!context.getMember().hasPermission(context.getChannel(), Permission.MESSAGE_MENTION_EVERYONE))
+            tresc = tresc.replaceAll("@(everyone|here)", "@\u200b$1");
         try {
             eventBus.post(new PluginMessageEvent("commands", "moderation", "znaneAkcje-add:" + context.getMessage().getId()));
             context.getMessage().delete().queue();
