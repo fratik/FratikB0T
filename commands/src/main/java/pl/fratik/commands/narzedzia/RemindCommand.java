@@ -35,6 +35,7 @@ import pl.fratik.core.util.DynamicEmbedPaginator;
 import pl.fratik.core.util.EventWaiter;
 
 import java.awt.*;
+import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.*;
 import java.util.List;
@@ -93,6 +94,7 @@ public class RemindCommand extends Command {
         Message msg = context.send(context.getTranslated("generic.loading"));
         List<Schedule> schedules = scheduleDao.getAll();
         List<FutureTask<EmbedBuilder>> pages = new ArrayList<>();
+        SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy',' HH:mm:ss z", context.getLanguage().getLocale());
         for (Schedule sch : schedules) {
             if (!(sch.getContent() instanceof Schedule.Przypomnienie)) continue;
             Schedule.Przypomnienie przyp = ((Schedule.Przypomnienie) sch.getContent());
@@ -111,6 +113,8 @@ public class RemindCommand extends Command {
                         eb.addField(context.getTranslated("remind.list.embed.remaining"),
                                 context.getTranslated("remind.list.embed.remaining.due"), false);
                     }
+                    eb.addField(context.getTranslated("remind.list.embed.remaining.date"),
+                            sdf.format(new Date(sch.getData())), false);
                     eb.addField(context.getTranslated("remind.list.embed.id"), String.valueOf(sch.getId()),
                             false);
                     return eb;
