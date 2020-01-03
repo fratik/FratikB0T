@@ -26,7 +26,7 @@ Użyj `gradlew.bat jar` (Windows) / `./gradlew jar` (Linux/macOS), a pluginy mag
 - PostgreSQL (9/10/11 działają)
 - [Lavalink](https://github.com/Frederikam/Lavalink)
 - klucze API: (opcjonalne)
-    - image-server: https://api.fratikbot.pl oraz klucz (Open Source wkrótce)
+    - image-server: https://api.fratikbot.pl oraz klucz lub ~~(Open Source wkrótce)~~ [self-hosted](https://github.com/fratik/FratikB0T-API)
     - yt/yt2: osobne klucze do YouTube API, używane w wyszukiwaniu utworów/zdobywaniu miniatur
     - sentry-dsn: (do apiKeys, nie apiUrls!) link do sentry
     - pixiv: do komendy fb!rule34, dane logowania w formacie `e-mail:hasło`
