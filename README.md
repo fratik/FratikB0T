@@ -1,4 +1,6 @@
 # FratikB0T
+[![Crowdin](https://badges.crowdin.net/fratikb0t/localized.svg)](https://crowdin.com/project/fratikb0t)
+
 Wielofunkcyjny bot Discord. Teraz Open Source.  
 _(bosh brzmię jak nadgryzione jabłko)_
 
