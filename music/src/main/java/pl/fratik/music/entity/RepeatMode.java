@@ -18,5 +18,5 @@
 package pl.fratik.music.entity;
 
 public enum RepeatMode {
-    /*QUEUE,*/ ONCE, OFF
+    QUEUE, ONCE, OFF
 }

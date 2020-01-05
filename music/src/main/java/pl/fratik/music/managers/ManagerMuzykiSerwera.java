@@ -105,4 +105,5 @@ public interface ManagerMuzykiSerwera {
     }
 
     void onEvent(GenericEvent e);
+
 }

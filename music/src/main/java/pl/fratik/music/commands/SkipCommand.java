@@ -43,7 +43,7 @@ public class SkipCommand extends MusicCommand {
     @Override
     public boolean execute(@NotNull CommandContext context) {
         ManagerMuzykiSerwera mms = managerMuzyki.getManagerMuzykiSerwera(context.getGuild());
-        if (mms.getRepeatMode() != RepeatMode.OFF) {
+        if (mms.getRepeatMode() == RepeatMode.ONCE) {
             context.send(context.getTranslated("skip.on.repeat"));
             return false;
         }
