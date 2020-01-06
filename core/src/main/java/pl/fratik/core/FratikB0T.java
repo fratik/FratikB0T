@@ -157,6 +157,7 @@ class FratikB0T {
                 GuildDao guildDao = new GuildDao(managerBazyDanych, eventBus);
                 GbanDao gbanDao = new GbanDao(managerBazyDanych, eventBus);
                 ScheduleDao scheduleDao = new ScheduleDao(managerBazyDanych, eventBus);
+                Tlumaczenia.setShardManager(shardManager);
                 Tlumaczenia tlumaczenia = new Tlumaczenia(userDao, guildDao);
                 managerKomend = new ManagerKomendImpl(shardManager, guildDao, userDao,
                         tlumaczenia, eventBus);
