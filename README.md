@@ -35,7 +35,7 @@ Użyj `gradlew.bat jar` (Windows) / `./gradlew jar` (Linux/macOS), a pluginy mag
     
 ### Uruchomienie
 ```shell script
-java -jar <zbudowany rdzeń>.jar
+java -jar <zbudowany rdzeń>.jar <token>
 ```
 
 ### Konfiguracja
