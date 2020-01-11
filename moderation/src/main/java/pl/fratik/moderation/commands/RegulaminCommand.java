@@ -36,7 +36,7 @@ public class RegulaminCommand extends ModerationCommand {
         name = "regulamin";
         category = CommandCategory.MODERATION;
         uzycie = new Uzycie("zasada", "integer", true);
-        aliases = new String[] {"zasady", "reg", "zasada"};
+        aliases = new String[] {"zasady", "reg", "zasada", "rules"};
     }
 
     @Override
@@ -50,7 +50,14 @@ public class RegulaminCommand extends ModerationCommand {
                kanal = context.getGuild().getTextChannelsByName("zasady", true).get(0);
                if (kanal == null) throw new IllegalStateException();
            } catch (Exception e2) {
-                kanal = context.getGuild().getTextChannels().get(0);
+               try {
+                   kanal = context.getGuild().getTextChannelsByName(context.getTlumaczenia()
+                           .get(context.getTlumaczenia().getLanguage(context.getGuild()), "regulamin.channel.name"),
+                           true).get(0);
+                   if (kanal == null) throw new IllegalStateException();
+               } catch (Exception e3) {
+                   kanal = context.getGuild().getTextChannels().get(0);
+               }
            }
         }
         if (kanal == null) {
