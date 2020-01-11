@@ -20,26 +20,30 @@ package pl.fratik.punkty.komendy;
 import net.dv8tion.jda.api.entities.Member;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.*;
+import pl.fratik.core.entity.MemberConfig;
+import pl.fratik.core.entity.MemberDao;
 import pl.fratik.core.util.CommonErrors;
 import pl.fratik.core.util.UserUtil;
 import pl.fratik.punkty.LicznikPunktow;
 import pl.fratik.punkty.entity.PunktyDao;
 
-import java.util.ArrayList;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class RankingCommand extends Command {
     private final PunktyDao punktyDao;
     private final LicznikPunktow licznik;
+    private final MemberDao memberDao;
 
-    public RankingCommand(PunktyDao punktyDao, LicznikPunktow licznik) {
+    public RankingCommand(PunktyDao punktyDao, LicznikPunktow licznik, MemberDao memberDao) {
         this.punktyDao = punktyDao;
         this.licznik = licznik;
+        this.memberDao = memberDao;
         name = "ranking";
         aliases = new String[] {"rank"};
         permLevel = PermLevel.EVERYONE;
         category = CommandCategory.POINTS;
+        cooldown = 7;
     }
 
     @SuppressWarnings("squid:S1192")
@@ -116,6 +120,49 @@ public class RankingCommand extends Command {
             }
         });
         context.send(context.getTranslated("ranking.levels.header") + "```" + String.join("\n", tekst) + "```");
+        return true;
+    }
+
+    @SubCommand(name="fratikcoin",aliases={"fratikcoiny"})
+    public boolean fratikcoin(@NotNull CommandContext context) {
+        List<MemberConfig> mc = new ArrayList<>();
+        List<MemberConfig> mcAa = memberDao.getAll();
+        mcAa.sort(Comparator.comparingLong(MemberConfig::getFratikCoiny).reversed());
+        for (MemberConfig c : mcAa) {
+            if (c.getGuildId().equals(context.getGuild().getId())) mc.add(c);
+            if (mc.size() == 10) break;
+        }
+        Map<String, Long> dane = new HashMap<>();
+        for (MemberConfig c : mc)
+            dane.put(c.getUserId(), c.getFratikCoiny());
+        ArrayList<String> tekst = new ArrayList<>();
+        AtomicInteger miejsce = new AtomicInteger(0);
+        dane.forEach((id, fc) -> {
+            if (dane.size() == 10) {
+                int liczba = miejsce.incrementAndGet();
+                String liczbaStringed;
+                if (liczba <= 9) liczbaStringed = "[ " + liczba;
+                else liczbaStringed = "[" + liczba;
+                Member uzytkownik = context.getGuild().getMemberById(id);
+                if (uzytkownik != null)
+                    tekst.add(String.format("%s] %s: %s", liczbaStringed, UserUtil.formatDiscrim(uzytkownik), fc));
+                else
+                    tekst.add(String.format("%s] %s: %s", liczbaStringed, context.getTranslated("ranking.user.left", id),
+                            fc));
+                if (liczba != Math.min(10, dane.size())) tekst.add("");
+            } else {
+                int liczba = miejsce.incrementAndGet();
+                if (liczba > 10) return;
+                Member uzytkownik = context.getGuild().getMemberById(id);
+                if (uzytkownik != null)
+                    tekst.add(String.format("[%s] %s: %s", liczba, UserUtil.formatDiscrim(uzytkownik), fc));
+                else
+                    tekst.add(String.format("[%s] %s: %s", liczba, context.getTranslated("ranking.user.left", id),
+                            fc));
+                if (liczba != Math.min(10, dane.size())) tekst.add("");
+            }
+        });
+        context.send(context.getTranslated("ranking.fratikcoin.header") + "```" + String.join("\n", tekst) + "```");
         return true;
     }
 
