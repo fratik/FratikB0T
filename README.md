@@ -12,7 +12,7 @@ _(bosh brzmię jak nadgryzione jabłko)_
 [Serwer Discord](#serwer-discord)
 
 ## Co to być?
-Bot na Discorda zawierajacy 131 komend, istniejący od 2 lat i posiadający ~~3000+~~ 1500+ serwerów.
+Bot na Discorda zawierajacy 131 komend, istniejący od 2 lat i posiadający 2000+ serwerów.
 Całą wieczność na prywatnych repo, ale odechciewa mi się powoli to wszystko ogarniać więc boom, Open Source.
 
 ## Kompilacja
