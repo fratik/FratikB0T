@@ -132,7 +132,7 @@ public class RankingCommand extends Command {
             if (c.getGuildId().equals(context.getGuild().getId())) mc.add(c);
             if (mc.size() == 10) break;
         }
-        Map<String, Long> dane = new HashMap<>();
+        Map<String, Long> dane = new LinkedHashMap<>();
         for (MemberConfig c : mc)
             dane.put(c.getUserId(), c.getFratikCoiny());
         ArrayList<String> tekst = new ArrayList<>();
