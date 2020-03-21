@@ -70,7 +70,7 @@ dependencies {
     compile 'com.kcthota:emoji4j:5.0'
     compile 'org.nanohttpd:nanohttpd:2.3.1'
 //    compile 'org.eclipse.jgit:org.eclipse.jgit:4.7.0.201704051617-r'
-    compile 'org.jline:jline:3.13.2'
+    compile 'org.jline:jline:3.14.0'
     compile 'org.jsoup:jsoup:1.12.1'
     compile 'com.github.queer:async-postgres-jsonb-orm:e348e109f8'
     compile 'org.ocpsoft.prettytime:prettytime:4.0.2.Final'
