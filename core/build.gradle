@@ -31,7 +31,7 @@ sourceCompatibility = 1.8
 targetCompatibility = 1.8
 mainClassName = 'pl.fratik.core.Main'
 
-def jdaVersion = '4.0.0_50'
+def jdaVersion = '4.1.1_101'
 
 build.dependsOn shadowJar
 

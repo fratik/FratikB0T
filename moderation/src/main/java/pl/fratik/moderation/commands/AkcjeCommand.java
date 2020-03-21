@@ -39,10 +39,7 @@ import pl.fratik.moderation.entity.CaseRow;
 import pl.fratik.moderation.entity.CasesDao;
 import pl.fratik.moderation.utils.ModLogBuilder;
 
-import java.text.SimpleDateFormat;
-import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -111,17 +108,6 @@ public class AkcjeCommand extends ModerationCommand {
                     .setDescription(context.getTranslated("akcje.embed.description")).setFooter("%s/%s", null));
             for (Case aCase : caseRow.getCases().stream().filter(c -> c.getUserId().equals(user.getId())).collect(Collectors.toList())) {
                 EmbedBuilder eb = new EmbedBuilder(ModLogBuilder.generate(aCase, context.getGuild(), shardManager, context.getLanguage(), managerKomend));
-                if (aCase.getType() == Kara.MUTE || aCase.getType() == Kara.BAN || aCase.getType() == Kara.NOTATKA) {
-                    eb.addField(context.getTranslated("modlog.active"), aCase.isValid() ?
-                            context.getTranslated("modlog.active.true") :
-                            context.getTranslated("modlog.active.false"), false);
-                    if (aCase.getValidTo() != null) {
-                        SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy '@' HH:mm z", context.getLanguage().getLocale());
-                        sdf.setTimeZone(UserUtil.getTimeZone(context.getSender(), userDao));
-                        eb.addField(context.getTranslated("modlog.active." + aCase.isValid() + ".to"),
-                                sdf.format(Date.from(Instant.from(aCase.getValidTo()))), false);
-                    }
-                }
                 eb.setFooter(Objects.requireNonNull(eb.build().getFooter()).getText() + " (%s/%s)", null);
                 strony.add(eb);
             }

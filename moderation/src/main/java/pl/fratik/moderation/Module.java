@@ -76,6 +76,7 @@ public class Module implements Modul {
 
     @Override
     public boolean startUp() {
+        LogMessage.setShardManager(shardManager);
         EnumSet<Permission> permList = Permission.getPermissions(Globals.permissions);
         if (!permList.contains(Permission.VIEW_AUDIT_LOGS)) permList.add(Permission.VIEW_AUDIT_LOGS);
         if (Globals.permissions != Permission.getRaw(permList)) {

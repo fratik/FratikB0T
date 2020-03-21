@@ -62,13 +62,13 @@ public class LogListener {
     private final PurgeDao purgeDao;
 
     @Setter private static Tlumaczenia tlumaczenia;
-    private static final Cache<TextChannel, List<Message>>
+    private static final Cache<String, List<LogMessage>>
             cache = Caffeine.newBuilder().maximumSize(300).expireAfterWrite(10, TimeUnit.MINUTES).build();
     @Getter private final List<String> znaneAkcje = new ArrayList<>();
 
-    @Getter private static HashMap<Guild, List<Case>> knownCases = new HashMap<>();
+    @Getter private static HashMap<String, List<Case>> knownCases = new HashMap<>();
 
-    private final Cache<Guild, TextChannel> logChannelCache = Caffeine.newBuilder().expireAfterWrite(5, TimeUnit.MINUTES)
+    private final Cache<String, String> logChannelCache = Caffeine.newBuilder().expireAfterWrite(5, TimeUnit.MINUTES)
             .maximumSize(100).build();
 
     public LogListener(GuildDao guildDao, PurgeDao purgeDao) {
@@ -79,31 +79,25 @@ public class LogListener {
     @Subscribe
     public void onMessage(MessageReceivedEvent messageReceivedEvent) {
         if (!messageReceivedEvent.isFromGuild()) return;
-        List<Message> messages = cache.get(messageReceivedEvent.getTextChannel(), c -> new ArrayList<>());
+        List<LogMessage> messages = cache.get(messageReceivedEvent.getTextChannel().getId(), c -> new ArrayList<>());
         if (messages == null) throw new IllegalStateException("messages == null mimo compute'owania");
-        if (messages.size() <= 100) messages.add(messageReceivedEvent.getMessage());
-        else {
-            messages.remove(0);
-            messages.add(messageReceivedEvent.getMessage());
-        }
+        if (messages.size() > 100) messages.remove(0);
+        messages.add(new LogMessage(messageReceivedEvent.getMessage()));
     }
 
     @Subscribe
     public void onMessageEdit(MessageUpdateEvent messageUpdateEvent) {
         if (!messageUpdateEvent.isFromGuild()) return;
-        List<Message> messages = cache.get(messageUpdateEvent.getTextChannel(), c -> new ArrayList<>());
+        List<LogMessage> messages = cache.get(messageUpdateEvent.getTextChannel().getId(), c -> new ArrayList<>());
         if (messages == null) throw new IllegalStateException("messages == null mimo compute'owania");
         Message m = findMessage(messageUpdateEvent.getTextChannel(), messageUpdateEvent.getMessageId(), false);
         if (m == null) {
-            if (messages.size() <= 100) messages.add(messageUpdateEvent.getMessage());
-            else {
-                messages.remove(0);
-                messages.add(messageUpdateEvent.getMessage());
-            }
+            if (messages.size() > 100) messages.remove(0);
+            messages.add(new LogMessage(messageUpdateEvent.getMessage()));
             znaneAkcje.remove(messageUpdateEvent.getMessageId());
             return;
         }
-        messages.set(messages.indexOf(m), messageUpdateEvent.getMessage());
+        messages.set(messages.indexOf(m), new LogMessage(messageUpdateEvent.getMessage()));
         if (znaneAkcje.contains(messageUpdateEvent.getMessageId())) {
             znaneAkcje.remove(messageUpdateEvent.getMessageId());
             return;
@@ -126,7 +120,7 @@ public class LogListener {
     @Subscribe
     public void onMessageRemoved(MessageDeleteEvent messageDeleteEvent) {
         if (!messageDeleteEvent.isFromGuild()) return;
-        Message m = findMessage(messageDeleteEvent.getTextChannel(), messageDeleteEvent.getMessageId());
+        LogMessage m = findMessage(messageDeleteEvent.getTextChannel(), messageDeleteEvent.getMessageId());
         if (m == null) {
             znaneAkcje.remove(messageDeleteEvent.getMessageId());
             return;
@@ -145,7 +139,7 @@ public class LogListener {
                             if (log.getType() == ActionType.MESSAGE_DELETE
                                     && log.getTimeCreated().isAfter(OffsetDateTime.now().minusMinutes(1))
                                     && messageDeleteEvent.getChannel().getId().equals(log.getOption(AuditLogOption.CHANNEL))
-                                    && m.getAuthor().getIdLong() == log.getTargetIdLong()) {
+                                    && m.getAuthorId() == log.getTargetIdLong()) {
                                 deletedBy = log.getUser();
                                 break;
                             }
@@ -222,25 +216,25 @@ public class LogListener {
     }
 
     public void pushMessage(Message msg) {
-        List<Message> kesz = Objects.requireNonNull(cache.get(msg.getTextChannel(), c -> new ArrayList<>()));
+        List<LogMessage> kesz = Objects.requireNonNull(cache.get(msg.getTextChannel().getId(), c -> new ArrayList<>()));
         if (kesz.stream().map(ISnowflake::getId).anyMatch(o -> o.equals(msg.getId())))
             return;
-        kesz.add(msg);
-        cache.put(msg.getTextChannel(), kesz);
+        kesz.add(new LogMessage(msg));
+        cache.put(msg.getTextChannel().getId(), kesz);
     }
 
-    private Message findMessage(TextChannel channel, String id) {
+    private LogMessage findMessage(TextChannel channel, String id) {
         return findMessage(channel, id, true);
     }
 
-    private Message findMessage(TextChannel channel, String id, boolean delete) {
+    private LogMessage findMessage(TextChannel channel, String id, boolean delete) {
         try {
-            List<Message> kesz = Objects.requireNonNull(cache.get(channel, c -> new ArrayList<>()));
-            for (Message m : kesz)
+            List<LogMessage> kesz = Objects.requireNonNull(cache.get(channel.getId(), c -> new ArrayList<>()));
+            for (LogMessage m : kesz)
                 if (m.getId().equals(id)) {
                     if (!delete) return m;
                     kesz.remove(m);
-                    cache.put(channel, kesz);
+                    cache.put(channel.getId(), kesz);
                     return m;
                 }
         } catch (Exception ignored) {
@@ -324,20 +318,26 @@ public class LogListener {
     }
 
     private TextChannel getChannel(Guild guild) {
-        return logChannelCache.get(guild, g -> {
+        String tak = logChannelCache.get(guild.getId(), g -> {
             GuildConfig gc = guildDao.get(guild);
             if (gc.getFullLogs() == null) return null;
-            if (!gc.getFullLogs().isEmpty()) return g.getTextChannelById(gc.getFullLogs());
+            if (!gc.getFullLogs().isEmpty()) {
+                TextChannel kanal = guild.getTextChannelById(gc.getFullLogs());
+                if (kanal == null) return null;
+                return kanal.getId();
+            }
             return null;
         });
+        if (tak == null) return null;
+        return guild.getTextChannelById(tak);
     }
 
     @Subscribe
     public void onDatabaseUpdate(DatabaseUpdateEvent event) {
         if (event.getEntity() instanceof GuildConfig) {
-            for (Guild guild : logChannelCache.asMap().keySet()) {
-                if (((GuildConfig) event.getEntity()).getGuildId().equals(guild.getId())) {
-                    logChannelCache.invalidate(guild);
+            for (String guildId : logChannelCache.asMap().keySet()) {
+                if (((GuildConfig) event.getEntity()).getGuildId().equals(guildId)) {
+                    logChannelCache.invalidate(guildId);
                     return;
                 }
             }

@@ -1,0 +1,86 @@
+/*
+ * Copyright (C) 2020 FratikB0T Contributors
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+package pl.fratik.moderation.entity;
+
+import lombok.Setter;
+import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.sharding.ShardManager;
+import net.dv8tion.jda.internal.entities.AbstractMessage;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+public class LogMessage extends AbstractMessage {
+    @Setter private static ShardManager shardManager;
+    private final long id;
+    private final long guildId;
+    private final long authorId;
+    private final long channelId;
+
+    public LogMessage(Message message) {
+        super(message.getContentRaw(), message.getNonce(), message.isTTS());
+        this.id = message.getIdLong();
+        this.guildId = message.getGuild().getIdLong();
+        this.authorId = message.getAuthor().getIdLong();
+        this.channelId = message.getChannel().getIdLong();
+    }
+
+    @Override
+    protected void unsupported() {
+        throw new UnsupportedOperationException(UNSUPPORTED);
+    }
+
+    @Nullable
+    @Override
+    public MessageActivity getActivity() {
+        return null;
+    }
+
+    @Override
+    public long getIdLong() {
+        return id;
+    }
+
+    @Nonnull
+    @Override
+    public User getAuthor() {
+        User user = shardManager.getUserById(authorId);
+        if (user == null) throw new IllegalStateException("użytkownik nie istnieje!");
+        return user;
+    }
+
+    @Nonnull
+    @Override
+    public Guild getGuild() {
+        Guild guild = shardManager.getGuildById(guildId);
+        if (guild == null) throw new IllegalStateException("bot wyrzucony!");
+        return guild;
+    }
+
+    @Nonnull
+    @Override
+    public TextChannel getTextChannel() {
+        TextChannel ch = shardManager.getTextChannelById(channelId);
+        if (ch == null) throw new IllegalStateException("kanal nie istnieje!");
+        return ch;
+    }
+
+    public long getAuthorId() {
+        return authorId;
+    }
+}

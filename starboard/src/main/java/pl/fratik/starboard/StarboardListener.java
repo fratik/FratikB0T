@@ -56,7 +56,7 @@ public class StarboardListener {
     private final List<String> toIgnore = new ArrayList<>();
     private static final String SMSGSEP = " \\| ";
 
-    private final Cache<Guild, TextChannel> starChannelCache = Caffeine.newBuilder().expireAfterWrite(5, TimeUnit.MINUTES)
+    private final Cache<String, String> starChannelCache = Caffeine.newBuilder().expireAfterWrite(5, TimeUnit.MINUTES)
             .maximumSize(100).build();
 
     StarboardListener(StarDataDao starDataDao, Tlumaczenia tlumaczenia, StarManager starManager, ExecutorService executor) {
@@ -265,19 +265,25 @@ public class StarboardListener {
     }
 
     private TextChannel getChannel(Guild guild) {
-        return starChannelCache.get(guild, g -> {
+        String id = starChannelCache.get(guild.getId(), g -> {
             StarsData std = starDataDao.get(guild);
-            if (!std.getStarboardChannel().isEmpty()) return g.getTextChannelById(std.getStarboardChannel());
+            if (!std.getStarboardChannel().isEmpty()) {
+                TextChannel kanal = guild.getTextChannelById(std.getStarboardChannel());
+                if (kanal == null) return null;
+                return kanal.getId();
+            }
             return null;
         });
+        if (id == null) return null;
+        return guild.getTextChannelById(id);
     }
 
     @Subscribe
     public void onDatabaseUpdate(DatabaseUpdateEvent event) {
         if (event.getEntity() instanceof GuildConfig) {
-            for (Guild guild : starChannelCache.asMap().keySet()) {
-                if (((GuildConfig) event.getEntity()).getGuildId().equals(guild.getId())) {
-                    starChannelCache.invalidate(guild);
+            for (String guildId : starChannelCache.asMap().keySet()) {
+                if (((GuildConfig) event.getEntity()).getGuildId().equals(guildId)) {
+                    starChannelCache.invalidate(guildId);
                     return;
                 }
             }

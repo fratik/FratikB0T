@@ -199,7 +199,7 @@ public class AntiRaidListener {
             if (success) logExtreme(e, lastC, "2 wiadomości o podobieństwie " + proc.stream().map(w -> w * 100 + "%")
                     .collect(Collectors.joining(", ")));
         }
-        if (lastC.stream().filter(c -> c.length() <= 3).count() >= 2) {
+        if (lastC.stream().filter(c -> c != null && c.length() <= 3).count() >= 2) {
             boolean success;
             try {
                 e.getGuild().ban(e.getAuthor(), 0, "Raid").complete();

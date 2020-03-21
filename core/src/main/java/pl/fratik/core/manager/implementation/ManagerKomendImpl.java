@@ -80,12 +80,12 @@ public class ManagerKomendImpl implements ManagerKomend, ThreadFactory {
     private final GuildDao guildDao;
     private final UserDao userDao;
     private final EventBus eventBus;
-    private final Cache<Guild, RateLimiter> rateLimits = Caffeine.newBuilder().expireAfterWrite(5, TimeUnit.MINUTES).maximumSize(100).build();
+    private final Cache<String, RateLimiter> rateLimits = Caffeine.newBuilder().expireAfterWrite(5, TimeUnit.MINUTES).maximumSize(100).build();
     private final Map<String, Instant> cooldowns = new HashMap<>();
-    private final Cache<Guild, List<String>> prefixCache = Caffeine.newBuilder().expireAfterWrite(5, TimeUnit.MINUTES).maximumSize(100).build();
-    private final Cache<Guild, List<String>> disabledCommandsCache = Caffeine.newBuilder().expireAfterWrite(5, TimeUnit.MINUTES).maximumSize(100).build();
-    private final Cache<User, String> reakcjaSuccessCache = Caffeine.newBuilder().expireAfterWrite(5, TimeUnit.MINUTES).maximumSize(100).build();
-    private final Cache<User, String> reakcjaFailCache = Caffeine.newBuilder().expireAfterWrite(5, TimeUnit.MINUTES).maximumSize(100).build();
+    private final Cache<String, List<String>> prefixCache = Caffeine.newBuilder().expireAfterWrite(5, TimeUnit.MINUTES).maximumSize(100).build();
+    private final Cache<String, List<String>> disabledCommandsCache = Caffeine.newBuilder().expireAfterWrite(5, TimeUnit.MINUTES).maximumSize(100).build();
+    private final Cache<String, String> reakcjaSuccessCache = Caffeine.newBuilder().expireAfterWrite(5, TimeUnit.MINUTES).maximumSize(100).build();
+    private final Cache<String, String> reakcjaFailCache = Caffeine.newBuilder().expireAfterWrite(5, TimeUnit.MINUTES).maximumSize(100).build();
     @Setter
     private static String loadingModule;
     private Map<Runnable, CommandContext> runnables = new ConcurrentHashMap<>();
@@ -290,7 +290,7 @@ public class ManagerKomendImpl implements ManagerKomend, ThreadFactory {
                 }
 
                 //noinspection ConstantConditions - nie może być null
-                if (!direct && disabledCommandsCache.get(event.getGuild(), id -> guildDao.get(id).getDisabledCommands())
+                if (!direct && disabledCommandsCache.get(event.getGuild().getId(), id -> guildDao.get(id).getDisabledCommands())
                         .contains(c.getName())) {
                     context.send(context.getTranslated("generic.disabled"));
                     zareaguj(context, false);
@@ -376,7 +376,7 @@ public class ManagerKomendImpl implements ManagerKomend, ThreadFactory {
     }
 
     private boolean isRateLimited(Guild guild) {
-        RateLimiter r = rateLimits.get(guild, g -> RateLimiter.create(3, 5, TimeUnit.SECONDS));
+        RateLimiter r = rateLimits.get(guild.getId(), g -> RateLimiter.create(3, 5, TimeUnit.SECONDS));
         if (r == null) return false; //intellij przestań się pluć plz
         return !r.tryAcquire();
     }
@@ -423,11 +423,11 @@ public class ManagerKomendImpl implements ManagerKomend, ThreadFactory {
 
     @Override
     public Emoji getReakcja(User user, boolean success) {
-        String r = success ? reakcjaSuccessCache.getIfPresent(user) : reakcjaFailCache.getIfPresent(user);
+        String r = success ? reakcjaSuccessCache.getIfPresent(user.getId()) : reakcjaFailCache.getIfPresent(user.getId());
         if (r == null) {
             UserConfig config = userDao.get(user);
-            reakcjaSuccessCache.put(user, config.getReakcja());
-            reakcjaFailCache.put(user, config.getReakcjaBlad());
+            reakcjaSuccessCache.put(user.getId(), config.getReakcja());
+            reakcjaFailCache.put(user.getId(), config.getReakcjaBlad());
             if (success) {
                 return Emoji.resolve(config.getReakcja(), shardManager);
             } else {
@@ -438,16 +438,16 @@ public class ManagerKomendImpl implements ManagerKomend, ThreadFactory {
 
     @Override
     public List<String> getPrefixes(Guild guild) {
-        List<String> p = prefixCache.getIfPresent(guild);
+        List<String> p = prefixCache.getIfPresent(guild.getId());
         if (p == null) {
             try {
                 GuildConfig config = guildDao.get(guild);
 
                 if (config.getPrefixes() == null) {
-                    prefixCache.put(guild, Collections.emptyList());
+                    prefixCache.put(guild.getId(), Collections.emptyList());
                     p = Collections.singletonList(Ustawienia.instance.prefix);
                 } else {
-                    prefixCache.put(guild, config.getPrefixes());
+                    prefixCache.put(guild.getId(), config.getPrefixes());
                     p = config.getPrefixes();
                 }
             } catch (Exception e) {
@@ -469,18 +469,18 @@ public class ManagerKomendImpl implements ManagerKomend, ThreadFactory {
     @Subscribe
     public void onDatabaseUpdate(DatabaseUpdateEvent event) {
         if (event.getEntity() instanceof GuildConfig) {
-            for (Guild guild : prefixCache.asMap().keySet()) {
-                if (((GuildConfig) event.getEntity()).getGuildId().equals(guild.getId())) {
-                    prefixCache.invalidate(guild);
-                    disabledCommandsCache.invalidate(guild);
+            for (String guildId : prefixCache.asMap().keySet()) {
+                if (((GuildConfig) event.getEntity()).getGuildId().equals(guildId)) {
+                    prefixCache.invalidate(guildId);
+                    disabledCommandsCache.invalidate(guildId);
                     return;
                 }
             }
         }
         if (event.getEntity() instanceof UserConfig) {
-            for (User user : reakcjaSuccessCache.asMap().keySet()) {
-                if (((UserConfig) event.getEntity()).getId().equals(user.getId())) {
-                    reakcjaSuccessCache.invalidate(user);
+            for (String userId : reakcjaSuccessCache.asMap().keySet()) {
+                if (((UserConfig) event.getEntity()).getId().equals(userId)) {
+                    reakcjaSuccessCache.invalidate(userId);
                     return;
                 }
             }

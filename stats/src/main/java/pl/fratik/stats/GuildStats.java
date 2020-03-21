@@ -52,13 +52,13 @@ class GuildStats {
     private final ShardManager shardManager;
 
     private static final Cache<String, List<MembersStats>> cacheMms = Caffeine.newBuilder()
-            .maximumSize(300).expireAfterWrite(10, TimeUnit.MINUTES).build();
+            .maximumSize(300).expireAfterWrite(4, TimeUnit.MINUTES).build();
     private static final Cache<String, List<MessagesStats>> cacheMsgs = Caffeine.newBuilder()
-            .maximumSize(300).expireAfterWrite(10, TimeUnit.MINUTES).build();
+            .maximumSize(300).expireAfterWrite(4, TimeUnit.MINUTES).build();
     private static final Cache<String, List<GuildCountStats>> cacheGuilds = Caffeine.newBuilder()
-            .maximumSize(300).expireAfterWrite(10, TimeUnit.MINUTES).build();
+            .maximumSize(300).expireAfterWrite(4, TimeUnit.MINUTES).build();
     private static final Cache<String, List<CommandCountStats>> cacheCommands = Caffeine.newBuilder()
-            .maximumSize(300).expireAfterWrite(10, TimeUnit.MINUTES).build();
+            .maximumSize(300).expireAfterWrite(4, TimeUnit.MINUTES).build();
 
     GuildStats(Module stats, Modul modul, ShardManager shardManager) {
         this.stats = stats;

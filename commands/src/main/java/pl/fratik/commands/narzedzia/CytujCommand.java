@@ -125,7 +125,11 @@ public class CytujCommand extends Command {
         if (tresc == null || tresc.isEmpty()) {
             context.send(eb.build());
             if (!msg.getEmbeds().isEmpty()) {
-                context.send(msg.getEmbeds().get(0));
+                try {
+                    context.send(msg.getEmbeds().get(0));
+                } catch (IllegalArgumentException e) {
+                    // nieprawidłowy embed
+                }
             }
             return true;
         }

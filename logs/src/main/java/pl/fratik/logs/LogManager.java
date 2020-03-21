@@ -123,7 +123,12 @@ class LogManager {
     }
 
     private WebhookClient getWebhook(String webhook) {
-        return webhooki.getOrDefault(webhook, new WebhookClientBuilder(webhook).setHttpClient(NetworkUtil.getClient()).build());
+        WebhookClient tak = webhooki.get(webhook);
+        if (tak == null) {
+            tak = new WebhookClientBuilder(webhook).setHttpClient(NetworkUtil.getClient()).build();
+            webhooki.put(webhook, tak);
+        }
+        return tak;
     }
 
     @Subscribe

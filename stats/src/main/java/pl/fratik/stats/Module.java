@@ -33,7 +33,6 @@ import pl.fratik.core.event.ModuleLoadedEvent;
 import pl.fratik.core.manager.ManagerBazyDanych;
 import pl.fratik.core.manager.ManagerModulow;
 import pl.fratik.core.moduly.Modul;
-import pl.fratik.core.util.EventWaiter;
 import pl.fratik.stats.entity.*;
 
 import java.time.ZoneOffset;
@@ -46,7 +45,6 @@ import java.util.stream.Collectors;
 public class Module implements Modul {
     @Inject private EventBus eventBus;
     @Inject private ManagerBazyDanych managerBazyDanych;
-    @Inject private EventWaiter eventWaiter;
     @Inject private ShardManager shardManager;
     @Inject private ManagerModulow managerModulow;
 
@@ -89,33 +87,33 @@ public class Module implements Modul {
             gcs.setCount(shardManager.getGuilds().size());
             guildCountStatsDao.save(gcs);
         }
-        List<MembersStats> mss = membersStatsDao.getAll();
+        List<MembersStats> mss = membersStatsDao.getAllForDate(getCurrentStorageDate());
         for (Guild g : shardManager.getGuilds()) {
             if (Thread.currentThread().isInterrupted()) {
                 LoggerFactory.getLogger(getClass()).info("Wątek przerwany, kończę loop'a");
                 break;
             }
-            List<MembersStats> zDzisiaj = mss.stream().filter(m -> m.getDate() == getCurrentStorageDate()
-                    && m.getGuildId().equals(g.getId())).collect(Collectors.toList());
+            List<MembersStats> zDzisiaj = mss.stream().filter(m -> m.getGuildId().equals(g.getId()))
+                    .collect(Collectors.toList());
             if (zDzisiaj.isEmpty()) {
                 MembersStats ms = new MembersStats(getCurrentStorageDate(), g.getId());
-                ms.setCount(g.getMembers().size());
+                ms.setCount(g.getMemberCount());
                 membersStatsDao.save(ms);
             } else {
                 MembersStats ms = zDzisiaj.get(0);
                 if (ms.getCount() == g.getMembers().size() && ms.getCount() != 0) return;
-                ms.setCount(g.getMembers().size());
+                ms.setCount(g.getMemberCount());
                 membersStatsDao.save(ms);
             }
         }
-        List<MessagesStats> msgs = messagesStatsDao.getAll();
+        List<MessagesStats> msgs = messagesStatsDao.getAllForDate(getCurrentStorageDate());
         for (Guild g : shardManager.getGuilds()) {
             if (Thread.currentThread().isInterrupted()) {
                 LoggerFactory.getLogger(getClass()).info("Wątek przerwany, kończę loop'a");
                 break;
             }
-            List<MessagesStats> zDzisiaj = msgs.stream().filter(m -> m.getDate() == getCurrentStorageDate()
-                    && m.getGuildId().equals(g.getId())).collect(Collectors.toList());
+            List<MessagesStats> zDzisiaj = msgs.stream().filter(m -> m.getGuildId().equals(g.getId()))
+                    .collect(Collectors.toList());
             if (zDzisiaj.isEmpty()) {
                 MessagesStats ms = new MessagesStats(getCurrentStorageDate(), g.getId());
                 Integer wiad = wiadomosci.remove(g.getId());

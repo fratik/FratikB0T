@@ -153,18 +153,19 @@ public class LicznikPunktow {
 
     @Subscribe
     public void onMessage(MessageReceivedEvent event) {
+        if (event.getChannel().getType() != ChannelType.TEXT || !event.isFromGuild()) {
+            log.debug("Kanał gdzie {} napisał nie jest kanałem tekstowym, nie liczę punktu", event.getAuthor());
+            return;
+        }
         if (lock) {
             log.debug("Lock włączony, nie podliczam punktów dla {} na {}", event.getAuthor(), event.getGuild());
             return;
         }
-        if (event.getAuthor().isBot() || event.getChannel().getType() != ChannelType.TEXT || !event.isFromGuild() ||
-                UserUtil.isGbanned(event.getAuthor()) || getCooldown(event.getMember()) ||
+        if (event.getAuthor().isBot() || UserUtil.isGbanned(event.getAuthor()) || getCooldown(event.getMember()) ||
                 !punktyWlaczone(event.getGuild())) {
             if (UserUtil.isGbanned(event.getAuthor())) log.debug("{} jest zgbanowany, nie liczę punktu",
                     event.getAuthor());
             else if (event.getAuthor().isBot()) log.debug("{} jest botem, nie liczę punktu", event.getAuthor());
-            else if (event.getChannel().getType() != ChannelType.TEXT || !event.isFromGuild())
-                log.debug("Kanał gdzie {} napisał nie jest kanałem tekstowym, nie liczę punktu", event.getAuthor());
             else if (getCooldown(event.getMember()))
                 log.debug("{} ({}) jest na cooldownie!", event.getAuthor(), event.getGuild());
             else if (!punktyWlaczone(event.getGuild()))
