@@ -47,7 +47,7 @@ repositories {
 dependencies {
     compile 'net.dv8tion:JDA:' + jdaVersion
     compile 'com.intellij:annotations:+@jar'
-    compile 'com.fasterxml.jackson.core:jackson-databind:2.10.1'
+    compile 'com.fasterxml.jackson.core:jackson-databind:2.10.3'
     compile 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.10.1'
     compile 'com.github.ben-manes.caffeine:caffeine:2.6.2'
     compile 'com.google.code.gson:gson:2.8.6'
