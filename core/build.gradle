@@ -54,7 +54,7 @@ dependencies {
     compile 'com.google.inject:guice:4.2.2'
     compile 'org.projectlombok:lombok:1.18.10'
     compile 'io.sentry:sentry:1.7.28'
-    compile 'org.slf4j:slf4j-api:1.7.29'
+    compile 'org.slf4j:slf4j-api:1.7.30'
     compile 'com.google.guava:guava:23.0'
     compile 'org.apache.httpcomponents:httpasyncclient:4.1.4'
     compile 'ch.qos.logback:logback-classic:1.2.3'
