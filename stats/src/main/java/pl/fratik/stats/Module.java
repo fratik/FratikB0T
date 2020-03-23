@@ -101,7 +101,7 @@ public class Module implements Modul {
                 membersStatsDao.save(ms);
             } else {
                 MembersStats ms = zDzisiaj.get(0);
-                if (ms.getCount() == g.getMembers().size() && ms.getCount() != 0) return;
+                if (ms.getCount() == g.getMembers().size() && ms.getCount() != 0) continue;
                 ms.setCount(g.getMemberCount());
                 membersStatsDao.save(ms);
             }
@@ -118,14 +118,14 @@ public class Module implements Modul {
                 MessagesStats ms = new MessagesStats(getCurrentStorageDate(), g.getId());
                 Integer wiad = wiadomosci.remove(g.getId());
                 if (wiad == null) wiad = 0;
-                if (ms.getCount() == wiad && ms.getCount() != 0) return;
+                if (ms.getCount() == wiad && ms.getCount() != 0) continue;
                 ms.setCount(ms.getCount() + wiad);
                 messagesStatsDao.save(ms);
             } else {
                 MessagesStats ms = zDzisiaj.get(0);
                 Integer wiad = wiadomosci.remove(g.getId());
                 if (wiad == null) wiad = 0;
-                if (ms.getCount() == wiad && ms.getCount() != 0) return;
+                if (ms.getCount() == wiad && ms.getCount() != 0) continue;
                 ms.setCount(ms.getCount() + wiad);
                 messagesStatsDao.save(ms);
             }

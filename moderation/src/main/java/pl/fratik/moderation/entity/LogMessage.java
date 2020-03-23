@@ -24,6 +24,7 @@ import net.dv8tion.jda.internal.entities.AbstractMessage;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.time.OffsetDateTime;
 
 public class LogMessage extends AbstractMessage {
     @Setter private static ShardManager shardManager;
@@ -31,6 +32,7 @@ public class LogMessage extends AbstractMessage {
     private final long guildId;
     private final long authorId;
     private final long channelId;
+    private final OffsetDateTime editedTime;
 
     public LogMessage(Message message) {
         super(message.getContentRaw(), message.getNonce(), message.isTTS());
@@ -38,6 +40,7 @@ public class LogMessage extends AbstractMessage {
         this.guildId = message.getGuild().getIdLong();
         this.authorId = message.getAuthor().getIdLong();
         this.channelId = message.getChannel().getIdLong();
+        this.editedTime = message.isEdited() ? message.getTimeEdited() : null;
     }
 
     @Override
@@ -82,5 +85,15 @@ public class LogMessage extends AbstractMessage {
 
     public long getAuthorId() {
         return authorId;
+    }
+
+    @Override
+    public OffsetDateTime getTimeEdited() {
+        return editedTime;
+    }
+
+    @Override
+    public boolean isEdited() {
+        return editedTime != null;
     }
 }
