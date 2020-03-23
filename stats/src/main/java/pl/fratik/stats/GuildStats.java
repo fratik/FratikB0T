@@ -21,6 +21,8 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.eventbus.Subscribe;
 import io.undertow.server.RoutingHandler;
+import lombok.Getter;
+import lombok.Setter;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDAInfo;
 import net.dv8tion.jda.api.entities.Guild;
@@ -143,13 +145,13 @@ class GuildStats {
                     tmpCcs = stats.getCommandCountStatsDao().getAll(30);
             }
             List<Wrappers.GuildCountWrapper> gcs = tmpGcs.stream().map(Wrappers.GuildCountWrapper::new)
-                    .sorted((o1, o2) -> (int) (o2.date - o1.date)).peek(o -> {
-                        if (o.date == stats.getCurrentStorageDate()) o.count = shardManager.getGuilds().size();
+                    .sorted(Comparator.comparingLong(Wrappers.GuildCountWrapper::getDate).reversed()).peek(o -> {
+                        if (o.getDate() == stats.getCurrentStorageDate()) o.setCount(shardManager.getGuilds().size());
                     }).collect(Collectors.toList());
             List<Wrappers.CommandStatsWrapper> ccs = tmpCcs.stream().map(Wrappers.CommandStatsWrapper::new)
-                    .sorted((o1, o2) -> (int) (o2.date - o1.date)).peek(cecees -> {
-                        if (cecees.date == stats.getCurrentStorageDate())
-                            cecees.count = cecees.count + stats.getKomend();
+                    .sorted(Comparator.comparingLong(Wrappers.CommandStatsWrapper::getDate).reversed()).peek(cecees -> {
+                        if (cecees.getDate() == stats.getCurrentStorageDate())
+                            cecees.setCount(cecees.getCount() + stats.getKomend());
                     }).collect(Collectors.toList());
             int guildsSummmary = 0;
             int commandsSummary = 0;
@@ -246,8 +248,8 @@ class GuildStats {
         }
 
         private static class GuildCountWrapper {
-            private final long date;
-            private int count;
+            @Getter private final long date;
+            @Getter @Setter private int count;
 
             GuildCountWrapper(GuildCountStats ms) {
                 date = ms.getDate();
@@ -256,8 +258,8 @@ class GuildStats {
         }
 
         private static class CommandStatsWrapper {
-            private final long date;
-            private int count;
+            @Getter private final long date;
+            @Getter @Setter private int count;
 
             CommandStatsWrapper(CommandCountStats ms) {
                 date = ms.getDate();

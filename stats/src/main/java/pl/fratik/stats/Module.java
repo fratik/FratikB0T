@@ -101,7 +101,7 @@ public class Module implements Modul {
                 membersStatsDao.save(ms);
             } else {
                 MembersStats ms = zDzisiaj.get(0);
-                if (ms.getCount() == g.getMembers().size() && ms.getCount() != 0) continue;
+                if (ms.getCount() == g.getMemberCount() && ms.getCount() != 0) continue;
                 ms.setCount(g.getMemberCount());
                 membersStatsDao.save(ms);
             }

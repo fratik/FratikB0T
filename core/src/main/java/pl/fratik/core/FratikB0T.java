@@ -30,7 +30,6 @@ import net.dv8tion.jda.api.OnlineStatus;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.sharding.DefaultShardManagerBuilder;
 import net.dv8tion.jda.api.sharding.ShardManager;
-import net.dv8tion.jda.api.utils.ChunkingFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.entity.*;
@@ -148,7 +147,6 @@ class FratikB0T {
                 builder.setVoiceDispatchInterceptor(eventHandler);
                 builder.setBulkDeleteSplittingEnabled(false);
                 builder.setCallbackPool(Executors.newFixedThreadPool(4));
-                builder.setChunkingFilter(ChunkingFilter.NONE);
                 ShardManager shardManager = builder.build();
                 ManagerArgumentow managerArgumentow = new ManagerArgumentowImpl();
                 Uzycie.setManagerArgumentow(managerArgumentow);
