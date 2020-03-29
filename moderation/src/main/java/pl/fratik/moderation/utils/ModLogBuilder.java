@@ -58,13 +58,6 @@ public class ModLogBuilder {
                 managerKomend == null || managerKomend.getPrefixes(guild).isEmpty() ? Ustawienia.instance.prefix :
                         managerKomend.getPrefixes(guild).get(0), aCase.getCaseId());
         else iId = UserUtil.formatDiscrim(iUser);
-        if (sm.getUserById(aCase.getUserId()) == null) {
-            try {
-                sm.retrieveUserById(aCase.getUserId()).complete();
-            } catch (Exception e) {
-                throw new RuntimeException("nie ma usera");
-            }
-        }
         return generate(aCase.getType(), sm.retrieveUserById(aCase.getUserId()).complete(), iId, reason,
                 aCase.getType().getKolor(), aCase.getCaseId(), aCase.isValid(), aCase.getValidTo(),
                 aCase.getTimestamp(), lang, guild);
@@ -75,9 +68,14 @@ public class ModLogBuilder {
                                          Guild guild) {
         if (tlumaczenia == null) throw new IllegalStateException("Tlumaczenia nie ustawione!");
         EmbedBuilder eb = new EmbedBuilder()
-                .setColor(kolor)
-                .setAuthor(karany.getAsTag(), null,
-                        karany.getEffectiveAvatarUrl().replace(".webp", ".png"))
+                .setColor(kolor);
+        if (karany == null) {
+            eb.setAuthor(tlumaczenia.get(lang, "modlog.unknown.user"));
+        } else {
+            eb.setAuthor(karany.getAsTag(), null,
+                    karany.getEffectiveAvatarUrl().replace(".webp", ".png"));
+        }
+        eb
                 .setTimestamp(timestamp)
                 .setFooter(String.format(przyjaznaNazwa(lang, kara), "czas") + " | " +
                         tlumaczenia.get(lang, "modlog.caseid", Integer.toString(caseId)), null);
