@@ -136,6 +136,7 @@ public class Module implements Modul {
         commands.add(new EmojiInfoCommand());
         commands.add(new OsuCommand(shardManager, eventWaiter, eventBus));
         commands.add(new Rule34Command(eventWaiter, eventBus, managerArgumentow));
+        commands.add(new CoronastatsCommand());
 
         listener = new MemberListener(guildDao);
         eventBus.register(listener);
