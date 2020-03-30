@@ -49,6 +49,7 @@ import pl.fratik.core.util.EventBusErrorHandler;
 import pl.fratik.core.util.EventWaiter;
 import pl.fratik.core.util.GsonUtil;
 import pl.fratik.core.util.graph.Graph;
+import pl.fratik.core.webhook.WebhookManager;
 
 import java.io.*;
 import java.net.URL;
@@ -77,6 +78,7 @@ public class ManagerModulowImpl implements ManagerModulow {
     private Logger logger;
     private EventBus moduleEventBus;
     private EventWaiter eventWaiter;
+    private WebhookManager webhookManager;
     @Getter private HashMap<String, Modul> modules;
     private HashMap<String, URLClassLoader> classLoaders;
     private HashMap<String, File> tempFiles;
@@ -95,7 +97,7 @@ public class ManagerModulowImpl implements ManagerModulow {
     private Graph<String> graph = null;
     private GbanDao gbanDao;
 
-    public ManagerModulowImpl(ShardManager shardManager, ManagerBazyDanych managerBazyDanych, GuildDao guildDao,
+    public ManagerModulowImpl(ShardManager shardManager, ManagerBazyDanych managerBazyDanych, GuildDao guildDao, WebhookManager webhookManager,
                               MemberDao memberDao, UserDao userDao, GbanDao gbanDao, ScheduleDao scheduleDao, ManagerKomend managerKomend,
                               ManagerArgumentow managerArgumentow, EventWaiter eventWaiter, Tlumaczenia tlumaczenia, EventBus eventBus) {
         this.guildDao = guildDao;
@@ -113,6 +115,7 @@ public class ManagerModulowImpl implements ManagerModulow {
         this.tlumaczenia = tlumaczenia;
         this.eventWaiter = eventWaiter;
         this.eventBus = eventBus;
+        this.webhookManager = webhookManager;
 
         modules = new LinkedHashMap<>();
         classLoaders = new HashMap<>();
@@ -184,6 +187,7 @@ public class ManagerModulowImpl implements ManagerModulow {
                         bind(ManagerKomend.class).toInstance(managerKomend);
                         bind(ManagerArgumentow.class).toInstance(managerArgumentow);
                         bind(ManagerModulow.class).toInstance(ManagerModulowImpl.this);
+                        bind(WebhookManager.class).toInstance(webhookManager);
                     }
                 });
 

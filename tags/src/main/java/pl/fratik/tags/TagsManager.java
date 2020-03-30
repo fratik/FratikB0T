@@ -17,15 +17,11 @@
 
 package pl.fratik.tags;
 
-import club.minnced.discord.webhook.WebhookClient;
-import club.minnced.discord.webhook.send.WebhookMessageBuilder;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.eventbus.Subscribe;
-import net.dv8tion.jda.api.entities.ChannelType;
-import net.dv8tion.jda.api.entities.Emote;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.Webhook;
+import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
@@ -34,11 +30,17 @@ import pl.fratik.core.Ustawienia;
 import pl.fratik.core.entity.Emoji;
 import pl.fratik.core.event.DatabaseUpdateEvent;
 import pl.fratik.core.manager.ManagerKomend;
+import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
+import pl.fratik.core.util.CommonUtil;
+import pl.fratik.core.util.UserUtil;
+import pl.fratik.core.webhook.WebhookManager;
 import pl.fratik.tags.entity.Tag;
 import pl.fratik.tags.entity.Tags;
 import pl.fratik.tags.entity.TagsDao;
 
+import java.awt.*;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
@@ -50,12 +52,14 @@ class TagsManager {
     private final ManagerKomend managerKomend;
     private final ShardManager shardManager;
     private final Tlumaczenia tlumaczenia;
+    private final WebhookManager webhookManager;
 
-    TagsManager(TagsDao tagsDao, ManagerKomend managerKomend, ShardManager shardManager, Tlumaczenia tlumaczenia) {
+    TagsManager(TagsDao tagsDao, ManagerKomend managerKomend, ShardManager shardManager, Tlumaczenia tlumaczenia, WebhookManager webhookManager) {
         this.tagsDao = tagsDao;
         this.managerKomend = managerKomend;
         this.shardManager = shardManager;
         this.tlumaczenia = tlumaczenia;
+        this.webhookManager = webhookManager;
     }
 
     @Subscribe
@@ -65,30 +69,11 @@ class TagsManager {
         Tag tag = getTagByName(getFirstWord(e.getMessage()), tagi);
         if (tag == null) return;
         if (managerKomend.getRegistered().stream().anyMatch(c -> c.getName().equals(tag.getName()))) return;
-
-        Webhook kekw;
-
         try {
-            kekw = e.getTextChannel().createWebhook("FratikB0T").complete();
-        } catch (Exception ex) {
-            e.getChannel().sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(e.getAuthor()), "tags.no.perm")).queue();
-            return;
+            webhookManager.send(tag.getContent(), e.getTextChannel());
+        } catch (Exception err) {
+            e.getChannel().sendMessage(generateEmbed(tag, tlumaczenia.getLanguage(e.getMember()), e.getGuild())).queue();
         }
-
-        if (kekw.getToken() == null) {
-            e.getChannel().sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(e.getAuthor()), "tags.no.perm")).queue();
-            return;
-        }
-
-        WebhookClient client = WebhookClient.withId(kekw.getIdLong(), kekw.getToken());
-
-        WebhookMessageBuilder builder = new WebhookMessageBuilder();
-        builder.setContent(tag.getContent());
-        builder.setAvatarUrl(e.getJDA().getSelfUser().getAvatarUrl());
-
-        client.send(builder.build());
-        client.close();
-
         try {
             Emoji reakcja = managerKomend.getReakcja(e.getMessage().getAuthor(), true);
             if (reakcja.isUnicode()) e.getMessage().addReaction(reakcja.getName()).queue();
@@ -101,9 +86,6 @@ class TagsManager {
         } catch (Exception ignored) {
             /*lul*/
         }
-
-        try { Thread.sleep(500); } catch (InterruptedException ignored) { }
-        kekw.delete().queue();
     }
 
     private String getFirstWord(Message message) {
@@ -124,5 +106,28 @@ class TagsManager {
     private void onDatabaseUpdate(DatabaseUpdateEvent e) {
         if (!(e.getEntity() instanceof Tags)) return;
         tagsCache.invalidate(((Tags) e.getEntity()).getId());
+    }
+
+    private MessageEmbed generateEmbed(Tag tag, Language lang, Guild guild) {
+        EmbedBuilder eb = new EmbedBuilder();
+        if (tag.getCreatedBy() != null) {
+            User createdBy = shardManager.getUserById(tag.getCreatedBy());
+            if (createdBy == null) createdBy = shardManager.retrieveUserById(tag.getCreatedBy()).complete();
+            eb.setFooter(createdBy.getAsTag(), createdBy.getEffectiveAvatarUrl());
+            Member mem = guild.getMember(createdBy);
+            eb.setColor(mem == null || mem.getColor() == null ? UserUtil.getPrimColor(createdBy) : mem.getColor());
+        } else {
+            eb.setColor(Color.decode("#bef7c3"));
+            List<String> prefixes = managerKomend.getPrefixes(guild);
+            if (prefixes.isEmpty()) prefixes.add(Ustawienia.instance.prefix);
+            eb.setFooter(tlumaczenia.get(lang, "tag.creator.unknown", prefixes.get(0),
+                    tag.getName()), null);
+        }
+        eb.setAuthor(tag.getName());
+        eb.setDescription(tag.getContent());
+        eb.setImage(CommonUtil.getImageUrl(tag.getContent()));
+        eb.addField(tlumaczenia.get(lang, "tag.warning"),
+                tlumaczenia.get(lang, "tag.warning.content"), false);
+        return eb.build();
     }
 }
