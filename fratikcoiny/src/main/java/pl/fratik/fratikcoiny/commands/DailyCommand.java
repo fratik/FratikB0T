@@ -30,6 +30,7 @@ import pl.fratik.core.entity.MemberDao;
 import java.util.Calendar;
 import java.util.Date;
 
+@SuppressWarnings("ConstantConditions")
 public class DailyCommand extends Command {
 
     private final MemberDao memberDao;
@@ -60,16 +61,37 @@ public class DailyCommand extends Command {
         cal.setTime(teraz);
         cal.add(Calendar.DAY_OF_MONTH, 1);
         dailyDate = Date.from(cal.toInstant());
-        long fc = isHoliday() ? mc.getFratikCoiny() + 500 : mc.getFratikCoiny() + 250;
+
+        long maFc = mc.getFratikCoiny();
+        long fc = isHoliday() ? maFc + 500 : maFc + 250;
+        int dni = 1;
+
+        if (mc.getDailyBonus() == null) mc.setDailyBonus(1 + "-" + updateDailyBonus());
+        else {
+            String[] split = mc.getDailyBonus().split("-");
+            dni = Integer.parseInt(split[0]);
+            int lastDay = Integer.parseInt(split[1]);
+
+            Calendar kal = Calendar.getInstance();
+            kal.setTime(teraz);
+
+            if (kal.get(Calendar.DAY_OF_MONTH) == lastDay + 1) mc.setDailyBonus(dni + "-" + updateDailyBonus());
+            else mc.setDailyBonus(1 + "-" + updateDailyBonus());
+        }
+
+        if (dni != 1) fc = Math.round(fc + (dni * 20 + 4));
+
         if (fc == Long.MAX_VALUE) {
             context.send(context.getTranslated("daily.too.many.coins"));
             return false;
         }
+
         String msg = isHoliday() ? "daily.success.holiday" : "daily.success";
+        String bonus = context.getTranslated("daily.bonus", dni);
         mc.setFratikCoiny(fc);
         mc.setDailyDate(dailyDate);
         memberDao.save(mc);
-        context.send(context.getTranslated(msg, emotkaFc.getAsMention()));
+        context.send(context.getTranslated(msg, mc.getFratikCoiny() - maFc, emotkaFc.getAsMention()) + bonus);
         return true;
     }
 
@@ -81,5 +103,13 @@ public class DailyCommand extends Command {
         // TODO: dodac inne swieta
         return false;
     }
+
+    private String updateDailyBonus() {
+        Date teraz = new Date();
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(teraz);
+        return String.valueOf(calendar.get(Calendar.DAY_OF_MONTH));
+    }
+
 }
 

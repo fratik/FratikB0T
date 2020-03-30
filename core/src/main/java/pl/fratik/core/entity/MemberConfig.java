@@ -47,6 +47,8 @@ public class MemberConfig implements DatabaseEntity {
     private String guildId;
     private long fratikCoiny = 0;
     private Date dailyDate;
+    private String dailyBonus;
+    // format dailyBonus: "<ilość dni w bonusie>-<dzień ostatniego odebrania>"
 
     @Override
     @JsonIgnore
