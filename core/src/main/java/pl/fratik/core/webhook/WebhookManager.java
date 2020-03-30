@@ -32,6 +32,8 @@ import net.dv8tion.jda.api.exceptions.PermissionException;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
@@ -65,7 +67,14 @@ public class WebhookManager {
 
     public GuildConfig.Webhook getWebhook(TextChannel channel) {
         return whCache.get(channel.getId(), id -> {
-            GuildConfig.Webhook tak = guildDao.get(channel.getGuild()).getWebhooki().get(id);
+            Map<String, GuildConfig.Webhook> whki = guildDao.get(channel.getGuild()).getWebhooki();
+            if (whki == null) {
+                GuildConfig gc = guildDao.get(channel.getGuild());
+                gc.setWebhooki(new HashMap<>());
+                guildDao.save(gc);
+                whki = gc.getWebhooki();
+            }
+            GuildConfig.Webhook tak = whki.get(id);
             if (tak == null) tak = createWebhook(channel);
             return tak;
         });
