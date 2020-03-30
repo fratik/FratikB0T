@@ -24,7 +24,6 @@ import club.minnced.discord.webhook.send.WebhookMessageBuilder;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.SelfUser;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.Webhook;
@@ -34,7 +33,6 @@ import pl.fratik.core.entity.GuildDao;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 public class WebhookManager {
@@ -47,21 +45,19 @@ public class WebhookManager {
         this.guildDao = guildDao;
     }
 
-    public Message send(String cnt, TextChannel channel) {
+    public void send(String cnt, TextChannel channel) {
         SelfUser su = channel.getJDA().getSelfUser();
-        return send(new WebhookMessageBuilder().setContent(cnt).setAvatarUrl(su.getAvatarUrl())
+        send(new WebhookMessageBuilder().setContent(cnt).setAvatarUrl(su.getAvatarUrl())
                 .setUsername(su.getName()).build(), channel);
     }
 
-    public Message send(WebhookMessage m, TextChannel channel) {
+    public void send(WebhookMessage m, TextChannel channel) {
         GuildConfig.Webhook whc = getWebhook(channel);
         try (WebhookClient wh = new WebhookClientBuilder(Long.parseLong(whc.getId()), whc.getToken()).build()) {
-            return channel.retrieveMessageById(wh.send(m).get().getId()).complete();
+            wh.send(m);
+            Thread.sleep(1000);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            return null;
-        } catch (ExecutionException e) {
-            throw new WebhookException(e);
         }
     }
 
