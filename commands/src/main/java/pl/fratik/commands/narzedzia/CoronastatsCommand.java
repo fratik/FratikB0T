@@ -97,7 +97,7 @@ public class CoronastatsCommand extends Command {
                 eb.addField(context.getTranslated("coronastats.active"), String.valueOf(staty.getInt("active")),
                         true);
                 if (staty.getString("country").equals("Poland")) {
-                    eb.setImage("https://cdn.discordapp.com/attachments/619864028579102779/693939695595421727/ezgif.com-crop.gif");
+                    eb.setImage("https://cdn.discordapp.com/attachments/424887765478539264/694101067461427281/ezgif.com-optimize.gif");
                 }
                 eb.setColor(getColor(staty.getInt("active")));
                 eb.setFooter(context.getTranslated("coronastats.updated"));
