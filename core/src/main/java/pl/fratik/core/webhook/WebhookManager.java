@@ -81,7 +81,6 @@ public class WebhookManager {
             throw new PermissionException("Nie ma perma MANAGE_WEBHOOKS!");
         Webhook tak = channel.createWebhook("FratikB0T Messages " + channel.getId()).complete();
         GuildConfig.Webhook whc = new GuildConfig.Webhook(tak.getId(), tak.getToken());
-        whCache.put(channel.getId(), whc);
         GuildConfig gc = guildDao.get(channel.getGuild());
         gc.getWebhooki().put(channel.getId(), whc);
         guildDao.save(gc);
