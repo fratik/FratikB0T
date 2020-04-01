@@ -109,8 +109,9 @@ public class DurationUtil {
         }
         org.joda.time.Instant instaa = org.joda.time.Instant.now();
         Instant inst = Instant.ofEpochMilli(instaa.plus(period.toDurationFrom(instaa)).getMillis());
-        if (inst.toEpochMilli() - Instant.now().toEpochMilli() >= 63113904000L)
+        if (inst.toEpochMilli() - instaa.getMillis() >= 63113904000L)
             throw new IllegalArgumentException("2 lata to maks!");
+        if (inst.toEpochMilli() == instaa.getMillis()) return new Response(null, input);
         return new Response(inst, String.join(" ", reason).replaceAll(" +", " ").trim());
     }
 

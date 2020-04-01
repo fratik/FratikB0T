@@ -22,7 +22,7 @@ import org.junit.Test;
 
 import java.time.Instant;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 public class DurationUtilTest {
 
@@ -76,6 +76,12 @@ public class DurationUtilTest {
     }
 
     @Test
+    public void parseEmpty() {
+        DurationUtil.Response res = DurationUtil.parseDuration("mogę tu nasrać cokolwiek nie  nawet  2  spacje");
+        asserts(res, null, "mogę tu nasrać cokolwiek nie  nawet  2  spacje");
+    }
+
+    @Test
     public void parseTwicePL() {
         DurationUtil.Response res = DurationUtil.parseDuration("30d masz bana na 30 dni");
         Instant in = getInstant(0, 0, 0, 30, 0, 0, 0, 0);
@@ -112,6 +118,7 @@ public class DurationUtilTest {
 
     private void asserts(DurationUtil.Response res, Instant in, String s) {
         assertEquals(s, res.getTekst());
-        assertEquals(in.getEpochSecond(), res.getDoKiedy().getEpochSecond());
+        if (in == null) assertNull(res.getDoKiedy());
+        else assertEquals(in.getEpochSecond(), res.getDoKiedy().getEpochSecond());
     }
 }
