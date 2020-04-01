@@ -104,8 +104,7 @@ public class DurationUtilTest {
     @Test
     public void parse0() {
         DurationUtil.Response res = DurationUtil.parseDuration("0d");
-        Instant in = getInstant(0, 0, 0, 0, 0, 0, 0, 0);
-        asserts(res, in, "");
+        asserts(res, null, "");
     }
 
     private Instant getInstant(int years, int months, int weeks, int days,
