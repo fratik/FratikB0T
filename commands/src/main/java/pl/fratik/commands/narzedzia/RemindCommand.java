@@ -69,7 +69,13 @@ public class RemindCommand extends Command {
             content = Arrays.stream(Arrays.copyOfRange(context.getArgs(), 0, context.getArgs().length))
                     .map(e -> e == null ? "" : e).map(Objects::toString).collect(Collectors.joining(uzycieDelim));
         else throw new IllegalStateException("brak argumentów");
-        DurationUtil.Response res = DurationUtil.parseDuration(content);
+        DurationUtil.Response res;
+        try {
+            res = DurationUtil.parseDuration(content);
+        } catch (IllegalArgumentException e) {
+            context.send(context.getTranslated("remind.max.duration"));
+            return false;
+        }
         if (res.getDoKiedy() == null) {
             context.send(context.getTranslated("remind.failed"));
             return false;

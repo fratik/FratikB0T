@@ -74,7 +74,13 @@ public class BanCommand extends ModerationCommand {
                 return false;
             }
         }
-        DurationUtil.Response durationResp = DurationUtil.parseDuration(powod);
+        DurationUtil.Response durationResp;
+        try {
+            durationResp = DurationUtil.parseDuration(powod);
+        } catch (IllegalArgumentException e) {
+            context.send(context.getTranslated("ban.max.duration"));
+            return false;
+        }
         powod = durationResp.getTekst();
         Instant banDo = durationResp.getDoKiedy();
         CaseBuilder cb = new CaseBuilder().setUser(uzytkownik).setGuild(context.getGuild())
