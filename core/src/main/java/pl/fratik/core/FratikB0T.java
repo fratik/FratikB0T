@@ -110,12 +110,31 @@ class FratikB0T {
 
         try {
             if (encryptedConfig) {
-                Console console = System.console();
-                if (console == null) {
-                    logger.error("Nie znaleziono instancji konsoli. Użycie szyfrowanych configów jest nie możliwe.");
-                    System.exit(1);
+                char[] chars;
+                File configpass = new File(".configpass");
+                if (configpass.exists()) {
+                    try {
+                        logger.info("Wykryto plik .configpass, pobieram z niego hasło..");
+                        chars = new String(Files.readAllBytes(configpass.toPath()), StandardCharsets.UTF_8).trim().toCharArray();
+                    } catch (IOException e) {
+                        logger.error("Nie udało się odczytać .configpass.");
+                        System.exit(1);
+                        return;
+                    }
+                    try {
+                        boolean success = configpass.delete();
+                        if (!success) throw new IOException("failed");
+                    } catch (Exception e) {
+                        logger.error("Nie udało się usunąć .configpass! To może być duże niebezpieczeństwo!", e);
+                    }
+                } else {
+                    Console console = System.console();
+                    if (console == null) {
+                        logger.error("Nie znaleziono instancji konsoli. Użycie szyfrowanych configów jest nie możliwe.");
+                        System.exit(1);
+                    }
+                    chars = console.readPassword("Podaj hasło: ");
                 }
-                char[] chars = console.readPassword("Podaj hasło: ");
                 byte[] conf;
                 try {
                     conf = Files.readAllBytes(cfg.toPath());
