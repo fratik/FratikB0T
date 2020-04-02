@@ -86,8 +86,7 @@ public class AkcjeCommand extends ModerationCommand {
         long kickow = caseRow.getCases().stream()
                 .filter(c -> c.getType() == Kara.KICK && c.getUserId().equals(user.getId())).count();
         long banow = caseRow.getCases().stream()
-                .filter(c -> (c.getType() == Kara.BAN || c.getType() == Kara.TIMEDBAN) &&
-                        c.getUserId().equals(user.getId())).count();
+                .filter(c -> c.getType() == Kara.BAN && c.getUserId().equals(user.getId())).count();
         long mutow = caseRow.getCases().stream()
                 .filter(c -> c.getType() == Kara.MUTE && c.getUserId().equals(user.getId())).count();
         long unmutow = caseRow.getCases().stream()
@@ -132,8 +131,7 @@ public class AkcjeCommand extends ModerationCommand {
         long kickow = caseRow.getCases().stream()
                 .filter(c -> c.getType() == Kara.KICK && Objects.equals(c.getIssuerId(), user.getId())).count();
         long banow = caseRow.getCases().stream()
-                .filter(c -> (c.getType() == Kara.BAN || c.getType() == Kara.TIMEDBAN) &&
-                        Objects.equals(c.getIssuerId(), user.getId())).count();
+                .filter(c -> c.getType() == Kara.BAN && Objects.equals(c.getIssuerId(), user.getId())).count();
         long mutow = caseRow.getCases().stream()
                 .filter(c -> c.getType() == Kara.MUTE && Objects.equals(c.getIssuerId(), user.getId())).count();
         long unmutow = caseRow.getCases().stream()

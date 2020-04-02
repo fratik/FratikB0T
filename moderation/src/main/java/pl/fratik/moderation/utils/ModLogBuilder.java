@@ -88,7 +88,7 @@ public class ModLogBuilder {
                     .addField(tlumaczenia.get(lang, "modlog.responsible"), moderator, false)
                     .addField(tlumaczenia.get(lang, "modlog.reason"), reason, false);
         }
-        if (kara == Kara.MUTE || kara == Kara.BAN || kara == Kara.TIMEDBAN || kara == Kara.NOTATKA) {
+        if (kara == Kara.MUTE || kara == Kara.BAN || kara == Kara.NOTATKA) {
             eb.addField(tlumaczenia.get(lang, "modlog.active"), valid ?
                     tlumaczenia.get(lang, "modlog.active.true") :
                     tlumaczenia.get(lang, "modlog.active.false"), false);
