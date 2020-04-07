@@ -22,6 +22,8 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
+import java.lang.reflect.Type;
+
 public class GsonUtil {
 
     private GsonUtil() {}
@@ -48,4 +50,11 @@ public class GsonUtil {
         return GSON.fromJson(text, object);
     }
 
+    public static <T> T fromJSON(String text, TypeToken<T> object) {
+        return GSON.fromJson(text, object.getType());
+    }
+
+    public static <T> T fromJSON(String data, Type type) {
+        return GSON.fromJson(data, type);
+    }
 }

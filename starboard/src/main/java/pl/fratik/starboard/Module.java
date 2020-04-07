@@ -54,8 +54,8 @@ public class Module implements Modul {
     public boolean startUp() {
         executor = Executors.newSingleThreadExecutor();
         StarDataDao starDataDao = new StarDataDao(managerBazyDanych, eventBus);
-        starManager = new StarManager(starDataDao, eventBus);
-        starboardListener = new StarboardListener(starDataDao, tlumaczenia, starManager, executor);
+        starManager = new StarManager(starDataDao, eventBus, redisCacheManager);
+        starboardListener = new StarboardListener(starDataDao, tlumaczenia, starManager, executor, redisCacheManager);
         commands = new ArrayList<>();
 
         commands.add(new FixstarCommand(starManager, starDataDao));

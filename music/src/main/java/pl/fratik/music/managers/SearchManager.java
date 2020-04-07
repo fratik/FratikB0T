@@ -17,8 +17,6 @@
 
 package pl.fratik.music.managers;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.base.Charsets;
 import com.google.gson.JsonObject;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
@@ -26,6 +24,8 @@ import io.sentry.Sentry;
 import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pl.fratik.core.cache.Cache;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.util.GsonUtil;
 import pl.fratik.core.util.NetworkUtil;
 import pl.fratik.core.util.TimeUtil;
@@ -46,16 +46,17 @@ public class SearchManager {
     private final String ytApiUrlDuration;
     private final String ytApiUrlThumbnailsAndDuration;
     private final NowyManagerMuzyki managerMuzyki;
+    private final Cache<SearchResult> youtubeResults;
+    private final Cache<SearchResult.SearchEntry> entryCache;
 
-    private final Cache<String, SearchResult> youtubeResults = Caffeine.newBuilder().expireAfterWrite(30, TimeUnit.MINUTES).maximumSize(2000).build();
-    private final Cache<String, SearchResult.SearchEntry> entryCache = Caffeine.newBuilder().expireAfterWrite(1, TimeUnit.HOURS).maximumSize(2000).build();
-
-    public SearchManager(String ytApiKey, String ytApiKeyThumbnails, NowyManagerMuzyki managerMuzyki) {
+    public SearchManager(String ytApiKey, String ytApiKeyThumbnails, NowyManagerMuzyki managerMuzyki, RedisCacheManager redisCacheManager) {
         ytApiUrl = "https://www.googleapis.com/youtube/v3/search?part=snippet&key=" + ytApiKey + "&maxResults=20&q=";
         ytApiUrlThumbnails = "https://www.googleapis.com/youtube/v3/videos?part=snippet&key=" + ytApiKeyThumbnails + "&id=";
         ytApiUrlDuration = "https://www.googleapis.com/youtube/v3/videos?part=contentDetails&key=" + ytApiKeyThumbnails + "&id=";
         ytApiUrlThumbnailsAndDuration = "https://www.googleapis.com/youtube/v3/videos?part=snippet%2CcontentDetails&key=" + ytApiKeyThumbnails + "&id=";
         this.managerMuzyki = managerMuzyki;
+        youtubeResults = redisCacheManager.getCache(SearchResult.class, (int) TimeUnit.MINUTES.toSeconds(30));
+        entryCache = redisCacheManager.getCache(SearchResult.SearchEntry.class, (int) TimeUnit.HOURS.toSeconds(1));
     }
 
     public SearchResult searchYouTube(String query) {

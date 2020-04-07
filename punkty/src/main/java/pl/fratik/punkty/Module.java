@@ -57,7 +57,7 @@ public class Module implements Modul {
     @Override
     public boolean startUp() {
         PunktyDao punktyDao = new PunktyDao(managerBazyDanych, shardManager, eventBus);
-        licznik = new LicznikPunktow(guildDao, userDao, punktyDao, managerKomend, eventBus, tlumaczenia, shardManager);
+        licznik = new LicznikPunktow(guildDao, userDao, punktyDao, managerKomend, eventBus, tlumaczenia, shardManager, redisCacheManager);
         commands = new ArrayList<>();
 
         commands.add(new StatsCommand(licznik));

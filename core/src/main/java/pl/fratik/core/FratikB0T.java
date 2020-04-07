@@ -32,6 +32,7 @@ import net.dv8tion.jda.api.sharding.DefaultShardManagerBuilder;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.crypto.AES;
 import pl.fratik.core.crypto.CryptoException;
 import pl.fratik.core.entity.*;
@@ -50,6 +51,8 @@ import pl.fratik.core.service.StatusService;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.EventBusErrorHandler;
 import pl.fratik.core.util.EventWaiter;
+import pl.fratik.core.util.GuildUtil;
+import pl.fratik.core.util.UserUtil;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -57,7 +60,6 @@ import java.nio.file.Files;
 import java.util.Iterator;
 import java.util.Optional;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -67,9 +69,8 @@ class FratikB0T {
 
     private Ustawienia ustawienia;
     private final Logger logger;
-    private ScheduledExecutorService executor;
     private ManagerModulow moduleManager;
-    private ManagerBazyDanych managerBazyDanych;
+    private ManagerBazyDanych mbd;
     private ManagerKomend managerKomend;
     private ServiceManager glownyService;
     private ServiceManager statusService;
@@ -197,26 +198,14 @@ class FratikB0T {
                 ShardManager shardManager = builder.build();
                 ManagerArgumentow managerArgumentow = new ManagerArgumentowImpl();
                 Uzycie.setManagerArgumentow(managerArgumentow);
-                managerBazyDanych = new ManagerBazyDanychImpl();
-                managerBazyDanych.load();
-                UserDao userDao = new UserDao(managerBazyDanych, eventBus);
-                MemberDao memberDao = new MemberDao(managerBazyDanych, eventBus);
-                GuildDao guildDao = new GuildDao(managerBazyDanych, eventBus);
-                GbanDao gbanDao = new GbanDao(managerBazyDanych, eventBus);
-                ScheduleDao scheduleDao = new ScheduleDao(managerBazyDanych, eventBus);
-                Tlumaczenia.setShardManager(shardManager);
-                Tlumaczenia tlumaczenia = new Tlumaczenia(userDao, guildDao);
-                managerKomend = new ManagerKomendImpl(shardManager, guildDao, userDao,
-                        tlumaczenia, eventBus);
+                mbd = new ManagerBazyDanychImpl();
+                mbd.load();
+                UserDao userDao = new UserDao(mbd, eventBus);
+                MemberDao memberDao = new MemberDao(mbd, eventBus);
+                GuildDao guildDao = new GuildDao(mbd, eventBus);
+                GbanDao gbanDao = new GbanDao(mbd, eventBus);
+                ScheduleDao scheduleDao = new ScheduleDao(mbd, eventBus);
                 EventWaiter eventWaiter = new EventWaiter();
-                moduleManager = new ManagerModulowImpl(shardManager, managerBazyDanych, guildDao, memberDao, userDao,
-                        gbanDao, scheduleDao, managerKomend, managerArgumentow, eventWaiter, tlumaczenia, eventBus);
-                glownyService = new ServiceManager(ImmutableList.of(new FratikB0TService(shardManager, eventBus,
-                        eventWaiter, tlumaczenia, managerKomend, managerBazyDanych, guildDao, moduleManager, gbanDao)));
-                statusService = new ServiceManager(ImmutableList.of(new StatusService(shardManager)));
-                scheduleService = new ServiceManager(ImmutableList.of(new ScheduleService(shardManager, scheduleDao,
-                        tlumaczenia, eventBus)));
-
                 while (shardManager.getShards().stream().noneMatch(s -> {
                     try {
                         s.getSelfUser();
@@ -252,6 +241,23 @@ class FratikB0T {
                     Globals.owner = appInfo.getOwner().getName() + "#" + appInfo.getOwner().getDiscriminator();
                     Globals.ownerId = appInfo.getOwner().getIdLong();
                 });
+                RedisCacheManager redisCacheManager = new RedisCacheManager(Globals.clientId);
+                UserUtil.setGbanCache(redisCacheManager.getCache(GbanData.class));
+                UserUtil.setTimeZoneCache(redisCacheManager.getCache(String.class));
+                GuildUtil.setGbanCache(redisCacheManager.getCache(GbanData.class));
+                GuildUtil.setTimeZoneCache(redisCacheManager.getCache(String.class));
+                Tlumaczenia.setShardManager(shardManager);
+                Tlumaczenia tlumaczenia = new Tlumaczenia(userDao, guildDao, redisCacheManager);
+                managerKomend = new ManagerKomendImpl(shardManager, guildDao, userDao,
+                        tlumaczenia, eventBus, redisCacheManager);
+                moduleManager = new ManagerModulowImpl(shardManager, mbd, guildDao, memberDao, userDao, redisCacheManager,
+                        gbanDao, scheduleDao, managerKomend, managerArgumentow, eventWaiter, tlumaczenia, eventBus);
+                glownyService = new ServiceManager(ImmutableList.of(new FratikB0TService(shardManager, eventBus,
+                        eventWaiter, tlumaczenia, managerKomend, mbd, redisCacheManager, guildDao, moduleManager, gbanDao)));
+                statusService = new ServiceManager(ImmutableList.of(new StatusService(shardManager)));
+                scheduleService = new ServiceManager(ImmutableList.of(new ScheduleService(shardManager, scheduleDao,
+                        tlumaczenia, eventBus)));
+
 
                 glownyService.startAsync();
 
@@ -313,9 +319,9 @@ class FratikB0T {
                     logger.debug("Gotowe!");
                 } catch (TimeoutException ignored) {/*lul*/}
             }
-            if (managerBazyDanych != null) {
+            if (mbd != null) {
                 logger.debug("Zamykam bazę danych...");
-                managerBazyDanych.shutdown();
+                mbd.shutdown();
             }
             if (glownyService != null) {
                 logger.debug("Zatrzymuje główny serwis i JDA...");

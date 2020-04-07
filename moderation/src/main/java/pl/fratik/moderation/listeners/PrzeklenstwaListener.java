@@ -17,8 +17,6 @@
 
 package pl.fratik.moderation.listeners;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.Subscribe;
 import com.google.gson.reflect.TypeToken;
@@ -29,10 +27,11 @@ import net.dv8tion.jda.api.events.message.GenericMessageEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.MessageUpdateEvent;
 import net.dv8tion.jda.api.sharding.ShardManager;
+import pl.fratik.core.cache.Cache;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Kara;
-import pl.fratik.core.event.DatabaseUpdateEvent;
 import pl.fratik.core.manager.ManagerKomend;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.CommonUtil;
@@ -48,7 +47,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.time.Instant;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 public class PrzeklenstwaListener {
 
@@ -58,16 +56,14 @@ public class PrzeklenstwaListener {
     private final ManagerKomend managerKomend;
     private final ShardManager shardManager;
     private final CasesDao casesDao;
-    private static final Cache<String, Boolean> antiswearCache = Caffeine.newBuilder().maximumSize(1000).expireAfterWrite(10, TimeUnit.MINUTES).build();
-    private static final Cache<String, String> modlogCache = Caffeine.newBuilder().maximumSize(1000).expireAfterWrite(10, TimeUnit.MINUTES).build();
-    private static final Cache<String, List<String>> antiswearIgnoreChannelsCache = Caffeine.newBuilder().maximumSize(1000).expireAfterWrite(10, TimeUnit.MINUTES).build();
-
-    public PrzeklenstwaListener(GuildDao guildDao, Tlumaczenia tlumaczenia, ManagerKomend managerKomend, ShardManager shardManager, CasesDao casesDao) {
+    private final Cache<GuildConfig> gcCache;
+    public PrzeklenstwaListener(GuildDao guildDao, Tlumaczenia tlumaczenia, ManagerKomend managerKomend, ShardManager shardManager, CasesDao casesDao, RedisCacheManager redisCacheManager) {
         this.guildDao = guildDao;
         this.tlumaczenia = tlumaczenia;
         this.managerKomend = managerKomend;
         this.shardManager = shardManager;
         this.casesDao = casesDao;
+        gcCache = redisCacheManager.getCache(GuildConfig.class);
         try {
             String data = CommonUtil.fromStream(getClass().getResourceAsStream("/przeklenstwa.json"));
             przeklenstwa = GsonUtil.GSON.fromJson(data, new TypeToken<List<String>>() {}.getType());
@@ -126,14 +122,12 @@ public class PrzeklenstwaListener {
     }
 
     private boolean isAntiswear(TextChannel channel) {
-        //noinspection ConstantConditions - nie moze byc null
-        return antiswearCache.get(channel.getGuild().getId(), id -> guildDao.get(channel.getGuild()).getAntiswear()) &&
-                !antiswearIgnoreChannelsCache.get(channel.getGuild().getId(), id ->
-                        guildDao.get(channel.getGuild()).getSwearchannels()).contains(channel.getId());
+        return gcCache.get(channel.getGuild().getId(), guildDao::get).getAntiswear() &&
+                !gcCache.get(channel.getGuild().getId(), guildDao::get).getSwearchannels().contains(channel.getId());
     }
 
     private String getModLogChan(Guild guild) {
-        return modlogCache.get(guild.getId(), id -> guildDao.get(guild).getModLog());
+        return gcCache.get(guild.getId(), guildDao::get).getModLog();
     }
 
     private boolean processWord(String przeklenstwo, String content) {
@@ -141,12 +135,6 @@ public class PrzeklenstwaListener {
         for (String slowo : slowa)
             if (przeklenstwo.equalsIgnoreCase(slowo)) return true;
         return false;
-    }
-
-    @Subscribe
-    public void onDatabaseUpdate(DatabaseUpdateEvent e) {
-        if (!(e.getEntity() instanceof GuildConfig)) return;
-        antiswearCache.invalidate(((GuildConfig) e.getEntity()).getGuildId());
     }
 
     private static class MessageEvent extends GenericMessageEvent {

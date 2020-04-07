@@ -108,7 +108,7 @@ public class Module implements Modul {
         commands.add(new DashboardCommand());
         commands.add(new DonateCommand());
         commands.add(new OpuscCommand());
-        commands.add(new BoomCommand(eventWaiter, eventBus, userDao));
+        commands.add(new BoomCommand(eventWaiter, userDao, redisCacheManager));
         commands.add(new PomocCommand());
         commands.add(new PopCommand(shardManager, guildDao, eventWaiter, eventBus, tlumaczenia));
         commands.add(new PowiadomOPomocyCommand(shardManager));
@@ -138,7 +138,7 @@ public class Module implements Modul {
         commands.add(new Rule34Command(eventWaiter, eventBus, managerArgumentow));
         commands.add(new CoronastatsCommand());
 
-        listener = new MemberListener(guildDao);
+        listener = new MemberListener(guildDao, redisCacheManager);
         eventBus.register(listener);
 
         commands.forEach(managerKomend::registerCommand);

@@ -17,8 +17,6 @@
 
 package pl.fratik.moderation.listeners;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
@@ -29,6 +27,8 @@ import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageType;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import pl.fratik.core.cache.Cache;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.command.PermLevel;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
@@ -38,7 +38,6 @@ import pl.fratik.core.util.UserUtil;
 
 import javax.crypto.IllegalBlockSizeException;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -56,9 +55,9 @@ public class AntiRaidListener {
     private final Map<String, List<String>> lastContentsNormal = new HashMap<>();
     private final Map<String, List<String>> lastContentsExtreme = new HashMap<>();
 
-    private final Cache<String, GuildConfig> gcCache = Caffeine.newBuilder().expireAfterWrite(1, TimeUnit.HOURS).build();
+    private final Cache<GuildConfig> gcCache;
 
-    public AntiRaidListener(GuildDao guildDao, ShardManager shardManager, EventBus eventBus, Tlumaczenia tlumaczenia) {
+    public AntiRaidListener(GuildDao guildDao, ShardManager shardManager, EventBus eventBus, Tlumaczenia tlumaczenia, RedisCacheManager redisCacheManager) {
         this.guildDao = guildDao;
         this.shardManager = shardManager;
         this.eventBus = eventBus;
@@ -77,6 +76,7 @@ public class AntiRaidListener {
                 lastContentsExtreme.clear();
             }
         }, 10000, 10000);
+        gcCache = redisCacheManager.getCache(GuildConfig.class);
     }
 
     @Subscribe

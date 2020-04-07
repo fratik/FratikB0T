@@ -78,7 +78,7 @@ public class Module implements Modul {
         NowyManagerMuzyki.setQueueDao(queueDao);
         managerMuzyki = new NowyManagerMuzyki(shardManager, eventBus, guildDao);
         API.setMm(managerMuzyki);
-        SearchManager searchManager = new SearchManager(Ustawienia.instance.apiKeys.get("yt"), Ustawienia.instance.apiKeys.get("yt2"), managerMuzyki);
+        SearchManager searchManager = new SearchManager(Ustawienia.instance.apiKeys.get("yt"), Ustawienia.instance.apiKeys.get("yt2"), managerMuzyki, redisCacheManager);
         MusicCommand.setManagerMuzyki(managerMuzyki);
         QueueCommand.setSearchManager(searchManager);
         NowplayingCommand.setSearchManager(searchManager);

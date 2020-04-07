@@ -93,11 +93,11 @@ public class Module implements Modul {
         ModLogListener.setManagerKomend(managerKomend);
         LogListener.setTlumaczenia(tlumaczenia);
         modLogListener = new ModLogListener(guildDao, shardManager, casesDao);
-        logListener = new LogListener(guildDao, purgeDao);
-        przeklenstwaListener = new PrzeklenstwaListener(guildDao, tlumaczenia, managerKomend, shardManager, casesDao);
+        logListener = new LogListener(guildDao, purgeDao, redisCacheManager);
+        przeklenstwaListener = new PrzeklenstwaListener(guildDao, tlumaczenia, managerKomend, shardManager, casesDao, redisCacheManager);
         autobanListener = new AutobanListener(guildDao, tlumaczenia);
-        antiInviteListener = new AntiInviteListener(guildDao, tlumaczenia, managerKomend, shardManager, casesDao);
-        antiRaidListener = new AntiRaidListener(guildDao, shardManager, eventBus, tlumaczenia);
+        antiInviteListener = new AntiInviteListener(guildDao, tlumaczenia, managerKomend, shardManager, casesDao, redisCacheManager);
+        antiRaidListener = new AntiRaidListener(guildDao, shardManager, eventBus, tlumaczenia, redisCacheManager);
 
         eventBus.register(this);
         eventBus.register(modLogListener);

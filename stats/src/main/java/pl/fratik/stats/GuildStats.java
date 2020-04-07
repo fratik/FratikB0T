@@ -17,9 +17,8 @@
 
 package pl.fratik.stats;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.eventbus.Subscribe;
+import com.google.common.reflect.TypeToken;
 import io.undertow.server.RoutingHandler;
 import lombok.Getter;
 import lombok.Setter;
@@ -31,6 +30,8 @@ import org.slf4j.LoggerFactory;
 import pl.fratik.api.entity.Exceptions;
 import pl.fratik.api.internale.Exchange;
 import pl.fratik.core.Statyczne;
+import pl.fratik.core.cache.Cache;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.event.DatabaseUpdateEvent;
 import pl.fratik.core.moduly.Modul;
 import pl.fratik.core.util.CommonUtil;
@@ -45,26 +46,24 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 class GuildStats {
 
     private final Module stats;
     private final ShardManager shardManager;
+    private final Cache<List<MembersStats>> cacheMms;
+    private final Cache<List<MessagesStats>> cacheMsgs;
+    private final Cache<List<GuildCountStats>> cacheGuilds;
+    private final Cache<List<CommandCountStats>> cacheCommands;
 
-    private static final Cache<String, List<MembersStats>> cacheMms = Caffeine.newBuilder()
-            .maximumSize(300).expireAfterWrite(4, TimeUnit.MINUTES).build();
-    private static final Cache<String, List<MessagesStats>> cacheMsgs = Caffeine.newBuilder()
-            .maximumSize(300).expireAfterWrite(4, TimeUnit.MINUTES).build();
-    private static final Cache<String, List<GuildCountStats>> cacheGuilds = Caffeine.newBuilder()
-            .maximumSize(300).expireAfterWrite(4, TimeUnit.MINUTES).build();
-    private static final Cache<String, List<CommandCountStats>> cacheCommands = Caffeine.newBuilder()
-            .maximumSize(300).expireAfterWrite(4, TimeUnit.MINUTES).build();
-
-    GuildStats(Module stats, Modul modul, ShardManager shardManager) {
+    GuildStats(Module stats, Modul modul, ShardManager shardManager, RedisCacheManager redisCacheManager) {
         this.stats = stats;
         this.shardManager = shardManager;
+        cacheMms = redisCacheManager.getCache(new TypeToken<List<MembersStats>>(){});
+        cacheMsgs = redisCacheManager.getCache(new TypeToken<List<MessagesStats>>(){});
+        cacheGuilds = redisCacheManager.getCache(new TypeToken<List<GuildCountStats>>(){});
+        cacheCommands = redisCacheManager.getCache(new TypeToken<List<CommandCountStats>>(){});
         RoutingHandler routes;
         try {
             routes = (RoutingHandler) modul.getClass().getDeclaredMethod("getRoutes").invoke(modul);
@@ -178,7 +177,6 @@ class GuildStats {
         Guild g = shardManager.getGuildById(guildId);
         if (g == null) throw new IllegalArgumentException("nie ma takiego serwera");
         List<MembersStats> list = new ArrayList<>();
-        //noinspection ConstantConditions
         for (MembersStats o : cacheMms.get(guildId, s -> stats.getMembersStatsDao().getAllForGuild(guildId))) {
             if (o.getDate() == stats.getCurrentStorageDate()) o.setCount(g.getMembers().size());
             list.add(o);
@@ -190,7 +188,6 @@ class GuildStats {
         Guild g = shardManager.getGuildById(guildId);
         if (g == null) throw new IllegalArgumentException("nie ma takiego serwera");
         List<MessagesStats> list = new ArrayList<>();
-        //noinspection ConstantConditions
         for (MessagesStats o : cacheMsgs.get(guildId, s -> stats.getMessagesStatsDao().getAllForGuild(guildId))) {
             if (o.getDate() == stats.getCurrentStorageDate()) {
                 o = new MessagesStats(o.getUniqid(), o.getDate(), o.getGuildId(), o.getCount());
@@ -199,18 +196,6 @@ class GuildStats {
             list.add(o);
         }
         return list;
-    }
-
-    @Subscribe
-    private void onDatabaseUpdate(DatabaseUpdateEvent event) {
-        if (event.getEntity() instanceof MembersStats)
-            cacheMms.invalidate(((MembersStats) event.getEntity()).getGuildId());
-        if (event.getEntity() instanceof GuildCountStats)
-            cacheGuilds.invalidateAll();
-        if (event.getEntity() instanceof CommandCountStats)
-            cacheCommands.invalidateAll();
-        if (event.getEntity() instanceof MessagesStats)
-            cacheMsgs.invalidate(((MessagesStats) event.getEntity()).getGuildId());
     }
 
     @SuppressWarnings({"FieldCanBeLocal", "MismatchedQueryAndUpdateOfCollection", "unused", "squid:S1068"})

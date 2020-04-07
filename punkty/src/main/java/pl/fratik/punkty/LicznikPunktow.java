@@ -17,10 +17,9 @@
 
 package pl.fratik.punkty;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
+import com.google.common.reflect.TypeToken;
 import io.sentry.Sentry;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
@@ -28,11 +27,12 @@ import net.dv8tion.jda.api.sharding.ShardManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.Ustawienia;
+import pl.fratik.core.cache.Cache;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.UserConfig;
 import pl.fratik.core.entity.UserDao;
-import pl.fratik.core.event.DatabaseUpdateEvent;
 import pl.fratik.core.event.LvlupEvent;
 import pl.fratik.core.event.PluginMessageEvent;
 import pl.fratik.core.manager.ManagerKomend;
@@ -73,9 +73,9 @@ public class LicznikPunktow {
             "[^\\s]{2,}|www\\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\\.[^\\s]{2,}|https?://(?:www\\.|(?!www))[a-zA-Z0-9]" +
             "\\.[^\\s]{2,}|www\\.[a-zA-Z0-9]\\.[^\\s]{2,})");
     private final Random random = new Random();
-    private static final Cache<String, ConcurrentHashMap<String, Integer>> cache = Caffeine.newBuilder().build();
-    private static final Cache<String, Boolean> punktyWlaczoneCache = Caffeine.newBuilder().build();
-    LicznikPunktow(GuildDao guildDao, UserDao userDao, PunktyDao punktyDao, ManagerKomend managerKomend, EventBus eventBus, Tlumaczenia tlumaczenia, ShardManager shardManager) {
+    private static Cache<ConcurrentHashMap<String, Integer>> cache;
+    private final Cache<GuildConfig> gcCache;
+    LicznikPunktow(GuildDao guildDao, UserDao userDao, PunktyDao punktyDao, ManagerKomend managerKomend, EventBus eventBus, Tlumaczenia tlumaczenia, ShardManager shardManager, RedisCacheManager redisCacheManager) {
         this.guildDao = guildDao;
         this.userDao = userDao;
         this.punktyDao = punktyDao;
@@ -86,6 +86,8 @@ public class LicznikPunktow {
         instance = this; //NOSONAR
         this.tlumaczenia = tlumaczenia;
         threadPool.scheduleWithFixedDelay(this::emptyCache, 5, 5, TimeUnit.MINUTES);
+        cache = redisCacheManager.getCache(new TypeToken<ConcurrentHashMap<String, Integer>>(){}, -1);
+        gcCache = redisCacheManager.getCache(GuildConfig.class);
     }
 
     public static int getPunkty(Member member) {
@@ -236,15 +238,9 @@ public class LicznikPunktow {
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean punktyWlaczone(Guild guild) {
-        Boolean chuj = punktyWlaczoneCache.get(guild.getId(), id -> guildDao.get(guild).getPunktyWlaczone());
+        Boolean chuj = gcCache.get(guild.getId(), guildDao::get).getPunktyWlaczone();
         if (chuj == null) return true;
         return chuj;
-    }
-
-    @Subscribe
-    private void onDatabaseUpdateEvent(DatabaseUpdateEvent e) {
-        if (!(e.getEntity() instanceof GuildConfig)) return;
-        punktyWlaczoneCache.invalidate(((GuildConfig) e.getEntity()).getGuildId());
     }
 
     private int getPktFromFileSize(double sizeInBytes) {

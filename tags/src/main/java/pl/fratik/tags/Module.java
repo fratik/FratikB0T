@@ -55,7 +55,7 @@ public class Module implements Modul {
     @Override
     public boolean startUp() {
         tagsDao = new TagsDao(managerBazyDanych, eventBus);
-        tagsManager = new TagsManager(tagsDao, managerKomend, shardManager, tlumaczenia);
+        tagsManager = new TagsManager(tagsDao, managerKomend, shardManager, tlumaczenia, redisCacheManager);
         commands = new ArrayList<>();
 
         commands.add(new CreateTagCommand(tagsDao, managerKomend));

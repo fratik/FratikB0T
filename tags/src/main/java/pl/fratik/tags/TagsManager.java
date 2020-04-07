@@ -17,8 +17,6 @@
 
 package pl.fratik.tags;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.eventbus.Subscribe;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.*;
@@ -27,8 +25,9 @@ import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import pl.fratik.core.Ustawienia;
+import pl.fratik.core.cache.Cache;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.entity.Emoji;
-import pl.fratik.core.event.DatabaseUpdateEvent;
 import pl.fratik.core.manager.ManagerKomend;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
@@ -45,18 +44,18 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 class TagsManager {
-    private final Cache<String, Tags> tagsCache = Caffeine.newBuilder()
-            .expireAfterWrite(1, TimeUnit.HOURS).build();
     private final TagsDao tagsDao;
     private final ManagerKomend managerKomend;
     private final ShardManager shardManager;
     private final Tlumaczenia tlumaczenia;
+    private final Cache<Tags> tagsCache;
 
-    TagsManager(TagsDao tagsDao, ManagerKomend managerKomend, ShardManager shardManager, Tlumaczenia tlumaczenia) {
+    TagsManager(TagsDao tagsDao, ManagerKomend managerKomend, ShardManager shardManager, Tlumaczenia tlumaczenia, RedisCacheManager redisCacheManager) {
         this.tagsDao = tagsDao;
         this.managerKomend = managerKomend;
         this.shardManager = shardManager;
         this.tlumaczenia = tlumaczenia;
+        tagsCache = redisCacheManager.getCache(Tags.class, (int) TimeUnit.HOURS.toSeconds(1));
     }
 
     @Subscribe
@@ -116,11 +115,5 @@ class TagsManager {
     @Nullable
     private Tag getTagByName(String name, Tags tags) {
         return tags.getTagi().stream().filter(t -> t.getName().equals(name)).findFirst().orElse(null);
-    }
-
-    @Subscribe
-    private void onDatabaseUpdate(DatabaseUpdateEvent e) {
-        if (!(e.getEntity() instanceof Tags)) return;
-        tagsCache.invalidate(((Tags) e.getEntity()).getId());
     }
 }
