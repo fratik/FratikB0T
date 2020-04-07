@@ -28,6 +28,7 @@ import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.Globals;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.entity.*;
 import pl.fratik.core.event.ModuleLoadedEvent;
@@ -59,6 +60,7 @@ public class Module implements Modul {
     @Inject private EventBus eventBus;
     @Inject private ManagerBazyDanych managerBazyDanych;
     @Inject private ManagerModulow managerModulow;
+    @Inject private RedisCacheManager redisCacheManager;
 
     private ArrayList<Command> commands;
     private ModLogListener modLogListener;

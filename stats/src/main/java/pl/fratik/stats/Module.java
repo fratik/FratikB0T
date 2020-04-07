@@ -28,6 +28,7 @@ import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.Globals;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.event.CommandDispatchEvent;
 import pl.fratik.core.event.ModuleLoadedEvent;
 import pl.fratik.core.manager.ManagerBazyDanych;
@@ -47,6 +48,7 @@ public class Module implements Modul {
     @Inject private ManagerBazyDanych managerBazyDanych;
     @Inject private ShardManager shardManager;
     @Inject private ManagerModulow managerModulow;
+    @Inject private RedisCacheManager redisCacheManager;
 
     @Getter private CommandCountStatsDao commandCountStatsDao;
     @Getter private GuildCountStatsDao guildCountStatsDao;

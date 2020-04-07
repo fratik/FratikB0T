@@ -25,6 +25,7 @@ import pl.fratik.commands.narzedzia.*;
 import pl.fratik.commands.system.*;
 import pl.fratik.commands.zabawa.*;
 import pl.fratik.core.Ustawienia;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.entity.*;
 import pl.fratik.core.manager.ManagerArgumentow;
@@ -52,6 +53,7 @@ public class Module implements Modul {
     @Inject private Tlumaczenia tlumaczenia;
     @Inject private ManagerModulow managerModulow;
     @Inject private EventBus eventBus;
+    @Inject private RedisCacheManager redisCacheManager;
     private ArrayList<Command> commands;
 
     private MemberListener listener;

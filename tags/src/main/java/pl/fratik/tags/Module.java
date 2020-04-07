@@ -20,6 +20,7 @@ package pl.fratik.tags;
 import com.google.common.eventbus.EventBus;
 import com.google.inject.Inject;
 import net.dv8tion.jda.api.sharding.ShardManager;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.manager.ManagerBazyDanych;
 import pl.fratik.core.manager.ManagerKomend;
@@ -43,6 +44,7 @@ public class Module implements Modul {
     @Inject private ShardManager shardManager;
     @Inject private ManagerModulow managerModulow;
     @Inject private Tlumaczenia tlumaczenia;
+    @Inject private RedisCacheManager redisCacheManager;
 
     private TagsDao tagsDao;
     private TagsManager tagsManager;
