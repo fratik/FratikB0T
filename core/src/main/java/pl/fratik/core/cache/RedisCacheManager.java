@@ -19,7 +19,6 @@ package pl.fratik.core.cache;
 
 import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.Subscribe;
-import com.google.common.reflect.TypeToken;
 import gg.amy.pgorm.annotations.PrimaryKey;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -59,38 +58,30 @@ public class RedisCacheManager {
         this.jedisPool = jedisPool;
     }
 
-    public <T> RedisCache<T> getCache(Class<T> tak) {
-        return getCache(tak, 300);
-    }
-
-    public <T> RedisCache<T> getCache(Class<T> tak, int expiry) {
-        return getCache(new TypeToken<T>(tak){}, expiry);
-    }
-
-    public <T> RedisCache<T> getCache(TypeToken<T> holds) {
+    public <T> RedisCache<T> getCache(Class<T> holds) {
         return getCache(holds, 300);
     }
 
-    public <T> RedisCache<T> getCache(TypeToken<T> holds, int expiry) {
+    public <T> RedisCache<T> getCache(Class<T> holds, int expiry) {
         return new RedisCache<>(this, holds, expiry);
     }
 
-    public <T> T get(String key, TypeToken<T> holds, Function<? super String, ? extends T> mappingFunction) {
+    public <T> T get(String key, Class<T> holds, Function<? super String, ? extends T> mappingFunction) {
         return get(key, holds, mappingFunction, 300);
     }
 
-    public <T> T get(String key, TypeToken<T> holds) {
+    public <T> T get(String key, Class<T> holds) {
         try (Jedis jedis = jedisPool.getResource()) {
-            String dbkey = PREFIX + "::" + holds.getRawType().getSimpleName() + ":" + key;
+            String dbkey = PREFIX + "::" + holds.getSimpleName() + ":" + key;
             String dane = jedis.get(dbkey);
             if (dane == null) return null;
-            return GsonUtil.fromJSON(dane, holds.getType());
+            return GsonUtil.fromJSON(dane, holds);
         }
     }
 
-    public <T> T get(String key, TypeToken<T> holds, Function<? super String, ? extends T> mappingFunction, int expiry) {
+    public <T> T get(String key, Class<T> holds, Function<? super String, ? extends T> mappingFunction, int expiry) {
         try (Jedis jedis = jedisPool.getResource()) {
-            String dbkey = PREFIX + "::" + holds.getRawType().getSimpleName() + ":" + key;
+            String dbkey = PREFIX + "::" + holds.getSimpleName() + ":" + key;
             String dane = jedis.get(dbkey);
             if (dane == null) {
                 T v = mappingFunction.apply(key);
@@ -104,18 +95,18 @@ public class RedisCacheManager {
                 }
                 return v;
             }
-            return GsonUtil.fromJSON(dane, holds.getType());
+            return GsonUtil.fromJSON(dane, holds);
         }
     }
 
-    public <T> void putAll(TypeToken<T> holds, Map<? extends String, ? extends T> map) {
+    public <T> void putAll(Class<T> holds, Map<? extends String, ? extends T> map) {
         putAll(holds, map, 300);
     }
 
-    public <T> void putAll(TypeToken<T> holds, Map<? extends String, ? extends T> map, int expiry) {
+    public <T> void putAll(Class<T> holds, Map<? extends String, ? extends T> map, int expiry) {
         try (Jedis jedis = jedisPool.getResource()) {
             for (Map.Entry<? extends String, ? extends T> ent : map.entrySet()) {
-                String dbkey = PREFIX + "::" + holds.getRawType().getSimpleName() + ":" + ent.getKey();
+                String dbkey = PREFIX + "::" + holds.getSimpleName() + ":" + ent.getKey();
                 jedis.set(dbkey, GsonUtil.toJSON(ent.getValue()));
                 if (expiry > 0) {
                     scheduleAsync(() -> {
@@ -128,13 +119,13 @@ public class RedisCacheManager {
         }
     }
 
-    public <T> void put(String key, TypeToken<T> holds, T value) {
+    public <T> void put(String key, Class<T> holds, T value) {
         put(key, holds, value, 300);
     }
 
-    public <T> void put(String key, TypeToken<T> holds, T value, int expiry) {
+    public <T> void put(String key, Class<T> holds, T value, int expiry) {
         try (Jedis jedis = jedisPool.getResource()) {
-            String dbkey = PREFIX + "::" + holds.getRawType().getSimpleName() + ":" + key;
+            String dbkey = PREFIX + "::" + holds.getSimpleName() + ":" + key;
             jedis.set(dbkey, GsonUtil.toJSON(value));
             if (expiry > 0) {
                 scheduleAsync(() -> {
@@ -151,20 +142,16 @@ public class RedisCacheManager {
     }
 
     public <T> void invalidate(Object key, Class<T> holds) {
-        invalidate(key, new TypeToken<T>(holds){});
-    }
-
-    public <T> void invalidate(Object key, TypeToken<T> holds) {
         try (Jedis jedis = jedisPool.getResource()) {
-            String dbkey = PREFIX + "::" + holds.getRawType().getSimpleName() + ":" + key;
+            String dbkey = PREFIX + "::" + holds.getSimpleName() + ":" + key;
             jedis.del(dbkey);
         }
     }
 
-    public <T> void invalidateAll(Iterable<?> keys, TypeToken<T> holds) {
+    public <T> void invalidateAll(Iterable<?> keys, Class<T> holds) {
         List<String> str = new ArrayList<>();
         for (Object key : keys) {
-            String dbkey = PREFIX + "::" + holds.getRawType().getSimpleName() + ":" + key;
+            String dbkey = PREFIX + "::" + holds.getSimpleName() + ":" + key;
             str.add(dbkey);
         }
         try (Jedis jedis = jedisPool.getResource()) {
@@ -172,21 +159,21 @@ public class RedisCacheManager {
         }
     }
 
-    public <T> long ttl(Object key, TypeToken<T> holds) {
+    public <T> long ttl(Object key, Class<T> holds) {
         try (Jedis jedis = jedisPool.getResource()) {
-            String dbkey = PREFIX + "::" + holds.getRawType().getSimpleName() + ":" + key;
+            String dbkey = PREFIX + "::" + holds.getSimpleName() + ":" + key;
             return jedis.ttl(dbkey);
         }
     }
 
-    public <T> List<T> scanAll(TypeToken<T> holds) {
+    public <T> List<T> scanAll(Class<T> holds) {
         return scanAll("*", holds);
     }
 
-    public <T> List<T> scanAll(String pattern, TypeToken<T> holds) {
+    public <T> List<T> scanAll(String pattern, Class<T> holds) {
         List<String> rawResults = new ArrayList<>();
         try (Jedis jedis = jedisPool.getResource()) {
-            String match = PREFIX + "::" + holds.getRawType().getSimpleName() + ":" + pattern;
+            String match = PREFIX + "::" + holds.getSimpleName() + ":" + pattern;
             String cursor = "0";
             do {
                 ScanResult<String> xd = jedis.scan(cursor, new ScanParams().match(match));
@@ -194,7 +181,7 @@ public class RedisCacheManager {
                 cursor = xd.getStringCursor();
             } while (!cursor.equals("0"));
         }
-        return rawResults.stream().<T>map(a -> GsonUtil.fromJSON(a, holds.getType())).collect(Collectors.toList());
+        return rawResults.stream().<T>map(a -> GsonUtil.fromJSON(a, holds)).collect(Collectors.toList());
     }
 
     @Subscribe

@@ -442,24 +442,9 @@ public class ManagerKomendImpl implements ManagerKomend {
 
     @Override
     public List<String> getPrefixes(Guild guild) {
-        GuildConfig gc = gcCache.getIfPresent(guild.getId());
+        GuildConfig gc = gcCache.get(guild.getId(), guildDao::get);
         List<String> p = gc.getPrefixes();
-        if (p == null) {
-            try {
-                GuildConfig config = guildDao.get(guild);
-                gcCache.put(guild.getId(), config);
-                if (config.getPrefixes() == null) {
-                    p = Collections.singletonList(Ustawienia.instance.prefix);
-                } else {
-                    p = config.getPrefixes();
-                }
-            } catch (Exception e) {
-                p = Collections.singletonList(Ustawienia.instance.prefix);
-            }
-        }
-        if (p.isEmpty()) {
-            p = Collections.singletonList(Ustawienia.instance.prefix);
-        }
+        if (p == null || p.isEmpty()) p = Collections.singletonList(Ustawienia.instance.prefix);
         return p;
     }
 

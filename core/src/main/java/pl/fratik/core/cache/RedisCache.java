@@ -17,8 +17,6 @@
 
 package pl.fratik.core.cache;
 
-import com.google.common.reflect.TypeToken;
-
 import javax.annotation.Nonnull;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -26,10 +24,10 @@ import java.util.function.Function;
 
 public class RedisCache<V> implements Cache<V> {
     private final RedisCacheManager rcm;
-    private final TypeToken<V> holds;
+    private final Class<V> holds;
     private final int expiry;
 
-    public RedisCache(RedisCacheManager rcm, TypeToken<V> holds, int expiry) {
+    public RedisCache(RedisCacheManager rcm, Class<V> holds, int expiry) {
         this.rcm = rcm;
         this.holds = holds;
         this.expiry = expiry;
