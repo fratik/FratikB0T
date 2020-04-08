@@ -78,6 +78,7 @@ public class LogListener {
         if (messages == null) throw new IllegalStateException("messages == null mimo compute'owania");
         if (messages.size() > 100) messages.remove(0);
         messages.add(new LogMessage(messageReceivedEvent.getMessage()));
+        cache.put(messageReceivedEvent.getTextChannel().getId(), messages);
     }
 
     @Subscribe
@@ -93,6 +94,7 @@ public class LogListener {
             return;
         }
         messages.set(messages.indexOf(m), new LogMessage(messageUpdateEvent.getMessage()));
+        cache.put(messageUpdateEvent.getTextChannel().getId(), messages);
         if (znaneAkcje.contains(messageUpdateEvent.getMessageId())) {
             znaneAkcje.remove(messageUpdateEvent.getMessageId());
             return;
