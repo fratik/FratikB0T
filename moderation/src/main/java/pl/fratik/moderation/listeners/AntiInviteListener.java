@@ -60,7 +60,7 @@ public class AntiInviteListener {
         this.managerKomend = managerKomend;
         this.shardManager = shardManager;
         this.casesDao = casesDao;
-        gcCache = redisCacheManager.getCache(GuildConfig.class);
+        gcCache = redisCacheManager.new CacheRetriever<GuildConfig>(){}.getCache();
     }
 
     @Subscribe

@@ -55,8 +55,8 @@ public class SearchManager {
         ytApiUrlDuration = "https://www.googleapis.com/youtube/v3/videos?part=contentDetails&key=" + ytApiKeyThumbnails + "&id=";
         ytApiUrlThumbnailsAndDuration = "https://www.googleapis.com/youtube/v3/videos?part=snippet%2CcontentDetails&key=" + ytApiKeyThumbnails + "&id=";
         this.managerMuzyki = managerMuzyki;
-        youtubeResults = redisCacheManager.getCache(SearchResult.class, (int) TimeUnit.MINUTES.toSeconds(30));
-        entryCache = redisCacheManager.getCache(SearchResult.SearchEntry.class, (int) TimeUnit.HOURS.toSeconds(1));
+        youtubeResults = redisCacheManager.new CacheRetriever<SearchResult>(){}.getCache((int) TimeUnit.MINUTES.toSeconds(30));
+        entryCache = redisCacheManager.new CacheRetriever<SearchResult.SearchEntry>(){}.getCache((int) TimeUnit.HOURS.toSeconds(1));
     }
 
     public SearchResult searchYouTube(String query) {

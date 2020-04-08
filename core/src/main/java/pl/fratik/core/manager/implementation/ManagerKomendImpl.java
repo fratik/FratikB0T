@@ -101,8 +101,8 @@ public class ManagerKomendImpl implements ManagerKomend {
         this.tlumaczenia = tlumaczenia;
         this.eventBus = eventBus;
         this.shardManager = shardManager;
-        gcCache = redisCacheManager.getCache(GuildConfig.class);
-        ucCache = redisCacheManager.getCache(UserConfig.class);
+        gcCache = redisCacheManager.new CacheRetriever<GuildConfig>(){}.getCache();
+        ucCache = redisCacheManager.new CacheRetriever<UserConfig>(){}.getCache();
         scheduledExecutor.scheduleWithFixedDelay(this::clearCooldowns, 5, 5, TimeUnit.MINUTES);
     }
 

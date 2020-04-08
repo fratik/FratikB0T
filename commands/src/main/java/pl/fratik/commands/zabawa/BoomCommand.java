@@ -46,7 +46,7 @@ public class BoomCommand extends Command {
 
     public BoomCommand(EventWaiter eventWaiter, UserDao userDao, RedisCacheManager redisCacheManager) {
         this.eventWaiter = eventWaiter;
-        initStatic(userDao, redisCacheManager.getCache(UserConfig.class));
+        initStatic(userDao, redisCacheManager.new CacheRetriever<UserConfig>(){}.getCache());
         name = "boom";
         category = CommandCategory.FUN;
         cooldown = 60;

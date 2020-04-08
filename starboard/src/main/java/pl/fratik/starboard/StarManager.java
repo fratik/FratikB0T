@@ -39,7 +39,7 @@ public class StarManager {
     StarManager(StarDataDao starDataDao, EventBus eventBus, RedisCacheManager redisCacheManager) {
         this.starDataDao = starDataDao;
         this.eventBus = eventBus;
-        stdCache = redisCacheManager.getCache(StarsData.class);
+        stdCache = redisCacheManager.new CacheRetriever<StarsData>(){}.getCache();
     }
 
     void addStar(Message message, User user, StarsData std) {

@@ -19,7 +19,6 @@ package pl.fratik.punkty;
 
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
-import com.google.common.reflect.TypeToken;
 import io.sentry.Sentry;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
@@ -86,8 +85,8 @@ public class LicznikPunktow {
         instance = this; //NOSONAR
         this.tlumaczenia = tlumaczenia;
         threadPool.scheduleWithFixedDelay(this::emptyCache, 5, 5, TimeUnit.MINUTES);
-        cache = redisCacheManager.getCache(new TypeToken<ConcurrentHashMap<String, Integer>>(){}, -1);
-        gcCache = redisCacheManager.getCache(GuildConfig.class);
+        cache = redisCacheManager.new CacheRetriever<ConcurrentHashMap<String, Integer>>(){}.getCache(-1);
+        gcCache = redisCacheManager.new CacheRetriever<GuildConfig>(){}.getCache();
     }
 
     public static int getPunkty(Member member) {
@@ -337,8 +336,9 @@ public class LicznikPunktow {
                 return;
             }
             log.debug("Zrzucam cache do DB, {} członków do zrzucenia...", cache.asMap().size());
-            cache.asMap().forEach((tmpGuild, map) -> {
-                Guild guild = shardManager.getGuildById(tmpGuild);
+            cache.asMap().forEach((key, map) -> {
+                String[] keysplitted = key.split(":");
+                Guild guild = shardManager.getGuildById(keysplitted[keysplitted.length - 1]);
                 if (guild == null) return;
                 AtomicInteger pktSerwera = new AtomicInteger();
                 log.debug("Zrzucam {} danych z serwera {}...", map.size(), guild);

@@ -45,7 +45,7 @@ class MemberListener {
 
     MemberListener(GuildDao guildDao, RedisCacheManager redisCacheManager) {
         this.guildDao = guildDao;
-        gcCache = redisCacheManager.getCache(GuildConfig.class);
+        gcCache = redisCacheManager.new CacheRetriever<GuildConfig>(){}.getCache();
     }
 
     @Subscribe

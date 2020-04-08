@@ -17,8 +17,6 @@
 
 package pl.fratik.stats;
 
-import com.google.common.eventbus.Subscribe;
-import com.google.common.reflect.TypeToken;
 import io.undertow.server.RoutingHandler;
 import lombok.Getter;
 import lombok.Setter;
@@ -32,7 +30,6 @@ import pl.fratik.api.internale.Exchange;
 import pl.fratik.core.Statyczne;
 import pl.fratik.core.cache.Cache;
 import pl.fratik.core.cache.RedisCacheManager;
-import pl.fratik.core.event.DatabaseUpdateEvent;
 import pl.fratik.core.moduly.Modul;
 import pl.fratik.core.util.CommonUtil;
 import pl.fratik.stats.entity.CommandCountStats;
@@ -60,10 +57,10 @@ class GuildStats {
     GuildStats(Module stats, Modul modul, ShardManager shardManager, RedisCacheManager redisCacheManager) {
         this.stats = stats;
         this.shardManager = shardManager;
-        cacheMms = redisCacheManager.getCache(new TypeToken<List<MembersStats>>(){});
-        cacheMsgs = redisCacheManager.getCache(new TypeToken<List<MessagesStats>>(){});
-        cacheGuilds = redisCacheManager.getCache(new TypeToken<List<GuildCountStats>>(){});
-        cacheCommands = redisCacheManager.getCache(new TypeToken<List<CommandCountStats>>(){});
+        cacheMms = redisCacheManager.new CacheRetriever<List<MembersStats>>(){}.getCache();
+        cacheMsgs = redisCacheManager.new CacheRetriever<List<MessagesStats>>(){}.getCache();
+        cacheGuilds = redisCacheManager.new CacheRetriever<List<GuildCountStats>>(){}.getCache();
+        cacheCommands = redisCacheManager.new CacheRetriever<List<CommandCountStats>>(){}.getCache();
         RoutingHandler routes;
         try {
             routes = (RoutingHandler) modul.getClass().getDeclaredMethod("getRoutes").invoke(modul);

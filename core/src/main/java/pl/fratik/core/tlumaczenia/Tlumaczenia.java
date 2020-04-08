@@ -59,7 +59,7 @@ public class Tlumaczenia {
         this.userDao = userDao;
         this.guildDao = guildDao;
         logger = LoggerFactory.getLogger(getClass());
-        languageCache = redisCacheManager.getCache(Language.class);
+        languageCache = redisCacheManager.new CacheRetriever<Language>(){}.getCache();
     }
 
     public void loadMessages() {

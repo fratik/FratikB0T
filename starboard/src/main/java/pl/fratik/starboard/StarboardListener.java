@@ -61,7 +61,7 @@ public class StarboardListener {
         this.tlumaczenia = tlumaczenia;
         this.starManager = starManager;
         this.executor = executor;
-        stdCache = redisCacheManager.getCache(StarsData.class);
+        stdCache = redisCacheManager.new CacheRetriever<StarsData>(){}.getCache();
     }
 
     @Subscribe

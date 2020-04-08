@@ -242,10 +242,10 @@ class FratikB0T {
                     Globals.ownerId = appInfo.getOwner().getIdLong();
                 });
                 RedisCacheManager redisCacheManager = new RedisCacheManager(Globals.clientId);
-                UserUtil.setGbanCache(redisCacheManager.getCache(GbanData.class));
-                UserUtil.setTimeZoneCache(redisCacheManager.getCache(String.class));
-                GuildUtil.setGbanCache(redisCacheManager.getCache(GbanData.class));
-                GuildUtil.setTimeZoneCache(redisCacheManager.getCache(String.class));
+                UserUtil.setGbanCache(redisCacheManager.new CacheRetriever<GbanData>(){}.getCache());
+                UserUtil.setTimeZoneCache(redisCacheManager.new CacheRetriever<String>(){}.getCache());
+                GuildUtil.setGbanCache(redisCacheManager.new CacheRetriever<GbanData>(){}.getCache());
+                GuildUtil.setTimeZoneCache(redisCacheManager.new CacheRetriever<String>(){}.getCache());
                 Tlumaczenia.setShardManager(shardManager);
                 Tlumaczenia tlumaczenia = new Tlumaczenia(userDao, guildDao, redisCacheManager);
                 managerKomend = new ManagerKomendImpl(shardManager, guildDao, userDao,

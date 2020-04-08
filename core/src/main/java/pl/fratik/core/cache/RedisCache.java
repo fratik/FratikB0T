@@ -17,6 +17,8 @@
 
 package pl.fratik.core.cache;
 
+import com.google.common.reflect.TypeToken;
+
 import javax.annotation.Nonnull;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -24,10 +26,10 @@ import java.util.function.Function;
 
 public class RedisCache<V> implements Cache<V> {
     private final RedisCacheManager rcm;
-    private final Class<V> holds;
     private final int expiry;
+    private TypeToken<V> holds;
 
-    public RedisCache(RedisCacheManager rcm, Class<V> holds, int expiry) {
+    public RedisCache(RedisCacheManager rcm, TypeToken<V> holds, int expiry) {
         this.rcm = rcm;
         this.holds = holds;
         this.expiry = expiry;
@@ -54,6 +56,16 @@ public class RedisCache<V> implements Cache<V> {
         return map;
     }
 
+    public Map<String, V> getAllPresentRaw(@Nonnull Iterable<?> keys) {
+        Map<String, V> map = new LinkedHashMap<>();
+        for (Object obj : keys) {
+            String str = obj.toString();
+            V v = rcm.getRaw(str, holds);
+            if (v != null) map.put(str, v);
+        }
+        return map;
+    }
+
     @Override
     public void put(@Nonnull String key, @Nonnull V value) {
         rcm.put(key, holds, value, expiry);
@@ -71,7 +83,7 @@ public class RedisCache<V> implements Cache<V> {
 
     @Override
     public void invalidateAll() {
-        invalidateAll(rcm.scanAll(holds));
+        invalidateAllRaw(rcm.scanAll(holds));
     }
 
     @Override
@@ -84,8 +96,12 @@ public class RedisCache<V> implements Cache<V> {
         rcm.invalidateAll(keys, holds);
     }
 
+    private void invalidateAllRaw(@Nonnull Iterable<?> dbKeys) {
+        rcm.invalidateAllRaw(dbKeys);
+    }
+
     @Override
     public Map<String, V> asMap() {
-        return getAllPresent(rcm.scanAll(holds));
+        return getAllPresentRaw(rcm.scanAll(holds));
     }
 }

@@ -136,7 +136,8 @@ public class Module implements Modul {
         commands.add(new McstatusCommand());
         commands.add(new SelfieCommand());
         commands.add(new EmojiInfoCommand());
-        commands.add(new OsuCommand(shardManager, eventWaiter, eventBus));
+        if (Ustawienia.instance.apiKeys.get("osu") != null)
+            commands.add(new OsuCommand(shardManager, eventWaiter, eventBus));
         commands.add(new Rule34Command(eventWaiter, eventBus, managerArgumentow));
         commands.add(new CoronastatsCommand());
 

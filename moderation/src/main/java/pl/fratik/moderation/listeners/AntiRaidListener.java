@@ -76,7 +76,7 @@ public class AntiRaidListener {
                 lastContentsExtreme.clear();
             }
         }, 10000, 10000);
-        gcCache = redisCacheManager.getCache(GuildConfig.class);
+        gcCache = redisCacheManager.new CacheRetriever<GuildConfig>(){}.getCache();
     }
 
     @Subscribe

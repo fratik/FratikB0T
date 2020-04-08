@@ -63,7 +63,7 @@ public class PrzeklenstwaListener {
         this.managerKomend = managerKomend;
         this.shardManager = shardManager;
         this.casesDao = casesDao;
-        gcCache = redisCacheManager.getCache(GuildConfig.class);
+        gcCache = redisCacheManager.new CacheRetriever<GuildConfig>(){}.getCache();
         try {
             String data = CommonUtil.fromStream(getClass().getResourceAsStream("/przeklenstwa.json"));
             przeklenstwa = GsonUtil.GSON.fromJson(data, new TypeToken<List<String>>() {}.getType());

@@ -18,7 +18,6 @@
 package pl.fratik.moderation.listeners;
 
 import com.google.common.eventbus.Subscribe;
-import com.google.common.reflect.TypeToken;
 import lombok.Getter;
 import lombok.Setter;
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -48,7 +47,6 @@ import javax.annotation.CheckReturnValue;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -64,15 +62,13 @@ public class LogListener {
     private final Cache<List<LogMessage>> cache;
     @Getter private final List<String> znaneAkcje = new ArrayList<>();
 
-    @Getter private static HashMap<String, List<Case>> knownCases = new HashMap<>();
-
     private final Cache<GuildConfig> gcCache;
 
     public LogListener(GuildDao guildDao, PurgeDao purgeDao, RedisCacheManager redisCacheManager) {
         this.guildDao = guildDao;
         this.purgeDao = purgeDao;
-        cache = redisCacheManager.getCache(new TypeToken<List<LogMessage>>(){});
-        gcCache = redisCacheManager.getCache(new TypeToken<GuildConfig>(){});
+        cache = redisCacheManager.new CacheRetriever<List<LogMessage>>(){}.getCache();
+        gcCache = redisCacheManager.new CacheRetriever<GuildConfig>(){}.getCache();
     }
 
     @Subscribe

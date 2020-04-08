@@ -55,7 +55,7 @@ class TagsManager {
         this.managerKomend = managerKomend;
         this.shardManager = shardManager;
         this.tlumaczenia = tlumaczenia;
-        tagsCache = redisCacheManager.getCache(Tags.class, (int) TimeUnit.HOURS.toSeconds(1));
+        tagsCache = redisCacheManager.new CacheRetriever<Tags>(){}.getCache((int) TimeUnit.HOURS.toSeconds(1));
     }
 
     @Subscribe
