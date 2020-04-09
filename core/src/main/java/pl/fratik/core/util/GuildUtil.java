@@ -17,8 +17,6 @@
 
 package pl.fratik.core.util;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.eventbus.Subscribe;
 import lombok.Setter;
 import net.dv8tion.jda.api.entities.Guild;
@@ -29,6 +27,7 @@ import net.dv8tion.jda.api.sharding.ShardManager;
 import org.json.JSONObject;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.Ustawienia;
+import pl.fratik.core.cache.Cache;
 import pl.fratik.core.entity.GbanDao;
 import pl.fratik.core.entity.GbanData;
 import pl.fratik.core.entity.GuildConfig;
@@ -40,12 +39,11 @@ import java.net.URLEncoder;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.TimeZone;
-import java.util.concurrent.TimeUnit;
 
 public class GuildUtil {
 
-    private static final Cache<Guild, GbanData> gbanCache = Caffeine.newBuilder().expireAfterWrite(5, TimeUnit.MINUTES).maximumSize(100).build();
-    private static final Cache<Guild, TimeZone> timeZoneCache = Caffeine.newBuilder().expireAfterWrite(5, TimeUnit.MINUTES).maximumSize(100).build();
+    @Setter private static Cache<GbanData> gbanCache;
+    @Setter private static Cache<String> timeZoneCache;
 
     @Setter private static GuildDao guildDao;
     @Setter private static GbanDao gbanDao;
@@ -74,18 +72,26 @@ public class GuildUtil {
     }
 
     public static TimeZone getTimeZone(Guild guild) {
-        return timeZoneCache.get(guild, u -> {
+        String z = getTimeZone0(guild);
+        if (z.equals("default")) return TimeZone.getDefault();
+        return TimeZone.getTimeZone(z);
+    }
+
+    public static String getTimeZone0(Guild guild) {
+        return timeZoneCache.get(guild.getId(), u -> {
             GuildConfig gc = guildDao.get(guild);
-            if (gc.getTimezone().equals("default")) return TimeZone.getDefault();
-            return TimeZone.getTimeZone(gc.getTimezone());
+            return gc.getTimezone();
         });
     }
 
     public static TimeZone getTimeZone(Guild guild, GuildConfig gc) {
-        return timeZoneCache.get(guild, u -> {
-            if (gc.getTimezone().equals("default")) return TimeZone.getDefault();
-            return TimeZone.getTimeZone(gc.getTimezone());
-        });
+        String z = getTimeZone0(guild, gc);
+        if (z.equals("default")) return TimeZone.getDefault();
+        return TimeZone.getTimeZone(z);
+    }
+
+    public static String getTimeZone0(Guild guild, GuildConfig gc) {
+        return timeZoneCache.get(guild.getId(), tak -> gc.getTimezone());
     }
 
     public static boolean isGbanned(Guild guild) {
@@ -96,7 +102,7 @@ public class GuildUtil {
         GbanData gbanned = gbanCache.getIfPresent(guild);
         if (gbanned == null) {
             GbanData config = gbanDao.get(guild);
-            gbanCache.put(guild, config);
+            gbanCache.put(guild.getId(), config);
             return config;
         }
         return gbanned;
@@ -129,22 +135,12 @@ public class GuildUtil {
     @Subscribe
     public void onDatabaseUpdate(DatabaseUpdateEvent event) {
         if (event.getEntity() instanceof GuildConfig) {
-            for (Guild guild : gbanCache.asMap().keySet()) {
-                if (((GuildConfig) event.getEntity()).getGuildId().equals(guild.getId())) {
-                    gbanCache.invalidate(guild);
-                    return;
-                }
-            }
-            for (Guild guild : timeZoneCache.asMap().keySet()) {
-                if (((GuildConfig) event.getEntity()).getGuildId().equals(guild.getId())) {
-                    timeZoneCache.invalidate(guild);
-                    return;
-                }
-            }
+            gbanCache.invalidate(((GuildConfig) event.getEntity()).getGuildId());
+            timeZoneCache.invalidate(((GuildConfig) event.getEntity()).getGuildId());
         }
     }
 
-    public String getManageLink(Guild g) {
+    public static String getManageLink(Guild g) {
         return Ustawienia.instance.botUrl + "/dashboard/" + g.getId() + "/manage";
     }
 

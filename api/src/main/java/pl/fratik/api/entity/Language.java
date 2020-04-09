@@ -33,7 +33,7 @@ public class Language {
         name = l.name();
         shortName = l.getShortName();
         localized = l.getLocalized();
-        emoji = l.getEmoji();
+        emoji = l.getEmoji().toString();
         locale = l.getLocale();
     }
 }

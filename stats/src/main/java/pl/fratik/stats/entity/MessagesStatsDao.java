@@ -55,6 +55,10 @@ public class MessagesStatsDao implements Dao<MessagesStats> {
         return mapper.loadManyBySubkey("data->>'guildId'", guild);
     }
 
+    public List<MessagesStats> getAllForDate(long date) {
+        return mapper.loadManyBySubkey("data->>'date'", String.valueOf(date));
+    }
+
     @Override
     public void save(MessagesStats toCos) {
         ObjectMapper objMapper = new ObjectMapper();

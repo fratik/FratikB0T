@@ -515,6 +515,7 @@ public class Module implements Modul {
                 .next(CustomHandlers::gzip)
                 .next(CustomHandlers::accessLog)
                 .next(this::exceptionHandler)
+                .next(CustomHandlers::blockIP)
                 .complete(handler);
     }
 

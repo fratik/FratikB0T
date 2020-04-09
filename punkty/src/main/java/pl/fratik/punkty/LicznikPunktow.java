@@ -17,8 +17,6 @@
 
 package pl.fratik.punkty;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import io.sentry.Sentry;
@@ -28,11 +26,12 @@ import net.dv8tion.jda.api.sharding.ShardManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.Ustawienia;
+import pl.fratik.core.cache.Cache;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.UserConfig;
 import pl.fratik.core.entity.UserDao;
-import pl.fratik.core.event.DatabaseUpdateEvent;
 import pl.fratik.core.event.LvlupEvent;
 import pl.fratik.core.event.PluginMessageEvent;
 import pl.fratik.core.manager.ManagerKomend;
@@ -73,9 +72,9 @@ public class LicznikPunktow {
             "[^\\s]{2,}|www\\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\\.[^\\s]{2,}|https?://(?:www\\.|(?!www))[a-zA-Z0-9]" +
             "\\.[^\\s]{2,}|www\\.[a-zA-Z0-9]\\.[^\\s]{2,})");
     private final Random random = new Random();
-    private static final Cache<String, ConcurrentHashMap<String, Integer>> cache = Caffeine.newBuilder().build();
-    private static final Cache<String, Boolean> punktyWlaczoneCache = Caffeine.newBuilder().build();
-    LicznikPunktow(GuildDao guildDao, UserDao userDao, PunktyDao punktyDao, ManagerKomend managerKomend, EventBus eventBus, Tlumaczenia tlumaczenia, ShardManager shardManager) {
+    private static Cache<ConcurrentHashMap<String, Integer>> cache;
+    private final Cache<GuildConfig> gcCache;
+    LicznikPunktow(GuildDao guildDao, UserDao userDao, PunktyDao punktyDao, ManagerKomend managerKomend, EventBus eventBus, Tlumaczenia tlumaczenia, ShardManager shardManager, RedisCacheManager redisCacheManager) {
         this.guildDao = guildDao;
         this.userDao = userDao;
         this.punktyDao = punktyDao;
@@ -86,6 +85,8 @@ public class LicznikPunktow {
         instance = this; //NOSONAR
         this.tlumaczenia = tlumaczenia;
         threadPool.scheduleWithFixedDelay(this::emptyCache, 5, 5, TimeUnit.MINUTES);
+        cache = redisCacheManager.new CacheRetriever<ConcurrentHashMap<String, Integer>>(){}.getCache(-1);
+        gcCache = redisCacheManager.new CacheRetriever<GuildConfig>(){}.getCache();
     }
 
     public static int getPunkty(Member member) {
@@ -153,22 +154,27 @@ public class LicznikPunktow {
 
     @Subscribe
     public void onMessage(MessageReceivedEvent event) {
+        if (event.getChannel().getType() != ChannelType.TEXT || !event.isFromGuild()) {
+            log.debug("Kanał gdzie {} napisał nie jest kanałem tekstowym, nie liczę punktu", event.getAuthor());
+            return;
+        }
         if (lock) {
             log.debug("Lock włączony, nie podliczam punktów dla {} na {}", event.getAuthor(), event.getGuild());
             return;
         }
-        if (event.getAuthor().isBot() || event.getChannel().getType() != ChannelType.TEXT || !event.isFromGuild() ||
-                UserUtil.isGbanned(event.getAuthor()) || getCooldown(event.getMember()) ||
+        if (event.getAuthor().isBot() || UserUtil.isGbanned(event.getAuthor()) || getCooldown(event.getMember()) ||
                 !punktyWlaczone(event.getGuild())) {
             if (UserUtil.isGbanned(event.getAuthor())) log.debug("{} jest zgbanowany, nie liczę punktu",
                     event.getAuthor());
             else if (event.getAuthor().isBot()) log.debug("{} jest botem, nie liczę punktu", event.getAuthor());
-            else if (event.getChannel().getType() != ChannelType.TEXT || !event.isFromGuild())
-                log.debug("Kanał gdzie {} napisał nie jest kanałem tekstowym, nie liczę punktu", event.getAuthor());
             else if (getCooldown(event.getMember()))
                 log.debug("{} ({}) jest na cooldownie!", event.getAuthor(), event.getGuild());
             else if (!punktyWlaczone(event.getGuild()))
                 log.debug("Punkty na serwerze {} są wyłączone", event.getGuild());
+            else if (guildDao.get(event.getGuild()).getNolvlchannelchange().contains(event.getChannel().getId())) {
+                log.debug("Naliczanie punktow na kanale {} na serwerze {} jest wylaczone", event.getChannel().getId(),
+                        event.getGuild().getId());
+            }
             return;
         }
         ConcurrentHashMap<String, Integer> mapa = cache.getIfPresent(event.getGuild().getId());
@@ -231,15 +237,9 @@ public class LicznikPunktow {
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean punktyWlaczone(Guild guild) {
-        Boolean chuj = punktyWlaczoneCache.get(guild.getId(), id -> guildDao.get(guild).getPunktyWlaczone());
+        Boolean chuj = gcCache.get(guild.getId(), guildDao::get).getPunktyWlaczone();
         if (chuj == null) return true;
         return chuj;
-    }
-
-    @Subscribe
-    private void onDatabaseUpdateEvent(DatabaseUpdateEvent e) {
-        if (!(e.getEntity() instanceof GuildConfig)) return;
-        punktyWlaczoneCache.invalidate(((GuildConfig) e.getEntity()).getGuildId());
     }
 
     private int getPktFromFileSize(double sizeInBytes) {
@@ -272,20 +272,32 @@ public class LicznikPunktow {
         if (rolaStr != null) rola = event.getMember().getGuild().getRoleById(rolaStr);
         else rola = null;
         if (rola == null) {
+
             Language l = tlumaczenia.getLanguage(event.getMember());
-            try {
-                String channelId = gc.getLvlupMessagesCustomChannel();
-                MessageChannel ch = null;
-                if (channelId != null && !channelId.isEmpty()) ch = shardManager.getTextChannelById(channelId);
-                if (ch == null) ch = event.getChannel();
-                if (event.getChannel().equals(ch) && !uc.isLvlupMessages()) return;
-                ch.sendMessage(tlumaczenia.get(l,
-                        "generic.lvlup", event.getMember().getUser().getName(), event.getLevel(), prefix))
-                        .queue(null, kurwa -> {});
-            } catch (Exception e) {
-                //brak permów
+            if (!uc.isLvlUpOnDM()) {
+                try {
+                    String channelId = gc.getLvlupMessagesCustomChannel();
+                    MessageChannel ch = null;
+                    if (channelId != null && !channelId.isEmpty()) ch = shardManager.getTextChannelById(channelId);
+                    if (ch == null) ch = event.getChannel();
+                    if (event.getChannel().equals(ch) && !uc.isLvlupMessages()) return;
+                    ch.sendMessage(tlumaczenia.get(l,
+                            "generic.lvlup.channel", event.getMember().getUser().getName(), event.getLevel(), prefix))
+                            .queue(null, kurwa -> {});
+                } catch (Exception e) {
+                    //brak permów
+                }
+                return;
             }
-            return;
+            try {
+                event.getMember().getUser().openPrivateChannel().queue(e -> {
+                    e.sendMessage(tlumaczenia.get(l, "generic.lvlup.dm",
+                            event.getLevel(), event.getMember().getGuild().getName(), prefix)).complete();
+                });
+                return;
+            } catch (Exception e) {
+                /*lul*/
+            }
         }
         try {
             event.getMember().getGuild()
@@ -324,8 +336,9 @@ public class LicznikPunktow {
                 return;
             }
             log.debug("Zrzucam cache do DB, {} członków do zrzucenia...", cache.asMap().size());
-            cache.asMap().forEach((tmpGuild, map) -> {
-                Guild guild = shardManager.getGuildById(tmpGuild);
+            cache.asMap().forEach((key, map) -> {
+                String[] keysplitted = key.split(":");
+                Guild guild = shardManager.getGuildById(keysplitted[keysplitted.length - 1]);
                 if (guild == null) return;
                 AtomicInteger pktSerwera = new AtomicInteger();
                 log.debug("Zrzucam {} danych z serwera {}...", map.size(), guild);

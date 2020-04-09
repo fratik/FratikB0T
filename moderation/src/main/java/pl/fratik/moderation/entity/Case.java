@@ -143,7 +143,6 @@ public class Case {
 
         private Kara opposite(Kara type) {
             switch (type) {
-                case TIMEDBAN:
                 case BAN:
                     return Kara.UNBAN;
                 case MUTE: return Kara.UNMUTE;

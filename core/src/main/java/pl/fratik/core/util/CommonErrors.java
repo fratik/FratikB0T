@@ -82,6 +82,11 @@ public class CommonErrors {
                 " " + tlumaczenia.get(language,command.getName().toLowerCase() + ".help.uzycie") + "");
         baseEmbed.addField(tlumaczenia.get(language, "generic.command.desc"),
                 tlumaczenia.get(language,command.getName().toLowerCase() + ".help.description"), false);
+        
+        String eldo = tlumaczenia.get(language,command.getName().toLowerCase() + ".help.extended");
+        if (!eldo.isEmpty() && !eldo.equals("!<pusto>!")) {
+            baseEmbed.addField(tlumaczenia.get(language, "generic.command.extended"), eldo, false);
+        }
         try {
             channel.sendMessage(baseEmbed.build()).queue();
         } catch (InsufficientPermissionException e) {

@@ -128,7 +128,7 @@ public class Rule34Command extends NsfwCommand {
                 return false;
             }
             new DynamicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(),
-                    context.getTlumaczenia(), eventBus).setEnableShuffle(true).setEnableDelett(true).setTimeout(60).create(loading);
+                    context.getTlumaczenia(), eventBus).setEnableShuffle(true).setEnableDelett(true).setTimeout(300).create(loading);
             return true;
         } catch (IOException e) {
             context.send(context.getTranslated("rule34.fail"));

@@ -1,0 +1,3 @@
+files:
+  - source: core/src/main/resources/pl/messages.properties
+    translation: /core/src/main/resources/%locale%/messages.properties

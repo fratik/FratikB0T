@@ -101,8 +101,7 @@ public class ModLogListener {
             setAndSend(guildConfig, caseRow, mode, mlogchan, aCase, odpowiedzialny, powod, guildBanEvent.getGuild());
         } else {
             Optional<Case> oCase = knownCases.get(guildBanEvent.getGuild()).stream()
-                    .filter(c -> c.getUserId().equals(guildBanEvent.getUser().getId()) && (c.getType() == Kara.BAN ||
-                            c.getType() == Kara.TIMEDBAN))
+                    .filter(c -> c.getUserId().equals(guildBanEvent.getUser().getId()) && c.getType() == Kara.BAN)
                     .findFirst();
             if (!oCase.isPresent()) throw NOCASEEXC;
             Case aCase = oCase.get();
@@ -152,7 +151,8 @@ public class ModLogListener {
             TemporalAccessor timestamp = Instant.now();
             boolean isCase = false;
             for (Case banCase : caseRow.getCases()) {
-                if (banCase.getType() != Kara.BAN || !banCase.isValid()) continue;
+                if (banCase.getType() != Kara.BAN || !banCase.isValid() || !banCase.getUserId()
+                        .equals(guildUnbanEvent.getUser().getId())) continue;
                 isCase = true;
                 banCase.setValidTo(timestamp, true);
                 banCase.setValid(false);
@@ -206,7 +206,8 @@ public class ModLogListener {
             else mode = ModLogMode.MODLOG;
             boolean isCase = false;
             for (Case banCase : caseRow.getCases()) {
-                if (banCase.getType() != Kara.BAN || !banCase.isValid()) continue;
+                if (banCase.getType() != Kara.BAN || !banCase.isValid() || !banCase.getUserId()
+                        .equals(guildUnbanEvent.getUser().getId())) continue;
                 isCase = true;
                 banCase.setValidTo(aCase.getValidTo(), true);
                 banCase.setValid(false);
@@ -444,7 +445,8 @@ public class ModLogListener {
             List<Case> cases = caseRow.getCases();
             Case aCase = new CaseBuilder().setUser(user).setGuild(guild).setCaseId(caseId).setTimestamp(timestamp).setMessageId(null).setKara(Kara.UNMUTE).createCase();
             for (Case muteCase : cases) {
-                if (muteCase.getType() != Kara.MUTE || !muteCase.isValid()) continue;
+                if (muteCase.getType() != Kara.MUTE || !muteCase.isValid() || !muteCase.getUserId()
+                        .equals(guildMemberRoleRemoveEvent.getMember().getUser().getId())) continue;
                 muteCase.setValidTo(timestamp, true);
                 muteCase.setValid(false);
                 MessageEmbed embed = ModLogBuilder.generate(muteCase, guildMemberRoleRemoveEvent.getGuild(),
@@ -489,7 +491,8 @@ public class ModLogListener {
                 mode = ModLogMode.DATABASE;
             else mode = ModLogMode.MODLOG;
             for (Case muteCase : cases) {
-                if (muteCase.getType() != Kara.MUTE || !muteCase.isValid()) continue;
+                if (muteCase.getType() != Kara.MUTE || !muteCase.isValid() || !muteCase.getUserId()
+                        .equals(guildMemberRoleRemoveEvent.getMember().getUser().getId())) continue;
                 muteCase.setValidTo(teraz, true);
                 muteCase.setValid(false);
                 MessageEmbed embed = ModLogBuilder.generate(muteCase, guildMemberRoleRemoveEvent.getGuild(),
