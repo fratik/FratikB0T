@@ -17,6 +17,7 @@
 
 package pl.fratik.moderation.entity;
 
+import lombok.EqualsAndHashCode;
 import lombok.Setter;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.sharding.ShardManager;
@@ -26,6 +27,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.time.OffsetDateTime;
 
+@EqualsAndHashCode(callSuper = false)
 public class LogMessage extends AbstractMessage {
     @Setter private static ShardManager shardManager;
     private final long id;
