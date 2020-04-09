@@ -23,6 +23,7 @@ import com.google.common.reflect.TypeToken;
 import gg.amy.pgorm.annotations.PrimaryKey;
 import lombok.AccessLevel;
 import lombok.Getter;
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.entity.DatabaseEntity;
@@ -51,7 +52,12 @@ public class RedisCacheManager {
     private final ExecutorService executor = Executors.newFixedThreadPool(4, new RedisThreadFactory());
 
     public RedisCacheManager(long id) {
-        this(new JedisPool(), id);
+        GenericObjectPoolConfig pc = new GenericObjectPoolConfig();
+        pc.setMinIdle(16);
+        pc.setMaxIdle(32);
+        pc.setMaxIdle(32);
+        PREFIX = "FB0T-" + id;
+        this.jedisPool = new JedisPool(pc, "localhost");
     }
 
     public RedisCacheManager(JedisPool jedisPool, long id) {
