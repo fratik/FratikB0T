@@ -22,10 +22,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.Subscribe;
 import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.ChannelType;
-import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageUpdateEvent;
 import net.dv8tion.jda.api.sharding.ShardManager;
@@ -48,7 +45,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-@SuppressWarnings({"DuplicatedCode", "SpellCheckingInspection", "BooleanMethodIsAlwaysInverted"})
 public class AntiInviteListener {
 
     private final GuildDao guildDao;
@@ -92,6 +88,7 @@ public class AntiInviteListener {
         if (containsInvite(e.getMessage().getContentRaw())) addKara(e.getMessage());
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     private boolean isAntiinvite(Guild guild) {
         //noinspection ConstantConditions - nie moze byc null
         return antiinviteCache.get(guild.getId(), id -> guildDao.get(guild).getAntiInvite());
@@ -139,7 +136,12 @@ public class AntiInviteListener {
                 CaseRow cr = casesDao.get(msg.getGuild());
                 cr.getCases().add(c);
                 casesDao.save(cr);
-                WarnUtil.takeAction(guildDao, casesDao, msg.getMember(), msg.getChannel(),
+                Member m = msg.getMember();
+                if (m == null) {
+                    // to się nie stanie
+                    return;
+                }
+                WarnUtil.takeAction(guildDao, casesDao, m, msg.getChannel(),
                         tlumaczenia.getLanguage(msg.getGuild()), tlumaczenia, managerKomend);
             }
 
