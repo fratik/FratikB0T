@@ -272,7 +272,6 @@ public class LicznikPunktow {
         if (rolaStr != null) rola = event.getMember().getGuild().getRoleById(rolaStr);
         else rola = null;
         if (rola == null) {
-
             Language l = tlumaczenia.getLanguage(event.getMember());
             if (!uc.isLvlUpOnDM()) {
                 try {
@@ -281,23 +280,33 @@ public class LicznikPunktow {
                     if (channelId != null && !channelId.isEmpty()) ch = shardManager.getTextChannelById(channelId);
                     if (ch == null) ch = event.getChannel();
                     if (event.getChannel().equals(ch) && !uc.isLvlupMessages()) return;
-                    ch.sendMessage(tlumaczenia.get(l,
-                            "generic.lvlup.channel", event.getMember().getUser().getName(), event.getLevel(), prefix))
-                            .queue(null, kurwa -> {});
+                    if (gc.getLvlUpMessage() != null && !gc.getLvlUpMessage().isEmpty())  {
+                        ch.sendMessage(gc.getLvlUpMessage()
+                                .replaceAll("\\{\\{mention}}", event.getMember().getUser().getAsMention()
+                                        .replaceAll("@(everyone|here)", "@\u200b$1"))
+                                .replaceAll("\\{\\{user}}", UserUtil.formatDiscrim(event.getMember())
+                                        .replaceAll("@(everyone|here)", "@\u200b$1"))
+                                .replaceAll("\\{\\{level}}", String.valueOf(event.getLevel()))
+                                .replaceAll("\\{\\{guild}}", event.getMember().getGuild().getName()))
+                                .queue(null, kurwa -> {});
+                    } else {
+                        ch.sendMessage(tlumaczenia.get(l,
+                                "generic.lvlup", event.getMember().getUser().getName(), event.getLevel(), prefix))
+                                .queue(null, kurwa -> {});
+                    }
                 } catch (Exception e) {
-                    //brak permów
+                    /*lul*/
                 }
                 return;
             }
             try {
-                event.getMember().getUser().openPrivateChannel().queue(e -> {
-                    e.sendMessage(tlumaczenia.get(l, "generic.lvlup.dm",
-                            event.getLevel(), event.getMember().getGuild().getName(), prefix)).complete();
-                });
-                return;
+                event.getMember().getUser().openPrivateChannel().queue(e -> e.sendMessage(tlumaczenia.get(l,
+                        "generic.lvlup.dm", event.getLevel(), event.getMember().getGuild().getName(), prefix)
+                ).complete());
             } catch (Exception e) {
-                /*lul*/
+                // lol
             }
+            return;
         }
         try {
             event.getMember().getGuild()
