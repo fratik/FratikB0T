@@ -299,9 +299,13 @@ public class LicznikPunktow {
                 }
                 return;
             }
-            event.getMember().getUser().openPrivateChannel().queue(e -> e.sendMessage(tlumaczenia.get(l,
-                    "generic.lvlup.dm", event.getLevel(), event.getMember().getGuild().getName(), prefix)
-            ).complete());
+            try {
+                event.getMember().getUser().openPrivateChannel().queue(e -> e.sendMessage(tlumaczenia.get(l,
+                        "generic.lvlup.dm", event.getLevel(), event.getMember().getGuild().getName(), prefix)
+                ).complete());
+            } catch (Exception e) {
+                // lol
+            }
             return;
         }
         try {
