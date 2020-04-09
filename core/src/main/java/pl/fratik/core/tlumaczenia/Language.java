@@ -18,17 +18,20 @@
 package pl.fratik.core.tlumaczenia;
 
 import lombok.Getter;
+import pl.fratik.core.entity.Emoji;
 
 import java.util.Locale;
 
 public enum Language {
     DEFAULT(null, null, null, null),
-//    ENGLISH("en-US", "English (US)", "\uD83C\uDDFA\uD83C\uDDF8", new Locale("en_US")),
-    POLISH("pl", "Polski", "\uD83C\uDDF5\uD83C\uDDF1", new Locale("pl_PL"));
+    ENGLISH("en-US", "English (US)", "UNICODE:\uD83C\uDDFA\uD83C\uDDF8", new Locale("en_US")),
+    POLISH("pl", "Polski", "UNICODE:\uD83C\uDDF5\uD83C\uDDF1", new Locale("pl_PL"))//,
+    /*POLISH_WULG("pl-WG", "Polski (wulgarny)", "663853676053659687", new Locale("pl_WG")),
+    PONGLISH("pl-EN", "Ponglish", "665552851820478515", new Locale("pl_EN"))*/;
 
     @Getter private final String shortName;
     @Getter private final String localized;
-    @Getter private final String emoji;
+    private final String emoji;
     @Getter private final Locale locale;
 
     Language(String shortName, String localized, String emoji, Locale locale) {
@@ -38,4 +41,7 @@ public enum Language {
         this.locale = locale;
     }
 
+    public Emoji getEmoji() {
+        return Emoji.resolve(emoji, Tlumaczenia.getShardManager());
+    }
 }

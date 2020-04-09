@@ -54,6 +54,7 @@ public class UserConfig implements DatabaseEntity {
     private List<String> privIgnored = new ArrayList<>();
     private boolean boomWlaczone = true;
     private boolean lvlupMessages = true;
+    private boolean lvlUpOnDM = false;
     private String location = null;
     @ConfigField(holdsEntity = ConfigField.Entities.EMOJI)
     private String reakcja = "436919889207361536";

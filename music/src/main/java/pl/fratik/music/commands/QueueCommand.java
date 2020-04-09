@@ -26,14 +26,10 @@ import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Message;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.CommandContext;
-import pl.fratik.core.command.SubCommand;
-import pl.fratik.core.entity.ArgsMissingException;
-import pl.fratik.core.entity.Uzycie;
-import pl.fratik.core.util.*;
+import pl.fratik.core.util.DynamicEmbedPaginator;
+import pl.fratik.core.util.EventWaiter;
+import pl.fratik.core.util.TimeUtil;
 import pl.fratik.music.entity.Piosenka;
-import pl.fratik.music.entity.PiosenkaImpl;
-import pl.fratik.music.entity.Queue;
-import pl.fratik.music.entity.QueueDao;
 import pl.fratik.music.managers.ManagerMuzykiSerwera;
 import pl.fratik.music.managers.NowyManagerMuzyki;
 import pl.fratik.music.managers.SearchManager;
@@ -49,15 +45,13 @@ public class QueueCommand extends MusicCommand {
     private final NowyManagerMuzyki managerMuzyki;
     private final EventWaiter eventWaiter;
     private final EventBus eventBus;
-    private final QueueDao queueDao;
     private static final String QUEMLI = "queue.embed.live";
     @Setter private static SearchManager searchManager;
 
-    public QueueCommand(NowyManagerMuzyki managerMuzyki, EventWaiter eventWaiter, EventBus eventBus, QueueDao queueDao) {
+    public QueueCommand(NowyManagerMuzyki managerMuzyki, EventWaiter eventWaiter, EventBus eventBus) {
         this.managerMuzyki = managerMuzyki;
         this.eventWaiter = eventWaiter;
         this.eventBus = eventBus;
-        this.queueDao = queueDao;
         name = "queue";
         requireConnection = true;
         aliases = new String[] {"q", "que", "songlist", "songslist", "songlists", "listapiosenek", "listamuzyki", "kolejka"};
@@ -112,45 +106,6 @@ public class QueueCommand extends MusicCommand {
             }
             context.send(sb.toString());
         }
-        return true;
-    }
-
-    @SubCommand(name="save")
-    private boolean save(CommandContext context) {
-        ManagerMuzykiSerwera mms = managerMuzyki.getManagerMuzykiSerwera(context.getGuild());
-        Queue kolejka = new Queue(StringUtil.generateId(22, false, true, true));
-        if (queueDao.get(kolejka.getId()) != null) return save(context);
-        kolejka.setPiosenki(mms.getKolejka());
-        queueDao.save(kolejka);
-        context.send(context.getTranslated("queue.saved", kolejka.getId()));
-        return true;
-    }
-
-    @SubCommand(name="load")
-    public boolean load(CommandContext context) {
-        Object[] args;
-        try {
-            args = new Uzycie("queueId", "string", true).resolveArgs(context);
-        } catch (ArgsMissingException e) {
-            CommonErrors.usage(context);
-            return false;
-        }
-        String id = (String) args[0];
-        ManagerMuzykiSerwera mms = managerMuzyki.getManagerMuzykiSerwera(context.getGuild());
-        Queue q = queueDao.get(id);
-        if (q == null || q.getPiosenki().isEmpty()) {
-            context.send(context.getTranslated("queue.load.notfound"));
-            return false;
-        }
-        List<Piosenka> piosenki = new ArrayList<>();
-        for (Piosenka p : q.getPiosenki()) {
-            piosenki.add(new PiosenkaImpl(p.getRequester() + " " + context.getTranslated("queue.added.by",
-                    context.getSender().getAsTag()), p.getAudioTrack(), context.getLanguage()));
-        }
-        q.setPiosenki(piosenki);
-        context.send(context.getTranslated("queue.loaded"));
-        mms.loadQueue(q);
-        mms.skip();
         return true;
     }
 

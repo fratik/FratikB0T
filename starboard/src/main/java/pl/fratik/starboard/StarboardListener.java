@@ -17,8 +17,6 @@
 
 package pl.fratik.starboard;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.eventbus.Subscribe;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
@@ -28,8 +26,8 @@ import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
 import net.dv8tion.jda.api.events.message.react.MessageReactionRemoveAllEvent;
 import net.dv8tion.jda.api.events.message.react.MessageReactionRemoveEvent;
-import pl.fratik.core.entity.GuildConfig;
-import pl.fratik.core.event.DatabaseUpdateEvent;
+import pl.fratik.core.cache.Cache;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.CommonUtil;
@@ -56,14 +54,14 @@ public class StarboardListener {
     private final List<String> toIgnore = new ArrayList<>();
     private static final String SMSGSEP = " \\| ";
 
-    private final Cache<Guild, TextChannel> starChannelCache = Caffeine.newBuilder().expireAfterWrite(5, TimeUnit.MINUTES)
-            .maximumSize(100).build();
+    private Cache<StarsData> stdCache;
 
-    StarboardListener(StarDataDao starDataDao, Tlumaczenia tlumaczenia, StarManager starManager, ExecutorService executor) {
+    StarboardListener(StarDataDao starDataDao, Tlumaczenia tlumaczenia, StarManager starManager, ExecutorService executor, RedisCacheManager redisCacheManager) {
         this.starDataDao = starDataDao;
         this.tlumaczenia = tlumaczenia;
         this.starManager = starManager;
         this.executor = executor;
+        stdCache = redisCacheManager.new CacheRetriever<StarsData>(){}.getCache();
     }
 
     @Subscribe
@@ -265,23 +263,14 @@ public class StarboardListener {
     }
 
     private TextChannel getChannel(Guild guild) {
-        return starChannelCache.get(guild, g -> {
-            StarsData std = starDataDao.get(guild);
-            if (!std.getStarboardChannel().isEmpty()) return g.getTextChannelById(std.getStarboardChannel());
-            return null;
-        });
-    }
-
-    @Subscribe
-    public void onDatabaseUpdate(DatabaseUpdateEvent event) {
-        if (event.getEntity() instanceof GuildConfig) {
-            for (Guild guild : starChannelCache.asMap().keySet()) {
-                if (((GuildConfig) event.getEntity()).getGuildId().equals(guild.getId())) {
-                    starChannelCache.invalidate(guild);
-                    return;
-                }
-            }
+        StarsData std = stdCache.get(guild.getId(), starDataDao::get);
+        String id = null;
+        if (!std.getStarboardChannel().isEmpty()) {
+            TextChannel kanal = guild.getTextChannelById(std.getStarboardChannel());
+            if (kanal == null) id = null;
+            else id = kanal.getId();
         }
+        if (id == null) return null;
+        return guild.getTextChannelById(id);
     }
-
 }

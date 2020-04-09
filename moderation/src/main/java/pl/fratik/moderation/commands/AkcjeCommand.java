@@ -39,10 +39,7 @@ import pl.fratik.moderation.entity.CaseRow;
 import pl.fratik.moderation.entity.CasesDao;
 import pl.fratik.moderation.utils.ModLogBuilder;
 
-import java.text.SimpleDateFormat;
-import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -75,59 +72,46 @@ public class AkcjeCommand extends ModerationCommand {
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
-        context.send(context.getTranslated("generic.loading"), m -> {
-            User tmpUser = null;
-            Object[] args = context.getArgs();
-            if (args.length > 0 && args[0] != null) tmpUser = (User) args[0];
-            if (tmpUser == null) tmpUser = context.getSender();
-            CaseRow caseRow = casesDao.get(context.getGuild());
-            User user = tmpUser;
-            long warnow = caseRow.getCases().stream()
-                    .filter(c -> c.getType() == Kara.WARN && c.getUserId().equals(user.getId())).count();
-            long unwarnow = caseRow.getCases().stream()
-                    .filter(c -> c.getType() == Kara.UNWARN && c.getUserId().equals(user.getId())).count();
-            long kickow = caseRow.getCases().stream()
-                    .filter(c -> c.getType() == Kara.KICK && c.getUserId().equals(user.getId())).count();
-            long banow = caseRow.getCases().stream()
-                    .filter(c -> (c.getType() == Kara.BAN || c.getType() == Kara.TIMEDBAN) &&
-                    c.getUserId().equals(user.getId())).count();
-            long mutow = caseRow.getCases().stream()
-                    .filter(c -> c.getType() == Kara.MUTE && c.getUserId().equals(user.getId())).count();
-            long unmutow = caseRow.getCases().stream()
-                    .filter(c -> c.getType() == Kara.UNMUTE && c.getUserId().equals(user.getId())).count();
-            ArrayList<EmbedBuilder> strony = new ArrayList<>();
-            strony.add(context.getBaseEmbed(UserUtil.formatDiscrim(user), user.getEffectiveAvatarUrl()
-                    .replace(".webp", ".png"))
-                    .addField(context.getTranslated("akcje.embed.warns"),
-                            String.format(context.getTranslated("akcje.embed.warns.content"),
-                                    String.valueOf(warnow - unwarnow), String.valueOf(warnow), String.valueOf(unwarnow)),
-                            true)
-                    .addField(context.getTranslated("akcje.embed.kicks"), String.valueOf(kickow), true)
-                    .addField(context.getTranslated("akcje.embed.bans"), String.valueOf(banow), true)
-                    .addField(context.getTranslated("akcje.embed.mutes"),
-                            String.format(context.getTranslated("akcje.embed.mutes.content"),
-                                    String.valueOf(mutow - unmutow), String.valueOf(mutow), String.valueOf(unmutow)),
-                            true)
-                    .setDescription(context.getTranslated("akcje.embed.description")).setFooter("%s/%s", null));
-            for (Case aCase : caseRow.getCases().stream().filter(c -> c.getUserId().equals(user.getId())).collect(Collectors.toList())) {
-                EmbedBuilder eb = new EmbedBuilder(ModLogBuilder.generate(aCase, context.getGuild(), shardManager, context.getLanguage(), managerKomend));
-                if (aCase.getType() == Kara.MUTE || aCase.getType() == Kara.BAN || aCase.getType() == Kara.NOTATKA) {
-                    eb.addField(context.getTranslated("modlog.active"), aCase.isValid() ?
-                            context.getTranslated("modlog.active.true") :
-                            context.getTranslated("modlog.active.false"), false);
-                    if (aCase.getValidTo() != null) {
-                        SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy '@' HH:mm z", context.getLanguage().getLocale());
-                        sdf.setTimeZone(UserUtil.getTimeZone(context.getSender(), userDao));
-                        eb.addField(context.getTranslated("modlog.active." + aCase.isValid() + ".to"),
-                                sdf.format(Date.from(Instant.from(aCase.getValidTo()))), false);
-                    }
-                }
-                eb.setFooter(Objects.requireNonNull(eb.build().getFooter()).getText() + " (%s/%s)", null);
-                strony.add(eb);
-            }
-            new ClassicEmbedPaginator(eventWaiter, strony, context.getSender(), context.getLanguage(),
-                    context.getTlumaczenia(), eventBus).setCustomFooter(true).create(m);
-        });
+        Message m = context.send(context.getTranslated("generic.loading"));
+        User tmpUser = null;
+        Object[] args = context.getArgs();
+        if (args.length > 0 && args[0] != null) tmpUser = (User) args[0];
+        if (tmpUser == null) tmpUser = context.getSender();
+        CaseRow caseRow = casesDao.get(context.getGuild());
+        User user = tmpUser;
+        long warnow = caseRow.getCases().stream()
+                .filter(c -> c.getType() == Kara.WARN && c.getUserId().equals(user.getId())).count();
+        long unwarnow = caseRow.getCases().stream()
+                .filter(c -> c.getType() == Kara.UNWARN && c.getUserId().equals(user.getId())).count();
+        long kickow = caseRow.getCases().stream()
+                .filter(c -> c.getType() == Kara.KICK && c.getUserId().equals(user.getId())).count();
+        long banow = caseRow.getCases().stream()
+                .filter(c -> c.getType() == Kara.BAN && c.getUserId().equals(user.getId())).count();
+        long mutow = caseRow.getCases().stream()
+                .filter(c -> c.getType() == Kara.MUTE && c.getUserId().equals(user.getId())).count();
+        long unmutow = caseRow.getCases().stream()
+                .filter(c -> c.getType() == Kara.UNMUTE && c.getUserId().equals(user.getId())).count();
+        ArrayList<EmbedBuilder> strony = new ArrayList<>();
+        strony.add(context.getBaseEmbed(UserUtil.formatDiscrim(user), user.getEffectiveAvatarUrl()
+                .replace(".webp", ".png"))
+                .addField(context.getTranslated("akcje.embed.warns"),
+                        String.format(context.getTranslated("akcje.embed.warns.content"),
+                                String.valueOf(warnow - unwarnow), String.valueOf(warnow), String.valueOf(unwarnow)),
+                        true)
+                .addField(context.getTranslated("akcje.embed.kicks"), String.valueOf(kickow), true)
+                .addField(context.getTranslated("akcje.embed.bans"), String.valueOf(banow), true)
+                .addField(context.getTranslated("akcje.embed.mutes"),
+                        String.format(context.getTranslated("akcje.embed.mutes.content"),
+                                String.valueOf(mutow - unmutow), String.valueOf(mutow), String.valueOf(unmutow)),
+                        true)
+                .setDescription(context.getTranslated("akcje.embed.description")).setFooter("%s/%s", null));
+        for (Case aCase : caseRow.getCases().stream().filter(c -> c.getUserId().equals(user.getId())).collect(Collectors.toList())) {
+            EmbedBuilder eb = new EmbedBuilder(ModLogBuilder.generate(aCase, context.getGuild(), shardManager, context.getLanguage(), managerKomend));
+            eb.setFooter(Objects.requireNonNull(eb.build().getFooter()).getText() + " (%s/%s)", null);
+            strony.add(eb);
+        }
+        new ClassicEmbedPaginator(eventWaiter, strony, context.getSender(), context.getLanguage(),
+                context.getTlumaczenia(), eventBus).setCustomFooter(true).create(m);
         return true;
     }
 
@@ -147,8 +131,7 @@ public class AkcjeCommand extends ModerationCommand {
         long kickow = caseRow.getCases().stream()
                 .filter(c -> c.getType() == Kara.KICK && Objects.equals(c.getIssuerId(), user.getId())).count();
         long banow = caseRow.getCases().stream()
-                .filter(c -> (c.getType() == Kara.BAN || c.getType() == Kara.TIMEDBAN) &&
-                        Objects.equals(c.getIssuerId(), user.getId())).count();
+                .filter(c -> c.getType() == Kara.BAN && Objects.equals(c.getIssuerId(), user.getId())).count();
         long mutow = caseRow.getCases().stream()
                 .filter(c -> c.getType() == Kara.MUTE && Objects.equals(c.getIssuerId(), user.getId())).count();
         long unmutow = caseRow.getCases().stream()

@@ -19,8 +19,8 @@ package pl.fratik.starboard;
 
 import com.google.common.eventbus.EventBus;
 import com.google.inject.Inject;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.command.Command;
-import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.manager.ManagerBazyDanych;
 import pl.fratik.core.manager.ManagerKomend;
 import pl.fratik.core.moduly.Modul;
@@ -37,9 +37,9 @@ public class Module implements Modul {
     @Inject private ManagerKomend managerKomend;
     @Inject private EventBus eventBus;
     @Inject private Tlumaczenia tlumaczenia;
-    @Inject private GuildDao guildDao;
     @Inject private ManagerBazyDanych managerBazyDanych;
     @Inject private EventWaiter eventWaiter;
+    @Inject private RedisCacheManager redisCacheManager;
 
     private ArrayList<Command> commands;
     private ExecutorService executor;
@@ -54,8 +54,8 @@ public class Module implements Modul {
     public boolean startUp() {
         executor = Executors.newSingleThreadExecutor();
         StarDataDao starDataDao = new StarDataDao(managerBazyDanych, eventBus);
-        starManager = new StarManager(starDataDao, eventBus);
-        starboardListener = new StarboardListener(starDataDao, tlumaczenia, starManager, executor);
+        starManager = new StarManager(starDataDao, eventBus, redisCacheManager);
+        starboardListener = new StarboardListener(starDataDao, tlumaczenia, starManager, executor, redisCacheManager);
         commands = new ArrayList<>();
 
         commands.add(new FixstarCommand(starManager, starDataDao));

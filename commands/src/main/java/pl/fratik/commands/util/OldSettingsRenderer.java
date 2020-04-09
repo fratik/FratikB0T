@@ -61,7 +61,6 @@ public class OldSettingsRenderer implements SettingsRenderer {
     private final Message wiadomoscJezyki = null;
     private GuildConfig guildConfig;
     private UserConfig userConfig;
-    private GuildUtil guildUitl;
     private boolean koniecZara;
 
     public OldSettingsRenderer(EventWaiter eventWaiter, UserDao userDao, GuildDao guildDao, Tlumaczenia tlumaczenia, ManagerArgumentow managerArgumentow, ShardManager shardManager, CommandContext ctx) {
@@ -170,7 +169,9 @@ public class OldSettingsRenderer implements SettingsRenderer {
         else
             builder.append("5. ").append(ctx.getTranslated("ustawienia.user.reakcjablad.isnotset")).append("\n");
         builder.append("6. ").append(ctx.getTranslated("ustawienia.user.lvlupmessages." +
-                (userConfig.isPrivWlaczone() ? "enabled" : "disabled")));
+                (userConfig.isPrivWlaczone() ? "enabled" : "disabled"))).append("\n");
+        builder.append("7. ").append(ctx.getTranslated("ustawienia.user.lvlupondm." +
+                (userConfig.isLvlUpOnDM() ? "enabled" : "disabled")));
         builder.append("\n");
         builder.append("\n0. ").append(ctx.getTranslated("ustawienia.footer"));
         builder.append("```");
@@ -219,6 +220,13 @@ public class OldSettingsRenderer implements SettingsRenderer {
                 userDao.save(userConfig);
                 ctx.send(ctx.getTranslated("ustawienia.user.lvlupmessages.confirm." +
                         (userConfig.isPrivWlaczone() ? "enabled" : "disabled")));
+                break;
+            case "7":
+                koniecZara = false;
+                userConfig.setLvlUpOnDM(!userConfig.isLvlUpOnDM());
+                userDao.save(userConfig);
+                ctx.send(ctx.getTranslated("ustawienia.user.lvlupondm.confirm." +
+                        (userConfig.isLvlUpOnDM() ? "enabled" : "disabled")));
                 break;
             case "0":
             case "wyjdz":
@@ -348,7 +356,7 @@ public class OldSettingsRenderer implements SettingsRenderer {
 //        else builder.append("7. ").append(ctx.getTranslated("ustawienia.server.punkty.wylaczone")).append("\n");
         builder.append("\n0. ").append(ctx.getTranslated("ustawienia.footer"));
         builder.append("```\n").append(ctx.getTranslated("ustawienia.betterver.full",
-                guildUitl.getManageLink(ctx.getGuild())));
+                GuildUtil.getManageLink(ctx.getGuild())));
         ctx.send(builder.toString(), message -> {
             MessageWaiter waiter = new MessageWaiter(eventWaiter, ctx);
             waiter.setTimeoutHandler(() -> onTimeout(message));

@@ -26,7 +26,7 @@ import lombok.Data;
 import pl.fratik.core.entity.DatabaseEntity;
 
 @Table("messagesStats")
-@GIndex("guildId")
+@GIndex({"guildId", "date"})
 @Data
 @AllArgsConstructor
 public class MessagesStats implements DatabaseEntity {

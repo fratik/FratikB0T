@@ -17,10 +17,9 @@
 
 package pl.fratik.stats;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.google.common.eventbus.Subscribe;
 import io.undertow.server.RoutingHandler;
+import lombok.Getter;
+import lombok.Setter;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDAInfo;
 import net.dv8tion.jda.api.entities.Guild;
@@ -29,7 +28,8 @@ import org.slf4j.LoggerFactory;
 import pl.fratik.api.entity.Exceptions;
 import pl.fratik.api.internale.Exchange;
 import pl.fratik.core.Statyczne;
-import pl.fratik.core.event.DatabaseUpdateEvent;
+import pl.fratik.core.cache.Cache;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.moduly.Modul;
 import pl.fratik.core.util.CommonUtil;
 import pl.fratik.stats.entity.CommandCountStats;
@@ -43,26 +43,24 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 class GuildStats {
 
     private final Module stats;
     private final ShardManager shardManager;
+    private final Cache<List<MembersStats>> cacheMms;
+    private final Cache<List<MessagesStats>> cacheMsgs;
+    private final Cache<List<GuildCountStats>> cacheGuilds;
+    private final Cache<List<CommandCountStats>> cacheCommands;
 
-    private static final Cache<String, List<MembersStats>> cacheMms = Caffeine.newBuilder()
-            .maximumSize(300).expireAfterWrite(10, TimeUnit.MINUTES).build();
-    private static final Cache<String, List<MessagesStats>> cacheMsgs = Caffeine.newBuilder()
-            .maximumSize(300).expireAfterWrite(10, TimeUnit.MINUTES).build();
-    private static final Cache<String, List<GuildCountStats>> cacheGuilds = Caffeine.newBuilder()
-            .maximumSize(300).expireAfterWrite(10, TimeUnit.MINUTES).build();
-    private static final Cache<String, List<CommandCountStats>> cacheCommands = Caffeine.newBuilder()
-            .maximumSize(300).expireAfterWrite(10, TimeUnit.MINUTES).build();
-
-    GuildStats(Module stats, Modul modul, ShardManager shardManager) {
+    GuildStats(Module stats, Modul modul, ShardManager shardManager, RedisCacheManager redisCacheManager) {
         this.stats = stats;
         this.shardManager = shardManager;
+        cacheMms = redisCacheManager.new CacheRetriever<List<MembersStats>>(){}.getCache();
+        cacheMsgs = redisCacheManager.new CacheRetriever<List<MessagesStats>>(){}.getCache();
+        cacheGuilds = redisCacheManager.new CacheRetriever<List<GuildCountStats>>(){}.getCache();
+        cacheCommands = redisCacheManager.new CacheRetriever<List<CommandCountStats>>(){}.getCache();
         RoutingHandler routes;
         try {
             routes = (RoutingHandler) modul.getClass().getDeclaredMethod("getRoutes").invoke(modul);
@@ -143,13 +141,13 @@ class GuildStats {
                     tmpCcs = stats.getCommandCountStatsDao().getAll(30);
             }
             List<Wrappers.GuildCountWrapper> gcs = tmpGcs.stream().map(Wrappers.GuildCountWrapper::new)
-                    .sorted((o1, o2) -> (int) (o2.date - o1.date)).peek(o -> {
-                        if (o.date == stats.getCurrentStorageDate()) o.count = shardManager.getGuilds().size();
+                    .sorted(Comparator.comparingLong(Wrappers.GuildCountWrapper::getDate).reversed()).peek(o -> {
+                        if (o.getDate() == stats.getCurrentStorageDate()) o.setCount(shardManager.getGuilds().size());
                     }).collect(Collectors.toList());
             List<Wrappers.CommandStatsWrapper> ccs = tmpCcs.stream().map(Wrappers.CommandStatsWrapper::new)
-                    .sorted((o1, o2) -> (int) (o2.date - o1.date)).peek(cecees -> {
-                        if (cecees.date == stats.getCurrentStorageDate())
-                            cecees.count = cecees.count + stats.getKomend();
+                    .sorted(Comparator.comparingLong(Wrappers.CommandStatsWrapper::getDate).reversed()).peek(cecees -> {
+                        if (cecees.getDate() == stats.getCurrentStorageDate())
+                            cecees.setCount(cecees.getCount() + stats.getKomend());
                     }).collect(Collectors.toList());
             int guildsSummmary = 0;
             int commandsSummary = 0;
@@ -176,7 +174,6 @@ class GuildStats {
         Guild g = shardManager.getGuildById(guildId);
         if (g == null) throw new IllegalArgumentException("nie ma takiego serwera");
         List<MembersStats> list = new ArrayList<>();
-        //noinspection ConstantConditions
         for (MembersStats o : cacheMms.get(guildId, s -> stats.getMembersStatsDao().getAllForGuild(guildId))) {
             if (o.getDate() == stats.getCurrentStorageDate()) o.setCount(g.getMembers().size());
             list.add(o);
@@ -188,7 +185,6 @@ class GuildStats {
         Guild g = shardManager.getGuildById(guildId);
         if (g == null) throw new IllegalArgumentException("nie ma takiego serwera");
         List<MessagesStats> list = new ArrayList<>();
-        //noinspection ConstantConditions
         for (MessagesStats o : cacheMsgs.get(guildId, s -> stats.getMessagesStatsDao().getAllForGuild(guildId))) {
             if (o.getDate() == stats.getCurrentStorageDate()) {
                 o = new MessagesStats(o.getUniqid(), o.getDate(), o.getGuildId(), o.getCount());
@@ -197,18 +193,6 @@ class GuildStats {
             list.add(o);
         }
         return list;
-    }
-
-    @Subscribe
-    private void onDatabaseUpdate(DatabaseUpdateEvent event) {
-        if (event.getEntity() instanceof MembersStats)
-            cacheMms.invalidate(((MembersStats) event.getEntity()).getGuildId());
-        if (event.getEntity() instanceof GuildCountStats)
-            cacheGuilds.invalidateAll();
-        if (event.getEntity() instanceof CommandCountStats)
-            cacheCommands.invalidateAll();
-        if (event.getEntity() instanceof MessagesStats)
-            cacheMsgs.invalidate(((MessagesStats) event.getEntity()).getGuildId());
     }
 
     @SuppressWarnings({"FieldCanBeLocal", "MismatchedQueryAndUpdateOfCollection", "unused", "squid:S1068"})
@@ -246,8 +230,8 @@ class GuildStats {
         }
 
         private static class GuildCountWrapper {
-            private final long date;
-            private int count;
+            @Getter private final long date;
+            @Getter @Setter private int count;
 
             GuildCountWrapper(GuildCountStats ms) {
                 date = ms.getDate();
@@ -256,8 +240,8 @@ class GuildStats {
         }
 
         private static class CommandStatsWrapper {
-            private final long date;
-            private int count;
+            @Getter private final long date;
+            @Getter @Setter private int count;
 
             CommandStatsWrapper(CommandCountStats ms) {
                 date = ms.getDate();

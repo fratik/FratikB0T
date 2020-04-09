@@ -17,19 +17,21 @@
 
 package pl.fratik.core.tlumaczenia;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.base.Charsets;
 import com.google.common.eventbus.Subscribe;
 import io.sentry.Sentry;
 import io.sentry.event.Event;
 import io.sentry.event.EventBuilder;
 import lombok.Getter;
+import lombok.Setter;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.sharding.ShardManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pl.fratik.core.cache.Cache;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.UserConfig;
@@ -43,21 +45,21 @@ import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.TimeUnit;
 
 public class Tlumaczenia {
     private final UserDao userDao;
     private final GuildDao guildDao;
     private final Logger logger;
     @Getter private Map<Language, Properties> languages;
-    private final Cache<String, Language> languageCache;
+    private final Cache<Language> languageCache;
     private static final String NOTTRA = " nie jest przetłumaczone!";
+    @Getter @Setter private static ShardManager shardManager;
 
-    public Tlumaczenia(UserDao userDao, GuildDao guildDao) {
+    public Tlumaczenia(UserDao userDao, GuildDao guildDao, RedisCacheManager redisCacheManager) {
         this.userDao = userDao;
         this.guildDao = guildDao;
         logger = LoggerFactory.getLogger(getClass());
-        languageCache = Caffeine.newBuilder().expireAfterWrite(5, TimeUnit.MINUTES).maximumSize(1000).build();
+        languageCache = redisCacheManager.new CacheRetriever<Language>(){}.getCache();
     }
 
     public void loadMessages() {

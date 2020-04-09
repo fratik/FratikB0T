@@ -91,8 +91,8 @@ public class WarnUtil {
             }
         }
         if (warnCases.size() == gc.getWarnyNaTymczasowegoBana()) {
-            Case nc = new CaseBuilder(member.getGuild()).setKara(Kara.TIMEDBAN)
-                    .setTimestamp(Instant.now()).setUser(member.getUser()).createCase();
+            Case nc = new CaseBuilder(member.getGuild()).setTimestamp(Instant.now())
+                    .setUser(member.getUser()).createCase();
             nc.setIssuerId(member.getJDA().getSelfUser());
             nc.setReason(tlumaczenia.get(lang, "modlog.auto.tempban.reason", warnCases.size()));
             Calendar cal = Calendar.getInstance();
