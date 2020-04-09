@@ -60,12 +60,12 @@ public class ModLogBuilder {
         else iId = UserUtil.formatDiscrim(iUser);
         return generate(aCase.getType(), sm.retrieveUserById(aCase.getUserId()).complete(), iId, reason,
                 aCase.getType().getKolor(), aCase.getCaseId(), aCase.isValid(), aCase.getValidTo(),
-                aCase.getTimestamp(), lang, guild);
+                aCase.getTimestamp(), aCase.getIleRazy(), lang, guild);
     }
 
-    private static MessageEmbed generate(Kara kara, User karany, String moderator, String reason, Color kolor, int caseId,
-                                         boolean valid, TemporalAccessor validTo, TemporalAccessor timestamp, Language lang,
-                                         Guild guild) {
+    public static MessageEmbed generate(Kara kara, User karany, String moderator, String reason, Color kolor,
+                                         int caseId, boolean valid, TemporalAccessor validTo,
+                                         TemporalAccessor timestamp, Integer ileRazy, Language lang, Guild guild) {
         if (tlumaczenia == null) throw new IllegalStateException("Tlumaczenia nie ustawione!");
         EmbedBuilder eb = new EmbedBuilder()
                 .setColor(kolor);
@@ -99,6 +99,11 @@ public class ModLogBuilder {
                 eb.addField(tlumaczenia.get(lang, "modlog.active." + valid + ".to"),
                         sdf.format(Date.from(Instant.from(validTo))), false);
             }
+        }
+        if ((kara == Kara.WARN || kara == Kara.UNWARN) && ileRazy != null) {
+            eb.addField(tlumaczenia.get(lang, "modlog.times.header"),
+                    tlumaczenia.get(lang, "modlog.times.content." + kara.name().toLowerCase() + "s", ileRazy),
+                    false);
         }
         return eb.build();
     }

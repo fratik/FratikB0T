@@ -19,8 +19,11 @@ package pl.fratik.moderation.utils;
 
 import io.sentry.Sentry;
 import io.sentry.event.User;
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageChannel;
+import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.entities.TextChannel;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Kara;
@@ -47,54 +50,59 @@ public class WarnUtil {
     public static synchronized void takeAction(GuildDao guildDao, CasesDao casesDao, Member member, MessageChannel channel, Language lang, Tlumaczenia tlumaczenia, ManagerKomend managerKomend) {
         CaseRow cr = casesDao.get(member.getGuild());
         List<Case> mcases = cr.getCases().stream().filter(c -> c.getUserId().equals(member.getUser().getId())).collect(Collectors.toList());
+        int cases = 0;
         List<Case> warnCases = mcases.stream().filter(c -> c.getType().equals(Kara.WARN)).collect(Collectors.toList());
         List<Case> unwarnCases = mcases.stream().filter(c -> c.getType().equals(Kara.UNWARN)).collect(Collectors.toList());
         // powody sie nie liczą, ważne by była dobra liczba
-        try {
-            if (!unwarnCases.isEmpty()) {
-                warnCases.subList(0, unwarnCases.size()).clear();
-            }
-        } catch (Exception e) {
+        for (Case c : warnCases) {
+            if (c.getIleRazy() == null) cases++;
+            else cases += c.getIleRazy();
+        }
+        for (Case c : unwarnCases) {
+            if (c.getIleRazy() == null) cases--;
+            else cases -= c.getIleRazy();
+        }
+        if (cases < 0) {
             Sentry.getContext().setUser(new User(member.getId(), member.getUser().getAsTag(), null, null));
             Sentry.getContext().addExtra("warnCases", warnCases);
             Sentry.getContext().addExtra("unwarnCases", unwarnCases);
-            Sentry.capture(e);
+            Sentry.capture(new AssertionError("cases < 0"));
             Sentry.clearContext();
             String prefix = managerKomend.getPrefixes(member.getGuild()).get(0);
             channel.sendMessage(tlumaczenia.get(lang, "modlog.take.action.unexpected.error", prefix, prefix)).queue();
             return;
         }
         GuildConfig gc = guildDao.get(member.getGuild());
-        if (warnCases.size() == gc.getWarnyNaKick()) {
+        if (cases == gc.getWarnyNaKick()) {
             Case nc = new CaseBuilder(member.getGuild()).setKara(Kara.KICK)
                     .setTimestamp(Instant.now()).setUser(member.getUser()).createCase();
             nc.setIssuerId(member.getJDA().getSelfUser());
-            nc.setReason(tlumaczenia.get(lang, "modlog.auto.kick.reason", warnCases.size()));
+            nc.setReason(tlumaczenia.get(lang, "modlog.auto.kick.reason", cases));
             List<Case> caseList = ModLogListener.getKnownCases().getOrDefault(member.getGuild(), new ArrayList<>());
             caseList.add(nc);
             ModLogListener.getKnownCases().put(member.getGuild(), caseList);
             boolean errored = false;
             try {
                 member.getGuild().kick(member).reason(tlumaczenia.get(lang,
-                        "modlog.auto.kick.audit.reason", warnCases.size())).complete();
+                        "modlog.auto.kick.audit.reason", cases)).complete();
                 channel.sendMessage(tlumaczenia.get(lang, "modlog.auto.kick.notice",
                         member.getUser().getAsTag().replaceAll("@(everyone|here)", "@\u200b$1"),
-                        warnCases.size(), managerKomend.getPrefixes(member.getGuild()).get(0))).complete();
+                        cases, managerKomend.getPrefixes(member.getGuild()).get(0))).complete();
             } catch (Exception e) {
                 errored = true;
             }
             if (errored) {
                 channel.sendMessage(tlumaczenia.get(lang, "modlog.auto.kick.cant",
                         member.getUser().getAsTag().replaceAll("@(everyone|here)", "@\u200b$1"),
-                        warnCases.size(), managerKomend.getPrefixes(member.getGuild()).get(0))).complete();
+                        cases, managerKomend.getPrefixes(member.getGuild()).get(0))).complete();
                 return;
             }
         }
-        if (warnCases.size() == gc.getWarnyNaTymczasowegoBana()) {
+        if (cases == gc.getWarnyNaTymczasowegoBana()) {
             Case nc = new CaseBuilder(member.getGuild()).setTimestamp(Instant.now())
                     .setUser(member.getUser()).createCase();
             nc.setIssuerId(member.getJDA().getSelfUser());
-            nc.setReason(tlumaczenia.get(lang, "modlog.auto.tempban.reason", warnCases.size()));
+            nc.setReason(tlumaczenia.get(lang, "modlog.auto.tempban.reason", cases));
             Calendar cal = Calendar.getInstance();
             cal.setTime(Date.from(Instant.from(Objects.requireNonNull(nc.getTimestamp()))));
             cal.add(Calendar.DAY_OF_MONTH, gc.getDlugoscTymczasowegoBanaZaWarny());
@@ -105,11 +113,11 @@ public class WarnUtil {
             boolean errored = false;
             try {
                 member.getGuild().ban(member, 0).reason(tlumaczenia.get(lang,
-                        "modlog.auto.tempban.audit.reason", warnCases.size(),
+                        "modlog.auto.tempban.audit.reason", cases,
                         gc.getDlugoscTymczasowegoBanaZaWarny())).complete();
                 channel.sendMessage(tlumaczenia.get(lang, "modlog.auto.tempban.notice",
                         member.getUser().getAsTag().replaceAll("@(everyone|here)", "@\u200b$1"),
-                        gc.getDlugoscTymczasowegoBanaZaWarny(), warnCases.size(),
+                        gc.getDlugoscTymczasowegoBanaZaWarny(), cases,
                         managerKomend.getPrefixes(member.getGuild()).get(0))).complete();
             } catch (Exception e) {
                 errored = true;
@@ -117,32 +125,58 @@ public class WarnUtil {
             if (errored) {
                 channel.sendMessage(tlumaczenia.get(lang, "modlog.auto.tempban.cant",
                         member.getUser().getAsTag().replaceAll("@(everyone|here)", "@\u200b$1"),
-                        gc.getDlugoscTymczasowegoBanaZaWarny(), warnCases.size(),
+                        gc.getDlugoscTymczasowegoBanaZaWarny(), cases,
                         managerKomend.getPrefixes(member.getGuild()).get(0))).complete();
             }
         }
-        if (warnCases.size() == gc.getWarnyNaBan()) {
+        if (cases == gc.getWarnyNaBan()) {
             Case nc = new CaseBuilder(member.getGuild()).setKara(Kara.BAN)
                     .setTimestamp(Instant.now()).setUser(member.getUser()).createCase();
             nc.setIssuerId(member.getJDA().getSelfUser());
-            nc.setReason(tlumaczenia.get(lang, "modlog.auto.ban.reason", warnCases.size()));
+            nc.setReason(tlumaczenia.get(lang, "modlog.auto.ban.reason", cases));
             List<Case> caseList = ModLogListener.getKnownCases().getOrDefault(member.getGuild(), new ArrayList<>());
             caseList.add(nc);
             ModLogListener.getKnownCases().put(member.getGuild(), caseList);
             boolean errored = false;
             try {
                 member.getGuild().ban(member, 0).reason(tlumaczenia.get(lang,
-                        "modlog.auto.ban.audit.reason", warnCases.size())).complete();
+                        "modlog.auto.ban.audit.reason", cases)).complete();
                 channel.sendMessage(tlumaczenia.get(lang, "modlog.auto.ban.notice",
                         member.getUser().getAsTag().replaceAll("@(everyone|here)", "@\u200b$1"),
-                        warnCases.size(), managerKomend.getPrefixes(member.getGuild()).get(0))).complete();
+                        cases, managerKomend.getPrefixes(member.getGuild()).get(0))).complete();
             } catch (Exception e) {
                 errored = true;
             }
             if (errored) {
                 channel.sendMessage(tlumaczenia.get(lang, "modlog.auto.ban.cant",
                         member.getUser().getAsTag().replaceAll("@(everyone|here)", "@\u200b$1"),
-                        warnCases.size(), managerKomend.getPrefixes(member.getGuild()).get(0))).complete();
+                        cases, managerKomend.getPrefixes(member.getGuild()).get(0))).complete();
+            }
+            if (gc.isResetujOstrzezeniaPrzyBanie()) {
+                Case ca = new CaseBuilder(member.getGuild()).setKara(Kara.UNWARN)
+                        .setTimestamp(Instant.now()).setUser(member.getUser()).setIleRazy(cases).createCase();
+                ca.setIssuerId(member.getJDA().getSelfUser());
+                ca.setReason(tlumaczenia.get(lang, "modlog.auto.reset"));
+                TextChannel mlogchan = null;
+                if (gc.getModLog() != null && !gc.getModLog().isEmpty())
+                    mlogchan = channel.getJDA().getTextChannelById(gc.getModLog());
+                if (mlogchan != null && mlogchan.getGuild().getSelfMember().hasPermission(mlogchan,
+                        Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_WRITE, Permission.MESSAGE_READ)) {
+                    MessageEmbed embed = ModLogBuilder.generate(ca.getType(), member.getUser(),
+                            member.getJDA().getSelfUser().getAsTag(), ca.getReason(), ca.getType().getKolor(),
+                            ca.getCaseId(), ca.isValid(), ca.getValidTo(), ca.getTimestamp(), ca.getIleRazy(),
+                            lang, member.getGuild());
+                    mlogchan.sendMessage(embed).queue(message -> {
+                        ca.setMessageId(message.getId());
+                        CaseRow caseRow = casesDao.get(member.getGuild());
+                        caseRow.getCases().add(ca);
+                        casesDao.save(caseRow);
+                    });
+                } else {
+                    CaseRow caseRow = casesDao.get(member.getGuild());
+                    caseRow.getCases().add(ca);
+                    casesDao.save(caseRow);
+                }
             }
         }
     }
