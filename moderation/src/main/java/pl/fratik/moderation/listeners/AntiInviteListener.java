@@ -17,8 +17,6 @@
 
 package pl.fratik.moderation.listeners;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.Subscribe;
 import net.dv8tion.jda.api.Permission;
@@ -26,11 +24,12 @@ import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageUpdateEvent;
 import net.dv8tion.jda.api.sharding.ShardManager;
+import pl.fratik.core.cache.Cache;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.command.PermLevel;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Kara;
-import pl.fratik.core.event.DatabaseUpdateEvent;
 import pl.fratik.core.manager.ManagerKomend;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.UserUtil;
@@ -43,7 +42,6 @@ import pl.fratik.moderation.utils.WarnUtil;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 public class AntiInviteListener {
 
@@ -52,16 +50,15 @@ public class AntiInviteListener {
     private final ManagerKomend managerKomend;
     private final ShardManager shardManager;
     private final CasesDao casesDao;
-    private static final Cache<String, Boolean> antiinviteCache = Caffeine.newBuilder().maximumSize(1000).expireAfterWrite(10, TimeUnit.MINUTES).build();
-    private static final Cache<String, List<String>> antiinviteIgnoreChannelsCache = Caffeine.newBuilder().maximumSize(1000).expireAfterWrite(10, TimeUnit.MINUTES).build();
-    private static final Cache<String, String> modlogCache = Caffeine.newBuilder().maximumSize(1000).expireAfterWrite(10, TimeUnit.MINUTES).build();
+    private final Cache<GuildConfig> gcCache;
 
-    public AntiInviteListener(GuildDao guildDao, Tlumaczenia tlumaczenia, ManagerKomend managerKomend, ShardManager shardManager, CasesDao casesDao) {
+    public AntiInviteListener(GuildDao guildDao, Tlumaczenia tlumaczenia, ManagerKomend managerKomend, ShardManager shardManager, CasesDao casesDao, RedisCacheManager redisCacheManager) {
         this.guildDao = guildDao;
         this.tlumaczenia = tlumaczenia;
         this.managerKomend = managerKomend;
         this.shardManager = shardManager;
         this.casesDao = casesDao;
+        gcCache = redisCacheManager.new CacheRetriever<GuildConfig>(){}.getCache();
     }
 
     @Subscribe
@@ -86,22 +83,6 @@ public class AntiInviteListener {
         if (UserUtil.getPermlevel(e.getMember(), guildDao, shardManager, PermLevel.OWNER).getNum() >= 1) return;
 
         if (containsInvite(e.getMessage().getContentRaw())) addKara(e.getMessage());
-    }
-
-    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
-    private boolean isAntiinvite(Guild guild) {
-        //noinspection ConstantConditions - nie moze byc null
-        return antiinviteCache.get(guild.getId(), id -> guildDao.get(guild).getAntiInvite());
-    }
-
-    private boolean isIgnored(TextChannel channel) {
-        //noinspection ConstantConditions - nie moze byc null
-        return antiinviteIgnoreChannelsCache.get(channel.getGuild().getId(),
-                id -> guildDao.get(id).getKanalyGdzieAntiInviteNieDziala()).contains(channel.getId());
-    }
-
-    private String getModLogChan(Guild guild) {
-        return modlogCache.get(guild.getId(), id -> guildDao.get(guild).getModLog());
     }
 
     private boolean containsInvite(String s) {
@@ -150,10 +131,19 @@ public class AntiInviteListener {
         }
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+    private boolean isAntiinvite(Guild guild) {
+        Boolean a = gcCache.get(guild.getId(), guildDao::get).getAntiInvite();
+        return a != null;
+    }
 
-    @Subscribe
-    public void onDatabaseUpdate(DatabaseUpdateEvent e) {
-        if (!(e.getEntity() instanceof GuildConfig)) return;
-        antiinviteCache.invalidate(((GuildConfig) e.getEntity()).getGuildId());
+    private boolean isIgnored(TextChannel channel) {
+        List<String> id = gcCache.get(channel.getGuild().getId(), guildDao::get).getKanalyGdzieAntiInviteNieDziala();
+        if (id != null) return id.contains(channel.getId());
+        return false;
+    }
+
+    private String getModLogChan(Guild guild) {
+        return gcCache.get(guild.getId(), guildDao::get).getModLog();
     }
 }

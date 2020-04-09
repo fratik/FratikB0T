@@ -34,6 +34,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.Statyczne;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.entity.*;
 import pl.fratik.core.event.ModuleLoadedEvent;
 import pl.fratik.core.event.ModuleUnloadedEvent;
@@ -93,14 +94,17 @@ public class ManagerModulowImpl implements ManagerModulow {
     private Map<String, Collection<String>> dependencies = null;
     private Map<String, Collection<String>> peerDependencies = null;
     private Graph<String> graph = null;
+    private final RedisCacheManager redisCacheManager;
     private GbanDao gbanDao;
 
     public ManagerModulowImpl(ShardManager shardManager, ManagerBazyDanych managerBazyDanych, GuildDao guildDao,
-                              MemberDao memberDao, UserDao userDao, GbanDao gbanDao, ScheduleDao scheduleDao, ManagerKomend managerKomend,
-                              ManagerArgumentow managerArgumentow, EventWaiter eventWaiter, Tlumaczenia tlumaczenia, EventBus eventBus) {
+                              MemberDao memberDao, UserDao userDao, RedisCacheManager redisCacheManager, GbanDao gbanDao,
+                              ScheduleDao scheduleDao, ManagerKomend managerKomend, ManagerArgumentow managerArgumentow,
+                              EventWaiter eventWaiter, Tlumaczenia tlumaczenia, EventBus eventBus) {
         this.guildDao = guildDao;
         this.memberDao = memberDao;
         this.userDao = userDao;
+        this.redisCacheManager = redisCacheManager;
         this.gbanDao = gbanDao;
         this.scheduleDao = scheduleDao;
         moduleClassLoader = new ModuleClassLoader();
@@ -184,6 +188,7 @@ public class ManagerModulowImpl implements ManagerModulow {
                         bind(ManagerKomend.class).toInstance(managerKomend);
                         bind(ManagerArgumentow.class).toInstance(managerArgumentow);
                         bind(ManagerModulow.class).toInstance(ManagerModulowImpl.this);
+                        bind(RedisCacheManager.class).toInstance(redisCacheManager);
                     }
                 });
 

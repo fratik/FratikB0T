@@ -30,7 +30,7 @@ import lombok.Getter;
 import lombok.Setter;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.events.GenericEvent;
-import net.dv8tion.jda.api.events.guild.GenericGuildEvent;
+import net.dv8tion.jda.api.events.guild.voice.GenericGuildVoiceEvent;
 import net.dv8tion.jda.api.hooks.VoiceDispatchInterceptor;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import okhttp3.Response;
@@ -146,10 +146,16 @@ public class NowyManagerMuzyki {
     }
 
     public ManagerMuzykiSerwera getManagerMuzykiSerwera(Guild guild) {
+        return getManagerMuzykiSerwera(guild, true);
+    }
+
+    public ManagerMuzykiSerwera getManagerMuzykiSerwera(Guild guild, boolean create) {
         if (kolejki.containsKey(guild.getId())) return kolejki.get(guild.getId());
-        ManagerMuzykiSerwera mms = new NowyManagerMuzykiSerwera(guild, lavaClient, tlumaczenia, queueDao, guildDao, executorService);
-        kolejki.put(guild.getId(), mms);
-        return kolejki.get(guild.getId());
+        else if (create) {
+            ManagerMuzykiSerwera mms = new NowyManagerMuzykiSerwera(guild, lavaClient, tlumaczenia, queueDao, guildDao, executorService);
+            kolejki.put(guild.getId(), mms);
+            return kolejki.get(guild.getId());
+        } else return null;
     }
 
     public List<AudioTrack> getAudioTracks(String url) {
@@ -201,8 +207,9 @@ public class NowyManagerMuzyki {
     @Subscribe
     @AllowConcurrentEvents
     public void onEvent(GenericEvent e) {
-        if (e instanceof GenericGuildEvent) {
-            getManagerMuzykiSerwera(((GenericGuildEvent) e).getGuild()).onEvent(e);
+        if (e instanceof GenericGuildVoiceEvent) {
+            ManagerMuzykiSerwera mms = getManagerMuzykiSerwera(((GenericGuildVoiceEvent) e).getGuild(), false);
+            if (mms != null) mms.onEvent(e);
         }
         lavaClient.onEvent(e);
     }

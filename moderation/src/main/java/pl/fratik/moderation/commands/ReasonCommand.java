@@ -27,11 +27,13 @@ import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.entity.*;
 import pl.fratik.core.manager.ManagerKomend;
+import pl.fratik.core.util.DurationUtil;
 import pl.fratik.moderation.entity.Case;
 import pl.fratik.moderation.entity.CaseRow;
 import pl.fratik.moderation.entity.CasesDao;
 import pl.fratik.moderation.utils.ModLogBuilder;
 
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Objects;
@@ -74,24 +76,34 @@ public class ReasonCommand extends ModerationCommand {
             context.send(context.getTranslated("reason.invalid.case"));
             return false;
         }
-        if (reason.equals("")) {
+        DurationUtil.Response durationResp;
+        try {
+            durationResp = DurationUtil.parseDuration(reason);
+        } catch (IllegalArgumentException e) {
+            context.send(context.getTranslated("reason.max.duration"));
+            return false;
+        }
+        String powod = durationResp.getTekst();
+        Instant akcjaDo = durationResp.getDoKiedy();
+        if (powod.equals("")) {
             context.send(context.getTranslated("reason.reason.empty"));
             return false;
         }
         Case aCase = caseRow.getCases().get(caseId - 1);
+        if (akcjaDo != null) aCase.setValidTo(akcjaDo);
         @Nullable TextChannel modLogChannel = gc.getModLog() != null && !Objects.equals(gc.getModLog(), "") ?
                 context.getGuild().getTextChannelById(gc.getModLog()) : null;
         Consumer<Throwable> throwableConsumer = err -> context.send(context.getTranslated("reason.failed"));
         if (modLogChannel == null || !context.getGuild().getSelfMember().hasPermission(modLogChannel,
                 Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_WRITE, Permission.MESSAGE_READ)) {
-            aCase.setReason(reason);
+            aCase.setReason(powod);
             aCase.setIssuerId(context.getSender().getId());
             context.send(context.getTranslated(RESU));
             casesDao.save(caseRow);
             return true;
         }
         if (aCase.getMessageId() == null) {
-            aCase.setReason(reason);
+            aCase.setReason(powod);
             aCase.setIssuerId(context.getSender().getId());
             MessageEmbed embed = ModLogBuilder.generate(aCase, context.getGuild(), shardManager, gc.getLanguage(), managerKomend);
             modLogChannel.sendMessage(embed).queue(m -> {
@@ -103,7 +115,7 @@ public class ReasonCommand extends ModerationCommand {
             return true;
         }
         modLogChannel.retrieveMessageById(aCase.getMessageId()).queue(msg -> {
-            aCase.setReason(reason);
+            aCase.setReason(powod);
             aCase.setIssuerId(context.getSender().getId());
             msg.editMessage(ModLogBuilder.generate(aCase, context.getGuild(), shardManager, gc.getLanguage(), managerKomend))
                     .override(true).queue(m -> {
@@ -111,7 +123,7 @@ public class ReasonCommand extends ModerationCommand {
                         casesDao.save(caseRow);
                     }, throwableConsumer);
         }, error -> {
-            aCase.setReason(reason);
+            aCase.setReason(powod);
             aCase.setIssuerId(context.getSender().getId());
             MessageEmbed embed = ModLogBuilder.generate(aCase, context.getGuild(), shardManager, gc.getLanguage(), managerKomend);
             modLogChannel.sendMessage(embed).queue(m -> {

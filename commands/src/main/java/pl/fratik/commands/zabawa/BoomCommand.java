@@ -17,56 +17,50 @@
 
 package pl.fratik.commands.zabawa;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.google.common.eventbus.EventBus;
-import com.google.common.eventbus.Subscribe;
 import net.dv8tion.jda.api.OnlineStatus;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.cache.Cache;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.entity.UserConfig;
 import pl.fratik.core.entity.UserDao;
-import pl.fratik.core.event.DatabaseUpdateEvent;
 import pl.fratik.core.util.EventWaiter;
 import pl.fratik.core.util.MessageWaiter;
 
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class BoomCommand extends Command {
     private final EventWaiter eventWaiter;
-    private final EventBus eventBus;
-    private static final Cache<String, Boolean> boomWlaczoneCache = Caffeine.newBuilder().expireAfterWrite(5, TimeUnit.MINUTES).maximumSize(100).build();
+    private static Cache<UserConfig> ucCache;
     private static UserDao userDao;
     private ExecutorService executor;
     private boolean noMore;
 
-    public BoomCommand(EventWaiter eventWaiter, EventBus eventBus, UserDao userDao) {
+    public BoomCommand(EventWaiter eventWaiter, UserDao userDao, RedisCacheManager redisCacheManager) {
         this.eventWaiter = eventWaiter;
-        this.eventBus = eventBus;
-        initUserDao(userDao);
+        initStatic(userDao, redisCacheManager.new CacheRetriever<UserConfig>(){}.getCache());
         name = "boom";
         category = CommandCategory.FUN;
         cooldown = 60;
         noMore = false;
-        aliases = new String[] {"bomba", "llahakbar", "bom", "bum"};
+        aliases = new String[] {"bomba", "allahakbar", "bom", "bum"};
     }
 
-    private static void initUserDao(UserDao ud) {
+    private static void initStatic(UserDao ud, Cache<UserConfig> c) {
         BoomCommand.userDao = ud;
+        BoomCommand.ucCache = c;
     }
 
     @Override
     public void onRegister() {
-        eventBus.register(this);
         executor = Executors.newFixedThreadPool(4);
         BoomRundka.rundki = new ArrayList<>(); // NOSONAR
         noMore = false;
@@ -74,11 +68,6 @@ public class BoomCommand extends Command {
 
     @Override
     public void onUnregister() {
-        try {
-            eventBus.unregister(this);
-        } catch (Exception e) {
-            // nic
-        }
         noMore = true;
         for (BoomRundka rundka : BoomRundka.rundki) rundka.end = true;
         long initialBlew = BoomRundka.rundki.stream().filter(r -> r.blew).count();
@@ -128,12 +117,6 @@ public class BoomCommand extends Command {
         context.send(context.getTranslated("boom.warning"));
         executor.submit(new BoomRundka(context, eventWaiter)::execute);
         return true;
-    }
-
-    @Subscribe
-    public void onDatabaseUpdate(DatabaseUpdateEvent e) {
-        if (e.getEntity() instanceof UserConfig)
-            boomWlaczoneCache.invalidate(((UserConfig) e.getEntity()).getId());
     }
 
     private static class BoomRundka {
@@ -214,7 +197,7 @@ public class BoomCommand extends Command {
         }
 
         private static boolean isBoomWlaczone(User user) {
-            return Objects.requireNonNull(boomWlaczoneCache.get(user.getId(), u -> userDao.get(u).isBoomWlaczone()));
+            return ucCache.get(user.getId(), u -> userDao.get(u)).isBoomWlaczone();
         }
     }
 }
