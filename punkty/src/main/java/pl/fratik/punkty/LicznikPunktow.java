@@ -291,8 +291,8 @@ public class LicznikPunktow {
                                 .queue(null, kurwa -> {});
                     } else {
                         ch.sendMessage(tlumaczenia.get(l,
-                                "generic.lvlup", event.getMember().getUser().getName(), event.getLevel(), prefix))
-                                .queue(null, kurwa -> {});
+                                "generic.lvlup.channel", event.getMember().getUser().getName(),
+                                event.getLevel(), prefix)).queue(null, kurwa -> {});
                     }
                 } catch (Exception e) {
                     /*lul*/
