@@ -253,7 +253,7 @@ class FratikB0T {
                 moduleManager = new ManagerModulowImpl(shardManager, mbd, guildDao, memberDao, userDao, redisCacheManager,
                         gbanDao, scheduleDao, managerKomend, managerArgumentow, eventWaiter, tlumaczenia, eventBus);
                 glownyService = new ServiceManager(ImmutableList.of(new FratikB0TService(shardManager, eventBus,
-                        eventWaiter, tlumaczenia, managerKomend, mbd, redisCacheManager, guildDao, moduleManager, gbanDao)));
+                        eventWaiter, tlumaczenia, managerKomend, mbd, guildDao, moduleManager, gbanDao)));
                 statusService = new ServiceManager(ImmutableList.of(new StatusService(shardManager)));
                 scheduleService = new ServiceManager(ImmutableList.of(new ScheduleService(shardManager, scheduleDao,
                         tlumaczenia, eventBus)));

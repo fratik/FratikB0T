@@ -18,10 +18,7 @@
 package pl.fratik.core.manager.implementation;
 
 import com.google.common.base.Joiner;
-import com.google.common.eventbus.AllowConcurrentEvents;
-import com.google.common.eventbus.AsyncEventBus;
 import com.google.common.eventbus.EventBus;
-import com.google.common.eventbus.Subscribe;
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
@@ -46,7 +43,6 @@ import pl.fratik.core.moduly.Modul;
 import pl.fratik.core.moduly.ModuleDescription;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.CommonUtil;
-import pl.fratik.core.util.EventBusErrorHandler;
 import pl.fratik.core.util.EventWaiter;
 import pl.fratik.core.util.GsonUtil;
 import pl.fratik.core.util.graph.Graph;
@@ -57,7 +53,6 @@ import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -76,7 +71,6 @@ public class ManagerModulowImpl implements ManagerModulow {
     private ManagerBazyDanych managerBazyDanych;
     private Tlumaczenia tlumaczenia;
     private Logger logger;
-    private EventBus moduleEventBus;
     private EventWaiter eventWaiter;
     @Getter private HashMap<String, Modul> modules;
     private HashMap<String, URLClassLoader> classLoaders;
@@ -108,7 +102,7 @@ public class ManagerModulowImpl implements ManagerModulow {
         this.gbanDao = gbanDao;
         this.scheduleDao = scheduleDao;
         moduleClassLoader = new ModuleClassLoader();
-        moduleEventBus = new AsyncEventBus(Executors.newFixedThreadPool(16), EventBusErrorHandler.instance);
+        this.eventBus = eventBus;
         logger = LoggerFactory.getLogger(getClass());
         this.managerKomend = managerKomend;
         this.managerArgumentow = managerArgumentow;
@@ -177,7 +171,7 @@ public class ManagerModulowImpl implements ManagerModulow {
                         }
                         bind(ShardManager.class).toInstance(shardManager);
                         bind(Tlumaczenia.class).toInstance(tlumaczenia);
-                        bind(EventBus.class).toInstance(moduleEventBus);
+                        bind(EventBus.class).toInstance(eventBus);
                         bind(EventWaiter.class).toInstance(eventWaiter);
                         bind(ManagerBazyDanych.class).toInstance(managerBazyDanych);
                         bind(GuildDao.class).toInstance(guildDao);
@@ -588,12 +582,4 @@ public class ManagerModulowImpl implements ManagerModulow {
             return null;
         }
     }
-
-    @Subscribe
-    @AllowConcurrentEvents
-    public void onEvent(Object object) {
-        if (moduleEventBus != null)
-            moduleEventBus.post(object);
-    }
-
 }

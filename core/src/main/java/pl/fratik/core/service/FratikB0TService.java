@@ -25,10 +25,11 @@ import io.sentry.Sentry;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.entity.GbanDao;
 import pl.fratik.core.entity.GuildDao;
-import pl.fratik.core.manager.*;
+import pl.fratik.core.manager.ManagerBazyDanych;
+import pl.fratik.core.manager.ManagerKomend;
+import pl.fratik.core.manager.ManagerModulow;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.EventWaiter;
 import pl.fratik.core.util.GuildUtil;
@@ -40,7 +41,7 @@ public class FratikB0TService extends AbstractIdleService {
     private final ShardManager shardManager;
 
     @SuppressWarnings("squid:S00107")
-    public FratikB0TService(ShardManager shardManager, EventBus eventBus, EventWaiter eventWaiter, Tlumaczenia tlumaczenia, ManagerKomend managerKomend, ManagerBazyDanych managerBazyDanych, RedisCacheManager redisCacheManager, GuildDao guildDao, ManagerModulow moduleManager, GbanDao gbanDao) {
+    public FratikB0TService(ShardManager shardManager, EventBus eventBus, EventWaiter eventWaiter, Tlumaczenia tlumaczenia, ManagerKomend managerKomend, ManagerBazyDanych managerBazyDanych, GuildDao guildDao, ManagerModulow moduleManager, GbanDao gbanDao) {
         logger = LoggerFactory.getLogger(getClass());
 
         this.shardManager = shardManager;
@@ -57,7 +58,6 @@ public class FratikB0TService extends AbstractIdleService {
         GuildUtil.setShardManager(shardManager);
         UserUtil.setGbanDao(gbanDao);
         eventBus.register(new GuildUtil());
-        eventBus.register(redisCacheManager);
         eventBus.register(this);
     }
 
