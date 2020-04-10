@@ -60,7 +60,7 @@ public class PogodaCommand extends Command {
         }
         try {
             String downloaded = new String(NetworkUtil.download("http://en.wttr.in/" +
-                    NetworkUtil.encodeURIComponent(lokacja) + "?T0m"));
+                    NetworkUtil.encodeURIComponent(lokacja) + "?T"));
             downloaded = Jsoup.parse(downloaded).getElementsByTag("body").text();
             if (downloaded.startsWith("ERROR:")) {
                 context.send(context.getTranslated("pogoda.failed"));
