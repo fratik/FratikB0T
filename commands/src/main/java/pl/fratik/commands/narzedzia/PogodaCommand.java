@@ -59,8 +59,7 @@ public class PogodaCommand extends Command {
             return false;
         }
         try {
-            String downloaded = new String(NetworkUtil.download("http://" + context.getLanguage().getLocale()
-                    .getLanguage().toLowerCase().split("_")[0] + ".wttr.in/" +
+            String downloaded = new String(NetworkUtil.download("http://en.wttr.in/" +
                     NetworkUtil.encodeURIComponent(lokacja) + "?T0m"));
             downloaded = Jsoup.parse(downloaded).getElementsByTag("body").text();
             if (downloaded.startsWith("ERROR:")) {
