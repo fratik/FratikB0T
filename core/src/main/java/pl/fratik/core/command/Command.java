@@ -51,6 +51,7 @@ public abstract class Command {
     @Getter protected boolean allowInDMs = false;
     @Getter protected final HashMap<String, Method> subCommands = new HashMap<>();
     @Getter protected int cooldown;
+    @Getter protected boolean ignoreGaPerm = false;
 
     protected boolean execute(@NotNull CommandContext context) {
         throw new UnsupportedOperationException("Komenda nie ma zaimplementowanej funkcji execute()");

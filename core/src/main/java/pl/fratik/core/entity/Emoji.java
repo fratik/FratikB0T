@@ -109,7 +109,8 @@ public class Emoji extends EmoteImpl implements ListedEmote {
     }
 
     public static Emoji resolve(String emote, ShardManager jda) {
-        if (EmojiUtils.isEmoji(emote)) return new Emoji(emote);
+        if (EmojiUtils.isEmoji(emote) || emote.startsWith("UNICODE:"))
+            return new Emoji(emote.replace("UNICODE:", ""));
         else {
             try {
                 return new Emoji((EmoteImpl) Objects.requireNonNull(jda.getEmoteById(emote)));
@@ -146,5 +147,10 @@ public class Emoji extends EmoteImpl implements ListedEmote {
             }
             return Long.hashCode(liczba);
         }
+    }
+
+    @Override
+    public String toString() {
+        return isUnicode() ? unicode : getAsMention();
     }
 }

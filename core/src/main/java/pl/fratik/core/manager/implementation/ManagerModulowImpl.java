@@ -18,10 +18,7 @@
 package pl.fratik.core.manager.implementation;
 
 import com.google.common.base.Joiner;
-import com.google.common.eventbus.AllowConcurrentEvents;
-import com.google.common.eventbus.AsyncEventBus;
 import com.google.common.eventbus.EventBus;
-import com.google.common.eventbus.Subscribe;
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
@@ -34,6 +31,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.Statyczne;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.entity.*;
 import pl.fratik.core.event.ModuleLoadedEvent;
 import pl.fratik.core.event.ModuleUnloadedEvent;
@@ -45,7 +43,6 @@ import pl.fratik.core.moduly.Modul;
 import pl.fratik.core.moduly.ModuleDescription;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.CommonUtil;
-import pl.fratik.core.util.EventBusErrorHandler;
 import pl.fratik.core.util.EventWaiter;
 import pl.fratik.core.util.GsonUtil;
 import pl.fratik.core.util.graph.Graph;
@@ -56,7 +53,6 @@ import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -75,7 +71,6 @@ public class ManagerModulowImpl implements ManagerModulow {
     private ManagerBazyDanych managerBazyDanych;
     private Tlumaczenia tlumaczenia;
     private Logger logger;
-    private EventBus moduleEventBus;
     private EventWaiter eventWaiter;
     @Getter private HashMap<String, Modul> modules;
     private HashMap<String, URLClassLoader> classLoaders;
@@ -93,18 +88,21 @@ public class ManagerModulowImpl implements ManagerModulow {
     private Map<String, Collection<String>> dependencies = null;
     private Map<String, Collection<String>> peerDependencies = null;
     private Graph<String> graph = null;
+    private final RedisCacheManager redisCacheManager;
     private GbanDao gbanDao;
 
     public ManagerModulowImpl(ShardManager shardManager, ManagerBazyDanych managerBazyDanych, GuildDao guildDao,
-                              MemberDao memberDao, UserDao userDao, GbanDao gbanDao, ScheduleDao scheduleDao, ManagerKomend managerKomend,
-                              ManagerArgumentow managerArgumentow, EventWaiter eventWaiter, Tlumaczenia tlumaczenia, EventBus eventBus) {
+                              MemberDao memberDao, UserDao userDao, RedisCacheManager redisCacheManager, GbanDao gbanDao,
+                              ScheduleDao scheduleDao, ManagerKomend managerKomend, ManagerArgumentow managerArgumentow,
+                              EventWaiter eventWaiter, Tlumaczenia tlumaczenia, EventBus eventBus) {
         this.guildDao = guildDao;
         this.memberDao = memberDao;
         this.userDao = userDao;
+        this.redisCacheManager = redisCacheManager;
         this.gbanDao = gbanDao;
         this.scheduleDao = scheduleDao;
         moduleClassLoader = new ModuleClassLoader();
-        moduleEventBus = new AsyncEventBus(Executors.newFixedThreadPool(16), EventBusErrorHandler.instance);
+        this.eventBus = eventBus;
         logger = LoggerFactory.getLogger(getClass());
         this.managerKomend = managerKomend;
         this.managerArgumentow = managerArgumentow;
@@ -173,7 +171,7 @@ public class ManagerModulowImpl implements ManagerModulow {
                         }
                         bind(ShardManager.class).toInstance(shardManager);
                         bind(Tlumaczenia.class).toInstance(tlumaczenia);
-                        bind(EventBus.class).toInstance(moduleEventBus);
+                        bind(EventBus.class).toInstance(eventBus);
                         bind(EventWaiter.class).toInstance(eventWaiter);
                         bind(ManagerBazyDanych.class).toInstance(managerBazyDanych);
                         bind(GuildDao.class).toInstance(guildDao);
@@ -184,6 +182,7 @@ public class ManagerModulowImpl implements ManagerModulow {
                         bind(ManagerKomend.class).toInstance(managerKomend);
                         bind(ManagerArgumentow.class).toInstance(managerArgumentow);
                         bind(ManagerModulow.class).toInstance(ManagerModulowImpl.this);
+                        bind(RedisCacheManager.class).toInstance(redisCacheManager);
                     }
                 });
 
@@ -583,12 +582,4 @@ public class ManagerModulowImpl implements ManagerModulow {
             return null;
         }
     }
-
-    @Subscribe
-    @AllowConcurrentEvents
-    public void onEvent(Object object) {
-        if (moduleEventBus != null)
-            moduleEventBus.post(object);
-    }
-
 }

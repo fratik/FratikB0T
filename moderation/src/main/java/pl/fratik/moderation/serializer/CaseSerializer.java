@@ -54,6 +54,7 @@ public class CaseSerializer extends StdSerializer<List<Case>> {
             if (aCase.getValidTo() != null) {
                 pCase.setValidTo(Instant.from(aCase.getValidTo()).toEpochMilli());
             }
+            pCase.setIleRazy(aCase.getIleRazy());
             parsedCaseList.add(pCase);
         }
         jsonGenerator.writeStartArray();
@@ -69,6 +70,7 @@ public class CaseSerializer extends StdSerializer<List<Case>> {
             jsonGenerator.writeNumberField("kara", pCase.getType());
             jsonGenerator.writeBooleanField("valid", pCase.isValid());
             jsonGenerator.writeNumberField("validTo", pCase.getValidTo());
+            if (pCase.getIleRazy() != null) jsonGenerator.writeNumberField("ileRazy", pCase.getIleRazy());
             jsonGenerator.writeEndObject();
         }
         jsonGenerator.writeEndArray();
@@ -89,6 +91,7 @@ public class CaseSerializer extends StdSerializer<List<Case>> {
         @Nullable
         @Setter private String issuerId;
         @Nullable @Setter private String reason;
+        @Nullable @Setter private Integer ileRazy;
 
         ParsedCase(String userId, String guildId, int caseId, TemporalAccessor timestamp, String messageId, Kara type) {
             this.userId = userId;

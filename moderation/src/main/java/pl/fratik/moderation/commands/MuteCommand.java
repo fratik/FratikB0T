@@ -99,7 +99,13 @@ public class MuteCommand extends ModerationCommand {
             context.send(context.getTranslated("mute.already.muted"));
             return false;
         }
-        DurationUtil.Response durationResp = DurationUtil.parseDuration(powod);
+        DurationUtil.Response durationResp;
+        try {
+            durationResp = DurationUtil.parseDuration(powod);
+        } catch (IllegalArgumentException e) {
+            context.send(context.getTranslated("mute.max.duration"));
+            return false;
+        }
         powod = durationResp.getTekst();
         muteDo = durationResp.getDoKiedy();
         Case aCase = new CaseBuilder().setUser(uzytkownik.getUser()).setGuild(context.getGuild())
