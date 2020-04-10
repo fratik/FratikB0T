@@ -242,6 +242,7 @@ class FratikB0T {
                     Globals.ownerId = appInfo.getOwner().getIdLong();
                 });
                 RedisCacheManager redisCacheManager = new RedisCacheManager(Globals.clientId);
+                eventBus.post(redisCacheManager);
                 UserUtil.setGbanCache(redisCacheManager.new CacheRetriever<GbanData>(){}.getCache());
                 UserUtil.setTimeZoneCache(redisCacheManager.new CacheRetriever<String>(){}.getCache());
                 GuildUtil.setGbanCache(redisCacheManager.new CacheRetriever<GbanData>(){}.getCache());
