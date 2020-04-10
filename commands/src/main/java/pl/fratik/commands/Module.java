@@ -25,6 +25,7 @@ import pl.fratik.commands.narzedzia.*;
 import pl.fratik.commands.system.*;
 import pl.fratik.commands.zabawa.*;
 import pl.fratik.core.Ustawienia;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.entity.*;
 import pl.fratik.core.manager.ManagerArgumentow;
@@ -52,6 +53,7 @@ public class Module implements Modul {
     @Inject private Tlumaczenia tlumaczenia;
     @Inject private ManagerModulow managerModulow;
     @Inject private EventBus eventBus;
+    @Inject private RedisCacheManager redisCacheManager;
     private ArrayList<Command> commands;
 
     private MemberListener listener;
@@ -108,7 +110,7 @@ public class Module implements Modul {
         commands.add(new DashboardCommand());
         commands.add(new DonateCommand());
         commands.add(new OpuscCommand());
-        commands.add(new BoomCommand(eventWaiter, eventBus, userDao));
+        commands.add(new BoomCommand(eventWaiter, userDao, redisCacheManager));
         commands.add(new PomocCommand());
         commands.add(new PopCommand(shardManager, guildDao, eventWaiter, eventBus, tlumaczenia));
         commands.add(new PowiadomOPomocyCommand(shardManager));
@@ -134,10 +136,12 @@ public class Module implements Modul {
         commands.add(new McstatusCommand());
         commands.add(new SelfieCommand());
         commands.add(new EmojiInfoCommand());
-        commands.add(new OsuCommand(shardManager, eventWaiter, eventBus));
+        if (Ustawienia.instance.apiKeys.get("osu") != null)
+            commands.add(new OsuCommand(shardManager, eventWaiter, eventBus));
         commands.add(new Rule34Command(eventWaiter, eventBus, managerArgumentow));
+        commands.add(new CoronastatsCommand());
 
-        listener = new MemberListener(guildDao);
+        listener = new MemberListener(guildDao, redisCacheManager);
         eventBus.register(listener);
 
         commands.forEach(managerKomend::registerCommand);

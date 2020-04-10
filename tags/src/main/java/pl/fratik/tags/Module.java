@@ -20,6 +20,7 @@ package pl.fratik.tags;
 import com.google.common.eventbus.EventBus;
 import com.google.inject.Inject;
 import net.dv8tion.jda.api.sharding.ShardManager;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.manager.ManagerBazyDanych;
 import pl.fratik.core.manager.ManagerKomend;
@@ -45,6 +46,7 @@ public class Module implements Modul {
     @Inject private ManagerModulow managerModulow;
     @Inject private Tlumaczenia tlumaczenia;
     @Inject private WebhookManager webhookManager;
+    @Inject private RedisCacheManager redisCacheManager;
 
     private TagsDao tagsDao;
     private TagsManager tagsManager;
@@ -57,7 +59,7 @@ public class Module implements Modul {
     @Override
     public boolean startUp() {
         tagsDao = new TagsDao(managerBazyDanych, eventBus);
-        tagsManager = new TagsManager(tagsDao, managerKomend, shardManager, tlumaczenia, webhookManager);
+        tagsManager = new TagsManager(tagsDao, managerKomend, shardManager, tlumaczenia, redisCacheManager, webhookManager);
         commands = new ArrayList<>();
 
         commands.add(new CreateTagCommand(tagsDao, managerKomend));

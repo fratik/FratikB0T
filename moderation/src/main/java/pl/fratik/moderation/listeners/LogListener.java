@@ -17,8 +17,6 @@
 
 package pl.fratik.moderation.listeners;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.eventbus.Subscribe;
 import lombok.Getter;
 import lombok.Setter;
@@ -33,9 +31,10 @@ import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.MessageUpdateEvent;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.Ustawienia;
+import pl.fratik.core.cache.Cache;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
-import pl.fratik.core.event.DatabaseUpdateEvent;
 import pl.fratik.core.event.PluginMessageEvent;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
@@ -48,10 +47,8 @@ import javax.annotation.CheckReturnValue;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static java.awt.Color.decode;
@@ -62,18 +59,16 @@ public class LogListener {
     private final PurgeDao purgeDao;
 
     @Setter private static Tlumaczenia tlumaczenia;
-    private static final Cache<String, List<LogMessage>>
-            cache = Caffeine.newBuilder().maximumSize(300).expireAfterWrite(10, TimeUnit.MINUTES).build();
+    private final Cache<List<LogMessage>> cache;
     @Getter private final List<String> znaneAkcje = new ArrayList<>();
 
-    @Getter private static HashMap<String, List<Case>> knownCases = new HashMap<>();
+    private final Cache<GuildConfig> gcCache;
 
-    private final Cache<String, String> logChannelCache = Caffeine.newBuilder().expireAfterWrite(5, TimeUnit.MINUTES)
-            .maximumSize(100).build();
-
-    public LogListener(GuildDao guildDao, PurgeDao purgeDao) {
+    public LogListener(GuildDao guildDao, PurgeDao purgeDao, RedisCacheManager redisCacheManager) {
         this.guildDao = guildDao;
         this.purgeDao = purgeDao;
+        cache = redisCacheManager.new CacheRetriever<List<LogMessage>>(){}.getCache();
+        gcCache = redisCacheManager.new CacheRetriever<GuildConfig>(){}.getCache();
     }
 
     @Subscribe
@@ -83,6 +78,7 @@ public class LogListener {
         if (messages == null) throw new IllegalStateException("messages == null mimo compute'owania");
         if (messages.size() > 100) messages.remove(0);
         messages.add(new LogMessage(messageReceivedEvent.getMessage()));
+        cache.put(messageReceivedEvent.getTextChannel().getId(), messages);
     }
 
     @Subscribe
@@ -98,6 +94,7 @@ public class LogListener {
             return;
         }
         messages.set(messages.indexOf(m), new LogMessage(messageUpdateEvent.getMessage()));
+        cache.put(messageUpdateEvent.getTextChannel().getId(), messages);
         if (znaneAkcje.contains(messageUpdateEvent.getMessageId())) {
             znaneAkcje.remove(messageUpdateEvent.getMessageId());
             return;
@@ -318,30 +315,16 @@ public class LogListener {
     }
 
     private TextChannel getChannel(Guild guild) {
-        String tak = logChannelCache.get(guild.getId(), g -> {
-            GuildConfig gc = guildDao.get(guild);
-            if (gc.getFullLogs() == null) return null;
-            if (!gc.getFullLogs().isEmpty()) {
-                TextChannel kanal = guild.getTextChannelById(gc.getFullLogs());
-                if (kanal == null) return null;
-                return kanal.getId();
-            }
-            return null;
-        });
-        if (tak == null) return null;
-        return guild.getTextChannelById(tak);
-    }
-
-    @Subscribe
-    public void onDatabaseUpdate(DatabaseUpdateEvent event) {
-        if (event.getEntity() instanceof GuildConfig) {
-            for (String guildId : logChannelCache.asMap().keySet()) {
-                if (((GuildConfig) event.getEntity()).getGuildId().equals(guildId)) {
-                    logChannelCache.invalidate(guildId);
-                    return;
-                }
-            }
+        GuildConfig gc = gcCache.get(guild.getId(), guildDao::get);
+        if (gc.getFullLogs() == null) return null;
+        String id = null;
+        if (!gc.getFullLogs().isEmpty()) {
+            TextChannel kanal = guild.getTextChannelById(gc.getFullLogs());
+            if (kanal == null) return null;
+            id = kanal.getId();
         }
+        if (id == null) return null;
+        return guild.getTextChannelById(id);
     }
 
     private enum LogType {

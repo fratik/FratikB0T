@@ -122,6 +122,10 @@ public class PopCommand extends Command {
             }
         };
         mw.setMessageHandler(e -> {
+            if (e.getMessage().getContentRaw().length() < 15) {
+                context.send(context.getTranslated("pop.min.length"));
+                return;
+            }
             if (e.getMessage().getContentRaw().length() >= 1000) {
                 context.send(context.getTranslated("pop.max.length"));
                 return;

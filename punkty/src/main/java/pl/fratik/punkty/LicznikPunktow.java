@@ -17,8 +17,6 @@
 
 package pl.fratik.punkty;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import io.sentry.Sentry;
@@ -28,11 +26,12 @@ import net.dv8tion.jda.api.sharding.ShardManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.Ustawienia;
+import pl.fratik.core.cache.Cache;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.UserConfig;
 import pl.fratik.core.entity.UserDao;
-import pl.fratik.core.event.DatabaseUpdateEvent;
 import pl.fratik.core.event.LvlupEvent;
 import pl.fratik.core.event.PluginMessageEvent;
 import pl.fratik.core.manager.ManagerKomend;
@@ -73,9 +72,9 @@ public class LicznikPunktow {
             "[^\\s]{2,}|www\\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\\.[^\\s]{2,}|https?://(?:www\\.|(?!www))[a-zA-Z0-9]" +
             "\\.[^\\s]{2,}|www\\.[a-zA-Z0-9]\\.[^\\s]{2,})");
     private final Random random = new Random();
-    private static final Cache<String, ConcurrentHashMap<String, Integer>> cache = Caffeine.newBuilder().build();
-    private static final Cache<String, Boolean> punktyWlaczoneCache = Caffeine.newBuilder().build();
-    LicznikPunktow(GuildDao guildDao, UserDao userDao, PunktyDao punktyDao, ManagerKomend managerKomend, EventBus eventBus, Tlumaczenia tlumaczenia, ShardManager shardManager) {
+    private static Cache<ConcurrentHashMap<String, Integer>> cache;
+    private final Cache<GuildConfig> gcCache;
+    LicznikPunktow(GuildDao guildDao, UserDao userDao, PunktyDao punktyDao, ManagerKomend managerKomend, EventBus eventBus, Tlumaczenia tlumaczenia, ShardManager shardManager, RedisCacheManager redisCacheManager) {
         this.guildDao = guildDao;
         this.userDao = userDao;
         this.punktyDao = punktyDao;
@@ -86,6 +85,8 @@ public class LicznikPunktow {
         instance = this; //NOSONAR
         this.tlumaczenia = tlumaczenia;
         threadPool.scheduleWithFixedDelay(this::emptyCache, 5, 5, TimeUnit.MINUTES);
+        cache = redisCacheManager.new CacheRetriever<ConcurrentHashMap<String, Integer>>(){}.getCache(-1);
+        gcCache = redisCacheManager.new CacheRetriever<GuildConfig>(){}.getCache();
     }
 
     public static int getPunkty(Member member) {
@@ -236,15 +237,9 @@ public class LicznikPunktow {
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean punktyWlaczone(Guild guild) {
-        Boolean chuj = punktyWlaczoneCache.get(guild.getId(), id -> guildDao.get(guild).getPunktyWlaczone());
+        Boolean chuj = gcCache.get(guild.getId(), guildDao::get).getPunktyWlaczone();
         if (chuj == null) return true;
         return chuj;
-    }
-
-    @Subscribe
-    private void onDatabaseUpdateEvent(DatabaseUpdateEvent e) {
-        if (!(e.getEntity() instanceof GuildConfig)) return;
-        punktyWlaczoneCache.invalidate(((GuildConfig) e.getEntity()).getGuildId());
     }
 
     private int getPktFromFileSize(double sizeInBytes) {
@@ -277,7 +272,6 @@ public class LicznikPunktow {
         if (rolaStr != null) rola = event.getMember().getGuild().getRoleById(rolaStr);
         else rola = null;
         if (rola == null) {
-
             Language l = tlumaczenia.getLanguage(event.getMember());
             if (!uc.isLvlUpOnDM()) {
                 try {
@@ -286,23 +280,33 @@ public class LicznikPunktow {
                     if (channelId != null && !channelId.isEmpty()) ch = shardManager.getTextChannelById(channelId);
                     if (ch == null) ch = event.getChannel();
                     if (event.getChannel().equals(ch) && !uc.isLvlupMessages()) return;
-                    ch.sendMessage(tlumaczenia.get(l,
-                            "generic.lvlup.channel", event.getMember().getUser().getName(), event.getLevel(), prefix))
-                            .queue(null, kurwa -> {});
+                    if (gc.getLvlUpMessage() != null && !gc.getLvlUpMessage().isEmpty())  {
+                        ch.sendMessage(gc.getLvlUpMessage()
+                                .replaceAll("\\{\\{mention}}", event.getMember().getUser().getAsMention()
+                                        .replaceAll("@(everyone|here)", "@\u200b$1"))
+                                .replaceAll("\\{\\{user}}", UserUtil.formatDiscrim(event.getMember())
+                                        .replaceAll("@(everyone|here)", "@\u200b$1"))
+                                .replaceAll("\\{\\{level}}", String.valueOf(event.getLevel()))
+                                .replaceAll("\\{\\{guild}}", event.getMember().getGuild().getName()))
+                                .queue(null, kurwa -> {});
+                    } else {
+                        ch.sendMessage(tlumaczenia.get(l,
+                                "generic.lvlup.channel", event.getMember().getUser().getName(),
+                                event.getLevel(), prefix)).queue(null, kurwa -> {});
+                    }
                 } catch (Exception e) {
-                    //brak permów
+                    /*lul*/
                 }
                 return;
             }
             try {
-                event.getMember().getUser().openPrivateChannel().queue(e -> {
-                    e.sendMessage(tlumaczenia.get(l, "generic.lvlup.dm",
-                            event.getLevel(), event.getMember().getGuild().getName(), prefix)).complete();
-                });
-                return;
+                event.getMember().getUser().openPrivateChannel().queue(e -> e.sendMessage(tlumaczenia.get(l,
+                        "generic.lvlup.dm", event.getLevel(), event.getMember().getGuild().getName(), prefix)
+                ).complete());
             } catch (Exception e) {
-                /*lul*/
+                // lol
             }
+            return;
         }
         try {
             event.getMember().getGuild()
@@ -341,8 +345,9 @@ public class LicznikPunktow {
                 return;
             }
             log.debug("Zrzucam cache do DB, {} członków do zrzucenia...", cache.asMap().size());
-            cache.asMap().forEach((tmpGuild, map) -> {
-                Guild guild = shardManager.getGuildById(tmpGuild);
+            cache.asMap().forEach((key, map) -> {
+                String[] keysplitted = key.split(":");
+                Guild guild = shardManager.getGuildById(keysplitted[keysplitted.length - 1]);
                 if (guild == null) return;
                 AtomicInteger pktSerwera = new AtomicInteger();
                 log.debug("Zrzucam {} danych z serwera {}...", map.size(), guild);

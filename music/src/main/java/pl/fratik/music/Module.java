@@ -26,6 +26,7 @@ import net.dv8tion.jda.api.sharding.ShardManager;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.Globals;
 import pl.fratik.core.Ustawienia;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.MemberDao;
@@ -56,6 +57,7 @@ public class Module implements Modul {
     @Inject private Tlumaczenia tlumaczenia;
     @Inject private ManagerArgumentow managerArgumentow;
     @Inject private ManagerBazyDanych managerBazyDanych;
+    @Inject private RedisCacheManager redisCacheManager;
     private NowyManagerMuzyki managerMuzyki;
     private ArrayList<Command> commands;
     private QueueDao queueDao;
@@ -78,7 +80,7 @@ public class Module implements Modul {
         NowyManagerMuzyki.setQueueDao(queueDao);
         managerMuzyki = new NowyManagerMuzyki(shardManager, eventBus, guildDao);
         API.setMm(managerMuzyki);
-        SearchManager searchManager = new SearchManager(Ustawienia.instance.apiKeys.get("yt"), Ustawienia.instance.apiKeys.get("yt2"), managerMuzyki);
+        SearchManager searchManager = new SearchManager(Ustawienia.instance.apiKeys.get("yt"), Ustawienia.instance.apiKeys.get("yt2"), managerMuzyki, redisCacheManager);
         MusicCommand.setManagerMuzyki(managerMuzyki);
         QueueCommand.setSearchManager(searchManager);
         NowplayingCommand.setSearchManager(searchManager);

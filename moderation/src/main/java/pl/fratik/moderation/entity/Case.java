@@ -54,6 +54,8 @@ public class Case {
     @Nullable private       String issuerId;
     @Setter
     @Nullable private       String reason;
+    @Setter
+    @Nullable private       Integer ileRazy;
 
     Case(@NotNull String userId, @NotNull String guildId, int caseId, @Nullable TemporalAccessor timestamp, String messageId, @NotNull Kara type) {
         this.userId = userId;
@@ -143,7 +145,6 @@ public class Case {
 
         private Kara opposite(Kara type) {
             switch (type) {
-                case TIMEDBAN:
                 case BAN:
                     return Kara.UNBAN;
                 case MUTE: return Kara.UNMUTE;

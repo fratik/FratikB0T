@@ -20,6 +20,7 @@ package pl.fratik.punkty;
 import com.google.common.eventbus.EventBus;
 import com.google.inject.Inject;
 import net.dv8tion.jda.api.sharding.ShardManager;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.MemberDao;
@@ -46,6 +47,7 @@ public class Module implements Modul {
     @Inject private ShardManager shardManager;
     @Inject private ManagerBazyDanych managerBazyDanych;
     @Inject private ManagerArgumentow managerArgumentow;
+    @Inject private RedisCacheManager redisCacheManager;
     private ArrayList<Command> commands;
 
     private LicznikPunktow licznik;
@@ -57,7 +59,7 @@ public class Module implements Modul {
     @Override
     public boolean startUp() {
         PunktyDao punktyDao = new PunktyDao(managerBazyDanych, shardManager, eventBus);
-        licznik = new LicznikPunktow(guildDao, userDao, punktyDao, managerKomend, eventBus, tlumaczenia, shardManager);
+        licznik = new LicznikPunktow(guildDao, userDao, punktyDao, managerKomend, eventBus, tlumaczenia, shardManager, redisCacheManager);
         commands = new ArrayList<>();
 
         commands.add(new StatsCommand(licznik));
