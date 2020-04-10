@@ -65,6 +65,7 @@ public class CaseDeserializer extends StdDeserializer<List<Case>> {
             aCase.setReason((String) elements.get("reason"));
             aCase.setIssuerId((String) elements.get("issuerId"));
             aCase.setValid((boolean) elements.get("valid"));
+            if (elements.containsKey("ileRazy")) aCase.setIleRazy((Integer) elements.get("ileRazy"));
             try {
                 aCase.setValidTo(Instant.ofEpochMilli(((Long) elements.get(VALIDTO))), true);
             } catch (ClassCastException ignored) {
