@@ -45,6 +45,7 @@ public class RolementionCommand extends ModerationCommand {
         hmap.put("[...]", "string");
         uzycie = new Uzycie(hmap, new boolean[] {true, false, false});
         uzycieDelim = " ";
+        aliases = new String[] {"mentionrole"};
     }
 
     @Override
