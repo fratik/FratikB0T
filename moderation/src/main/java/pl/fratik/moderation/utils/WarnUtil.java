@@ -49,25 +49,8 @@ public class WarnUtil {
 
     public static synchronized void takeAction(GuildDao guildDao, CasesDao casesDao, Member member, MessageChannel channel, Language lang, Tlumaczenia tlumaczenia, ManagerKomend managerKomend) {
         CaseRow cr = casesDao.get(member.getGuild());
-        List<Case> mcases = cr.getCases().stream().filter(c -> c.getUserId().equals(member.getUser().getId())).collect(Collectors.toList());
-        int cases = 0;
-        List<Case> warnCases = mcases.stream().filter(c -> c.getType().equals(Kara.WARN)).collect(Collectors.toList());
-        List<Case> unwarnCases = mcases.stream().filter(c -> c.getType().equals(Kara.UNWARN)).collect(Collectors.toList());
-        // powody sie nie liczą, ważne by była dobra liczba
-        for (Case c : warnCases) {
-            if (c.getIleRazy() == null) cases++;
-            else cases += c.getIleRazy();
-        }
-        for (Case c : unwarnCases) {
-            if (c.getIleRazy() == null) cases--;
-            else cases -= c.getIleRazy();
-        }
+        int cases = countCases(cr, member.getId());
         if (cases < 0) {
-            Sentry.getContext().setUser(new User(member.getId(), member.getUser().getAsTag(), null, null));
-            Sentry.getContext().addExtra("warnCases", warnCases);
-            Sentry.getContext().addExtra("unwarnCases", unwarnCases);
-            Sentry.capture(new AssertionError("cases < 0"));
-            Sentry.clearContext();
             String prefix = managerKomend.getPrefixes(member.getGuild()).get(0);
             channel.sendMessage(tlumaczenia.get(lang, "modlog.take.action.unexpected.error", prefix, prefix)).queue();
             return;
@@ -179,5 +162,29 @@ public class WarnUtil {
                 }
             }
         }
+    }
+
+    public static int countCases(CaseRow cr, String userId) {
+        List<Case> mcases = cr.getCases().stream().filter(c -> c.getUserId().equals(userId)).collect(Collectors.toList());
+        int cases = 0;
+        List<Case> warnCases = mcases.stream().filter(c -> c.getType().equals(Kara.WARN)).collect(Collectors.toList());
+        List<Case> unwarnCases = mcases.stream().filter(c -> c.getType().equals(Kara.UNWARN)).collect(Collectors.toList());
+        // powody sie nie liczą, ważne by była dobra liczba
+        for (Case c : warnCases) {
+            if (c.getIleRazy() == null) cases++;
+            else cases += c.getIleRazy();
+        }
+        for (Case c : unwarnCases) {
+            if (c.getIleRazy() == null) cases--;
+            else cases -= c.getIleRazy();
+        }
+        if (cases < 0) {
+            Sentry.getContext().setUser(new User(userId, null, null, null));
+            Sentry.getContext().addExtra("warnCases", warnCases);
+            Sentry.getContext().addExtra("unwarnCases", unwarnCases);
+            Sentry.capture(new AssertionError("cases < 0"));
+            Sentry.clearContext();
+        }
+        return cases;
     }
 }
