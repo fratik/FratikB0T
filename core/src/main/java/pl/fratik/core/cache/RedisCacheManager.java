@@ -144,7 +144,10 @@ public class RedisCacheManager {
     }
 
     public <T> void invalidate(Object key, Class<T> holds) {
-        invalidate(key, new TypeToken<T>(holds){});
+        try (Jedis jedis = jedisPool.getResource()) {
+            String dbkey = getDbkey(key, holds);
+            jedis.del(dbkey);
+        }
     }
 
     public <T> void invalidate(Object key, TypeToken<T> holds) {
@@ -177,6 +180,11 @@ public class RedisCacheManager {
             String dbkey = getDbkey(key, holds);
             return jedis.ttl(dbkey);
         }
+    }
+
+    @NotNull
+    private <T> String getDbkey(Object key, Class<T> holds) {
+        return PREFIX + "::" + holds.getSimpleName() + ":" + key;
     }
 
     @NotNull

@@ -98,9 +98,6 @@ public class PrzeklenstwaListener {
                             .setTimestamp(Instant.now()).createCase();
                     c.setIssuerId(e.getJDA().getSelfUser());
                     c.setReason(tlumaczenia.get(tlumaczenia.getLanguage(e.getGuild()), "antiswear.reason"));
-                    e.getChannel().sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(e.getMember()),
-                            "antiswear.notice", e.getAuthor().getAsMention(),
-                            managerKomend.getPrefixes(e.getGuild()).get(0))).queue();
                     String mlogchanStr = getModLogChan(e.getGuild());
                     if (mlogchanStr == null || mlogchanStr.equals("")) mlogchanStr = "0";
                     TextChannel mlogchan = shardManager.getTextChannelById(mlogchanStr);
@@ -113,6 +110,10 @@ public class PrzeklenstwaListener {
                     }
                     CaseRow cr = casesDao.get(e.getGuild());
                     cr.getCases().add(c);
+                    e.getChannel().sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(e.getMember()),
+                            "antiswear.notice", e.getAuthor().getAsMention(),
+                            WarnUtil.countCases(cr, e.getAuthor().getId()),
+                            managerKomend.getPrefixes(e.getGuild()).get(0))).queue();
                     casesDao.save(cr);
                     WarnUtil.takeAction(guildDao, casesDao, e.getMember(), e.getChannel(),
                             tlumaczenia.getLanguage(e.getGuild()), tlumaczenia, managerKomend);

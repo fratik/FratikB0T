@@ -57,6 +57,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class NowyManagerMuzykiSerwera implements ManagerMuzykiSerwera {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NowyManagerMuzykiSerwera.class);
+    private final NowyManagerMuzyki nowyManagerMuzyki;
     private final Guild guild;
     private final JdaLavalink lavaClient;
     private final Tlumaczenia tlumaczenia;
@@ -77,7 +78,8 @@ public class NowyManagerMuzykiSerwera implements ManagerMuzykiSerwera {
     private JdaLink link;
     private ScheduledFuture<?> future;
 
-    NowyManagerMuzykiSerwera(Guild guild, JdaLavalink lavaClient, Tlumaczenia tlumaczenia, QueueDao queueDao, GuildDao guildDao, ScheduledExecutorService executorService) {
+    NowyManagerMuzykiSerwera(NowyManagerMuzyki nowyManagerMuzyki, Guild guild, JdaLavalink lavaClient, Tlumaczenia tlumaczenia, QueueDao queueDao, GuildDao guildDao, ScheduledExecutorService executorService) {
+        this.nowyManagerMuzyki = nowyManagerMuzyki;
         this.guild = guild;
         this.lavaClient = lavaClient;
         this.tlumaczenia = tlumaczenia;
@@ -165,6 +167,8 @@ public class NowyManagerMuzykiSerwera implements ManagerMuzykiSerwera {
         player = null;
         link.resetPlayer();
         init = false;
+        link.destroy();
+        nowyManagerMuzyki.usun(guild.getId());
     }
 
     @Override
@@ -272,7 +276,6 @@ public class NowyManagerMuzykiSerwera implements ManagerMuzykiSerwera {
         queueDao.save(queue);
         kolejka.clear();
         disconnect();
-        link.destroy();
     }
 
     @Override

@@ -59,14 +59,16 @@ public class PogodaCommand extends Command {
             return false;
         }
         try {
-            String downloaded = new String(NetworkUtil.download("http://" + context.getLanguage().getLocale()
-                    .getLanguage().toLowerCase().split("_")[0] + ".wttr.in/" +
-                    NetworkUtil.encodeURIComponent(lokacja) + "?T0m"));
+            String downloaded = new String(NetworkUtil.download("http://en.wttr.in/" +
+                    NetworkUtil.encodeURIComponent(lokacja) + "?T"));
             downloaded = Jsoup.parse(downloaded).getElementsByTag("body").text();
             if (downloaded.startsWith("ERROR:")) {
                 context.send(context.getTranslated("pogoda.failed"));
                 return false;
-                // TODO: 01.12.18 3:42 osobny failed dla braku lokacji
+            }
+            if (downloaded.contains("We were unable to find your location")) {
+                context.send(context.getTranslated("pogoda.unknown.location"));
+                return false;
             }
             context.send(context.getBaseEmbed(context.getTranslated("pogoda.embed.header", lokacja), null)
                     .setImage("http://" + context.getLanguage().getLocale()

@@ -92,7 +92,7 @@ public class AntiInviteListener {
     }
 
     private synchronized void addKara(Message msg) {
-        assert containsInvite(msg.getContentRaw());
+        if (!containsInvite(msg.getContentRaw())) return;
         String trans = msg.isEdited() ? "antiinvite.notice.edited" : "antiinvite.notice";
         try {
             msg.delete().queue();
@@ -101,9 +101,6 @@ public class AntiInviteListener {
                         .setTimestamp(Instant.now()).createCase();
                 c.setIssuerId(msg.getJDA().getSelfUser());
                 c.setReason(tlumaczenia.get(tlumaczenia.getLanguage(msg.getGuild()), "antiinvite.reason"));
-                msg.getChannel().sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(msg.getMember()),
-                        trans, msg.getAuthor().getAsMention(),
-                        managerKomend.getPrefixes(msg.getGuild()).get(0))).queue();
                 String mlogchan = getModLogChan(msg.getGuild());
                 if (mlogchan == null || mlogchan.equals("")) mlogchan = "0";
                 TextChannel mlogc = shardManager.getTextChannelById(mlogchan);
@@ -116,6 +113,9 @@ public class AntiInviteListener {
                 }
                 CaseRow cr = casesDao.get(msg.getGuild());
                 cr.getCases().add(c);
+                msg.getChannel().sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(msg.getMember()),
+                        trans, msg.getAuthor().getAsMention(), WarnUtil.countCases(cr, msg.getAuthor().getId()),
+                        managerKomend.getPrefixes(msg.getGuild()).get(0))).queue();
                 casesDao.save(cr);
                 Member m = msg.getMember();
                 if (m == null) {
