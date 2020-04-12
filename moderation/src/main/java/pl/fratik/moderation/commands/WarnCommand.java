@@ -113,9 +113,10 @@ public class WarnCommand extends ModerationCommand {
         if (gc.getModLog() != null && !gc.getModLog().equals("")) mlog = shardManager.getTextChannelById(gc.getModLog());
         if (mlog == null || !context.getGuild().getSelfMember().hasPermission(mlog,
                 Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_WRITE, Permission.MESSAGE_READ)) {
-            context.send(context.getTranslated("warn.success", UserUtil.formatDiscrim(uzytkownik)));
-            context.send(context.getTranslated("warn.nomodlogs", context.getPrefix()));
             caseRow.getCases().add(aCase);
+            context.send(context.getTranslated("warn.success", UserUtil.formatDiscrim(uzytkownik),
+                    WarnUtil.countCases(caseRow, uzytkownik.getId())));
+            context.send(context.getTranslated("warn.nomodlogs", context.getPrefix()));
             casesDao.save(caseRow);
             WarnUtil.takeAction(guildDao, casesDao, uzytkownik, context.getChannel(), context.getLanguage(),
                     context.getTlumaczenia(), managerKomend);
@@ -124,9 +125,10 @@ public class WarnCommand extends ModerationCommand {
         MessageEmbed embed = ModLogBuilder.generate(aCase, context.getGuild(), shardManager,
                 gc.getLanguage(), managerKomend);
         Message message = mlog.sendMessage(embed).complete();
-        context.send(context.getTranslated("warn.success", UserUtil.formatDiscrim(uzytkownik)));
-        aCase.setMessageId(message.getId());
         caseRow.getCases().add(aCase);
+        aCase.setMessageId(message.getId());
+        context.send(context.getTranslated("warn.success", UserUtil.formatDiscrim(uzytkownik),
+                WarnUtil.countCases(caseRow, uzytkownik.getId())));
         casesDao.save(caseRow);
         WarnUtil.takeAction(guildDao, casesDao, uzytkownik, context.getChannel(), context.getLanguage(),
                 context.getTlumaczenia(), managerKomend);
