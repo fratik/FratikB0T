@@ -64,7 +64,7 @@ public class WebhookManager {
             if (e.getCause() instanceof HttpException) {
                 if (((HttpException) e.getCause()).getCode() == 404) {
                     try {
-                        createWebhook(channel);
+                        createWebhook(channel, true);
                         send(m, channel);
                         return;
                     } catch (Exception ignored) {}
@@ -86,14 +86,14 @@ public class WebhookManager {
             GuildConfig.Webhook tak = whki.get(id);
             if (tak == null) {
                 try {
-                    tak = createWebhook(channel);
+                    tak = createWebhook(channel, false);
                 } catch (PermissionException ignored) {}
             }
             return tak;
         });
     }
 
-    private GuildConfig.Webhook createWebhook(TextChannel channel) {
+    private GuildConfig.Webhook createWebhook(TextChannel channel, boolean clearCache) {
         if (!channel.getGuild().getSelfMember().hasPermission(Permission.MANAGE_WEBHOOKS))
             throw new PermissionException("Nie ma perma MANAGE_WEBHOOKS!");
         Webhook tak = channel.createWebhook("FratikB0T Messages " + channel.getId()).complete();
@@ -101,6 +101,7 @@ public class WebhookManager {
         GuildConfig gc = guildDao.get(channel.getGuild());
         gc.getWebhooki().put(channel.getId(), whc);
         guildDao.save(gc);
+        if (clearCache) whCache.invalidate(channel.getId());
         return whc;
     }
 }
