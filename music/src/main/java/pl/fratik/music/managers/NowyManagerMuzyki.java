@@ -152,7 +152,7 @@ public class NowyManagerMuzyki {
     public ManagerMuzykiSerwera getManagerMuzykiSerwera(Guild guild, boolean create) {
         if (kolejki.containsKey(guild.getId())) return kolejki.get(guild.getId());
         else if (create) {
-            ManagerMuzykiSerwera mms = new NowyManagerMuzykiSerwera(guild, lavaClient, tlumaczenia, queueDao, guildDao, executorService);
+            ManagerMuzykiSerwera mms = new NowyManagerMuzykiSerwera(this, guild, lavaClient, tlumaczenia, queueDao, guildDao, executorService);
             kolejki.put(guild.getId(), mms);
             return kolejki.get(guild.getId());
         } else return null;
@@ -212,6 +212,10 @@ public class NowyManagerMuzyki {
             if (mms != null) mms.onEvent(e);
         }
         lavaClient.onEvent(e);
+    }
+
+    void usun(String guildId) {
+        kolejki.remove(guildId);
     }
 
     static class Vdi implements VoiceDispatchInterceptor {
