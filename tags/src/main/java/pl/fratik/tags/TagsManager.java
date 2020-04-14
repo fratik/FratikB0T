@@ -33,6 +33,7 @@ import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.CommonUtil;
 import pl.fratik.core.util.UserUtil;
+import pl.fratik.core.webhook.WebhookManager;
 import pl.fratik.tags.entity.Tag;
 import pl.fratik.tags.entity.Tags;
 import pl.fratik.tags.entity.TagsDao;
@@ -48,13 +49,15 @@ class TagsManager {
     private final ManagerKomend managerKomend;
     private final ShardManager shardManager;
     private final Tlumaczenia tlumaczenia;
+    private final WebhookManager webhookManager;
     private final Cache<Tags> tagsCache;
 
-    TagsManager(TagsDao tagsDao, ManagerKomend managerKomend, ShardManager shardManager, Tlumaczenia tlumaczenia, RedisCacheManager redisCacheManager) {
+    TagsManager(TagsDao tagsDao, ManagerKomend managerKomend, ShardManager shardManager, Tlumaczenia tlumaczenia, RedisCacheManager redisCacheManager, WebhookManager webhookManager) {
         this.tagsDao = tagsDao;
         this.managerKomend = managerKomend;
         this.shardManager = shardManager;
         this.tlumaczenia = tlumaczenia;
+        this.webhookManager = webhookManager;
         tagsCache = redisCacheManager.new CacheRetriever<Tags>(){}.getCache((int) TimeUnit.HOURS.toSeconds(1));
     }
 
@@ -65,7 +68,11 @@ class TagsManager {
         Tag tag = getTagByName(getFirstWord(e.getMessage()), tagi);
         if (tag == null) return;
         if (managerKomend.getRegistered().stream().anyMatch(c -> c.getName().equals(tag.getName()))) return;
-        e.getChannel().sendMessage(generateEmbed(tag, tlumaczenia.getLanguage(e.getMember()), e.getGuild())).queue();
+        try {
+            webhookManager.send(tag.getContent(), e.getTextChannel());
+        } catch (Exception err) {
+            e.getChannel().sendMessage(generateEmbed(tag, tlumaczenia.getLanguage(e.getMember()), e.getGuild())).queue();
+        }
         try {
             Emoji reakcja = managerKomend.getReakcja(e.getMessage().getAuthor(), true);
             if (reakcja.isUnicode()) e.getMessage().addReaction(reakcja.getName()).queue();
@@ -80,29 +87,6 @@ class TagsManager {
         }
     }
 
-    private MessageEmbed generateEmbed(Tag tag, Language lang, Guild guild) {
-        EmbedBuilder eb = new EmbedBuilder();
-        if (tag.getCreatedBy() != null) {
-            User createdBy = shardManager.getUserById(tag.getCreatedBy());
-            if (createdBy == null) createdBy = shardManager.retrieveUserById(tag.getCreatedBy()).complete();
-            eb.setFooter(createdBy.getAsTag(), createdBy.getEffectiveAvatarUrl());
-            Member mem = guild.getMember(createdBy);
-            eb.setColor(mem == null || mem.getColor() == null ? UserUtil.getPrimColor(createdBy) : mem.getColor());
-        } else {
-            eb.setColor(Color.decode("#bef7c3"));
-            eb.addField(tlumaczenia.get(lang, "tag.warning"), tlumaczenia.get(lang, "tag.warning.content",
-                    Ustawienia.instance.botUrl), false);
-            List<String> prefixes = managerKomend.getPrefixes(guild);
-            if (prefixes.isEmpty()) prefixes.add(Ustawienia.instance.prefix);
-            eb.setFooter(tlumaczenia.get(lang, "tag.creator.unknown", prefixes.get(0),
-                    tag.getName()), null);
-        }
-        eb.setAuthor(tag.getName());
-        eb.setDescription(tag.getContent());
-        eb.setImage(CommonUtil.getImageUrl(tag.getContent()));
-        return eb.build();
-    }
-
     private String getFirstWord(Message message) {
         String content = message.getContentRaw().toLowerCase();
         for (String prefix : managerKomend.getPrefixes(message.getGuild())) {
@@ -115,5 +99,28 @@ class TagsManager {
     @Nullable
     private Tag getTagByName(String name, Tags tags) {
         return tags.getTagi().stream().filter(t -> t.getName().equals(name)).findFirst().orElse(null);
+    }
+
+    private MessageEmbed generateEmbed(Tag tag, Language lang, Guild guild) {
+        EmbedBuilder eb = new EmbedBuilder();
+        if (tag.getCreatedBy() != null) {
+            User createdBy = shardManager.getUserById(tag.getCreatedBy());
+            if (createdBy == null) createdBy = shardManager.retrieveUserById(tag.getCreatedBy()).complete();
+            eb.setFooter(createdBy.getAsTag(), createdBy.getEffectiveAvatarUrl());
+            Member mem = guild.getMember(createdBy);
+            eb.setColor(mem == null || mem.getColor() == null ? UserUtil.getPrimColor(createdBy) : mem.getColor());
+        } else {
+            eb.setColor(Color.decode("#bef7c3"));
+            List<String> prefixes = managerKomend.getPrefixes(guild);
+            if (prefixes.isEmpty()) prefixes.add(Ustawienia.instance.prefix);
+            eb.setFooter(tlumaczenia.get(lang, "tag.creator.unknown", prefixes.get(0),
+                    tag.getName()), null);
+        }
+        eb.setAuthor(tag.getName());
+        eb.setDescription(tag.getContent());
+        eb.setImage(CommonUtil.getImageUrl(tag.getContent()));
+        eb.addField(tlumaczenia.get(lang, "tag.warning"),
+                tlumaczenia.get(lang, "tag.warning.content"), false);
+        return eb.build();
     }
 }

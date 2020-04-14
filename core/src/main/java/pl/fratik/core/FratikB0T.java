@@ -53,6 +53,7 @@ import pl.fratik.core.util.EventBusErrorHandler;
 import pl.fratik.core.util.EventWaiter;
 import pl.fratik.core.util.GuildUtil;
 import pl.fratik.core.util.UserUtil;
+import pl.fratik.core.webhook.WebhookManager;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -206,6 +207,7 @@ class FratikB0T {
                 GbanDao gbanDao = new GbanDao(mbd, eventBus);
                 ScheduleDao scheduleDao = new ScheduleDao(mbd, eventBus);
                 EventWaiter eventWaiter = new EventWaiter();
+                WebhookManager webhookManager = new WebhookManager(guildDao);
                 while (shardManager.getShards().stream().noneMatch(s -> {
                     try {
                         s.getSelfUser();
@@ -251,8 +253,9 @@ class FratikB0T {
                 Tlumaczenia tlumaczenia = new Tlumaczenia(userDao, guildDao, redisCacheManager);
                 managerKomend = new ManagerKomendImpl(shardManager, guildDao, userDao,
                         tlumaczenia, eventBus, redisCacheManager);
-                moduleManager = new ManagerModulowImpl(shardManager, mbd, guildDao, memberDao, userDao, redisCacheManager,
-                        gbanDao, scheduleDao, managerKomend, managerArgumentow, eventWaiter, tlumaczenia, eventBus);
+                moduleManager = new ManagerModulowImpl(shardManager, mbd, guildDao, webhookManager, memberDao, userDao,
+                        redisCacheManager, gbanDao, scheduleDao, managerKomend, managerArgumentow, eventWaiter,
+                        tlumaczenia, eventBus);
                 glownyService = new ServiceManager(ImmutableList.of(new FratikB0TService(shardManager, eventBus,
                         eventWaiter, tlumaczenia, managerKomend, mbd, guildDao, moduleManager, gbanDao)));
                 statusService = new ServiceManager(ImmutableList.of(new StatusService(shardManager)));

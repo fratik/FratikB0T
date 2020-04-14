@@ -28,6 +28,7 @@ import pl.fratik.core.manager.ManagerModulow;
 import pl.fratik.core.moduly.Modul;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.EventWaiter;
+import pl.fratik.core.webhook.WebhookManager;
 import pl.fratik.tags.commands.CreateTagCommand;
 import pl.fratik.tags.commands.DeleteTagCommand;
 import pl.fratik.tags.commands.TakeTagCommand;
@@ -44,6 +45,7 @@ public class Module implements Modul {
     @Inject private ShardManager shardManager;
     @Inject private ManagerModulow managerModulow;
     @Inject private Tlumaczenia tlumaczenia;
+    @Inject private WebhookManager webhookManager;
     @Inject private RedisCacheManager redisCacheManager;
 
     private TagsDao tagsDao;
@@ -57,7 +59,7 @@ public class Module implements Modul {
     @Override
     public boolean startUp() {
         tagsDao = new TagsDao(managerBazyDanych, eventBus);
-        tagsManager = new TagsManager(tagsDao, managerKomend, shardManager, tlumaczenia, redisCacheManager);
+        tagsManager = new TagsManager(tagsDao, managerKomend, shardManager, tlumaczenia, redisCacheManager, webhookManager);
         commands = new ArrayList<>();
 
         commands.add(new CreateTagCommand(tagsDao, managerKomend));
