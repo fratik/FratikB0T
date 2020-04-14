@@ -77,6 +77,7 @@ public class NowyManagerMuzykiSerwera implements ManagerMuzykiSerwera {
     private boolean paused;
     private JdaLink link;
     private ScheduledFuture<?> future;
+    private Listener lisner;
 
     NowyManagerMuzykiSerwera(NowyManagerMuzyki nowyManagerMuzyki, Guild guild, JdaLavalink lavaClient, Tlumaczenia tlumaczenia, QueueDao queueDao, GuildDao guildDao, ScheduledExecutorService executorService) {
         this.nowyManagerMuzyki = nowyManagerMuzyki;
@@ -161,14 +162,15 @@ public class NowyManagerMuzykiSerwera implements ManagerMuzykiSerwera {
         paused = false;
         aktualnaPiosenka = null;
         shutdown = true;
+        if (lisner != null) player.removeListener(lisner);
+        lisner = null;
         if (player.getPlayingTrack() != null) player.stopTrack();
         link.disconnect();
         kolejka.clear();
         player = null;
         link.resetPlayer();
         init = false;
-        link.destroy();
-        nowyManagerMuzyki.usun(guild.getId());
+        nowyManagerMuzyki.destroy(guild.getId());
     }
 
     @Override
@@ -281,7 +283,8 @@ public class NowyManagerMuzykiSerwera implements ManagerMuzykiSerwera {
     @Override
     public void patchVoiceServerUpdate(VoiceDispatchInterceptor.VoiceServerUpdate e) {
         shutdown = false;
-        player.addListener(new Listener(this));
+        if (lisner == null) lisner = new Listener(this);
+        player.addListener(lisner);
         init = true;
     }
 

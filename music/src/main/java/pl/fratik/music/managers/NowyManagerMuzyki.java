@@ -24,6 +24,7 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import io.sentry.Sentry;
 import lavalink.client.LavalinkUtil;
 import lavalink.client.io.LavalinkSocket;
+import lavalink.client.io.Link;
 import lavalink.client.io.jda.JdaLavalink;
 import lavalink.client.io.jda.JdaLink;
 import lombok.Getter;
@@ -214,8 +215,19 @@ public class NowyManagerMuzyki {
         lavaClient.onEvent(e);
     }
 
-    void usun(String guildId) {
-        kolejki.remove(guildId);
+    public void destroy(String id) {
+        Thread t = new Thread(() -> {
+            try {
+                Thread.sleep(1000);
+                Link link = lavaClient.getExistingLink(id);
+                if (link != null) link.destroy();
+                kolejki.remove(id);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+        }, "Niszczenie-kolejki-" + id);
+        t.start();
     }
 
     static class Vdi implements VoiceDispatchInterceptor {
