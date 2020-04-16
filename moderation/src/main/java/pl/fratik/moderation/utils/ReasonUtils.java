@@ -23,11 +23,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ReasonUtils {
-    public static void parseFlags(Case c, String reason) {
+    public static void parseFlags(Case c, String reason, Case.Flaga... ignore) {
         String[] splatReason = reason.split(" ");
         List<String> parsedReason = new ArrayList<>();
         for (String r : splatReason) {
-            Case.Flaga f = Case.Flaga.resolveFlag(r);
+            Case.Flaga f = Case.Flaga.resolveFlag(r, ignore);
             if (f == null) parsedReason.add(r);
             else {
                 if (c.getFlagi().contains(f)) parsedReason.add(r);

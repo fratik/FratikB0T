@@ -32,10 +32,7 @@ import pl.fratik.core.entity.ScheduleDao;
 import javax.annotation.Nullable;
 import java.time.Instant;
 import java.time.temporal.TemporalAccessor;
-import java.util.Collection;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 @Getter
 @ToString
@@ -176,8 +173,10 @@ public class Case {
             this.longNames = longNames == null ? new String[0] : longNames;
         }
 
-        public static Flaga resolveFlag(String f) {
+        public static Flaga resolveFlag(String f, Flaga... ignore) {
+            List<Flaga> lista = Arrays.asList(ignore);
             for (Flaga flaga : values()) {
+                if (lista.contains(flaga)) continue;
                 char sn = flaga.getShortName();
                 if (f.equals("-" + sn)) return flaga;
                 if (f.equals("--" + flaga.name().toLowerCase()) || f.equals("—" + flaga.name().toLowerCase()))
