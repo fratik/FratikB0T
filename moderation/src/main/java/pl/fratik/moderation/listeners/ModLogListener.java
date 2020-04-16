@@ -460,14 +460,14 @@ public class ModLogListener {
         });
     }
 
-    private void invalidateCase(GuildConfig gc, TemporalAccessor validTo, ModLogMode mode, TextChannel mlogchan, Case muteCase, Guild guild) {
-        muteCase.setValidTo(validTo, true);
-        muteCase.setValid(false);
-        MessageEmbed embed = ModLogBuilder.generate(muteCase, guild,
+    private void invalidateCase(GuildConfig gc, TemporalAccessor validTo, ModLogMode mode, TextChannel mlogchan, Case c, Guild guild) {
+        c.setValidTo(validTo, true);
+        c.setValid(false);
+        MessageEmbed embed = ModLogBuilder.generate(c, guild,
                 shardManager, gc.getLanguage(), managerKomend, true);
         if (mode == ModLogMode.MODLOG) {
             try {
-                Message msg = mlogchan.retrieveMessageById(muteCase.getMessageId()).complete();
+                Message msg = mlogchan.retrieveMessageById(c.getMessageId()).complete();
                 if (msg == null) throw new IllegalStateException();
                 msg.editMessage(embed).override(true).complete();
             } catch (Exception ignored) {

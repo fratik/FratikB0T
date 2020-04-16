@@ -32,7 +32,8 @@ import pl.fratik.core.entity.ScheduleDao;
 import javax.annotation.Nullable;
 import java.time.Instant;
 import java.time.temporal.TemporalAccessor;
-import java.util.ArrayList;
+import java.util.Collection;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
 
@@ -58,7 +59,7 @@ public class Case {
     @Setter
     @Nullable private       Integer ileRazy;
     @Setter
-    @NotNull  private       List<Flaga> flagi = new ArrayList<>();
+    @NotNull  private       EnumSet<Flaga> flagi = EnumSet.noneOf(Flaga.class);
 
     Case(@NotNull String userId, @NotNull String guildId, int caseId, @Nullable TemporalAccessor timestamp, String messageId, @NotNull Kara type) {
         this.userId = userId;
@@ -158,13 +159,19 @@ public class Case {
 
     @Getter
     public enum Flaga {
-        SILENT('s', null),
-        NOBODY('n', new String[] {"nikt"});
+        SILENT(0, 's', null),
+        NOBODY(1, 'n', new String[] {"nikt"});
 
+        private static final Flaga[] EMPTY_FLAGI = new Flaga[0];
+
+        private final int offset;
+        private final long raw;
         private final char shortName;
         private final String[] longNames;
 
-        Flaga(char shortName, String[] longNames) {
+        Flaga(int offset, char shortName, String[] longNames) {
+            this.offset = offset;
+            this.raw = 1 << offset;
             this.shortName = shortName;
             this.longNames = longNames == null ? new String[0] : longNames;
         }
@@ -173,10 +180,36 @@ public class Case {
             for (Flaga flaga : values()) {
                 char sn = flaga.getShortName();
                 if (f.equals("-" + sn)) return flaga;
+                if (f.equals("--" + flaga.name().toLowerCase()) || f.equals("—" + flaga.name().toLowerCase()))
+                    return flaga;
                 for (String alias : flaga.getLongNames())
-                    if (f.equals("--" + alias)) return flaga;
+                    if (f.equals("--" + alias) || f.equals("—" + alias)) return flaga;
             }
             return null;
+        }
+
+        /* celem zaoszczędzenia miejsca w db, co się przyda xD */
+        public static long getRaw(@NotNull Flaga... flagi) {
+            long raw = 0;
+            for (Flaga flaga : flagi) {
+                raw |= flaga.raw;
+            }
+            return raw;
+        }
+
+        public static EnumSet<Flaga> getFlagi(long raw) {
+            if (raw == 0)
+                return EnumSet.noneOf(Flaga.class);
+            EnumSet<Flaga> flagi = EnumSet.noneOf(Flaga.class);
+            for (Flaga flaga : Flaga.values()) {
+                if ((raw & flaga.raw) == flaga.raw)
+                    flagi.add(flaga);
+            }
+            return flagi;
+        }
+
+        public static long getRaw(Collection<Flaga> flagi) {
+            return getRaw(flagi.toArray(EMPTY_FLAGI));
         }
     }
 }
