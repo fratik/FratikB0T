@@ -129,9 +129,9 @@ public class WarnCommand extends ModerationCommand {
             Message message = mlog.sendMessage(embed).complete();
             aCase.setMessageId(message.getId());
         }
+        caseRow.getCases().add(aCase);
         context.send(context.getTranslated("warn.success", UserUtil.formatDiscrim(uzytkownik),
                 WarnUtil.countCases(caseRow, uzytkownik.getId())));
-        caseRow.getCases().add(aCase);
         casesDao.save(caseRow);
         WarnUtil.takeAction(guildDao, casesDao, uzytkownik, context.getChannel(), context.getLanguage(),
                 context.getTlumaczenia(), managerKomend);
