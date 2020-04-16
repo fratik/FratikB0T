@@ -32,6 +32,7 @@ import pl.fratik.core.entity.ScheduleDao;
 import javax.annotation.Nullable;
 import java.time.Instant;
 import java.time.temporal.TemporalAccessor;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -56,6 +57,8 @@ public class Case {
     @Nullable private       String reason;
     @Setter
     @Nullable private       Integer ileRazy;
+    @Setter
+    @NotNull  private       List<Flaga> flagi = new ArrayList<>();
 
     Case(@NotNull String userId, @NotNull String guildId, int caseId, @Nullable TemporalAccessor timestamp, String messageId, @NotNull Kara type) {
         this.userId = userId;
@@ -143,13 +146,37 @@ public class Case {
         scheduleDao.save(sch);
     }
 
-        private Kara opposite(Kara type) {
-            switch (type) {
-                case BAN:
-                    return Kara.UNBAN;
-                case MUTE: return Kara.UNMUTE;
-                case WARN: return Kara.UNWARN;
-                default: return null;
-            }
+    private Kara opposite(Kara type) {
+        switch (type) {
+            case BAN:
+                return Kara.UNBAN;
+            case MUTE: return Kara.UNMUTE;
+            case WARN: return Kara.UNWARN;
+            default: return null;
         }
     }
+
+    @Getter
+    public enum Flaga {
+        SILENT('s', null),
+        NOBODY('n', new String[] {"nikt"});
+
+        private final char shortName;
+        private final String[] longNames;
+
+        Flaga(char shortName, String[] longNames) {
+            this.shortName = shortName;
+            this.longNames = longNames == null ? new String[0] : longNames;
+        }
+
+        public static Flaga resolveFlag(String f) {
+            for (Flaga flaga : values()) {
+                char sn = flaga.getShortName();
+                if (f.equals("-" + sn)) return flaga;
+                for (String alias : flaga.getLongNames())
+                    if (f.equals("--" + alias)) return flaga;
+            }
+            return null;
+        }
+    }
+}

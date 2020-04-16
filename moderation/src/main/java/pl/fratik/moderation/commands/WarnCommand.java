@@ -37,6 +37,7 @@ import pl.fratik.moderation.entity.CaseBuilder;
 import pl.fratik.moderation.entity.CaseRow;
 import pl.fratik.moderation.entity.CasesDao;
 import pl.fratik.moderation.utils.ModLogBuilder;
+import pl.fratik.moderation.utils.ReasonUtils;
 import pl.fratik.moderation.utils.WarnUtil;
 
 import java.time.Instant;
@@ -107,7 +108,7 @@ public class WarnCommand extends ModerationCommand {
         TemporalAccessor timestamp = Instant.now();
         Case aCase = new CaseBuilder().setUser(uzytkownik.getUser()).setGuild(context.getGuild()).setCaseId(caseId)
                 .setTimestamp(timestamp).setMessageId(null).setKara(Kara.WARN).createCase();
-        aCase.setReason(powod);
+        ReasonUtils.parseFlags(aCase, powod);
         aCase.setIssuerId(context.getSender().getId());
         TextChannel mlog = null;
         if (gc.getModLog() != null && !gc.getModLog().equals("")) mlog = shardManager.getTextChannelById(gc.getModLog());
@@ -123,7 +124,7 @@ public class WarnCommand extends ModerationCommand {
             return true;
         }
         MessageEmbed embed = ModLogBuilder.generate(aCase, context.getGuild(), shardManager,
-                gc.getLanguage(), managerKomend);
+                gc.getLanguage(), managerKomend, true);
         Message message = mlog.sendMessage(embed).complete();
         caseRow.getCases().add(aCase);
         aCase.setMessageId(message.getId());

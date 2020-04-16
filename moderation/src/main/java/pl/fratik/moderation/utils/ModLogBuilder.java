@@ -48,7 +48,7 @@ public class ModLogBuilder {
     @Setter private static Tlumaczenia tlumaczenia;
     @Setter private static GuildDao guildDao;
 
-    public static MessageEmbed generate(Case aCase, Guild guild, ShardManager sm, Language lang, ManagerKomend managerKomend) {
+    public static MessageEmbed generate(Case aCase, Guild guild, ShardManager sm, Language lang, ManagerKomend managerKomend, boolean modlog) {
         String iId = aCase.getIssuerId();
         if (iId == null || iId.isEmpty()) iId = "0";
         User iUser = sm.getUserById(iId);
@@ -58,6 +58,11 @@ public class ModLogBuilder {
                 managerKomend == null || managerKomend.getPrefixes(guild).isEmpty() ? Ustawienia.instance.prefix :
                         managerKomend.getPrefixes(guild).get(0), aCase.getCaseId());
         else iId = UserUtil.formatDiscrim(iUser);
+        if (modlog && aCase.getFlagi().contains(Case.Flaga.NOBODY)) {
+            iId = tlumaczenia.get(lang, "modlog.mod.hidden",
+                    managerKomend == null || managerKomend.getPrefixes(guild).isEmpty() ? Ustawienia.instance.prefix :
+                            managerKomend.getPrefixes(guild).get(0), aCase.getCaseId());
+        }
         return generate(aCase.getType(), sm.retrieveUserById(aCase.getUserId()).complete(), iId, reason,
                 aCase.getType().getKolor(), aCase.getCaseId(), aCase.isValid(), aCase.getValidTo(),
                 aCase.getTimestamp(), aCase.getIleRazy(), lang, guild);

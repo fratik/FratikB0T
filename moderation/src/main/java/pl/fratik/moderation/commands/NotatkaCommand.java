@@ -114,7 +114,7 @@ public class NotatkaCommand extends ModerationCommand {
             return false;
         }
         MessageEmbed embed = ModLogBuilder.generate(aCase, context.getGuild(), shardManager,
-                gc.getLanguage(), managerKomend);
+                gc.getLanguage(), managerKomend, true);
         mlogchan.sendMessage(embed).queue(message -> {
             context.send(context.getTranslated("notatka.success", UserUtil.formatDiscrim(uzytkownik)), m -> {});
             aCase.setMessageId(message.getId());
