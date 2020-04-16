@@ -41,10 +41,7 @@ import pl.fratik.moderation.utils.WarnUtil;
 
 import java.time.Instant;
 import java.time.temporal.TemporalAccessor;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class UnwarnCommand extends ModerationCommand {
@@ -142,7 +139,7 @@ public class UnwarnCommand extends ModerationCommand {
             return false;
         }
         int ileRazy;
-        List<String> powodSplat = Arrays.asList(powod.split(" "));
+        List<String> powodSplat = new ArrayList<>(Arrays.asList(powod.split(" ")));
         String ileRazyStr = powodSplat.remove(0);
         if (ileRazyStr.matches("^\\d+$") && powodSplat.size() > 0) {
             ileRazy = Integer.parseInt(ileRazyStr);
