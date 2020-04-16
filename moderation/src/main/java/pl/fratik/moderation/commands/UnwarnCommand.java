@@ -142,9 +142,15 @@ public class UnwarnCommand extends ModerationCommand {
         List<String> powodSplat = new ArrayList<>(Arrays.asList(powod.split(" ")));
         if (powodSplat.size() > 0) {
             String ileRazyStr = powodSplat.remove(0);
-            if (ileRazyStr.matches("\\d+")) {
-                int ileRazyA = Integer.parseInt(ileRazyStr);
+            if (ileRazyStr.matches("^\\d+$")) {
+                int ileRazyA;
+                try {
+                    ileRazyA = Integer.parseInt(ileRazyStr);
+                } catch (Exception e) {
+                    ileRazyA = -1;
+                }
                 if (ileRazyA >= 1) ileRazy = ileRazyA;
+                else powodSplat.add(ileRazyStr);
                 powod = String.join(" ", powodSplat);
             }
         }
