@@ -41,9 +41,7 @@ import pl.fratik.moderation.utils.WarnUtil;
 
 import java.time.Instant;
 import java.time.temporal.TemporalAccessor;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class UnwarnCommand extends ModerationCommand {
@@ -140,13 +138,29 @@ public class UnwarnCommand extends ModerationCommand {
             context.send(context.getTranslated("unwarn.unexpected.error", prefix, prefix));
             return false;
         }
-        if (cases <= 0) {
+        int ileRazy = 1;
+        List<String> powodSplat = new ArrayList<>(Arrays.asList(powod.split(" ")));
+        if (powodSplat.size() > 0) {
+            String ileRazyStr = powodSplat.remove(0);
+            if (ileRazyStr.matches("^\\d+$")) {
+                int ileRazyA;
+                try {
+                    ileRazyA = Integer.parseInt(ileRazyStr);
+                } catch (Exception e) {
+                    ileRazyA = -1;
+                }
+                if (ileRazyA >= 1) ileRazy = ileRazyA;
+                else powodSplat.add(ileRazyStr);
+                powod = String.join(" ", powodSplat);
+            }
+        }
+        if (cases - ileRazy < 0) {
             context.send(context.getTranslated("unwarn.no.warns"));
             return false;
         }
         TemporalAccessor timestamp = Instant.now();
         Case aCase = new CaseBuilder().setUser(uzytkownik.getUser()).setGuild(context.getGuild()).setCaseId(caseId)
-                .setTimestamp(timestamp).setMessageId(null).setKara(Kara.UNWARN).createCase();
+                .setTimestamp(timestamp).setMessageId(null).setKara(Kara.UNWARN).setIleRazy(ileRazy).createCase();
         aCase.setReason(powod);
         aCase.setIssuerId(context.getSender().getId());
         if (mlog == null || !context.getGuild().getSelfMember().hasPermission(mlog,
