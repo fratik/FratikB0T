@@ -138,14 +138,16 @@ public class UnwarnCommand extends ModerationCommand {
             context.send(context.getTranslated("unwarn.unexpected.error", prefix, prefix));
             return false;
         }
-        int ileRazy;
+        int ileRazy = 1;
         List<String> powodSplat = new ArrayList<>(Arrays.asList(powod.split(" ")));
-        String ileRazyStr = powodSplat.remove(0);
-        if (ileRazyStr.matches("^\\d+$") && powodSplat.size() > 0) {
-            ileRazy = Integer.parseInt(ileRazyStr);
-            powod = String.join(" ", powodSplat);
+        if (powodSplat.size() > 0) {
+            String ileRazyStr = powodSplat.remove(0);
+            if (ileRazyStr.matches("\\d+")) {
+                int ileRazyA = Integer.parseInt(ileRazyStr);
+                if (ileRazyA >= 1) ileRazy = ileRazyA;
+                powod = String.join(" ", powodSplat);
+            }
         }
-        else ileRazy = 1;
         if (cases - ileRazy < 0) {
             context.send(context.getTranslated("unwarn.no.warns"));
             return false;
