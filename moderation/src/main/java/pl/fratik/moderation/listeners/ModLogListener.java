@@ -450,7 +450,11 @@ public class ModLogListener {
     }
 
     private void saveToModLog(Case aCase, GuildConfig guildConfig, CaseRow caseRow, TextChannel mlogchan, Guild guild) {
-        if (aCase.getFlagi().contains(Case.Flaga.SILENT)) return;
+        if (aCase.getFlagi().contains(Case.Flaga.SILENT)) {
+            caseRow.getCases().add(aCase);
+            casesDao.save(caseRow);
+            return;
+        }
         MessageEmbed embed = ModLogBuilder.generate(aCase, guild, shardManager,
                 guildConfig.getLanguage(), managerKomend, true);
         mlogchan.sendMessage(embed).queue(message -> {
