@@ -104,7 +104,7 @@ public class PrzeklenstwaListener {
                     if (!(mlogchan == null || !mlogchan.getGuild().getSelfMember().hasPermission(mlogchan,
                             Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_WRITE, Permission.MESSAGE_READ))) {
                         Message m = mlogchan.sendMessage(ModLogBuilder.generate(c,
-                                e.getGuild(), shardManager, tlumaczenia.getLanguage(e.getGuild()), managerKomend))
+                                e.getGuild(), shardManager, tlumaczenia.getLanguage(e.getGuild()), managerKomend, true))
                                 .complete();
                         c.setMessageId(m.getId());
                     }

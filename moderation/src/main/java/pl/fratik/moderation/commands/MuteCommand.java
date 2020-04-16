@@ -27,6 +27,7 @@ import pl.fratik.moderation.entity.Case;
 import pl.fratik.moderation.listeners.ModLogListener;
 import pl.fratik.core.util.DurationUtil;
 import pl.fratik.moderation.entity.CaseBuilder;
+import pl.fratik.moderation.utils.ReasonUtils;
 
 import java.time.Instant;
 import java.util.*;
@@ -112,7 +113,7 @@ public class MuteCommand extends ModerationCommand {
                 .setCaseId(Case.getNextCaseId(context.getGuild())).setTimestamp(Instant.now()).setMessageId(null)
                 .setKara(Kara.MUTE).createCase();
         aCase.setIssuerId(context.getSender());
-        aCase.setReason(powod);
+        ReasonUtils.parseFlags(aCase, powod);
         aCase.setValidTo(muteDo);
         List<Case> caseList = ModLogListener.getKnownCases().getOrDefault(context.getGuild(), new ArrayList<>());
         caseList.add(aCase);

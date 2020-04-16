@@ -185,7 +185,7 @@ public class Module implements Modul {
                 c.setIssuerId(String.valueOf(Globals.clientId));
                 c.setReason(tlumaczenia.get(tlumaczenia.getLanguage(e.getGuild()), "modlog.reason.twomutesoneuser"));
                 MessageEmbed em = ModLogBuilder.generate(c, e.getGuild(), shardManager,
-                        tlumaczenia.getLanguage(e.getGuild()), managerKomend);
+                        tlumaczenia.getLanguage(e.getGuild()), managerKomend, true);
                 TextChannel mlog = shardManager.getTextChannelById(gc.getModLog());
                 if (mlog != null && mlog.canTalk()) {
                     mlog.sendMessage(em).complete();

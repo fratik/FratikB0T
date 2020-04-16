@@ -32,6 +32,7 @@ import pl.fratik.moderation.entity.Case;
 import pl.fratik.moderation.entity.CaseRow;
 import pl.fratik.moderation.entity.CasesDao;
 import pl.fratik.moderation.utils.ModLogBuilder;
+import pl.fratik.moderation.utils.ReasonUtils;
 
 import java.time.Instant;
 import java.util.Arrays;
@@ -90,48 +91,56 @@ public class ReasonCommand extends ModerationCommand {
             return false;
         }
         Case aCase = caseRow.getCases().get(caseId - 1);
+        aCase.getFlagi().remove(Case.Flaga.NOBODY);
         if (akcjaDo != null) aCase.setValidTo(akcjaDo);
         @Nullable TextChannel modLogChannel = gc.getModLog() != null && !Objects.equals(gc.getModLog(), "") ?
                 context.getGuild().getTextChannelById(gc.getModLog()) : null;
         Consumer<Throwable> throwableConsumer = err -> context.send(context.getTranslated("reason.failed"));
         if (modLogChannel == null || !context.getGuild().getSelfMember().hasPermission(modLogChannel,
                 Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_WRITE, Permission.MESSAGE_READ)) {
-            aCase.setReason(powod);
+            ReasonUtils.parseFlags(aCase, powod, Case.Flaga.SILENT);
             aCase.setIssuerId(context.getSender().getId());
             context.send(context.getTranslated(RESU));
             casesDao.save(caseRow);
             return true;
         }
         if (aCase.getMessageId() == null) {
-            aCase.setReason(powod);
+            ReasonUtils.parseFlags(aCase, powod, Case.Flaga.SILENT);
             aCase.setIssuerId(context.getSender().getId());
-            MessageEmbed embed = ModLogBuilder.generate(aCase, context.getGuild(), shardManager, gc.getLanguage(), managerKomend);
-            modLogChannel.sendMessage(embed).queue(m -> {
-                context.send(context.getTranslated(RESU), c -> {});
-                casesDao.save(caseRow);
-            }, throwableConsumer);
+            if (!aCase.getFlagi().contains(Case.Flaga.SILENT)) {
+                MessageEmbed embed = ModLogBuilder.generate(aCase, context.getGuild(), shardManager, gc.getLanguage(), managerKomend, true);
+                modLogChannel.sendMessage(embed).queue(m -> {
+                    context.send(context.getTranslated(RESU), c -> {
+                    });
+                    aCase.setMessageId(m.getId());
+                    casesDao.save(caseRow);
+                }, throwableConsumer);
+            }
             context.send(context.getTranslated(RESU));
             casesDao.save(caseRow);
             return true;
         }
         modLogChannel.retrieveMessageById(aCase.getMessageId()).queue(msg -> {
-            aCase.setReason(powod);
+            ReasonUtils.parseFlags(aCase, powod, Case.Flaga.SILENT);
             aCase.setIssuerId(context.getSender().getId());
-            msg.editMessage(ModLogBuilder.generate(aCase, context.getGuild(), shardManager, gc.getLanguage(), managerKomend))
+            msg.editMessage(ModLogBuilder.generate(aCase, context.getGuild(), shardManager, gc.getLanguage(), managerKomend, true))
                     .override(true).queue(m -> {
                         context.send(context.getTranslated(RESU), c -> {});
                         casesDao.save(caseRow);
                     }, throwableConsumer);
         }, error -> {
-            aCase.setReason(powod);
+            ReasonUtils.parseFlags(aCase, powod, Case.Flaga.SILENT);
             aCase.setIssuerId(context.getSender().getId());
-            MessageEmbed embed = ModLogBuilder.generate(aCase, context.getGuild(), shardManager, gc.getLanguage(), managerKomend);
-            modLogChannel.sendMessage(embed).queue(m -> {
-                aCase.setMessageId(m.getId());
-                context.send(context.getTranslated(RESU), c -> {});
-                casesDao.save(caseRow);
-            }, throwableConsumer);
+            if (!aCase.getFlagi().contains(Case.Flaga.SILENT)) {
+                MessageEmbed embed = ModLogBuilder.generate(aCase, context.getGuild(), shardManager, gc.getLanguage(), managerKomend, true);
+                modLogChannel.sendMessage(embed).queue(m -> {
+                    aCase.setMessageId(m.getId());
+                    context.send(context.getTranslated(RESU), c -> {});
+                    casesDao.save(caseRow);
+                }, throwableConsumer);
+            }
         });
         return true;
     }
+
 }

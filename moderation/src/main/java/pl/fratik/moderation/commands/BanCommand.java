@@ -31,6 +31,7 @@ import pl.fratik.core.util.UserUtil;
 import pl.fratik.moderation.entity.Case;
 import pl.fratik.moderation.entity.CaseBuilder;
 import pl.fratik.moderation.listeners.ModLogListener;
+import pl.fratik.moderation.utils.ReasonUtils;
 
 import java.time.Instant;
 import java.util.*;
@@ -89,13 +90,13 @@ public class BanCommand extends ModerationCommand {
         cb.setKara(Kara.BAN);
         Case aCase = cb.createCase();
         aCase.setIssuerId(context.getSender());
-        aCase.setReason(powod);
+        ReasonUtils.parseFlags(aCase, powod);
         aCase.setValidTo(banDo);
         List<Case> caseList = ModLogListener.getKnownCases().getOrDefault(context.getGuild(), new ArrayList<>());
         caseList.add(aCase);
         ModLogListener.getKnownCases().put(context.getGuild(), caseList);
         try {
-            context.getGuild().ban(uzytkownik, 0, powod).reason(powod).complete();
+            context.getGuild().ban(uzytkownik, 0, aCase.getReason()).reason(aCase.getReason()).complete();
             context.send(context.getTranslated("ban.success", UserUtil.formatDiscrim(uzytkownik)));
         } catch (HierarchyException e) {
             caseList.remove(aCase);

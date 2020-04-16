@@ -37,6 +37,7 @@ import pl.fratik.moderation.entity.CaseBuilder;
 import pl.fratik.moderation.entity.CaseRow;
 import pl.fratik.moderation.entity.CasesDao;
 import pl.fratik.moderation.utils.ModLogBuilder;
+import pl.fratik.moderation.utils.ReasonUtils;
 import pl.fratik.moderation.utils.WarnUtil;
 
 import java.time.Instant;
@@ -118,7 +119,7 @@ public class UnwarnCommand extends ModerationCommand {
                     for (int i = 0; i >= cases; i--) aaa++;
                     c.setIleRazy(aaa);
                     MessageEmbed embed = ModLogBuilder.generate(c, context.getGuild(), context.getShardManager(),
-                            context.getLanguage(), null);
+                            context.getLanguage(), null, true);
                     if (mlog != null && context.getGuild().getSelfMember().hasPermission(mlog,
                             Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_WRITE, Permission.MESSAGE_READ)) {
                         Message message = mlog.sendMessage(embed).complete();
@@ -161,26 +162,35 @@ public class UnwarnCommand extends ModerationCommand {
         TemporalAccessor timestamp = Instant.now();
         Case aCase = new CaseBuilder().setUser(uzytkownik.getUser()).setGuild(context.getGuild()).setCaseId(caseId)
                 .setTimestamp(timestamp).setMessageId(null).setKara(Kara.UNWARN).setIleRazy(ileRazy).createCase();
-        aCase.setReason(powod);
+        ReasonUtils.parseFlags(aCase, powod);
         aCase.setIssuerId(context.getSender().getId());
         if (mlog == null || !context.getGuild().getSelfMember().hasPermission(mlog,
                 Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_WRITE, Permission.MESSAGE_READ)) {
             caseRow.getCases().add(aCase);
             context.send(context.getTranslated("unwarn.success", UserUtil.formatDiscrim(uzytkownik),
                     WarnUtil.countCases(caseRow, uzytkownik.getId())));
-            context.send(context.getTranslated("unwarn.nomodlogs", context.getPrefix()));
+            if (!aCase.getFlagi().contains(Case.Flaga.SILENT)) context.send(context.getTranslated("unwarn.nomodlogs", context.getPrefix()));
             casesDao.save(caseRow);
             return true;
         }
-        MessageEmbed embed = ModLogBuilder.generate(aCase, context.getGuild(), shardManager,
-                gc.getLanguage(), managerKomend);
-        mlog.sendMessage(embed).queue(message -> {
-            aCase.setMessageId(message.getId());
+        if (!aCase.getFlagi().contains(Case.Flaga.SILENT)) {
+            MessageEmbed embed = ModLogBuilder.generate(aCase, context.getGuild(), shardManager,
+                    gc.getLanguage(), managerKomend, true);
+            mlog.sendMessage(embed).queue(message -> {
+                aCase.setMessageId(message.getId());
+                caseRow.getCases().add(aCase);
+                context.send(context.getTranslated("unwarn.success", UserUtil.formatDiscrim(uzytkownik),
+                        WarnUtil.countCases(caseRow, uzytkownik.getId())), m -> {
+                });
+                casesDao.save(caseRow);
+            });
+        } else {
             caseRow.getCases().add(aCase);
             context.send(context.getTranslated("unwarn.success", UserUtil.formatDiscrim(uzytkownik),
-                    WarnUtil.countCases(caseRow, uzytkownik.getId())), m -> {});
+                    WarnUtil.countCases(caseRow, uzytkownik.getId())), m -> {
+            });
             casesDao.save(caseRow);
-        });
+        }
         return true;
     }
 
