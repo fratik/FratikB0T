@@ -155,19 +155,28 @@ public class UnwarnCommand extends ModerationCommand {
             caseRow.getCases().add(aCase);
             context.send(context.getTranslated("unwarn.success", UserUtil.formatDiscrim(uzytkownik),
                     WarnUtil.countCases(caseRow, uzytkownik.getId())));
-            context.send(context.getTranslated("unwarn.nomodlogs", context.getPrefix()));
+            if (!aCase.getFlagi().contains(Case.Flaga.SILENT)) context.send(context.getTranslated("unwarn.nomodlogs", context.getPrefix()));
             casesDao.save(caseRow);
             return true;
         }
-        MessageEmbed embed = ModLogBuilder.generate(aCase, context.getGuild(), shardManager,
-                gc.getLanguage(), managerKomend, true);
-        mlog.sendMessage(embed).queue(message -> {
-            aCase.setMessageId(message.getId());
+        if (!aCase.getFlagi().contains(Case.Flaga.SILENT)) {
+            MessageEmbed embed = ModLogBuilder.generate(aCase, context.getGuild(), shardManager,
+                    gc.getLanguage(), managerKomend, true);
+            mlog.sendMessage(embed).queue(message -> {
+                aCase.setMessageId(message.getId());
+                caseRow.getCases().add(aCase);
+                context.send(context.getTranslated("unwarn.success", UserUtil.formatDiscrim(uzytkownik),
+                        WarnUtil.countCases(caseRow, uzytkownik.getId())), m -> {
+                });
+                casesDao.save(caseRow);
+            });
+        } else {
             caseRow.getCases().add(aCase);
             context.send(context.getTranslated("unwarn.success", UserUtil.formatDiscrim(uzytkownik),
-                    WarnUtil.countCases(caseRow, uzytkownik.getId())), m -> {});
+                    WarnUtil.countCases(caseRow, uzytkownik.getId())), m -> {
+            });
             casesDao.save(caseRow);
-        });
+        }
         return true;
     }
 

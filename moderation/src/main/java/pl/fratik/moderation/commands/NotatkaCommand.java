@@ -108,19 +108,26 @@ public class NotatkaCommand extends ModerationCommand {
         if (mlogchan == null || !mlogchan.getGuild().getSelfMember().hasPermission(mlogchan,
                 Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_WRITE, Permission.MESSAGE_READ)) {
             context.send(context.getTranslated("notatka.success", UserUtil.formatDiscrim(uzytkownik)));
-            context.send(context.getTranslated("notatka.nomodlogs", context.getPrefix()));
+            if (!aCase.getFlagi().contains(Case.Flaga.SILENT)) context.send(context.getTranslated("notatka.nomodlogs", context.getPrefix()));
             caseRow.getCases().add(aCase);
             casesDao.save(caseRow);
             return false;
         }
-        MessageEmbed embed = ModLogBuilder.generate(aCase, context.getGuild(), shardManager,
-                gc.getLanguage(), managerKomend, true);
-        mlogchan.sendMessage(embed).queue(message -> {
+        if (!aCase.getFlagi().contains(Case.Flaga.SILENT)) {
+            MessageEmbed embed = ModLogBuilder.generate(aCase, context.getGuild(), shardManager,
+                    gc.getLanguage(), managerKomend, true);
+            mlogchan.sendMessage(embed).queue(message -> {
+                context.send(context.getTranslated("notatka.success", UserUtil.formatDiscrim(uzytkownik)), m -> {
+                });
+                aCase.setMessageId(message.getId());
+                caseRow.getCases().add(aCase);
+                casesDao.save(caseRow);
+            });
+        } else {
             context.send(context.getTranslated("notatka.success", UserUtil.formatDiscrim(uzytkownik)), m -> {});
-            aCase.setMessageId(message.getId());
             caseRow.getCases().add(aCase);
             casesDao.save(caseRow);
-        });
+        }
         return true;
     }
 }
