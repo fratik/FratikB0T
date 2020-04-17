@@ -47,7 +47,7 @@ public class CoronastatsCommand extends Command {
     protected boolean execute(@NotNull CommandContext context) {
         if (context.getArgs().length == 0 || context.getArgs()[0] == null) {
             try {
-                JSONObject staty = NetworkUtil.getJson("https://corona.lmao.ninja/all");
+                JSONObject staty = NetworkUtil.getJson("https://corona.lmao.ninja/v2/all");
                 if (staty == null) throw new IOException("tak");
                 EmbedBuilder eb = new EmbedBuilder();
                 eb.setAuthor(context.getTranslated("coronastats.basic.header"));
@@ -71,7 +71,7 @@ public class CoronastatsCommand extends Command {
             try {
                 JSONResponse staty;
                 try {
-                    staty = NetworkUtil.getJson("https://corona.lmao.ninja/countries/" +
+                    staty = NetworkUtil.getJson("https://corona.lmao.ninja/v2/countries/" +
                             NetworkUtil.encodeURIComponent((String) context.getArgs()[0]));
                     if (staty == null) throw new IOException("tak");
                     if (staty.getCode() != 200) throw new JSONException("tak");
