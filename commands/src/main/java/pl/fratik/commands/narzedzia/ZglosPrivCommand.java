@@ -154,6 +154,7 @@ public class ZglosPrivCommand extends Command {
             privDao.save(priv);
             context.send(context.getTranslated("zglospriv.success"));
         });
+        waiter.create();
         return true;
     }
 
