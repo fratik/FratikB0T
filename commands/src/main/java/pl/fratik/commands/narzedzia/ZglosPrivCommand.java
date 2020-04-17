@@ -162,6 +162,7 @@ public class ZglosPrivCommand extends Command {
     private void onReactionAdd(MessageReactionAddEvent e) {
         if (!e.getChannel().getId().equals(Ustawienia.instance.zglosPrivChannel)) return;
         if (e.getReactionEmote().isEmote()) return;
+        if (e.getUser() != null && e.getUser().isBot()) return;
         String s = e.getReactionEmote().getName();
         if (POTW.equals(s)) {
             Message msg = e.getChannel().retrieveMessageById(e.getMessageId()).complete();
