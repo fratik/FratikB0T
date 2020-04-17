@@ -35,9 +35,9 @@ public class Priv implements DatabaseEntity {
 
     @PrimaryKey
     private final String id;
-    private final String content;
     private final String odKogo;
     private final String doKogo;
+    private final String content;
     @Nullable private Boolean zgloszone;
 
     @Override

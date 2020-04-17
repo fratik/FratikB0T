@@ -105,7 +105,7 @@ public class PrivCommand extends Command {
             ch.sendMessage(context.getTlumaczenia().get(context.getTlumaczenia().getLanguage(doKogo),
                     "priv.message", sender.getAsTag(), sender.getId(), tresc,
                     Ustawienia.instance.prefix, sender.getId(), Ustawienia.instance.prefix, id)).complete();
-            privDao.save(new Priv(id, doKogo.getId(), sender.getId(), tresc, false));
+            privDao.save(new Priv(id, sender.getId(), doKogo.getId(), tresc, false));
             context.send(context.getTranslated("priv.success"));
         } catch (Exception e) {
             context.send(context.getTranslated("priv.cant.send.dm"));
