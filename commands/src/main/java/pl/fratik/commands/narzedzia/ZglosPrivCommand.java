@@ -172,7 +172,7 @@ public class ZglosPrivCommand extends Command {
             msg.delete().queue();
             Objects.requireNonNull(shardManager.getUserById(priv.getDoKogo())).openPrivateChannel().complete()
                     .sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(shardManager
-                            .getUserById(priv.getDoKogo())), "zglospriv.response1")).queue();
+                            .getUserById(priv.getDoKogo())), "zglospriv.response1", priv.getId())).queue();
         } else if (ODRZ.equals(s)) {
             Message msg = e.getChannel().retrieveMessageById(e.getMessageId()).complete();
             if (msg.getEmbeds().isEmpty() || !msg.getAuthor().equals(e.getJDA().getSelfUser())) return;
@@ -187,7 +187,7 @@ public class ZglosPrivCommand extends Command {
                 msg.delete().queue();
                 Objects.requireNonNull(shardManager.getUserById(priv.getDoKogo())).openPrivateChannel().complete()
                         .sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(shardManager
-                                .getUserById(priv.getDoKogo())), "zglospriv.response2")).queue();
+                                .getUserById(priv.getDoKogo())), "zglospriv.response2", priv.getId())).queue();
             });
         }
     }
