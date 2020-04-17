@@ -174,7 +174,7 @@ public class ZglosPrivCommand extends Command {
             Objects.requireNonNull(shardManager.getUserById(priv.getDoKogo())).openPrivateChannel().complete()
                     .sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(shardManager
                             .getUserById(priv.getDoKogo())), "zglospriv.response1", priv.getId())).queue();
-        } else if (ODRZ.equals(s)) {
+        } else if ("\u2757".equals(s)) {
             Message msg = e.getChannel().retrieveMessageById(e.getMessageId()).complete();
             if (msg.getEmbeds().isEmpty() || !msg.getAuthor().equals(e.getJDA().getSelfUser())) return;
             Priv priv = privDao.get(Objects.requireNonNull(msg.getEmbeds().get(0).getFooter()).getText());
