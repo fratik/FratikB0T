@@ -47,7 +47,7 @@ public class ListTagCommand extends Command {
         category = CommandCategory.TAG;
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         permissions.add(Permission.MESSAGE_ADD_REACTION);
-        aliases = new String[] {"listtags", "tags"};
+        aliases = new String[] {"listtags", "tags", "taglist", "tagslist"};
         cooldown = 5;
     }
 
