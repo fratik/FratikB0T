@@ -31,6 +31,7 @@ import pl.fratik.core.util.EventWaiter;
 import pl.fratik.core.webhook.WebhookManager;
 import pl.fratik.tags.commands.CreateTagCommand;
 import pl.fratik.tags.commands.DeleteTagCommand;
+import pl.fratik.tags.commands.ListTagCommand;
 import pl.fratik.tags.commands.TakeTagCommand;
 import pl.fratik.tags.entity.TagsDao;
 
@@ -65,6 +66,7 @@ public class Module implements Modul {
         commands.add(new CreateTagCommand(tagsDao, managerKomend));
         commands.add(new DeleteTagCommand(tagsDao));
         commands.add(new TakeTagCommand(tagsDao));
+        commands.add(new ListTagCommand(tagsDao, eventWaiter, eventBus));
 
         commands.forEach(managerKomend::registerCommand);
         eventBus.register(tagsManager);
