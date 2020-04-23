@@ -26,6 +26,7 @@ import net.dv8tion.jda.api.exceptions.PermissionException;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import pl.fratik.core.Ustawienia;
 import pl.fratik.core.command.CommandContext;
+import pl.fratik.core.command.PermLevel;
 import pl.fratik.core.entity.*;
 import pl.fratik.core.manager.ManagerArgumentow;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
@@ -89,7 +90,7 @@ public class OldSettingsRenderer implements SettingsRenderer {
                 .replace("\0", "=")).append("\n\n");
         builder.append(ctx.getTranslated("ustawienia.description")).append("\n");
         builder.append("1. ").append(ctx.getTranslated("ustawienia.user.ustawienia")).append("\n");
-        if (ctx.getGuild() != null && UserUtil.getPermlevel(ctx.getMember(), guildDao, shardManager).getNum() >= 3)
+        if (ctx.getGuild() != null && UserUtil.getPermlevel(ctx.getMember(), guildDao, shardManager).getNum() >= PermLevel.MANAGESERVERPERMS.getNum())
             builder.append("2. ").append(ctx.getTranslated("ustawienia.server.ustawienia")).append("\n");
         builder.append("\n0. ").append(ctx.getTranslated("ustawienia.footer"));
         builder.append("```");
@@ -115,9 +116,10 @@ public class OldSettingsRenderer implements SettingsRenderer {
                     event.getChannel().sendMessage(ctx.getTranslated("ustawienia.server.noserver")).queue();
                     return;
                 }
-                if (UserUtil.getPermlevel(event.getMember(), guildDao, shardManager).getNum() < 3) {
+                if (UserUtil.getPermlevel(event.getMember(), guildDao, shardManager).getNum() < PermLevel.MANAGESERVERPERMS.getNum()) {
                     event.getChannel().sendMessage(ctx.getTranslated("ustawienia.server.nopermissions",
-                            String.valueOf(UserUtil.getPermlevel(event.getMember(), guildDao, shardManager).getNum()), String.valueOf(3)))
+                            String.valueOf(UserUtil.getPermlevel(event.getMember(), guildDao, shardManager).getNum()),
+                            String.valueOf(PermLevel.MANAGESERVERPERMS.getNum())))
                     .queue();
                     return;
                 }

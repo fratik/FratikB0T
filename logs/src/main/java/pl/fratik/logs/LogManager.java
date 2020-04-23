@@ -38,7 +38,6 @@ import pl.fratik.core.event.DatabaseUpdateEvent;
 import pl.fratik.core.event.LvlupEvent;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
-import pl.fratik.core.util.DurationUtil;
 import pl.fratik.core.util.NetworkUtil;
 import pl.fratik.core.util.UserUtil;
 
@@ -100,14 +99,14 @@ class LogManager {
             executor.submit(() -> {
                 WebhookClient cl = getWebhook(webhookGa);
                 cl.send(String.format("%s[%s] użył komendy %s(%s) na serwerze %s[%s]. Jego/jej uprawnienia na tym " +
-                        "serwerze (oprócz 5/6) to %s (%s).", e.getContext().getSender().getAsTag(),
+                        "serwerze (oprócz 6/7) to %s (%s).", e.getContext().getSender().getAsTag(),
                         e.getContext().getSender().getId(), e.getContext().getCommand().getName(),
                         String.join(",", e.getContext().getRawArgs()), e.getContext().getGuild().getName(),
                         e.getContext().getGuild().getId(), pLevel.getNum(),
                         tlumaczenia.get(Language.DEFAULT, pLevel.getLanguageKey())));
             });
             PermLevel cmdLvl = e.getContext().getCommand().getPermLevel();
-            if (webhookGaLvl == null || cmdLvl.getNum() >= 5 || pLevel.getNum() >= cmdLvl.getNum()) return;
+            if (webhookGaLvl == null || cmdLvl.getNum() >= PermLevel.GADMIN.getNum() || pLevel.getNum() >= cmdLvl.getNum()) return;
             executor.submit(() -> {
                 WebhookClient cl = getWebhook(webhookGaLvl);
                 cl.send(String.format("%s[%s] użył komendy %s(%s) na serwerze %s[%s] i tym samym nadużył swoich uprawnień.  " +

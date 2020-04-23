@@ -75,11 +75,11 @@ public class UserUtil {
     }
 
     public static PermLevel getPermlevel(User user, ShardManager shardManager, PermLevel max) {
-        if (max.getNum() >= 10 && Globals.ownerId == user.getIdLong())
+        if (max.getNum() >= PermLevel.BOTOWNER.getNum() && Globals.ownerId == user.getIdLong())
             return PermLevel.BOTOWNER;
-        if (max.getNum() >= 6 && isZga(user, shardManager))
+        if (max.getNum() >= PermLevel.ZGA.getNum() && isZga(user, shardManager))
             return PermLevel.ZGA;
-        if (max.getNum() >= 5 && isGadm(user, shardManager))
+        if (max.getNum() >= PermLevel.GADMIN.getNum() && isGadm(user, shardManager))
             return PermLevel.GADMIN;
         return PermLevel.EVERYONE;
     }
@@ -89,21 +89,21 @@ public class UserUtil {
     }
 
     public static PermLevel getPermlevel(Member member, GuildDao guildDao, ShardManager shardManager, PermLevel max) {
-        if (max.getNum() >= 10 && Globals.ownerId == member.getUser().getIdLong())
+        if (max.getNum() >= PermLevel.BOTOWNER.getNum() && Globals.ownerId == member.getUser().getIdLong())
             return PermLevel.BOTOWNER;
-        if (max.getNum() >= 6 && isZga(member, shardManager))
+        if (max.getNum() >= PermLevel.ZGA.getNum() && isZga(member, shardManager))
             return PermLevel.ZGA;
-        if (max.getNum() >= 5 && isGadm(member, shardManager))
+        if (max.getNum() >= PermLevel.GADMIN.getNum() && isGadm(member, shardManager))
             return PermLevel.GADMIN;
-        if (max.getNum() >= 4 && member.isOwner())
+        if (max.getNum() >= PermLevel.OWNER.getNum() && member.isOwner())
             return PermLevel.OWNER;
-        if (max.getNum() >= 3 && member.getPermissions().contains(Permission.MANAGE_SERVER))
+        if (max.getNum() >= PermLevel.MANAGESERVERPERMS.getNum() && member.getPermissions().contains(Permission.MANAGE_SERVER))
             return PermLevel.MANAGESERVERPERMS;
         GuildConfig gc = guildDao.get(member.getGuild());
-        if (max.getNum() >= 2 && gc.getAdminRole() != null && gc.getAdminRole().length() != 0 &&
+        if (max.getNum() >= PermLevel.ADMIN.getNum() && gc.getAdminRole() != null && gc.getAdminRole().length() != 0 &&
                 member.getRoles().stream().map(ISnowflake::getId).anyMatch(id -> gc.getAdminRole().equals(id)))
             return PermLevel.ADMIN;
-        if (max.getNum() >= 1 && gc.getModRole() != null && gc.getModRole().length() != 0 &&
+        if (max.getNum() >= PermLevel.MOD.getNum() && gc.getModRole() != null && gc.getModRole().length() != 0 &&
                 member.getRoles().stream().map(ISnowflake::getId).anyMatch(id -> gc.getModRole().equals(id)))
             return PermLevel.MOD;
         return PermLevel.EVERYONE;

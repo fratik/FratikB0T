@@ -22,12 +22,13 @@ import lombok.Getter;
 public enum PermLevel {
 
     EVERYONE(0, "permlevel.everyone"),
-    MOD(1, "permlevel.mod"),
-    ADMIN(2, "permlevel.admin"),
-    MANAGESERVERPERMS(3, "permlevel.manageserver"),
-    OWNER(4, "permlevel.owner"),
-    GADMIN(5, "permlevel.gadmin"),
-    ZGA(6, "permlevel.zga"),
+    TECH(1, "permlevel.tech"),
+    MOD(2, "permlevel.mod"),
+    ADMIN(3, "permlevel.admin"),
+    MANAGESERVERPERMS(4, "permlevel.manageserver"),
+    OWNER(5, "permlevel.owner"),
+    GADMIN(6, "permlevel.gadmin"),
+    ZGA(7, "permlevel.zga"),
     BOTOWNER(10, "permlevel.botowner");
 
     @Getter private final int num;
@@ -40,12 +41,13 @@ public enum PermLevel {
 
     public static PermLevel getPermLevel(int num) {
         if (num == 0) return EVERYONE;
-        if (num == 1) return MOD;
-        if (num == 2) return ADMIN;
-        if (num == 3) return MANAGESERVERPERMS;
-        if (num == 4) return OWNER;
-        if (num == 5) return GADMIN;
-        if (num == 6) return ZGA;
+        if (num == 1) return TECH;
+        if (num == 2) return MOD;
+        if (num == 3) return ADMIN;
+        if (num == 4) return MANAGESERVERPERMS;
+        if (num == 5) return OWNER;
+        if (num == 6) return GADMIN;
+        if (num == 7) return ZGA;
         if (num == 10) return BOTOWNER;
         throw new IllegalArgumentException("Nieprawidłowy poziom!");
     }

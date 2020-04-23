@@ -28,10 +28,7 @@ import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.Globals;
 import pl.fratik.core.Ustawienia;
-import pl.fratik.core.command.Command;
-import pl.fratik.core.command.CommandCategory;
-import pl.fratik.core.command.CommandContext;
-import pl.fratik.core.command.SubCommand;
+import pl.fratik.core.command.*;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.event.PluginMessageEvent;
@@ -81,7 +78,7 @@ public class OgloszenieCommand extends Command {
 
     @SubCommand(name = "post")
     public boolean post(@NotNull CommandContext context) {
-        if (UserUtil.getPermlevel(context.getMember(), guildDao, context.getShardManager()).getNum() < 10) {
+        if (UserUtil.getPermlevel(context.getMember(), guildDao, context.getShardManager()).getNum() < PermLevel.BOTOWNER.getNum()) {
             return execute(context);
         }
         if (!Globals.inFratikDev) throw new IllegalStateException("nie na FratikDev");

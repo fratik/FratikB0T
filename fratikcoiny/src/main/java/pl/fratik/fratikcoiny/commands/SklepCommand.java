@@ -25,10 +25,7 @@ import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.Role;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.Ustawienia;
-import pl.fratik.core.command.Command;
-import pl.fratik.core.command.CommandCategory;
-import pl.fratik.core.command.CommandContext;
-import pl.fratik.core.command.SubCommand;
+import pl.fratik.core.command.*;
 import pl.fratik.core.entity.*;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
@@ -225,7 +222,7 @@ public class SklepCommand extends Command {
 
     @SubCommand(name="ustaw", aliases = "set")
     public boolean dodaj(CommandContext context) {
-        if (UserUtil.getPermlevel(context.getMember(), guildDao, shardManager).getNum() < 2) {
+        if (UserUtil.getPermlevel(context.getMember(), guildDao, shardManager).getNum() < PermLevel.TECH.getNum()) {
             context.send(context.getTranslated("sklep.ustaw.noperms"));
             return false;
         }
@@ -292,7 +289,7 @@ public class SklepCommand extends Command {
 
     @SubCommand(name="usun", aliases = "delete")
     public boolean usun(CommandContext context) {
-        if (UserUtil.getPermlevel(context.getMember(), guildDao, shardManager).getNum() < 2) {
+        if (UserUtil.getPermlevel(context.getMember(), guildDao, shardManager).getNum() < PermLevel.TECH.getNum()) {
             context.send(context.getTranslated("sklep.usun.noperms"));
             return false;
         }

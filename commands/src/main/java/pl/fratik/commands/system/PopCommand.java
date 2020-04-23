@@ -225,7 +225,7 @@ public class PopCommand extends Command {
         if (fdev == null) return; //nie możemy throw'nąć bo to mogło być podczas ładowania shard'ów
         TextChannel logi = fdev.getTextChannelById(Ustawienia.instance.popLogChannel);
         if (logi == null) return; //nie możemy throw'nąć bo to mogło być podczas ładowania shard'ów
-        if (UserUtil.getPermlevel(e.getMember(), guildDao, shardManager).getNum() < 5) return;
+        if (UserUtil.getPermlevel(e.getMember(), guildDao, shardManager).getNum() < PermLevel.GADMIN.getNum()) return;
         Role rola = null;
         for (Language lang : Language.values()) {
             if (lang == Language.DEFAULT) continue;

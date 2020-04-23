@@ -68,7 +68,7 @@ public class AntiInviteListener {
                 !e.getTextChannel().canTalk()) return;
         if (!isAntiinvite(e.getGuild()) || isIgnored(e.getTextChannel())) return;
         if (!e.getGuild().getSelfMember().canInteract(e.getMember())) return;
-        if (UserUtil.getPermlevel(e.getMember(), guildDao, shardManager, PermLevel.OWNER).getNum() >= 1) return;
+        if (UserUtil.getPermlevel(e.getMember(), guildDao, shardManager, PermLevel.OWNER).getNum() >= PermLevel.MOD.getNum()) return;
 
         if (containsInvite(e.getMessage().getContentRaw())) addKara(e.getMessage());
     }
@@ -80,7 +80,7 @@ public class AntiInviteListener {
                 !e.getChannel().canTalk()) return;
         if (!isAntiinvite(e.getGuild()) || isIgnored(e.getChannel())) return;
         if (!e.getGuild().getSelfMember().canInteract(e.getMember())) return;
-        if (UserUtil.getPermlevel(e.getMember(), guildDao, shardManager, PermLevel.OWNER).getNum() >= 1) return;
+        if (UserUtil.getPermlevel(e.getMember(), guildDao, shardManager, PermLevel.OWNER).getNum() >= PermLevel.MOD.getNum()) return;
 
         if (containsInvite(e.getMessage().getContentRaw())) addKara(e.getMessage());
     }

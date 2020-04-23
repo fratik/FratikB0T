@@ -85,7 +85,7 @@ public class AntiRaidListener {
         if (e.isWebhookMessage() || !e.isFromGuild() || e.getMessage().getMember() == null ||
                 e.getAuthor().isBot() || e.getMessage().getType() != MessageType.DEFAULT) return;
         if (antiRaidDisabled(e.getMessage().getGuild())) return;
-        if (UserUtil.getPermlevel(e.getMember(), guildDao, shardManager, PermLevel.OWNER).getNum() >= 1) return;
+        if (UserUtil.getPermlevel(e.getMember(), guildDao, shardManager, PermLevel.OWNER).getNum() >= PermLevel.MOD.getNum()) return;
         if (getAntiRaidChannels(e.getMessage().getGuild()).contains(e.getTextChannel().getId())) return;
         if (antiRaidExtreme(e.getMessage().getGuild())) extreme(e.getMessage());
         normal(e.getMessage());

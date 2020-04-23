@@ -27,6 +27,7 @@ import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.Ustawienia;
 import pl.fratik.core.command.CommandContext;
+import pl.fratik.core.command.PermLevel;
 import pl.fratik.core.entity.*;
 import pl.fratik.core.manager.ManagerArgumentow;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
@@ -156,7 +157,7 @@ public class AutoSettingsRenderer implements SettingsRenderer {
         } catch (NoSuchMethodException e) {
             throw new IllegalStateException(e);
         }
-        if (ctx.getGuild() != null && UserUtil.getPermlevel(ctx.getMember(), guildDao, shardManager).getNum() >= 3) {
+        if (ctx.getGuild() != null && UserUtil.getPermlevel(ctx.getMember(), guildDao, shardManager).getNum() >= PermLevel.MANAGESERVERPERMS.getNum()) {
             builder.append("2. ").append(ctx.getTranslated("ustawienia.server.ustawienia")).append("\n");
             try {
                 opcje.put(2, new Opcja(getClass().getDeclaredMethod("renderGuildConf"), null));
