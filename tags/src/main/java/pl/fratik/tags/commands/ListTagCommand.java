@@ -27,11 +27,11 @@ import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.util.ClassicEmbedPaginator;
 import pl.fratik.core.util.EventWaiter;
 import pl.fratik.core.util.UserUtil;
-import pl.fratik.tags.entity.Tag;
 import pl.fratik.tags.entity.Tags;
 import pl.fratik.tags.entity.TagsDao;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 public class ListTagCommand extends Command {
@@ -55,15 +55,15 @@ public class ListTagCommand extends Command {
     public boolean execute(@NotNull CommandContext context) {
         Tags tags = tagsDao.get(context.getGuild().getId());
         List<EmbedBuilder> pages = new ArrayList<>();
-        StringBuilder sb = new StringBuilder();
-        for (Tag tag : tags.getTagi()) {
-            sb.append(tag.getName()).append(" ");
-            if (sb.length() >= 1000) {
-                pages.add(renderEmbed(sb, context));
-                sb = new StringBuilder();
+        final StringBuilder[] sb = {new StringBuilder()};
+        tags.getTagi().stream().sorted(Comparator.comparing(t -> t.getName().toLowerCase())).forEachOrdered(tag -> {
+            sb[0].append(tag.getName()).append(" ");
+            if (sb[0].length() >= 1000) {
+                pages.add(renderEmbed(sb[0], context));
+                sb[0] = new StringBuilder();
             }
-        }
-        if (sb.length() != 0) pages.add(renderEmbed(sb, context));
+        });
+        if (sb[0].length() != 0) pages.add(renderEmbed(sb[0], context));
         if (pages.isEmpty()) {
             context.send(context.getTranslated("listtag.no.tags"));
             return false;
