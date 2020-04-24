@@ -18,11 +18,19 @@
 package pl.fratik.core.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import gg.amy.pgorm.annotations.GIndex;
 import gg.amy.pgorm.annotations.PrimaryKey;
 import gg.amy.pgorm.annotations.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.sharding.ShardManager;
+import pl.fratik.core.Ustawienia;
+import pl.fratik.core.command.CommandContext;
+import pl.fratik.core.deserializer.EmojiDeserializer;
+import pl.fratik.core.deserializer.EmojiSerializer;
 import pl.fratik.core.tlumaczenia.Language;
 
 import java.beans.Transient;
@@ -120,6 +128,7 @@ public class GuildConfig implements DatabaseEntity {
     private Map<String, Webhook> webhooki = new HashMap<>();
     private String lvlUpMessage;
     private Boolean resetujOstrzezeniaPrzyBanie = true;
+    private Moneta moneta;
 
     // TODO: 09/04/2020 można to zrobić dla każdego Boolean'a, ale to już kwestia kosmetyki kodu chyba
     public boolean isResetujOstrzezeniaPrzyBanie() {
@@ -138,5 +147,39 @@ public class GuildConfig implements DatabaseEntity {
     public static class Webhook {
         private final String id;
         private final String token;
+    }
+
+    @Data
+    @AllArgsConstructor
+    public static class Moneta {
+        private String pelnaNazwa;
+        @JsonSerialize(using = EmojiSerializer.class)
+        @JsonDeserialize(using = EmojiDeserializer.class)
+        private Emoji ikona;
+        private String skrot;
+
+        public Moneta(ShardManager shardManager) { //domyślne wartości
+            pelnaNazwa = "FratikCoin";
+            ikona = Emoji.resolve(Ustawienia.instance.emotki.fratikCoin, shardManager);
+            skrot = "FC";
+        }
+
+        public String getShort() {
+            return getShort(null);
+        }
+
+        public String getShort(CommandContext ctx) {
+            if (ctx == null) {
+                if (ikona != null) return ikona.toString();
+                else return skrot;
+            } else {
+                if (ctx.getMember().hasPermission(ctx.getChannel(), Permission.MESSAGE_EXT_EMOJI)) {
+                    if (ikona != null) return ikona.toString();
+                    else return skrot;
+                } else {
+                    return skrot;
+                }
+            }
+        }
     }
 }

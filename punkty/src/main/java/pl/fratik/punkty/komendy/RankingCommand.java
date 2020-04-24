@@ -127,14 +127,14 @@ public class RankingCommand extends Command {
     public boolean fratikcoin(@NotNull CommandContext context) {
         List<MemberConfig> mc = new ArrayList<>();
         List<MemberConfig> mcAa = memberDao.getAll();
-        mcAa.sort(Comparator.comparingLong(MemberConfig::getFratikCoiny).reversed());
+        mcAa.sort(Comparator.comparingLong(MemberConfig::getKasa).reversed());
         for (MemberConfig c : mcAa) {
             if (c.getGuildId().equals(context.getGuild().getId())) mc.add(c);
             if (mc.size() == 10) break;
         }
         Map<String, Long> dane = new LinkedHashMap<>();
         for (MemberConfig c : mc)
-            dane.put(c.getUserId(), c.getFratikCoiny());
+            dane.put(c.getUserId(), c.getKasa());
         ArrayList<String> tekst = new ArrayList<>();
         AtomicInteger miejsce = new AtomicInteger(0);
         dane.forEach((id, fc) -> {

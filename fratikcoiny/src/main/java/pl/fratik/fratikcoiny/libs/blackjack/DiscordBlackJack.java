@@ -24,6 +24,7 @@ import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import pl.fratik.core.Ustawienia;
 import pl.fratik.core.command.CommandContext;
+import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.util.EventWaiter;
 import pl.fratik.core.util.MessageWaiter;
 
@@ -42,16 +43,18 @@ public class DiscordBlackJack {
     private long playerMoney;
     private boolean gameOver = false;
     private final EventWaiter eventWaiter;
+    private final GuildConfig.Moneta moneta;
     private long playerBet;
     private Message embedMessage;
     private Hand winnerHand;
     private int roundCount;
 
-    public DiscordBlackJack(CommandContext context, long playerMoney, EventWaiter eventWaiter) {
+    public DiscordBlackJack(CommandContext context, long playerMoney, EventWaiter eventWaiter, GuildConfig.Moneta moneta) {
         player = context.getMember();
         this.context = context;
         this.playerMoney = playerMoney;
         this.eventWaiter = eventWaiter;
+        this.moneta = moneta;
     }
 
     public BlackjackResult startPlay(long bet) {
@@ -176,15 +179,13 @@ public class DiscordBlackJack {
             eb.setColor(Color.green);
             eb.setAuthor(context.getTranslated("blackjack.end.won"));
             eb.setDescription(context.getTranslated("blackjack.end.won.desc",
-                    emotkaFc.getAsMention(),
-                    playerBet, playerMoney + playerBet));
+                    moneta.getShort(context), playerBet, playerMoney + playerBet));
         }
         if (gameOver && winnerHand.equals(dealerHand)) {
             eb.setColor(Color.red);
             eb.setAuthor(context.getTranslated("blackjack.end.lost"));
             eb.setDescription(context.getTranslated("blackjack.end.lost.desc",
-                    emotkaFc.getAsMention(),
-                    playerMoney - playerBet));
+                    moneta.getShort(context), playerMoney - playerBet));
         }
         return eb.build();
     }

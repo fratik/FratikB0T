@@ -108,6 +108,10 @@ public class Emoji extends EmoteImpl implements ListedEmote {
         }
     }
 
+    public String getSerializable() {
+        return !isUnicode() ? String.valueOf(id) : "UNICODE:" + unicode;
+    }
+
     public static Emoji resolve(String emote, ShardManager jda) {
         if (EmojiUtils.isEmoji(emote) || emote.startsWith("UNICODE:"))
             return new Emoji(emote.replace("UNICODE:", ""));

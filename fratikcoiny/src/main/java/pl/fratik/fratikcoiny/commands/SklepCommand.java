@@ -25,7 +25,7 @@ import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.Role;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.Ustawienia;
-import pl.fratik.core.command.Command;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.command.SubCommand;
@@ -40,23 +40,19 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @SuppressWarnings("squid:S1192")
-public class SklepCommand extends Command {
+public class SklepCommand extends CoinCommand {
 
-    private final GuildDao guildDao;
-    private final MemberDao memberDao;
     private final EventWaiter eventWaiter;
     private final ShardManager shardManager;
     private final EventBus eventBus;
 
-    public SklepCommand(GuildDao guildDao, MemberDao memberDao, EventWaiter eventWaiter, ShardManager shardManager, EventBus eventBus) {
-        this.guildDao = guildDao;
-        this.memberDao = memberDao;
+    public SklepCommand(GuildDao guildDao, MemberDao memberDao, EventWaiter eventWaiter, ShardManager shardManager, EventBus eventBus, RedisCacheManager redisCacheManager) {
+        super(memberDao, guildDao, redisCacheManager);
         this.eventWaiter = eventWaiter;
         this.shardManager = shardManager;
         this.eventBus = eventBus;
         name = "sklep";
         category = CommandCategory.MONEY;
-        permissions.add(Permission.MESSAGE_EXT_EMOJI);
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         permissions.add(Permission.MESSAGE_MANAGE);
         permissions.add(Permission.MESSAGE_ADD_REACTION);
@@ -77,6 +73,7 @@ public class SklepCommand extends Command {
 
     @SubCommand(name="kup", aliases = "buy")
     public boolean kup(CommandContext context) {
+        GuildConfig.Moneta moneta = resolveMoneta(context);
         GuildConfig gc = guildDao.get(context.getGuild());
         if (context.getArgs().length == 0 || (context.getArgs().length > 0 && context.getArgs()[0] == null)) {
             context.send(context.getTranslated("sklep.kup.invalidrole"));
@@ -91,20 +88,20 @@ public class SklepCommand extends Command {
         MemberConfig mc = memberDao.get(context.getMember());
         if (context.getMember().getRoles().contains(rola)) {
             EmbedBuilder eb = generateEmbed(Typ.KUPOWANIE, rola, gc.getRoleDoKupieniaOpisy().get(rola.getId()),
-                    kasa, mc.getFratikCoiny(), true, context.getTlumaczenia(), context.getLanguage());
+                    kasa, mc.getKasa(), true, context.getTlumaczenia(), context.getLanguage());
             context.getChannel().sendMessage(eb.build()).complete();
             context.send(context.getTranslated("sklep.kup.hasrole"));
             return false;
         }
-        if (mc.getFratikCoiny() < gc.getRoleDoKupienia().get(rola.getId())) {
+        if (mc.getKasa() < gc.getRoleDoKupienia().get(rola.getId())) {
             EmbedBuilder eb = generateEmbed(Typ.KUPOWANIE, rola, gc.getRoleDoKupieniaOpisy().get(rola.getId()),
-                    kasa, mc.getFratikCoiny(), false, context.getTlumaczenia(), context.getLanguage());
+                    kasa, mc.getKasa(), false, context.getTlumaczenia(), context.getLanguage());
             context.getChannel().sendMessage(eb.build()).complete();
-            context.send(context.getTranslated("sklep.kup.brakhajsu"));
+            context.send(context.getTranslated("sklep.kup.brakhajsu", moneta.getShort(context)));
             return false;
         }
         EmbedBuilder eb = generateEmbed(Typ.KUPOWANIE, rola, gc.getRoleDoKupieniaOpisy().get(rola.getId()),
-                kasa, mc.getFratikCoiny(), false, context.getTlumaczenia(), context.getLanguage());
+                kasa, mc.getKasa(), false, context.getTlumaczenia(), context.getLanguage());
         Message msgTmp = context.getChannel().sendMessage(eb.build()).complete();
         msgTmp.addReaction(Objects.requireNonNull(shardManager.getEmoteById(Ustawienia.instance.emotki.greenTick))).complete();
         msgTmp.addReaction(Objects.requireNonNull(shardManager.getEmoteById(Ustawienia.instance.emotki.redTick))).complete();
@@ -118,11 +115,11 @@ public class SklepCommand extends Command {
                 try {
                     context.getGuild().addRoleToMember(context.getMember(), rola).queue(aVoid -> {
                         MemberConfig mc2 = memberDao.get(Objects.requireNonNull(event.getMember()));
-                        if (mc2.getFratikCoiny() < kasa) {
-                            context.send(context.getTranslated("sklep.kup.brakhajsu"));
+                        if (mc2.getKasa() < kasa) {
+                            context.send(context.getTranslated("sklep.kup.brakhajsu", moneta.getShort(context)));
                             return;
                         }
-                        mc2.setFratikCoiny(mc2.getFratikCoiny() - kasa);
+                        mc2.setKasa(mc2.getKasa() - kasa);
                         memberDao.save(mc2);
                         context.send(context.getTranslated("sklep.kup.success"), m -> {
                         });
@@ -159,13 +156,13 @@ public class SklepCommand extends Command {
         MemberConfig mc = memberDao.get(context.getMember());
         if (!context.getMember().getRoles().contains(rola)) {
             EmbedBuilder eb = generateEmbed(Typ.SPRZEDAZ, rola, gc.getRoleDoKupieniaOpisy().get(rola.getId()),
-                    kasa, mc.getFratikCoiny(), false, context.getTlumaczenia(), context.getLanguage());
+                    kasa, mc.getKasa(), false, context.getTlumaczenia(), context.getLanguage());
             context.getChannel().sendMessage(eb.build()).complete();
             context.send(context.getTranslated("sklep.sprzedaj.hasrole"));
             return false;
         }
         EmbedBuilder eb = generateEmbed(Typ.SPRZEDAZ, rola, gc.getRoleDoKupieniaOpisy().get(rola.getId()),
-                kasa, mc.getFratikCoiny(), true, context.getTlumaczenia(), context.getLanguage());
+                kasa, mc.getKasa(), true, context.getTlumaczenia(), context.getLanguage());
         Message msgTmp = context.getChannel().sendMessage(eb.build()).complete();
         msgTmp.addReaction(Objects.requireNonNull(shardManager.getEmoteById(Ustawienia.instance.emotki.greenTick))).complete();
         msgTmp.addReaction(Objects.requireNonNull(shardManager.getEmoteById(Ustawienia.instance.emotki.redTick))).complete();
@@ -180,7 +177,7 @@ public class SklepCommand extends Command {
                         .queue(
                                 aVoid -> {
                                     MemberConfig mc2 = memberDao.get(Objects.requireNonNull(event.getMember()));
-                                    mc2.setFratikCoiny(mc2.getFratikCoiny() + (int) Math.floor((double) kasa / 2));
+                                    mc2.setKasa(mc2.getKasa() + (int) Math.floor((double) kasa / 2));
                                     memberDao.save(mc2);
                                     context.send(context.getTranslated("sklep.sprzedaj.success"), m -> {});
                                 },
@@ -209,7 +206,7 @@ public class SklepCommand extends Command {
             Role rola = context.getGuild().getRoleById(rId);
             if (rola == null) continue;
             EmbedBuilder eb = generateEmbed(Typ.INFO, rola, gc.getRoleDoKupieniaOpisy().get(rId), kasa,
-                    mc.getFratikCoiny(), context.getMember().getRoles().contains(rola), context.getTlumaczenia(),
+                    mc.getKasa(), context.getMember().getRoles().contains(rola), context.getTlumaczenia(),
                     context.getLanguage());
             strony.add(eb);
         }

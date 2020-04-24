@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
 import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.crypto.AES;
 import pl.fratik.core.crypto.CryptoException;
+import pl.fratik.core.deserializer.EmojiDeserializer;
 import pl.fratik.core.entity.*;
 import pl.fratik.core.event.ConnectedEvent;
 import pl.fratik.core.manager.ManagerArgumentow;
@@ -198,6 +199,7 @@ class FratikB0T {
                 builder.setCallbackPool(Executors.newFixedThreadPool(4));
                 ShardManager shardManager = builder.build();
                 ManagerArgumentow managerArgumentow = new ManagerArgumentowImpl();
+                EmojiDeserializer.setShardManager(shardManager);
                 Uzycie.setManagerArgumentow(managerArgumentow);
                 mbd = new ManagerBazyDanychImpl();
                 mbd.load();

@@ -45,7 +45,7 @@ public class MemberConfig implements DatabaseEntity {
     private String id = "";
     private String userId;
     private String guildId;
-    private long fratikCoiny = 0;
+    private long kasa = 0;
     private Date dailyDate;
 
     @Override

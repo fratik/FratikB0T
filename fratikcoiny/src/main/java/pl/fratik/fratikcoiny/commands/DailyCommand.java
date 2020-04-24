@@ -17,35 +17,30 @@
 
 package pl.fratik.fratikcoiny.commands;
 
-import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.Emote;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.Ustawienia;
-import pl.fratik.core.command.Command;
-import pl.fratik.core.command.CommandCategory;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.command.CommandContext;
+import pl.fratik.core.entity.GuildConfig;
+import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.MemberConfig;
 import pl.fratik.core.entity.MemberDao;
 
 import java.util.Calendar;
 import java.util.Date;
 
-public class DailyCommand extends Command {
+public class DailyCommand extends CoinCommand {
 
-    private final MemberDao memberDao;
-
-    public DailyCommand(MemberDao memberDao) {
-        this.memberDao = memberDao;
+    public DailyCommand(MemberDao memberDao, GuildDao guildDao, RedisCacheManager redisCacheManager) {
+        super(memberDao, guildDao, redisCacheManager);
         name = "daily";
-        category = CommandCategory.MONEY;
-        permissions.add(Permission.MESSAGE_EXT_EMOJI);
         aliases = new String[] {"dzienna", "dziennazaplata", "zaplatadzienna", "kasazadarmo", "kieszonkowe", "getfc", "wyplata"};
     }
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
-        Emote emotkaFc = context.getShardManager().getEmoteById(Ustawienia.instance.emotki.fratikCoin);
-        if (emotkaFc == null) throw new IllegalStateException("emotka null");
+        GuildConfig gc = gcCache.get(context.getGuild().getId(), guildDao::get);
+        if (gc.getMoneta() == null) gc.setMoneta(new GuildConfig.Moneta(context.getShardManager()));
+        GuildConfig.Moneta m = gc.getMoneta();
         MemberConfig mc = memberDao.get(context.getMember());
         Date dailyDate = mc.getDailyDate();
         Date teraz = new Date();
@@ -60,16 +55,16 @@ public class DailyCommand extends Command {
         cal.setTime(teraz);
         cal.add(Calendar.DAY_OF_MONTH, 1);
         dailyDate = Date.from(cal.toInstant());
-        long fc = isHoliday() ? mc.getFratikCoiny() + 500 : mc.getFratikCoiny() + 250;
-        if (fc == Long.MAX_VALUE) {
+        long kasa = isHoliday() ? mc.getKasa() + 500 : mc.getKasa() + 250;
+        if (kasa == Long.MAX_VALUE) {
             context.send(context.getTranslated("daily.too.many.coins"));
             return false;
         }
         String msg = isHoliday() ? "daily.success.holiday" : "daily.success";
-        mc.setFratikCoiny(fc);
+        mc.setKasa(kasa);
         mc.setDailyDate(dailyDate);
         memberDao.save(mc);
-        context.send(context.getTranslated(msg, emotkaFc.getAsMention()));
+        context.send(context.getTranslated(msg, m.getShort(context)));
         return true;
     }
 

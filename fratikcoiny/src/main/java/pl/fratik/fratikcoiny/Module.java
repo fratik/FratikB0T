@@ -20,6 +20,7 @@ package pl.fratik.fratikcoiny;
 import com.google.common.eventbus.EventBus;
 import com.google.inject.Inject;
 import net.dv8tion.jda.api.sharding.ShardManager;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.fratikcoiny.commands.*;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.entity.GuildDao;
@@ -39,6 +40,7 @@ public class Module implements Modul {
     @Inject private MemberDao memberDao;
     @Inject private ShardManager shardManager;
     @Inject private EventBus eventBus;
+    @Inject private RedisCacheManager redisCacheManager;
     private ArrayList<Command> commands;
 
     public Module() {
@@ -49,12 +51,12 @@ public class Module implements Modul {
     public boolean startUp() {
         commands = new ArrayList<>();
 
-        commands.add(new DailyCommand(memberDao));
-        commands.add(new DodajFcCommand(memberDao));
-        commands.add(new UsunFcCommand(memberDao));
-        commands.add(new GiveCommand(memberDao));
+        commands.add(new DailyCommand(memberDao, guildDao, redisCacheManager));
+        commands.add(new DodajCommand(memberDao));
+        commands.add(new UsunCommand(memberDao));
+        commands.add(new GiveCommand(memberDao, guildDao, redisCacheManager));
         commands.add(new KasaCommand(memberDao));
-        commands.add(new SklepCommand(guildDao, memberDao, eventWaiter, shardManager, eventBus));
+        commands.add(new SklepCommand(guildDao, memberDao, eventWaiter, shardManager, eventBus, redisCacheManager));
         commands.add(new BlackjackCommand(memberDao, eventWaiter));
         commands.add(new SlotsCommand(memberDao));
 
