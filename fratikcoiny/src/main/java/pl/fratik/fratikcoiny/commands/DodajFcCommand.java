@@ -39,7 +39,7 @@ public class DodajFcCommand extends Command {
         name = "dodajfc";
         category = CommandCategory.MONEY;
         permissions.add(Permission.MESSAGE_EXT_EMOJI);
-        permLevel = PermLevel.ADMIN;
+        permLevel = PermLevel.TECH;
         LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
         hmap.put("osoba", "member");
         hmap.put("hajs", "integer");

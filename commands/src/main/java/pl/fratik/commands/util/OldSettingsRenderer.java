@@ -90,7 +90,7 @@ public class OldSettingsRenderer implements SettingsRenderer {
                 .replace("\0", "=")).append("\n\n");
         builder.append(ctx.getTranslated("ustawienia.description")).append("\n");
         builder.append("1. ").append(ctx.getTranslated("ustawienia.user.ustawienia")).append("\n");
-        if (ctx.getGuild() != null && UserUtil.getPermlevel(ctx.getMember(), guildDao, shardManager).getNum() >= PermLevel.MANAGESERVERPERMS.getNum())
+        if (ctx.getGuild() != null && UserUtil.getPermlevel(ctx.getMember(), guildDao, shardManager).getNum() >= PermLevel.TECH.getNum())
             builder.append("2. ").append(ctx.getTranslated("ustawienia.server.ustawienia")).append("\n");
         builder.append("\n0. ").append(ctx.getTranslated("ustawienia.footer"));
         builder.append("```");
@@ -116,10 +116,10 @@ public class OldSettingsRenderer implements SettingsRenderer {
                     event.getChannel().sendMessage(ctx.getTranslated("ustawienia.server.noserver")).queue();
                     return;
                 }
-                if (UserUtil.getPermlevel(event.getMember(), guildDao, shardManager).getNum() < PermLevel.MANAGESERVERPERMS.getNum()) {
+                if (UserUtil.getPermlevel(event.getMember(), guildDao, shardManager).getNum() < PermLevel.TECH.getNum()) {
                     event.getChannel().sendMessage(ctx.getTranslated("ustawienia.server.nopermissions",
                             String.valueOf(UserUtil.getPermlevel(event.getMember(), guildDao, shardManager).getNum()),
-                            String.valueOf(PermLevel.MANAGESERVERPERMS.getNum())))
+                            String.valueOf(PermLevel.TECH.getNum())))
                     .queue();
                     return;
                 }

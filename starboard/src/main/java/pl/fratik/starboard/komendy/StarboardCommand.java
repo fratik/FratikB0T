@@ -36,7 +36,7 @@ public class StarboardCommand extends Command {
     public StarboardCommand(StarDataDao starDataDao) {
         this.starDataDao = starDataDao;
         name = "starboard";
-        permLevel = PermLevel.ADMIN;
+        permLevel = PermLevel.TECH;
         category = CommandCategory.STARBOARD;
         uzycie = new Uzycie("kanal", "channel", false);
     }

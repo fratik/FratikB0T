@@ -39,7 +39,7 @@ public class UstawPozegnanieCommand extends Command {
         this.guildDao = guildDao;
         name = "ustawpozegnanie";
         category = CommandCategory.SYSTEM;
-        permLevel = PermLevel.ADMIN;
+        permLevel = PermLevel.TECH;
         LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
         hmap.put("kanalDoPozegnan", "channel");
         hmap.put("tekst", "string");

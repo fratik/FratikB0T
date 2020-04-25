@@ -39,7 +39,7 @@ public class UstawPowitanieCommand extends Command {
         this.guildDao = guildDao;
         name = "ustawpowitanie";
         category = CommandCategory.SYSTEM;
-        permLevel = PermLevel.ADMIN;
+        permLevel = PermLevel.TECH;
         LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
         hmap.put("kanalDoPowitan", "channel");
         hmap.put("tekst", "string");

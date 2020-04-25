@@ -61,6 +61,7 @@ import pl.fratik.core.Globals;
 import pl.fratik.core.Statyczne;
 import pl.fratik.core.Ustawienia;
 import pl.fratik.core.command.Command;
+import pl.fratik.core.command.PermLevel;
 import pl.fratik.core.entity.*;
 import pl.fratik.core.manager.ManagerArgumentow;
 import pl.fratik.core.manager.ManagerBazyDanych;
@@ -284,8 +285,8 @@ public class Module implements Modul {
                 Exchange.body().sendJson(ex, new Exceptions.NoUser(), 400);
                 return;
             }
-            if (guild.getMember(user) == null) { //przyjmujemy że admin (p.lvl. 5)
-                Exchange.body().sendJson(ex, 5);
+            if (guild.getMember(user) == null) { //przyjmujemy że admin (p.lvl. gadmina)
+                Exchange.body().sendJson(ex, PermLevel.GADMIN.getNum());
                 return;
             }
             Exchange.body().sendJson(ex, UserUtil.getPermlevel(guild.getMember(user), guildDao, shardManager).getNum());
