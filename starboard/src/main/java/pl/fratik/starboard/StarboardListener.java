@@ -86,6 +86,14 @@ public class StarboardListener {
                             .queue(m -> m.delete().queueAfter(15, TimeUnit.SECONDS));
                     return;
                 }
+                if (event.getTextChannel().isNSFW() && !getChannel(event.getGuild()).isNSFW()) {
+                    Language l = tlumaczenia.getLanguage(message.getMember());
+                    toIgnore.add(event.getMessageId());
+                    event.getReaction().removeReaction(event.getUser()).queue(null, throwableConsumer);
+                    event.getChannel().sendMessage(tlumaczenia.get(l, "starboard.nsfw", event.getUser().getAsMention()))
+                            .queue(m -> m.delete().queueAfter(15, TimeUnit.SECONDS));
+                    return;
+                }
                 if (event.getUser().equals(message.getAuthor())) {
                     Language l = tlumaczenia.getLanguage(message.getMember());
                     toIgnore.add(event.getMessageId());
