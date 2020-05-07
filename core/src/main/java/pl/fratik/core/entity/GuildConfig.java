@@ -112,6 +112,7 @@ public class GuildConfig implements DatabaseEntity {
     @ConfigField(dontDisplayInSettings = true)
     private Map<String, String> pozegnania = new HashMap<>();
     private Boolean wysylajOgloszenia = false;
+    private Boolean powitanieWEmbedzie = true;
 
     @Transient
     @JsonIgnore

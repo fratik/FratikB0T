@@ -66,30 +66,32 @@ class MemberListener {
     @Subscribe
     public void onMemberLeaveEvent(GuildMemberLeaveEvent e) {
         GuildConfig gc = getGuildConfig(e.getGuild());
-        generateEmbed(e.getUser(), e.getGuild(), gc.getPozegnania().entrySet());
+        generateEmbed(e.getMember(), e.getGuild(), gc.getPozegnania().entrySet());
     }
 
     private void przywitanie(GuildMemberJoinEvent e) {
         GuildConfig gc = getGuildConfig(e.getGuild());
-        generateEmbed(e.getUser(), e.getGuild(), gc.getPowitania().entrySet());
+
+        if (gc.getPowitanieWEmbedzie()) generateEmbed(e.getMember(), e.getGuild(), gc.getPowitania().entrySet());
+        else {
+            for (Map.Entry<String, String> ch : gc.getPowitania().entrySet()) {
+                TextChannel cha = e.getGuild().getTextChannelById(ch.getKey());
+                if (cha == null || !cha.canTalk()) continue;
+                cha.sendMessage(getPowitanie(e.getMember(), ch.getValue())).queue();
+            }
+        }
     }
 
-    private void generateEmbed(User user, Guild guild, Set<Map.Entry<String, String>> kek) {
+    private void generateEmbed(Member user, Guild guild, Set<Map.Entry<String, String>> kek) { // L125
         EmbedBuilder eb = new EmbedBuilder();
-        String avatar = UserUtil.getAvatarUrl(user);
+        String avatar = UserUtil.getAvatarUrl(user.getUser());
 
         for (Map.Entry<String, String> ch : kek) {
             TextChannel cha = guild.getTextChannelById(ch.getKey());
             if (cha == null || !cha.canTalk()) continue;
-            String msg = ch.getValue()
-                    .replaceAll("\\{\\{user}}", user.getAsTag().replaceAll("@(everyone|here)", "@\u200b$1"))
-                    .replaceAll("\\{\\{mention}}", user.getAsMention())
-                    .replaceAll("\\{\\{members}}", String.valueOf(guild.getMembers().size()))
-                    .replaceAll("\\{\\{server}}", guild.getName().replaceAll("@(everyone|here)", "@\u200b$1"));
-            eb.setThumbnail(avatar);
             eb.setAuthor(UserUtil.formatDiscrim(user), avatar);
-            eb.setDescription(msg);
-            eb.setColor(UserUtil.getPrimColor(user));
+            eb.setDescription(getPowitanie(user, ch.getValue()));
+            eb.setColor(UserUtil.getPrimColor(user.getUser()));
             cha.sendMessage(eb.build()).queue();
             break;
         }
@@ -119,7 +121,15 @@ class MemberListener {
             // nie mamy permów, zawijamy się
         }
     }
-    
+
+    private String getPowitanie(Member user, String msg) { // jestem zbyt leniwy żeby zmienić na Member member
+        return msg
+                .replaceAll("\\{\\{user}}", user.getUser().getAsTag().replaceAll("@(everyone|here)", "@\u200b$1"))
+                .replaceAll("\\{\\{mention}}", user.getAsMention())
+                .replaceAll("\\{\\{members}}", String.valueOf(user.getGuild().getMembers().size()))
+                .replaceAll("\\{\\{server}}", user.getGuild().getName().replaceAll("@(everyone|here)", "@\u200b$1"));
+    }
+
     @Subscribe
     public void onDatabaseUpdateEvent(DatabaseUpdateEvent e) {
         if (e.getEntity() instanceof GuildConfig)
