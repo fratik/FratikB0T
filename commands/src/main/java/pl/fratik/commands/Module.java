@@ -75,7 +75,7 @@ public class Module implements Modul {
         commands.add(new PoziomCommand(guildDao, shardManager));
         commands.add(new BotstatsCommand(shardManager, managerModulow));
         if (Ustawienia.instance.apiUrls.get("image-server") != null && Ustawienia.instance.apiKeys.get("image-server") != null) {
-            commands.add(new GraficznaCommand("blurple", "/api/image/blurple", "avatarURL", false));
+            commands.add(new BlurpleCommand());
             commands.add(new StarcatchCommand());
             commands.add(new HugCommand());
             commands.add(new GraficznaCommand("startouch", "/api/image/startouch", "avatarURL", false));
