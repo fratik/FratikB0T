@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 package pl.fratik.commands.zabawa;
 
 import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.User;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 import pl.fratik.core.Ustawienia;
@@ -30,12 +31,21 @@ import pl.fratik.core.util.NetworkUtil;
 
 import java.io.IOException;
 import java.net.URLEncoder;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class BlurpleCommand extends Command {
     public BlurpleCommand() {
         name = "blurple";
         category = CommandCategory.FUN;
-        uzycie = new Uzycie("flagi", "string", false);
+        LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
+        hmap.put("flagi", "string");
+        hmap.put("osoba", "user");
+        hmap.put("[...]", "string");
+        uzycieDelim = " ";
+        uzycie = new Uzycie(hmap, new boolean[] {false, false});
         permLevel = PermLevel.EVERYONE;
         permissions.add(Permission.MESSAGE_ATTACH_FILES);
         cooldown = 5;
@@ -45,8 +55,9 @@ public class BlurpleCommand extends Command {
     public boolean execute(@NotNull CommandContext context) {
         boolean reverse = false;
         boolean classic = false;
-        if (context.getArgs().length >= 1) {
-            String arg = (String) context.getArgs()[0];
+        if (context.getArgs()[0] != null) {
+            String arg = Arrays.stream(Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length))
+                    .map(e -> e == null ? "" : e).map(Objects::toString).collect(Collectors.joining(uzycieDelim));
             if (arg.contains("-r") || arg.contains("--reverse") || arg.contains("—reverse")) {
                 reverse = true;
             }
@@ -54,10 +65,12 @@ public class BlurpleCommand extends Command {
                 classic = true;
             }
         }
+        User user = (User) context.getArgs()[1];
+        if (user == null) user = context.getSender();
         try {
             JSONObject zdjecie = NetworkUtil.getJson(String.format("%s/api/image/blurple?avatarURL=%s&reverse=%s&classic=%s",
                     Ustawienia.instance.apiUrls.get("image-server"),
-                    URLEncoder.encode(context.getSender().getEffectiveAvatarUrl().replace(".webp", ".png")
+                    URLEncoder.encode(user.getEffectiveAvatarUrl().replace(".webp", ".png")
                             + "?size=2048", "UTF-8"), reverse, classic), Ustawienia.instance.apiKeys.get("image-server"));
             if (zdjecie == null || !zdjecie.getBoolean("success")) {
                 context.send("Wystąpił błąd ze zdobyciem zdjęcia!");
