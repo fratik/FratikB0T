@@ -45,7 +45,7 @@ public class BlurpleCommand extends Command {
         hmap.put("flagi", "string");
         hmap.put("[...]", "string");
         uzycieDelim = " ";
-        uzycie = new Uzycie(hmap, new boolean[] {false, false});
+        uzycie = new Uzycie(hmap, new boolean[] {false, false, false});
         permLevel = PermLevel.EVERYONE;
         permissions.add(Permission.MESSAGE_ATTACH_FILES);
         cooldown = 5;
