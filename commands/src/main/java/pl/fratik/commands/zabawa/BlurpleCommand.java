@@ -41,8 +41,8 @@ public class BlurpleCommand extends Command {
         name = "blurple";
         category = CommandCategory.FUN;
         LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
-        hmap.put("flagi", "string");
         hmap.put("osoba", "user");
+        hmap.put("flagi", "string");
         hmap.put("[...]", "string");
         uzycieDelim = " ";
         uzycie = new Uzycie(hmap, new boolean[] {false, false});
@@ -53,9 +53,11 @@ public class BlurpleCommand extends Command {
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
+        User user = (User) context.getArgs()[0];
+        if (user == null) user = context.getSender();
         boolean reverse = false;
         boolean classic = false;
-        if (context.getArgs()[0] != null) {
+        if (context.getArgs()[1] != null) {
             String arg = Arrays.stream(Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length))
                     .map(e -> e == null ? "" : e).map(Objects::toString).collect(Collectors.joining(uzycieDelim));
             if (arg.contains("-r") || arg.contains("--reverse") || arg.contains("—reverse")) {
@@ -65,8 +67,6 @@ public class BlurpleCommand extends Command {
                 classic = true;
             }
         }
-        User user = (User) context.getArgs()[1];
-        if (user == null) user = context.getSender();
         try {
             JSONObject zdjecie = NetworkUtil.getJson(String.format("%s/api/image/blurple?avatarURL=%s&reverse=%s&classic=%s",
                     Ustawienia.instance.apiUrls.get("image-server"),
