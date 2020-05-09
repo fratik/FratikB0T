@@ -57,9 +57,9 @@ public class BlurpleCommand extends Command {
         if (user == null) user = context.getSender();
         boolean reverse = false;
         boolean classic = false;
-        if (context.getArgs()[1] != null) {
+        if (context.getArgs().length > 1 && context.getArgs()[1] != null) {
             String arg = Arrays.stream(Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length))
-                    .map(e -> e == null ? "" : e).map(Objects::toString).collect(Collectors.joining(uzycieDelim));
+                    .map(e -> e == null ? "" : e).map(Objects::toString).collect(Collectors.joining(uzycieDelim)).toLowerCase();
             if (arg.contains("-r") || arg.contains("--reverse") || arg.contains("—reverse")) {
                 reverse = true;
             }
