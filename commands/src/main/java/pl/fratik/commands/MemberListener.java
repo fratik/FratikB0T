@@ -130,11 +130,11 @@ class MemberListener {
             if (prefix == null) continue;
             
             AtomicReference<String> nick = new AtomicReference<>(mem.getNickname());
-            if (nick.get() == null) nick.set(mem.getUser().getName());
+            if (nick.get() == null) nick.set(mem.getUser().getName() + " ");
             else {
                 gc.getRolePrefix().values().forEach(p -> {
                     if (nick.toString().startsWith(p)) {
-                        nick.set(nick.toString().substring(0, p.length()));
+                        nick.set(nick.toString().substring(p.length()));
                     }
                 });
             }
