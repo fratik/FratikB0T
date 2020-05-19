@@ -35,7 +35,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-@SuppressWarnings("RedundantCollectionOperation")
+@SuppressWarnings({"RedundantCollectionOperation", "ConstantConditions"})
 public class PrefixroleCommand extends Command {
 
     private static final int PREFIX_LENGTH = 8;
@@ -96,7 +96,7 @@ public class PrefixroleCommand extends Command {
 
             EmbedBuilder eb = context.getBaseEmbed();
             eb.setColor(UserUtil.getPrimColor(context.getSender()));
-            for (String str : strArray) { eb.addField("", str, false); }
+            for (String str : strArray) { eb.addField(" ", str, false); }
             context.send(eb.build());
             if (setuj) guildDao.save(gc);
             return true;
@@ -116,6 +116,7 @@ public class PrefixroleCommand extends Command {
             context.send(context.getTranslated("prefixrole.remove.succes", r.getName()));
             gc.getRolePrefix().remove(r.getId());
             guildDao.save(gc);
+            return true;
         }
         if (typ.equals("set")) {
             Role     role;
