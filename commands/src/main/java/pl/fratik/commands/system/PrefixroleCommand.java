@@ -137,7 +137,13 @@ public class PrefixroleCommand extends Command {
             try {
                 gc.getRolePrefix().remove(role.getId());
             } catch (NullPointerException ignored) {}
-            gc.getRolePrefix().put(role.getId(), prefix);
+            context.send("role=" + role.getId() + " prefix=" + prefix);
+            try {
+                gc.getRolePrefix().put(role.getId(), prefix);
+            } catch (NullPointerException e) {
+                context.send("nie dla psa");
+                return false;
+            }
             guildDao.save(gc);
             return true;
         }
