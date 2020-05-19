@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+@SuppressWarnings("RedundantCollectionOperation")
 public class PrefixroleCommand extends Command {
 
     private static final int PREFIX_LENGTH = 8;
@@ -96,12 +97,12 @@ public class PrefixroleCommand extends Command {
             return true;
         }
         if (typ.equals("remove")) {
-            if (context.getArgs().length == 0) {
+            if (context.getArgs().length < 1 || context.getArgs()[1] == null) {
                 CommonErrors.usage(context);
                 return false;
             }
             Role r = (Role) context.getArgs()[1];
-            if (!gc.getRolePrefix().containsKey(r.getId())) {
+            if (r == null || !gc.getRolePrefix().containsKey(r.getId())) {
                 context.send(context.getTranslated("prefixrole.doesnt.set"));
                 return false;
             }
@@ -122,7 +123,7 @@ public class PrefixroleCommand extends Command {
                 return false;
             }
             context.send(context.getTranslated("prefixrole.set.succes", role.getName()));
-            gc.getRolePrefix().remove(role.getId());
+            if (gc.getRolePrefix().containsKey(role.getId())) gc.getRolePrefix().remove(role.getId());
             gc.getRolePrefix().put(role.getId(), prefix);
             guildDao.save(gc);
             return true;
