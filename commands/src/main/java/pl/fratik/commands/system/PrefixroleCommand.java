@@ -84,17 +84,20 @@ public class PrefixroleCommand extends Command {
                 String s;
                 if (r == null) {
                     gc.getRolePrefix().remove(entry.getKey());
-                    s = "Rola usunięta :: " + entry.getValue() + "\n";
+                    s = "Rola usunięta = " + entry.getValue() + "\n";
                     setuj = true;
-                } else s = r.getAsMention() + " :: " + entry.getValue() + "\n";
-
+                } else s = r.getAsMention() + " = `" + entry.getValue() + "`\n";
+                if (sb.length() + s.length() > 1900) {
+                    strArray.add(sb.toString());
+                    sb = new StringBuilder();
+                }
                 sb.append(s);
             }
 
             EmbedBuilder eb = new EmbedBuilder();
             eb.setFooter("© " + context.getShardManager().getShardById(0).getSelfUser().getName());
             eb.setColor(UserUtil.getPrimColor(context.getSender()));
-            eb.addField("elo", sb.toString(), false);
+            eb.addField(" ", sb.toString(), false);
             context.send(eb.build());
             if (setuj) guildDao.save(gc);
             return true;
