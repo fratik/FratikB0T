@@ -31,6 +31,7 @@ import pl.fratik.core.util.CommonErrors;
 import pl.fratik.core.util.UserUtil;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -66,6 +67,10 @@ public class PrefixroleCommand extends Command {
             return false;
         }
         GuildConfig gc = guildDao.get(context.getGuild().getId());
+        if (gc.getRolePrefix() == null) {
+            gc.setRolePrefix(new HashMap<>());
+            guildDao.save(gc);
+        }
         if (typ.equals("list")) {
             if (gc.getRolePrefix() == null || gc.getRolePrefix().isEmpty()) {
                 context.send(context.getTranslated("prefixrole.list.isempty"));
@@ -113,7 +118,7 @@ public class PrefixroleCommand extends Command {
             guildDao.save(gc);
         }
         if (typ.equals("set")) {
-            Role    role;
+            Role     role;
             String prefix;
 
             try {
@@ -129,21 +134,14 @@ public class PrefixroleCommand extends Command {
                 return false;
             }
 
-            if (prefix.length() >= PREFIX_LENGTH) {
+            if (prefix.length() > PREFIX_LENGTH) {
                 context.send(context.getTranslated("prefixrole.length", PREFIX_LENGTH));
                 return false;
             }
             context.send(context.getTranslated("prefixrole.set.succes", role.getName()));
-            try {
-                gc.getRolePrefix().remove(role.getId());
-            } catch (NullPointerException ignored) {}
-            context.send("role=" + role.getId() + " prefix=" + prefix);
-            try {
-                gc.getRolePrefix().put(role.getId(), prefix);
-            } catch (NullPointerException e) {
-                context.send("nie dla psa");
-                return false;
-            }
+
+            gc.getRolePrefix().remove(role.getId());
+            gc.getRolePrefix().put(role.getId(), prefix);
             guildDao.save(gc);
             return true;
         }
