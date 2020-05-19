@@ -97,11 +97,13 @@ public class PrefixroleCommand extends Command {
             return true;
         }
         if (typ.equals("remove")) {
-            if (context.getArgs().length < 1 || context.getArgs()[1] == null) {
+            Role r;
+            try {
+                r = (Role) context.getArgs()[1];
+            } catch (ArrayIndexOutOfBoundsException e) {
                 CommonErrors.usage(context);
                 return false;
             }
-            Role r = (Role) context.getArgs()[1];
             if (r == null || !gc.getRolePrefix().containsKey(r.getId())) {
                 context.send(context.getTranslated("prefixrole.doesnt.set"));
                 return false;
@@ -111,12 +113,16 @@ public class PrefixroleCommand extends Command {
             guildDao.save(gc);
         }
         if (typ.equals("set")) {
-            if (context.getArgs().length < 2) {
+            Role    role;
+            String prefix;
+            
+            try {
+                role = (Role) context.getArgs()[1];
+                prefix = (String) context.getArgs()[2];
+            } catch (ArrayIndexOutOfBoundsException e) {
                 CommonErrors.usage(context);
                 return false;
             }
-            Role    role  = (Role) context.getArgs()[1];
-            String prefix = (String) context.getArgs()[2];
 
             if (prefix.length() >= PREFIX_LENGTH) {
                 context.send(context.getTranslated("prefixrole.length", PREFIX_LENGTH));
