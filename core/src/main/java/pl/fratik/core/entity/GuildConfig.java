@@ -118,6 +118,8 @@ public class GuildConfig implements DatabaseEntity {
     private Map<String, Webhook> webhooki = new HashMap<>();
     private String lvlUpMessage;
     private Boolean resetujOstrzezeniaPrzyBanie = true;
+    @ConfigField(dontDisplayInSettings = true)
+    private HashMap<String, String> rolePrefix = new HashMap<>();
 
     // TODO: 09/04/2020 można to zrobić dla każdego Boolean'a, ale to już kwestia kosmetyki kodu chyba
     public boolean isResetujOstrzezeniaPrzyBanie() {

@@ -25,6 +25,7 @@ import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberLeaveEvent;
+import net.dv8tion.jda.api.events.guild.member.GuildMemberRoleAddEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import pl.fratik.core.cache.Cache;
 import pl.fratik.core.cache.RedisCacheManager;
@@ -114,6 +115,11 @@ class MemberListener {
         } catch (Exception e) {
             // nie mamy permów, zawijamy się
         }
+    }
+
+    @Subscribe
+    public void onRoleAdd(GuildMemberRoleAddEvent e) {
+
     }
     
     @Subscribe
