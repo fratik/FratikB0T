@@ -130,7 +130,7 @@ class MemberListener {
             if (prefix == null) continue;
             
             AtomicReference<String> nick = new AtomicReference<>(mem.getNickname());
-            if (nick.get() == null) nick.set(mem.getUser().getName() + " ");
+            if (nick.get() == null) nick.set(mem.getUser().getName());
             else {
                 gc.getRolePrefix().values().forEach(p -> {
                     if (nick.toString().startsWith(p)) {
@@ -139,11 +139,12 @@ class MemberListener {
                 });
             }
             if (nick.toString().startsWith(" ")) nick.set(nick.toString().substring(1));
-            else nick.set(" " + nick.toString());
+            else nick.set(nick.toString());
             if ((prefix + nick).length() > 32) {
                 int dlugosc = (prefix + nick).length() - 32;
                 nick.set(nick.toString().substring(dlugosc));
             }
+            if (!nick.toString().endsWith(" ")) nick.set(nick.toString() + " ");
             try {
                 mem.getGuild().modifyNickname(mem, prefix + nick.toString()).queue();
                 return;
