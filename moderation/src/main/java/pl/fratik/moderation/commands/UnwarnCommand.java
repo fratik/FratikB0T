@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,8 +17,6 @@
 
 package pl.fratik.moderation.commands;
 
-import io.sentry.Sentry;
-import io.sentry.event.User;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
@@ -39,13 +37,12 @@ import pl.fratik.moderation.entity.CaseBuilder;
 import pl.fratik.moderation.entity.CaseRow;
 import pl.fratik.moderation.entity.CasesDao;
 import pl.fratik.moderation.utils.ModLogBuilder;
+import pl.fratik.moderation.utils.ReasonUtils;
+import pl.fratik.moderation.utils.WarnUtil;
 
 import java.time.Instant;
 import java.time.temporal.TemporalAccessor;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class UnwarnCommand extends ModerationCommand {
@@ -104,25 +101,13 @@ public class UnwarnCommand extends ModerationCommand {
         GuildConfig gc = guildDao.get(context.getGuild());
         CaseRow caseRow = casesDao.get(context.getGuild());
         int caseId = Case.getNextCaseId(caseRow);
-        List<Case> mcases;
-        mcases = caseRow.getCases().stream().filter(c -> c.getUserId().equals(uzytkownik.getId())).collect(Collectors.toList());
-        List<Case> warnCases = mcases.stream().filter(c -> c.getType().equals(Kara.WARN)).collect(Collectors.toList());
-        List<Case> unwarnCases = mcases.stream().filter(c -> c.getType().equals(Kara.UNWARN)).collect(Collectors.toList());
-        // powody sie nie liczą, ważne by była dobra liczba
+        int cases = WarnUtil.countCases(caseRow, uzytkownik.getId());
         TextChannel mlog = null;
         if (gc.getModLog() != null && !gc.getModLog().isEmpty()) mlog = shardManager.getTextChannelById(gc.getModLog());
         try {
-            if (!unwarnCases.isEmpty()) {
-                warnCases.subList(0, unwarnCases.size()).clear();
-            }
-        } catch (IndexOutOfBoundsException e) {
-            context.send(context.getTranslated("unwarn.too.many.unwarns.fixing"));
-            try {
-                int warns = 0;
-                for (Case ignored : warnCases) warns++; //NOSONAR
-                for (Case ignored : unwarnCases) warns--; //NOSONAR
-                if (warns >= 0) throw new IllegalStateException("outofbounds ale warnów >=0");
-                for (int i = 0; i >= warns; i--) {
+            if (cases < 0) {
+                context.send(context.getTranslated("unwarn.too.many.unwarns.fixing"));
+                try {
                     TemporalAccessor timestamp = Instant.now();
                     Case c = new CaseBuilder().setUser(uzytkownik.getUser()).setGuild(context.getGuild())
                             .setCaseId(caseId).setTimestamp(timestamp).setMessageId(null).setKara(Kara.WARN).createCase();
@@ -130,62 +115,83 @@ public class UnwarnCommand extends ModerationCommand {
                     c.setReason(context.getTlumaczenia()
                             .get(context.getTlumaczenia().getLanguage(context.getGuild()),
                                     "unwarn.too.many.unwarns.fix.reason"));
+                    int aaa = 0;
+                    for (int i = 0; i >= cases; i--) aaa++;
+                    c.setIleRazy(aaa);
                     MessageEmbed embed = ModLogBuilder.generate(c, context.getGuild(), context.getShardManager(),
-                            context.getLanguage(), null);
-                    if (mlog == null || !context.getGuild().getSelfMember().hasPermission(mlog,
+                            context.getLanguage(), null, true);
+                    if (mlog != null && context.getGuild().getSelfMember().hasPermission(mlog,
                             Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_WRITE, Permission.MESSAGE_READ)) {
-                        caseRow.getCases().add(c);
-                    } else {
                         Message message = mlog.sendMessage(embed).complete();
                         c.setMessageId(message.getId());
-                        caseRow.getCases().add(c);
                     }
+                    caseRow.getCases().add(c);
                     caseId++;
+                } catch (Exception e1) {
+                    context.send(context.getTranslated("unwarn.too.many.unwarns.cant.fix"));
+                    return false;
                 }
-            } catch (Exception e1) {
-                context.send(context.getTranslated("unwarn.too.many.unwarns.cant.fix"));
-                return false;
+                context.send(context.getTranslated("unwarn.too.many.unwarns.fixed"));
+                cases = WarnUtil.countCases(caseRow, uzytkownik.getId());
             }
-            context.send(context.getTranslated("unwarn.too.many.unwarns.fixed"));
-            mcases = caseRow.getCases().stream().filter(c -> c.getUserId().equals(uzytkownik.getId())).collect(Collectors.toList());
-            warnCases = mcases.stream().filter(c -> c.getType().equals(Kara.WARN)).collect(Collectors.toList());
-            unwarnCases = mcases.stream().filter(c -> c.getType().equals(Kara.UNWARN)).collect(Collectors.toList());
-            warnCases.subList(0, unwarnCases.size()).clear();
         } catch (Exception e) {
-            Sentry.getContext().setUser(new User(context.getSender().getId(), context.getSender().getAsTag(), null, null));
-            Sentry.getContext().addExtra("warnCases", warnCases);
-            Sentry.getContext().addExtra("unwarnCases", unwarnCases);
-            Sentry.capture(e);
-            Sentry.clearContext();
             String prefix = context.getPrefix();
             context.send(context.getTranslated("unwarn.unexpected.error", prefix, prefix));
             return false;
         }
-        if (warnCases.size() <= 0) {
+        int ileRazy = 1;
+        List<String> powodSplat = new ArrayList<>(Arrays.asList(powod.split(" ")));
+        if (powodSplat.size() > 0) {
+            String ileRazyStr = powodSplat.remove(0);
+            if (ileRazyStr.matches("^\\d+$")) {
+                int ileRazyA;
+                try {
+                    ileRazyA = Integer.parseInt(ileRazyStr);
+                } catch (Exception e) {
+                    ileRazyA = -1;
+                }
+                if (ileRazyA >= 1) ileRazy = ileRazyA;
+                else powodSplat.add(ileRazyStr);
+                powod = String.join(" ", powodSplat);
+            }
+        }
+        if (cases - ileRazy < 0) {
             context.send(context.getTranslated("unwarn.no.warns"));
             return false;
         }
         TemporalAccessor timestamp = Instant.now();
         Case aCase = new CaseBuilder().setUser(uzytkownik.getUser()).setGuild(context.getGuild()).setCaseId(caseId)
-                .setTimestamp(timestamp).setMessageId(null).setKara(Kara.UNWARN).createCase();
-        aCase.setReason(powod);
+                .setTimestamp(timestamp).setMessageId(null).setKara(Kara.UNWARN).setIleRazy(ileRazy).createCase();
+        ReasonUtils.parseFlags(aCase, powod);
         aCase.setIssuerId(context.getSender().getId());
         if (mlog == null || !context.getGuild().getSelfMember().hasPermission(mlog,
                 Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_WRITE, Permission.MESSAGE_READ)) {
-            context.send(context.getTranslated("unwarn.success", UserUtil.formatDiscrim(uzytkownik)));
-            context.send(context.getTranslated("unwarn.nomodlogs"));
             caseRow.getCases().add(aCase);
+            context.send(context.getTranslated("unwarn.success", UserUtil.formatDiscrim(uzytkownik),
+                    WarnUtil.countCases(caseRow, uzytkownik.getId())));
+            if (!aCase.getFlagi().contains(Case.Flaga.SILENT)) context.send(context.getTranslated("unwarn.nomodlogs", context.getPrefix()));
             casesDao.save(caseRow);
             return true;
         }
-        MessageEmbed embed = ModLogBuilder.generate(aCase, context.getGuild(), shardManager,
-                gc.getLanguage(), managerKomend);
-        mlog.sendMessage(embed).queue(message -> {
-            context.send(context.getTranslated("unwarn.success", UserUtil.formatDiscrim(uzytkownik)), m -> {});
-            aCase.setMessageId(message.getId());
+        if (!aCase.getFlagi().contains(Case.Flaga.SILENT)) {
+            MessageEmbed embed = ModLogBuilder.generate(aCase, context.getGuild(), shardManager,
+                    gc.getLanguage(), managerKomend, true);
+            mlog.sendMessage(embed).queue(message -> {
+                aCase.setMessageId(message.getId());
+                caseRow.getCases().add(aCase);
+                context.send(context.getTranslated("unwarn.success", UserUtil.formatDiscrim(uzytkownik),
+                        WarnUtil.countCases(caseRow, uzytkownik.getId())), m -> {
+                });
+                casesDao.save(caseRow);
+            });
+        } else {
             caseRow.getCases().add(aCase);
+            context.send(context.getTranslated("unwarn.success", UserUtil.formatDiscrim(uzytkownik),
+                    WarnUtil.countCases(caseRow, uzytkownik.getId())), m -> {
+            });
             casesDao.save(caseRow);
-        });
+        }
         return true;
     }
+
 }

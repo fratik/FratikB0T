@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -115,6 +115,14 @@ public class GuildConfig implements DatabaseEntity {
     @ConfigField(dontDisplayInSettings = true)
     private Map<String, String> pozegnania = new HashMap<>();
     private Boolean wysylajOgloszenia = false;
+    private Map<String, Webhook> webhooki = new HashMap<>();
+    private String lvlUpMessage;
+    private Boolean resetujOstrzezeniaPrzyBanie = true;
+
+    // TODO: 09/04/2020 można to zrobić dla każdego Boolean'a, ale to już kwestia kosmetyki kodu chyba
+    public boolean isResetujOstrzezeniaPrzyBanie() {
+        return resetujOstrzezeniaPrzyBanie != null && resetujOstrzezeniaPrzyBanie;
+    }
 
     @Transient
     @JsonIgnore
@@ -123,4 +131,10 @@ public class GuildConfig implements DatabaseEntity {
         return "guilds";
     }
 
+    @Data
+    @AllArgsConstructor
+    public static class Webhook {
+        private final String id;
+        private final String token;
+    }
 }

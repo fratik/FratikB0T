@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@ package pl.fratik.moderation.commands;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.utils.MarkdownSanitizer;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
@@ -74,10 +75,11 @@ public class RegulaminCommand extends ModerationCommand {
         for (Message wiadomosc : wiadomosci) {
             List<String> punktyTmp = new ArrayList<>();
             Collections.addAll(punktyTmp, wiadomosc.getContentRaw().split("(\\r\\n|\\r|\\n)"));
-            for (String punkt : punktyTmp) {
+            for (String punktR : punktyTmp) {
+                String punkt = MarkdownSanitizer.sanitize(punktR);
                 Matcher matcher = Pattern.compile("(^\\d+)", Pattern.MULTILINE | Pattern.DOTALL).matcher(punkt);
                 if (!matcher.find()) continue;
-                try { punkty.put(Integer.valueOf(matcher.group(1)), punkt); } catch (Exception ignored) {/*lul*/}
+                try { punkty.put(Integer.valueOf(matcher.group(1)), punktR); } catch (Exception ignored) {/*lul*/}
             }
         }
         if ((int) context.getArgs()[0] > punkty.size()) {

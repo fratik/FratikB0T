@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -57,6 +57,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class NowyManagerMuzykiSerwera implements ManagerMuzykiSerwera {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NowyManagerMuzykiSerwera.class);
+    private final NowyManagerMuzyki nowyManagerMuzyki;
     private final Guild guild;
     private final JdaLavalink lavaClient;
     private final Tlumaczenia tlumaczenia;
@@ -76,8 +77,10 @@ public class NowyManagerMuzykiSerwera implements ManagerMuzykiSerwera {
     private boolean paused;
     private JdaLink link;
     private ScheduledFuture<?> future;
+    private Listener lisner;
 
-    NowyManagerMuzykiSerwera(Guild guild, JdaLavalink lavaClient, Tlumaczenia tlumaczenia, QueueDao queueDao, GuildDao guildDao, ScheduledExecutorService executorService) {
+    NowyManagerMuzykiSerwera(NowyManagerMuzyki nowyManagerMuzyki, Guild guild, JdaLavalink lavaClient, Tlumaczenia tlumaczenia, QueueDao queueDao, GuildDao guildDao, ScheduledExecutorService executorService) {
+        this.nowyManagerMuzyki = nowyManagerMuzyki;
         this.guild = guild;
         this.lavaClient = lavaClient;
         this.tlumaczenia = tlumaczenia;
@@ -159,12 +162,15 @@ public class NowyManagerMuzykiSerwera implements ManagerMuzykiSerwera {
         paused = false;
         aktualnaPiosenka = null;
         shutdown = true;
+        if (lisner != null) player.removeListener(lisner);
+        lisner = null;
         if (player.getPlayingTrack() != null) player.stopTrack();
         link.disconnect();
         kolejka.clear();
         player = null;
         link.resetPlayer();
         init = false;
+        nowyManagerMuzyki.destroy(guild.getId());
     }
 
     @Override
@@ -272,13 +278,13 @@ public class NowyManagerMuzykiSerwera implements ManagerMuzykiSerwera {
         queueDao.save(queue);
         kolejka.clear();
         disconnect();
-        link.destroy();
     }
 
     @Override
     public void patchVoiceServerUpdate(VoiceDispatchInterceptor.VoiceServerUpdate e) {
         shutdown = false;
-        player.addListener(new Listener(this));
+        if (lisner == null) lisner = new Listener(this);
+        player.addListener(lisner);
         init = true;
     }
 

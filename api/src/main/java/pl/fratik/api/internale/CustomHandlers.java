@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,11 +28,24 @@ import io.undertow.server.handlers.encoding.EncodingHandler;
 import io.undertow.server.handlers.encoding.GzipEncodingProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pl.fratik.api.entity.Exceptions;
+import pl.fratik.core.Ustawienia;
 
 public class CustomHandlers {
     private CustomHandlers() {}
 
     private static final Logger log = LoggerFactory.getLogger(CustomHandlers.class);
+
+    public static HttpHandler blockIP(HttpHandler next) {
+        return exchange -> {
+            if (Ustawienia.instance.allowedIPs.isEmpty() ||
+                    Ustawienia.instance.allowedIPs.contains(exchange.getSourceAddress().getAddress().getHostAddress())) {
+                next.handleRequest(exchange);
+            } else {
+                Exchange.body().sendJson(exchange, new Exceptions.GenericException("Unauthorized"), 401);
+            }
+        };
+    }
 
     private static AccessLogHandler accessLog(HttpHandler next, Logger logger) {
         return new AccessLogHandler(next, new Slf4jAccessLogReceiver(logger), "%{REMOTE_HOST_PROXIED} %l " +

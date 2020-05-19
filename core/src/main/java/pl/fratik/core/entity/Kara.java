@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,7 +24,6 @@ import java.awt.*;
 public enum Kara {
 
     KICK(0, new Color(0x800080)),
-    TIMEDBAN(1, new Color(0xff7f00)),
     BAN(2, new Color(0xff7f00)),
     WARN(3, new Color(0xffff00)),
     REMOVEADMIN(4),
@@ -53,7 +52,7 @@ public enum Kara {
     public static Kara getByNum(int num) {
         switch (num) {
             case 0: return KICK;
-            case 1: return TIMEDBAN;
+            case 1:
             case 2: return BAN;
             case 3: return WARN;
             case 4: return REMOVEADMIN;

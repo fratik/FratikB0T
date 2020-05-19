@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,6 +36,7 @@ import java.util.*;
 public class Ustawienia {
     @SuppressWarnings("squid:S1444")
     public static Ustawienia instance;
+    public String token = "tylko w przypadku szyfrowania configu";
     public String devs = "267761613438713876";
     public String gadmRole = "371306270030037024";
     public String zgaRole = "414418843352432640";
@@ -60,6 +61,8 @@ public class Ustawienia {
     public int port = 8080;
     public LogSettings logSettings = new LogSettings();
     public FdevStats fdevStats = new FdevStats();
+    @SerializedName("allowedIPs")
+    public List<String> allowedIPs = new ArrayList<>();
 
     public static class GamesClass {
         public Activity.ActivityType type = Activity.ActivityType.DEFAULT;

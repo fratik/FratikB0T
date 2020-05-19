@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,8 +17,6 @@
 
 package pl.fratik.commands;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.Subscribe;
 import net.dv8tion.jda.api.entities.ChannelType;
@@ -28,6 +26,8 @@ import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberLeaveEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import pl.fratik.core.cache.Cache;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.event.DatabaseUpdateEvent;
@@ -37,15 +37,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 class MemberListener {
     private final GuildDao guildDao;
-    private final Cache<String, GuildConfig> gcCache = Caffeine.newBuilder().expireAfterWrite(1, TimeUnit.HOURS).build();
+    private final Cache<GuildConfig> gcCache;
 
-    MemberListener(GuildDao guildDao) {
+    MemberListener(GuildDao guildDao, RedisCacheManager redisCacheManager) {
         this.guildDao = guildDao;
+        gcCache = redisCacheManager.new CacheRetriever<GuildConfig>(){}.getCache();
     }
 
     @Subscribe

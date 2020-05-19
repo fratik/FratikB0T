@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -48,7 +48,7 @@ public class ModLogBuilder {
     @Setter private static Tlumaczenia tlumaczenia;
     @Setter private static GuildDao guildDao;
 
-    public static MessageEmbed generate(Case aCase, Guild guild, ShardManager sm, Language lang, ManagerKomend managerKomend) {
+    public static MessageEmbed generate(Case aCase, Guild guild, ShardManager sm, Language lang, ManagerKomend managerKomend, boolean modlog) {
         String iId = aCase.getIssuerId();
         if (iId == null || iId.isEmpty()) iId = "0";
         User iUser = sm.getUserById(iId);
@@ -58,26 +58,29 @@ public class ModLogBuilder {
                 managerKomend == null || managerKomend.getPrefixes(guild).isEmpty() ? Ustawienia.instance.prefix :
                         managerKomend.getPrefixes(guild).get(0), aCase.getCaseId());
         else iId = UserUtil.formatDiscrim(iUser);
-        if (sm.getUserById(aCase.getUserId()) == null) {
-            try {
-                sm.retrieveUserById(aCase.getUserId()).complete();
-            } catch (Exception e) {
-                throw new RuntimeException("nie ma usera");
-            }
+        if (modlog && aCase.getFlagi().contains(Case.Flaga.NOBODY)) {
+            iId = tlumaczenia.get(lang, "modlog.mod.hidden",
+                    managerKomend == null || managerKomend.getPrefixes(guild).isEmpty() ? Ustawienia.instance.prefix :
+                            managerKomend.getPrefixes(guild).get(0), aCase.getCaseId());
         }
         return generate(aCase.getType(), sm.retrieveUserById(aCase.getUserId()).complete(), iId, reason,
                 aCase.getType().getKolor(), aCase.getCaseId(), aCase.isValid(), aCase.getValidTo(),
-                aCase.getTimestamp(), lang, guild);
+                aCase.getTimestamp(), aCase.getIleRazy(), lang, guild);
     }
 
-    private static MessageEmbed generate(Kara kara, User karany, String moderator, String reason, Color kolor, int caseId,
-                                         boolean valid, TemporalAccessor validTo, TemporalAccessor timestamp, Language lang,
-                                         Guild guild) {
+    public static MessageEmbed generate(Kara kara, User karany, String moderator, String reason, Color kolor,
+                                         int caseId, boolean valid, TemporalAccessor validTo,
+                                         TemporalAccessor timestamp, Integer ileRazy, Language lang, Guild guild) {
         if (tlumaczenia == null) throw new IllegalStateException("Tlumaczenia nie ustawione!");
         EmbedBuilder eb = new EmbedBuilder()
-                .setColor(kolor)
-                .setAuthor(karany.getAsTag(), null,
-                        karany.getEffectiveAvatarUrl().replace(".webp", ".png"))
+                .setColor(kolor);
+        if (karany == null) {
+            eb.setAuthor(tlumaczenia.get(lang, "modlog.unknown.user"));
+        } else {
+            eb.setAuthor(karany.getAsTag(), null,
+                    karany.getEffectiveAvatarUrl().replace(".webp", ".png"));
+        }
+        eb
                 .setTimestamp(timestamp)
                 .setFooter(String.format(przyjaznaNazwa(lang, kara), "czas") + " | " +
                         tlumaczenia.get(lang, "modlog.caseid", Integer.toString(caseId)), null);
@@ -90,7 +93,7 @@ public class ModLogBuilder {
                     .addField(tlumaczenia.get(lang, "modlog.responsible"), moderator, false)
                     .addField(tlumaczenia.get(lang, "modlog.reason"), reason, false);
         }
-        if (kara == Kara.MUTE || kara == Kara.BAN || kara == Kara.TIMEDBAN || kara == Kara.NOTATKA) {
+        if (kara == Kara.MUTE || kara == Kara.BAN || kara == Kara.NOTATKA) {
             eb.addField(tlumaczenia.get(lang, "modlog.active"), valid ?
                     tlumaczenia.get(lang, "modlog.active.true") :
                     tlumaczenia.get(lang, "modlog.active.false"), false);
@@ -101,6 +104,11 @@ public class ModLogBuilder {
                 eb.addField(tlumaczenia.get(lang, "modlog.active." + valid + ".to"),
                         sdf.format(Date.from(Instant.from(validTo))), false);
             }
+        }
+        if ((kara == Kara.WARN || kara == Kara.UNWARN) && ileRazy != null) {
+            eb.addField(tlumaczenia.get(lang, "modlog.times.header"),
+                    tlumaczenia.get(lang, "modlog.times.content." + kara.name().toLowerCase() + "s", ileRazy),
+                    false);
         }
         return eb.build();
     }

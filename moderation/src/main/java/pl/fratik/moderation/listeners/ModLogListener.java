@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -71,14 +71,9 @@ public class ModLogListener {
                         .noneMatch(c -> c.getUserId().equals(guildBanEvent.getUser().getId()) && c.getType() == Kara.BAN)) {
             GuildConfig guildConfig = guildDao.get(guildBanEvent.getGuild());
             CaseRow caseRow = casesDao.get(guildBanEvent.getGuild());
-            ModLogMode mode;
-            String mlogchanStr = guildConfig.getModLog();
-            if (mlogchanStr == null || mlogchanStr.equals("")) mlogchanStr = "0";
-            TextChannel mlogchan = shardManager.getTextChannelById(mlogchanStr);
-            if (mlogchan == null || !mlogchan.getGuild().getSelfMember().hasPermission(mlogchan,
-                            Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_WRITE, Permission.MESSAGE_READ))
-                mode = ModLogMode.DATABASE;
-            else mode = ModLogMode.MODLOG;
+            ModeResolver modeResolver = new ModeResolver(guildConfig).invoke();
+            ModLogMode mode = modeResolver.getMode();
+            TextChannel mlogchan = modeResolver.getMlogchan();
             int caseId = Case.getNextCaseId(caseRow);
             TemporalAccessor timestamp = Instant.now();
             Case aCase = new CaseBuilder().setUser(guildBanEvent.getUser()).setGuild(guildBanEvent.getGuild())
@@ -101,29 +96,17 @@ public class ModLogListener {
             setAndSend(guildConfig, caseRow, mode, mlogchan, aCase, odpowiedzialny, powod, guildBanEvent.getGuild());
         } else {
             Optional<Case> oCase = knownCases.get(guildBanEvent.getGuild()).stream()
-                    .filter(c -> c.getUserId().equals(guildBanEvent.getUser().getId()) && (c.getType() == Kara.BAN ||
-                            c.getType() == Kara.TIMEDBAN))
+                    .filter(c -> c.getUserId().equals(guildBanEvent.getUser().getId()) && c.getType() == Kara.BAN)
                     .findFirst();
             if (!oCase.isPresent()) throw NOCASEEXC;
             Case aCase = oCase.get();
             GuildConfig guildConfig = guildDao.get(guildBanEvent.getGuild());
             CaseRow caseRow = casesDao.get(guildBanEvent.getGuild());
-            ModLogMode mode;
-            TextChannel mlogchan = null;
-            if (guildConfig.getModLog() != null && !guildConfig.getModLog().isEmpty())
-                mlogchan = shardManager.getTextChannelById(guildConfig.getModLog());
-            if (mlogchan == null || !mlogchan.getGuild().getSelfMember().hasPermission(mlogchan,
-                    Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_WRITE, Permission.MESSAGE_READ))
-                mode = ModLogMode.DATABASE;
-            else mode = ModLogMode.MODLOG;
+            ModeResolver modeResolver = new ModeResolver(guildConfig).invoke();
+            ModLogMode mode = modeResolver.getMode();
+            TextChannel mlogchan = modeResolver.getMlogchan();
             if (mode == ModLogMode.MODLOG) {
-                MessageEmbed embed = ModLogBuilder.generate(aCase, guildBanEvent.getGuild(), shardManager,
-                        guildConfig.getLanguage(), managerKomend);
-                mlogchan.sendMessage(embed).queue(message -> {
-                    aCase.setMessageId(message.getId());
-                    caseRow.getCases().add(aCase);
-                    casesDao.save(caseRow);
-                });
+                saveToModLog(aCase, guildConfig, caseRow, mlogchan, guildBanEvent.getGuild());
             } else {
                 caseRow.getCases().add(aCase);
                 casesDao.save(caseRow);
@@ -141,32 +124,16 @@ public class ModLogListener {
                         .noneMatch(c -> c.getUserId().equals(guildUnbanEvent.getUser().getId()) && c.getType() == Kara.UNBAN)) {
             GuildConfig guildConfig = guildDao.get(guildUnbanEvent.getGuild());
             CaseRow caseRow = casesDao.get(guildUnbanEvent.getGuild());
-            ModLogMode mode;
-            String mlogchanStr = guildConfig.getModLog();
-            if (mlogchanStr == null || mlogchanStr.equals("")) mlogchanStr = "0";
-            TextChannel mlogchan = shardManager.getTextChannelById(mlogchanStr);
-            if (mlogchan == null || !mlogchan.getGuild().getSelfMember().hasPermission(mlogchan,
-                    Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_WRITE, Permission.MESSAGE_READ))
-                mode = ModLogMode.DATABASE;
-            else mode = ModLogMode.MODLOG;
+            ModeResolver modeResolver = new ModeResolver(guildConfig).invoke();
+            ModLogMode mode = modeResolver.getMode();
+            TextChannel mlogchan = modeResolver.getMlogchan();
             TemporalAccessor timestamp = Instant.now();
             boolean isCase = false;
             for (Case banCase : caseRow.getCases()) {
-                if (banCase.getType() != Kara.BAN || !banCase.isValid()) continue;
+                if (banCase.getType() != Kara.BAN || !banCase.isValid() || !banCase.getUserId()
+                        .equals(guildUnbanEvent.getUser().getId())) continue;
                 isCase = true;
-                banCase.setValidTo(timestamp, true);
-                banCase.setValid(false);
-                MessageEmbed embed = ModLogBuilder.generate(banCase, guildUnbanEvent.getGuild(),
-                        shardManager, guildConfig.getLanguage(), managerKomend);
-                if (mode == ModLogMode.MODLOG) {
-                    try {
-                        Message msg = mlogchan.retrieveMessageById(banCase.getMessageId()).complete();
-                        if (msg == null) throw new IllegalStateException();
-                        msg.editMessage(embed).override(true).complete();
-                    } catch (Exception ignored) {
-                        /*lul*/
-                    }
-                }
+                invalidateCase(guildConfig, timestamp, mode, mlogchan, banCase, guildUnbanEvent.getGuild());
             }
             if (!isCase) return;
             int caseId = Case.getNextCaseId(caseRow);
@@ -196,41 +163,19 @@ public class ModLogListener {
             Case aCase = oCase.get();
             GuildConfig guildConfig = guildDao.get(guildUnbanEvent.getGuild());
             CaseRow caseRow = casesDao.get(guildUnbanEvent.getGuild());
-            ModLogMode mode;
-            String mlogchanStr = guildConfig.getModLog();
-            if (mlogchanStr == null || mlogchanStr.equals("")) mlogchanStr = "0";
-            TextChannel mlogchan = shardManager.getTextChannelById(mlogchanStr);
-            if (mlogchan == null || !mlogchan.getGuild().getSelfMember().hasPermission(mlogchan,
-                    Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_WRITE, Permission.MESSAGE_READ))
-                mode = ModLogMode.DATABASE;
-            else mode = ModLogMode.MODLOG;
+            ModeResolver modeResolver = new ModeResolver(guildConfig).invoke();
+            ModLogMode mode = modeResolver.getMode();
+            TextChannel mlogchan = modeResolver.getMlogchan();
             boolean isCase = false;
             for (Case banCase : caseRow.getCases()) {
-                if (banCase.getType() != Kara.BAN || !banCase.isValid()) continue;
+                if (banCase.getType() != Kara.BAN || !banCase.isValid() || !banCase.getUserId()
+                        .equals(guildUnbanEvent.getUser().getId())) continue;
                 isCase = true;
-                banCase.setValidTo(aCase.getValidTo(), true);
-                banCase.setValid(false);
-                MessageEmbed embed = ModLogBuilder.generate(banCase, guildUnbanEvent.getGuild(),
-                        shardManager, guildConfig.getLanguage(), managerKomend);
-                if (mode == ModLogMode.MODLOG) {
-                    try {
-                        Message msg = mlogchan.retrieveMessageById(banCase.getMessageId()).complete();
-                        if (msg == null) throw new IllegalStateException();
-                        msg.editMessage(embed).override(true).complete();
-                    } catch (Exception ignored) {
-                        /*lul*/
-                    }
-                }
+                invalidateCase(guildConfig, aCase.getValidTo(), mode, mlogchan, banCase, guildUnbanEvent.getGuild());
             }
             if (!isCase) return;
             if (mode == ModLogMode.MODLOG) {
-                MessageEmbed embed = ModLogBuilder.generate(aCase, guildUnbanEvent.getGuild(), shardManager,
-                        guildConfig.getLanguage(), managerKomend);
-                mlogchan.sendMessage(embed).queue(message -> {
-                    aCase.setMessageId(message.getId());
-                    caseRow.getCases().add(aCase);
-                    casesDao.save(caseRow);
-                });
+                saveToModLog(aCase, guildConfig, caseRow, mlogchan, guildUnbanEvent.getGuild());
             } else {
                 caseRow.getCases().add(aCase);
                 casesDao.save(caseRow);
@@ -238,23 +183,6 @@ public class ModLogListener {
             List<Case> zabijciemnie = knownCases.get(guildUnbanEvent.getGuild());
             zabijciemnie.remove(aCase);
             knownCases.put(guildUnbanEvent.getGuild(), zabijciemnie);
-        }
-    }
-
-    private void setAndSend(GuildConfig guildConfig, CaseRow caseRow, ModLogMode mode, TextChannel mlogchan, Case aCase, User odpowiedzialny, String powod, Guild guild) {
-        if (odpowiedzialny != null) aCase.setIssuerId(odpowiedzialny);
-        if (powod != null) aCase.setReason(powod);
-        if (mode == ModLogMode.MODLOG) {
-            MessageEmbed embed = ModLogBuilder.generate(aCase, guild, shardManager,
-                    guildConfig.getLanguage(), managerKomend);
-            mlogchan.sendMessage(embed).queue(message -> {
-                aCase.setMessageId(message.getId());
-                caseRow.getCases().add(aCase);
-                casesDao.save(caseRow);
-            });
-        } else {
-            caseRow.getCases().add(aCase);
-            casesDao.save(caseRow);
         }
     }
 
@@ -272,65 +200,22 @@ public class ModLogListener {
                             .noneMatch(c -> c.getUserId().equals(user.getId()) && c.getType() == Kara.KICK)) {
                         GuildConfig guildConfig = guildDao.get(guild);
                         CaseRow caseRow = casesDao.get(guild);
-                        ModLogMode mode;
-                        String mlogchanStr = guildConfig.getModLog();
-                        if (mlogchanStr == null || mlogchanStr.equals("")) mlogchanStr = "0";
-                        TextChannel mlogchan = shardManager.getTextChannelById(mlogchanStr);
-                        if (mlogchan == null || !mlogchan.getGuild().getSelfMember().hasPermission(mlogchan,
-                                Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_WRITE, Permission.MESSAGE_READ))
-                             mode = ModLogMode.DATABASE;
-                        else mode = ModLogMode.MODLOG;
+                        ModeResolver modeResolver = new ModeResolver(guildConfig).invoke();
+                        ModLogMode mode = modeResolver.getMode();
+                        TextChannel mlogchan = modeResolver.getMlogchan();
                         int caseId = Case.getNextCaseId(caseRow);
                         TemporalAccessor timestamp = Instant.now();
                         Case aCase = new CaseBuilder().setUser(user).setGuild(guild).setCaseId(caseId)
                                 .setTimestamp(timestamp).setMessageId(null).setKara(Kara.KICK).createCase();
                         User odpowiedzialny = entry.getUser();
                         String powod = entry.getReason();
-                        if (odpowiedzialny != null) aCase.setIssuerId(odpowiedzialny);
-                        if (powod != null) aCase.setReason(powod);
-                        if (mode == ModLogMode.MODLOG) {
-                            MessageEmbed embed = ModLogBuilder.generate(aCase, guild, shardManager,
-                                    guildConfig.getLanguage(), managerKomend);
-                            mlogchan.sendMessage(embed).queue(message -> {
-                                aCase.setMessageId(message.getId());
-                                caseRow.getCases().add(aCase);
-                                casesDao.save(caseRow);
-                            });
-                        } else {
-                            caseRow.getCases().add(aCase);
-                            casesDao.save(caseRow);
-                        }
+                        setAndSend(guildConfig, caseRow, mode, mlogchan, aCase, odpowiedzialny, powod, guild);
                     } else {
                         Optional<Case> oCase = knownCases.get(guild).stream()
                                 .filter(c -> c.getUserId().equals(user.getId()) && c.getType() == Kara.KICK)
                                 .findFirst();
                         if (!oCase.isPresent()) throw NOCASEEXC;
-                        Case aCase = oCase.get();
-                        GuildConfig guildConfig = guildDao.get(guild);
-                        CaseRow caseRow = casesDao.get(guild);
-                        ModLogMode mode;
-                        String mlogchanStr = guildConfig.getModLog();
-                        if (mlogchanStr == null || mlogchanStr.equals("")) mlogchanStr = "0";
-                        TextChannel mlogchan = shardManager.getTextChannelById(mlogchanStr);
-                        if (mlogchan == null || !mlogchan.getGuild().getSelfMember().hasPermission(mlogchan,
-                                Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_WRITE, Permission.MESSAGE_READ))
-                             mode = ModLogMode.DATABASE;
-                        else mode = ModLogMode.MODLOG;
-                        if (mode == ModLogMode.MODLOG) {
-                            MessageEmbed embed = ModLogBuilder.generate(aCase, guild, shardManager,
-                                    guildConfig.getLanguage(), managerKomend);
-                            mlogchan.sendMessage(embed).queue(message -> {
-                                aCase.setMessageId(message.getId());
-                                caseRow.getCases().add(aCase);
-                                casesDao.save(caseRow);
-                            });
-                        } else {
-                            caseRow.getCases().add(aCase);
-                            casesDao.save(caseRow);
-                        }
-                        List<Case> zabijciemnie = knownCases.get(guild);
-                        zabijciemnie.remove(aCase);
-                        knownCases.put(guild, zabijciemnie);
+                        saveKnownCase(guild, oCase.get());
                     }
                     break;
                 }
@@ -359,24 +244,14 @@ public class ModLogListener {
                 .noneMatch(c -> c.getUserId().equals(user.getId()) && c.getType() == Kara.MUTE)) {
             GuildConfig guildConfig = guildDao.get(guild);
             CaseRow caseRow = casesDao.get(guild);
-            ModLogMode mode;
-            String mlogchanStr = guildConfig.getModLog();
-            if (mlogchanStr == null || mlogchanStr.equals("")) mlogchanStr = "0";
-            TextChannel mlogchan = shardManager.getTextChannelById(mlogchanStr);
-            if (mlogchan == null || !mlogchan.getGuild().getSelfMember().hasPermission(mlogchan,
-                    Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_WRITE, Permission.MESSAGE_READ))
-                mode = ModLogMode.DATABASE;
-            else mode = ModLogMode.MODLOG;
+            ModeResolver modeResolver = new ModeResolver(guildConfig).invoke();
+            ModLogMode mode = modeResolver.getMode();
+            TextChannel mlogchan = modeResolver.getMlogchan();
             int caseId = Case.getNextCaseId(caseRow);
             TemporalAccessor timestamp = Instant.now();
             Case aCase = new CaseBuilder().setUser(user).setGuild(guild).setCaseId(caseId).setTimestamp(timestamp).setMessageId(null).setKara(Kara.MUTE).createCase();
             if (mode == ModLogMode.MODLOG) {
-                MessageEmbed embed = ModLogBuilder.generate(aCase, guild, shardManager, guildConfig.getLanguage(), managerKomend);
-                mlogchan.sendMessage(embed).queue(message -> {
-                    aCase.setMessageId(message.getId());
-                    caseRow.getCases().add(aCase);
-                    casesDao.save(caseRow);
-                });
+                saveToModLog(aCase, guildConfig, caseRow, mlogchan, guild);
             } else {
                 caseRow.getCases().add(aCase);
                 casesDao.save(caseRow);
@@ -386,32 +261,7 @@ public class ModLogListener {
                     .filter(c -> c.getUserId().equals(user.getId()) && c.getType() == Kara.MUTE)
                     .findFirst();
             if (!oCase.isPresent()) throw NOCASEEXC;
-            Case aCase = oCase.get();
-            GuildConfig guildConfig = guildDao.get(guild);
-            CaseRow caseRow = casesDao.get(guild);
-            ModLogMode mode;
-            String mlogchanStr = guildConfig.getModLog();
-            if (mlogchanStr == null || mlogchanStr.equals("")) mlogchanStr = "0";
-            TextChannel mlogchan = shardManager.getTextChannelById(mlogchanStr);
-            if (mlogchan == null || !mlogchan.getGuild().getSelfMember().hasPermission(mlogchan,
-                    Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_WRITE, Permission.MESSAGE_READ))
-                mode = ModLogMode.DATABASE;
-            else mode = ModLogMode.MODLOG;
-            if (mode == ModLogMode.MODLOG) {
-                MessageEmbed embed = ModLogBuilder.generate(aCase, guild, shardManager,
-                        guildConfig.getLanguage(), managerKomend);
-                mlogchan.sendMessage(embed).queue(message -> {
-                    aCase.setMessageId(message.getId());
-                    caseRow.getCases().add(aCase);
-                    casesDao.save(caseRow);
-                });
-            } else {
-                caseRow.getCases().add(aCase);
-                casesDao.save(caseRow);
-            }
-            List<Case> zabijciemnie = knownCases.get(guild);
-            zabijciemnie.remove(aCase);
-            knownCases.put(guild, zabijciemnie);
+            saveKnownCase(guild, oCase.get());
         }
     }
 
@@ -431,43 +281,16 @@ public class ModLogListener {
         if (!guildMemberRoleRemoveEvent.getRoles().contains(rola)) return;
         if (knownCases.get(guild) == null || knownCases.get(guild).stream()
                 .noneMatch(c -> c.getUserId().equals(user.getId()) && c.getType() == Kara.UNMUTE)) {
-            ModLogMode mode;
-            String mlogchanStr = guildConfig.getModLog();
-            if (mlogchanStr == null || mlogchanStr.equals("")) mlogchanStr = "0";
-            TextChannel mlogchan = shardManager.getTextChannelById(mlogchanStr);
-            if (mlogchan == null || !mlogchan.getGuild().getSelfMember().hasPermission(mlogchan,
-                    Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_WRITE, Permission.MESSAGE_READ))
-                mode = ModLogMode.DATABASE;
-            else mode = ModLogMode.MODLOG;
+            ModeResolver modeResolver = new ModeResolver(guildConfig).invoke();
+            ModLogMode mode = modeResolver.getMode();
+            TextChannel mlogchan = modeResolver.getMlogchan();
             int caseId = Case.getNextCaseId(caseRow);
             TemporalAccessor timestamp = Instant.now();
             List<Case> cases = caseRow.getCases();
             Case aCase = new CaseBuilder().setUser(user).setGuild(guild).setCaseId(caseId).setTimestamp(timestamp).setMessageId(null).setKara(Kara.UNMUTE).createCase();
-            for (Case muteCase : cases) {
-                if (muteCase.getType() != Kara.MUTE || !muteCase.isValid()) continue;
-                muteCase.setValidTo(timestamp, true);
-                muteCase.setValid(false);
-                MessageEmbed embed = ModLogBuilder.generate(muteCase, guildMemberRoleRemoveEvent.getGuild(),
-                        shardManager, guildConfig.getLanguage(), managerKomend);
-                if (mode == ModLogMode.MODLOG) {
-                    try {
-                        Message msg = mlogchan.retrieveMessageById(muteCase.getMessageId()).complete();
-                        if (msg == null) throw new IllegalStateException();
-                        msg.editMessage(embed).override(true).complete();
-                    } catch (Exception ignored) {
-                        /*lul*/
-                    }
-                }
-            }
-            caseRow.setCases(cases);
+            invalidateOldMutes(guildMemberRoleRemoveEvent, guildConfig, caseRow, cases, timestamp, mode, mlogchan);
             if (mode == ModLogMode.MODLOG) {
-                MessageEmbed embed = ModLogBuilder.generate(aCase, guild, shardManager,
-                        guildConfig.getLanguage(), managerKomend);
-                mlogchan.sendMessage(embed).queue(message -> {
-                    aCase.setMessageId(message.getId());
-                    caseRow.getCases().add(aCase);
-                    casesDao.save(caseRow);
-                });
+                saveToModLog(aCase, guildConfig, caseRow, mlogchan, guild);
             } else {
                 caseRow.getCases().add(aCase);
                 casesDao.save(caseRow);
@@ -480,46 +303,11 @@ public class ModLogListener {
             Case aCase = oCase.get();
             List<Case> cases = caseRow.getCases();
             TemporalAccessor teraz = Instant.now();
-            ModLogMode mode;
-            String mlogchanStr = guildConfig.getModLog();
-            if (mlogchanStr == null || mlogchanStr.equals("")) mlogchanStr = "0";
-            TextChannel mlogchan = shardManager.getTextChannelById(mlogchanStr);
-            if (mlogchan == null || !mlogchan.getGuild().getSelfMember().hasPermission(mlogchan,
-                    Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_WRITE, Permission.MESSAGE_READ))
-                mode = ModLogMode.DATABASE;
-            else mode = ModLogMode.MODLOG;
-            for (Case muteCase : cases) {
-                if (muteCase.getType() != Kara.MUTE || !muteCase.isValid()) continue;
-                muteCase.setValidTo(teraz, true);
-                muteCase.setValid(false);
-                MessageEmbed embed = ModLogBuilder.generate(muteCase, guildMemberRoleRemoveEvent.getGuild(),
-                        shardManager, guildConfig.getLanguage(), managerKomend);
-                if (mode == ModLogMode.MODLOG) {
-                    try {
-                        Message msg = mlogchan.retrieveMessageById(muteCase.getMessageId()).complete();
-                        if (msg == null) throw new IllegalStateException();
-                        msg.editMessage(embed).override(true).complete();
-                    } catch (Exception ignored) {
-                        /*lul*/
-                    }
-                }
-            }
-            caseRow.setCases(cases);
-            if (mode == ModLogMode.MODLOG) {
-                MessageEmbed embed = ModLogBuilder.generate(aCase, guild, shardManager,
-                        guildConfig.getLanguage(), managerKomend);
-                mlogchan.sendMessage(embed).queue(message -> {
-                    aCase.setMessageId(message.getId());
-                    caseRow.getCases().add(aCase);
-                    casesDao.save(caseRow);
-                });
-            } else {
-                caseRow.getCases().add(aCase);
-                casesDao.save(caseRow);
-            }
-            List<Case> zabijciemnie = knownCases.get(guild);
-            zabijciemnie.remove(aCase);
-            knownCases.put(guild, zabijciemnie);
+            ModeResolver modeResolver = new ModeResolver(guildConfig).invoke();
+            ModLogMode mode = modeResolver.getMode();
+            TextChannel mlogchan = modeResolver.getMlogchan();
+            invalidateOldMutes(guildMemberRoleRemoveEvent, guildConfig, caseRow, cases, teraz, mode, mlogchan);
+            poddajeSieZTymiNazwami(guild, aCase, guildConfig, caseRow, mode, mlogchan);
         }
     }
 
@@ -544,7 +332,7 @@ public class ModLogListener {
             aCase.setValid(false);
             aCase.setValidTo(ts, true);
             try {
-                MessageEmbed embed = ModLogBuilder.generate(aCase, guild, shardManager, gc.getLanguage(), managerKomend);
+                MessageEmbed embed = ModLogBuilder.generate(aCase, guild, shardManager, gc.getLanguage(), managerKomend, true);
                 if (perms && mlogchan != null) {
                     Message msg = mlogchan.retrieveMessageById(aCase.getMessageId()).complete();
                     if (msg == null) throw new IllegalStateException();
@@ -562,7 +350,7 @@ public class ModLogListener {
             if (lastCid == -1) lastCid = Case.getNextCaseId(guild) - 1;
             Case bCase = new CaseBuilder().setUser(aCase.getUserId()).setGuild(aCase.getGuildId()).setCaseId(lastCid + 1)
                     .setTimestamp(ts).setMessageId(null).setKara(Kara.UNMUTE).createCase();
-            MessageEmbed embed = ModLogBuilder.generate(bCase, guild, shardManager, gc.getLanguage(), managerKomend);
+            MessageEmbed embed = ModLogBuilder.generate(bCase, guild, shardManager, gc.getLanguage(), managerKomend, true);
             try {
                 if (perms && mlogchan != null) mlogchan.sendMessage(embed).complete();
             } catch (Exception ignored) {/*lul*/}
@@ -613,7 +401,7 @@ public class ModLogListener {
             return;
         }
         if (adw == Kara.UNWARN) {
-            MessageEmbed embed = ModLogBuilder.generate(aCase, guild, shardManager, tlumaczenia.getLanguage(guild), managerKomend);
+            MessageEmbed embed = ModLogBuilder.generate(aCase, guild, shardManager, tlumaczenia.getLanguage(guild), managerKomend, true);
             GuildConfig gc = guildDao.get(guild);
             String mlogchanStr;
             if (gc.getModLog() == null || gc.getModLog().isEmpty()) mlogchanStr = "0";
@@ -650,8 +438,103 @@ public class ModLogListener {
         }
     }
 
+    private void setAndSend(GuildConfig guildConfig, CaseRow caseRow, ModLogMode mode, TextChannel mlogchan, Case aCase, User odpowiedzialny, String powod, Guild guild) {
+        if (odpowiedzialny != null) aCase.setIssuerId(odpowiedzialny);
+        if (powod != null) aCase.setReason(powod);
+        if (mode == ModLogMode.MODLOG) {
+            saveToModLog(aCase, guildConfig, caseRow, mlogchan, guild);
+        } else {
+            caseRow.getCases().add(aCase);
+            casesDao.save(caseRow);
+        }
+    }
+
+    private void saveToModLog(Case aCase, GuildConfig guildConfig, CaseRow caseRow, TextChannel mlogchan, Guild guild) {
+        if (aCase.getFlagi().contains(Case.Flaga.SILENT)) {
+            caseRow.getCases().add(aCase);
+            casesDao.save(caseRow);
+            return;
+        }
+        MessageEmbed embed = ModLogBuilder.generate(aCase, guild, shardManager,
+                guildConfig.getLanguage(), managerKomend, true);
+        mlogchan.sendMessage(embed).queue(message -> {
+            aCase.setMessageId(message.getId());
+            caseRow.getCases().add(aCase);
+            casesDao.save(caseRow);
+        });
+    }
+
+    private void invalidateCase(GuildConfig gc, TemporalAccessor validTo, ModLogMode mode, TextChannel mlogchan, Case c, Guild guild) {
+        c.setValidTo(validTo, true);
+        c.setValid(false);
+        MessageEmbed embed = ModLogBuilder.generate(c, guild,
+                shardManager, gc.getLanguage(), managerKomend, true);
+        if (mode == ModLogMode.MODLOG) {
+            try {
+                Message msg = mlogchan.retrieveMessageById(c.getMessageId()).complete();
+                if (msg == null) throw new IllegalStateException();
+                msg.editMessage(embed).override(true).complete();
+            } catch (Exception ignored) {
+                /*lul*/
+            }
+        }
+    }
+
+    private void invalidateOldMutes(GuildMemberRoleRemoveEvent guildMemberRoleRemoveEvent, GuildConfig guildConfig, CaseRow caseRow, List<Case> cases, TemporalAccessor teraz, ModLogMode mode, TextChannel mlogchan) {
+        for (Case muteCase : cases) {
+            if (muteCase.getType() != Kara.MUTE || !muteCase.isValid() || !muteCase.getUserId()
+                    .equals(guildMemberRoleRemoveEvent.getMember().getUser().getId())) continue;
+            invalidateCase(guildConfig, teraz, mode, mlogchan, muteCase, guildMemberRoleRemoveEvent.getGuild());
+        }
+        caseRow.setCases(cases);
+    }
+
+    private void saveKnownCase(Guild guild, Case aCase) {
+        GuildConfig guildConfig = guildDao.get(guild);
+        CaseRow caseRow = casesDao.get(guild);
+        ModeResolver modeResolver = new ModeResolver(guildConfig).invoke();
+        ModLogMode mode = modeResolver.getMode();
+        TextChannel mlogchan = modeResolver.getMlogchan();
+        poddajeSieZTymiNazwami(guild, aCase, guildConfig, caseRow, mode, mlogchan);
+    }
+
+    private void poddajeSieZTymiNazwami(Guild guild, Case aCase, GuildConfig guildConfig, CaseRow caseRow, ModLogMode mode, TextChannel mlogchan) {
+        if (mode == ModLogMode.MODLOG) {
+            saveToModLog(aCase, guildConfig, caseRow, mlogchan, guild);
+        } else {
+            caseRow.getCases().add(aCase);
+            casesDao.save(caseRow);
+        }
+        List<Case> zabijciemnie = knownCases.get(guild);
+        zabijciemnie.remove(aCase);
+        knownCases.put(guild, zabijciemnie);
+    }
+
+
     public enum ModLogMode {
         MODLOG,
-        DATABASE
+        DATABASE;
+    }
+    @Getter
+    private class ModeResolver {
+
+        private final GuildConfig gc;
+        private ModLogMode mode;
+        private TextChannel mlogchan;
+
+        public ModeResolver(GuildConfig gc) {
+            this.gc = gc;
+        }
+
+        public ModeResolver invoke() {
+            String mlogchanStr = gc.getModLog();
+            if (mlogchanStr == null || mlogchanStr.equals("")) mlogchanStr = "0";
+            mlogchan = shardManager.getTextChannelById(mlogchanStr);
+            if (mlogchan == null || !mlogchan.getGuild().getSelfMember().hasPermission(mlogchan,
+                    Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_WRITE, Permission.MESSAGE_READ))
+                mode = ModLogMode.DATABASE;
+            else mode = ModLogMode.MODLOG;
+            return this;
+        }
     }
 }

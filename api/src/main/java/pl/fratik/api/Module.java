@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -515,6 +515,7 @@ public class Module implements Modul {
                 .next(CustomHandlers::gzip)
                 .next(CustomHandlers::accessLog)
                 .next(this::exceptionHandler)
+                .next(CustomHandlers::blockIP)
                 .complete(handler);
     }
 
@@ -591,7 +592,7 @@ public class Module implements Modul {
     }
 
     private String generateInviteLink(String id) {
-        return "https://discordapp.com/oauth2/authorize?client_id=" +
+        return "https://discord.com/oauth2/authorize?client_id=" +
                 id + "&permissions=" +
                 Globals.permissions + "&scope=bot";
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,6 +36,7 @@ import pl.fratik.moderation.entity.CaseRow;
 import pl.fratik.moderation.entity.CasesDao;
 import pl.fratik.moderation.entity.CaseBuilder;
 import pl.fratik.moderation.utils.ModLogBuilder;
+import pl.fratik.moderation.utils.ReasonUtils;
 
 import java.time.Instant;
 import java.time.temporal.TemporalAccessor;
@@ -100,7 +101,7 @@ public class NotatkaCommand extends ModerationCommand {
         TemporalAccessor timestamp = Instant.now();
         Case aCase = new CaseBuilder().setUser(uzytkownik.getUser()).setGuild(context.getGuild()).setCaseId(caseId)
                 .setTimestamp(timestamp).setMessageId(null).setKara(Kara.NOTATKA).createCase();
-        aCase.setReason(powod);
+        ReasonUtils.parseFlags(aCase, powod);
         aCase.setIssuerId(context.getSender().getId());
         String mlogchanStr = gc.getModLog();
         if (mlogchanStr == null || mlogchanStr.equals("")) mlogchanStr = "0";
@@ -108,19 +109,26 @@ public class NotatkaCommand extends ModerationCommand {
         if (mlogchan == null || !mlogchan.getGuild().getSelfMember().hasPermission(mlogchan,
                 Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_WRITE, Permission.MESSAGE_READ)) {
             context.send(context.getTranslated("notatka.success", UserUtil.formatDiscrim(uzytkownik)));
-            context.send(context.getTranslated("notatka.nomodlogs", context.getPrefix()));
+            if (!aCase.getFlagi().contains(Case.Flaga.SILENT)) context.send(context.getTranslated("notatka.nomodlogs", context.getPrefix()));
             caseRow.getCases().add(aCase);
             casesDao.save(caseRow);
             return false;
         }
-        MessageEmbed embed = ModLogBuilder.generate(aCase, context.getGuild(), shardManager,
-                gc.getLanguage(), managerKomend);
-        mlogchan.sendMessage(embed).queue(message -> {
+        if (!aCase.getFlagi().contains(Case.Flaga.SILENT)) {
+            MessageEmbed embed = ModLogBuilder.generate(aCase, context.getGuild(), shardManager,
+                    gc.getLanguage(), managerKomend, true);
+            mlogchan.sendMessage(embed).queue(message -> {
+                context.send(context.getTranslated("notatka.success", UserUtil.formatDiscrim(uzytkownik)), m -> {
+                });
+                aCase.setMessageId(message.getId());
+                caseRow.getCases().add(aCase);
+                casesDao.save(caseRow);
+            });
+        } else {
             context.send(context.getTranslated("notatka.success", UserUtil.formatDiscrim(uzytkownik)), m -> {});
-            aCase.setMessageId(message.getId());
             caseRow.getCases().add(aCase);
             casesDao.save(caseRow);
-        });
+        }
         return true;
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -53,6 +53,10 @@ public class MessagesStatsDao implements Dao<MessagesStats> {
 
     public List<MessagesStats> getAllForGuild(String guild) {
         return mapper.loadManyBySubkey("data->>'guildId'", guild);
+    }
+
+    public List<MessagesStats> getAllForDate(long date) {
+        return mapper.loadManyBySubkey("data->>'date'", String.valueOf(date));
     }
 
     @Override

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,6 +29,7 @@ import pl.fratik.core.util.UserUtil;
 import pl.fratik.moderation.entity.Case;
 import pl.fratik.moderation.listeners.ModLogListener;
 import pl.fratik.moderation.entity.CaseBuilder;
+import pl.fratik.moderation.utils.ReasonUtils;
 
 import java.time.Instant;
 import java.util.*;
@@ -66,7 +67,7 @@ public class UnbanCommand extends ModerationCommand {
                 .setCaseId(Case.getNextCaseId(context.getGuild())).setTimestamp(Instant.now())
                 .setMessageId(null).setKara(Kara.UNBAN).createCase();
         aCase.setIssuerId(context.getSender());
-        aCase.setReason(powod);
+        ReasonUtils.parseFlags(aCase, powod);
         List<Case> caseList = ModLogListener.getKnownCases().getOrDefault(context.getGuild(), new ArrayList<>());
         caseList.add(aCase);
         ModLogListener.getKnownCases().put(context.getGuild(), caseList);

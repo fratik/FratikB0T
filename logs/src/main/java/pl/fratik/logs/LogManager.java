@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -83,13 +83,13 @@ class LogManager {
         executor.submit(() -> {
             WebhookClient cl = getWebhook(webhook);
             if (e.getContext().getGuild() != null)
-                cl.send(String.format("%s(%s) [%s] %s[%s] %s[%s]", e.getContext().getCommand().getName(),
-                        String.join(",", e.getContext().getRawArgs()), DurationUtil.humanReadableFormatMillis(e.getTime()),
+                cl.send(String.format("%s(%s) %s[%s] %s[%s]", e.getContext().getCommand().getName(),
+                        String.join(",", e.getContext().getRawArgs()),
                         e.getContext().getSender().getName(), e.getContext().getSender().getId(),
                         e.getContext().getGuild().getName(), e.getContext().getGuild().getId()));
             else
-                cl.send(String.format("%s(%s) [%s] %s[%s] Direct Messages", e.getContext().getCommand().getName(),
-                        String.join(",", e.getContext().getRawArgs()), DurationUtil.humanReadableFormatMillis(e.getTime()),
+                cl.send(String.format("%s(%s) %s[%s] Direct Messages", e.getContext().getCommand().getName(),
+                        String.join(",", e.getContext().getRawArgs()),
                         e.getContext().getSender().getName(), e.getContext().getSender().getId()));
         });
         if (webhookGa == null) return;
@@ -123,7 +123,12 @@ class LogManager {
     }
 
     private WebhookClient getWebhook(String webhook) {
-        return webhooki.getOrDefault(webhook, new WebhookClientBuilder(webhook).setHttpClient(NetworkUtil.getClient()).build());
+        WebhookClient tak = webhooki.get(webhook);
+        if (tak == null) {
+            tak = new WebhookClientBuilder(webhook).setHttpClient(NetworkUtil.getClient()).build();
+            webhooki.put(webhook, tak);
+        }
+        return tak;
     }
 
     @Subscribe

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -132,7 +132,7 @@ public class RankingCommand extends Command {
             if (c.getGuildId().equals(context.getGuild().getId())) mc.add(c);
             if (mc.size() == 10) break;
         }
-        Map<String, Long> dane = new HashMap<>();
+        Map<String, Long> dane = new LinkedHashMap<>();
         for (MemberConfig c : mc)
             dane.put(c.getUserId(), c.getFratikCoiny());
         ArrayList<String> tekst = new ArrayList<>();

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,6 +27,7 @@ import pl.fratik.moderation.entity.Case;
 import pl.fratik.moderation.listeners.ModLogListener;
 import pl.fratik.core.util.DurationUtil;
 import pl.fratik.moderation.entity.CaseBuilder;
+import pl.fratik.moderation.utils.ReasonUtils;
 
 import java.time.Instant;
 import java.util.*;
@@ -99,14 +100,20 @@ public class MuteCommand extends ModerationCommand {
             context.send(context.getTranslated("mute.already.muted"));
             return false;
         }
-        DurationUtil.Response durationResp = DurationUtil.parseDuration(powod);
+        DurationUtil.Response durationResp;
+        try {
+            durationResp = DurationUtil.parseDuration(powod);
+        } catch (IllegalArgumentException e) {
+            context.send(context.getTranslated("mute.max.duration"));
+            return false;
+        }
         powod = durationResp.getTekst();
         muteDo = durationResp.getDoKiedy();
         Case aCase = new CaseBuilder().setUser(uzytkownik.getUser()).setGuild(context.getGuild())
                 .setCaseId(Case.getNextCaseId(context.getGuild())).setTimestamp(Instant.now()).setMessageId(null)
                 .setKara(Kara.MUTE).createCase();
         aCase.setIssuerId(context.getSender());
-        aCase.setReason(powod);
+        ReasonUtils.parseFlags(aCase, powod);
         aCase.setValidTo(muteDo);
         List<Case> caseList = ModLogListener.getKnownCases().getOrDefault(context.getGuild(), new ArrayList<>());
         caseList.add(aCase);

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -125,7 +125,11 @@ public class CytujCommand extends Command {
         if (tresc == null || tresc.isEmpty()) {
             context.send(eb.build());
             if (!msg.getEmbeds().isEmpty()) {
-                context.send(msg.getEmbeds().get(0));
+                try {
+                    context.send(msg.getEmbeds().get(0));
+                } catch (IllegalArgumentException e) {
+                    // nieprawidłowy embed
+                }
             }
             return true;
         }

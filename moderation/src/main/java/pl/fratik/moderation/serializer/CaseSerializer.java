@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -54,6 +54,8 @@ public class CaseSerializer extends StdSerializer<List<Case>> {
             if (aCase.getValidTo() != null) {
                 pCase.setValidTo(Instant.from(aCase.getValidTo()).toEpochMilli());
             }
+            pCase.setIleRazy(aCase.getIleRazy());
+            pCase.setFlagi(Case.Flaga.getRaw(aCase.getFlagi()));
             parsedCaseList.add(pCase);
         }
         jsonGenerator.writeStartArray();
@@ -69,6 +71,8 @@ public class CaseSerializer extends StdSerializer<List<Case>> {
             jsonGenerator.writeNumberField("kara", pCase.getType());
             jsonGenerator.writeBooleanField("valid", pCase.isValid());
             jsonGenerator.writeNumberField("validTo", pCase.getValidTo());
+            if (pCase.getIleRazy() != null) jsonGenerator.writeNumberField("ileRazy", pCase.getIleRazy());
+            if (pCase.getFlagi() != 0) jsonGenerator.writeNumberField("flagi", pCase.getFlagi());
             jsonGenerator.writeEndObject();
         }
         jsonGenerator.writeEndArray();
@@ -89,6 +93,8 @@ public class CaseSerializer extends StdSerializer<List<Case>> {
         @Nullable
         @Setter private String issuerId;
         @Nullable @Setter private String reason;
+        @Nullable @Setter private Integer ileRazy;
+        @Setter private long flagi;
 
         ParsedCase(String userId, String guildId, int caseId, TemporalAccessor timestamp, String messageId, Kara type) {
             this.userId = userId;
