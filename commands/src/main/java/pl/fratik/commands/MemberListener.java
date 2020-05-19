@@ -140,8 +140,12 @@ class MemberListener {
             }
             if (nick.toString().startsWith(" ")) nick.set(nick.toString().substring(1));
             else nick.set(" " + nick.toString());
+            if ((prefix + nick).length() > 32) {
+                int dlugosc = (prefix + nick).length() - 32;
+                nick.set(nick.toString().substring(dlugosc));
+            }
             try {
-                mem.getGuild().modifyNickname(mem, prefix + " " + nick.toString()).queue();
+                mem.getGuild().modifyNickname(mem, prefix + nick.toString()).queue();
                 return;
             } catch (Exception e) {
                 /* brak permów */
