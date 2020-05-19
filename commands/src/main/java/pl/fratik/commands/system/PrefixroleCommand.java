@@ -66,7 +66,7 @@ public class PrefixroleCommand extends Command {
         }
         GuildConfig gc = guildDao.get(context.getGuild().getId());
         if (typ.equals("list")) {
-            if (gc.getRolePrefix().isEmpty()) {
+            if (gc.getRolePrefix() == null || gc.getRolePrefix().isEmpty()) {
                 context.send(context.getTranslated("prefixrole.list.isempty"));
                 return false;
             }
