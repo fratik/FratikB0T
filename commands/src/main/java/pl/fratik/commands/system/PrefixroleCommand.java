@@ -81,7 +81,7 @@ public class PrefixroleCommand extends Command {
             StringBuilder sb = new StringBuilder();
             boolean setuj = false;
             for (Map.Entry<String, String> entry : gc.getRolePrefix().entrySet()) {
-                Role r = context.getGuild().getRoleById(entry.getValue());
+                Role r = context.getGuild().getRoleById(entry.getKey());
                 if (r == null) {
                     gc.getRolePrefix().remove(entry.getKey());
                     setuj = true;
