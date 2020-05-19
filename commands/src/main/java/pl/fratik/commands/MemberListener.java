@@ -32,10 +32,8 @@ import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.event.DatabaseUpdateEvent;
 import pl.fratik.core.util.CommonUtil;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
 class MemberListener {
@@ -129,14 +127,24 @@ class MemberListener {
         if (gc.getRolePrefix() == null) return;
         for (Role role : mem.getRoles()) {
             String prefix = gc.getRolePrefix().get(role.getId());
-            if (prefix != null) {
-                try {
-                    mem.getGuild().modifyNickname(mem, prefix + " " + mem.getUser().getName()).queue();
-                    return;
-                } catch (Exception e) {
-                    mem.getGuild().getJDA().getTextChannelById("371921432998969347").sendMessage(e.getLocalizedMessage()).queue();
-                    /* brak permów */
-                }
+            if (prefix == null) continue;
+            
+            AtomicReference<String> nick = new AtomicReference<>(mem.getNickname());
+            if (nick.get() == null) nick.set(mem.getUser().getName());
+            else {
+                gc.getRolePrefix().values().forEach(p -> {
+                    if (nick.toString().startsWith(p)) {
+                        nick.set(nick.toString().substring(0, p.length()));
+                    }
+                });
+            }
+            if (nick.toString().startsWith(" ")) nick.set(nick.toString().substring(1));
+            else nick.set(" " + nick.toString());
+            try {
+                mem.getGuild().modifyNickname(mem, prefix + " " + nick.toString()).queue();
+                return;
+            } catch (Exception e) {
+                /* brak permów */
             }
         }
     }
