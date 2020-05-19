@@ -19,13 +19,11 @@ package pl.fratik.commands;
 
 import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.Subscribe;
-import net.dv8tion.jda.api.entities.ChannelType;
-import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Role;
-import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberLeaveEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberRoleAddEvent;
+import net.dv8tion.jda.api.events.guild.member.GuildMemberRoleRemoveEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import pl.fratik.core.cache.Cache;
 import pl.fratik.core.cache.RedisCacheManager;
@@ -119,7 +117,28 @@ class MemberListener {
 
     @Subscribe
     public void onRoleAdd(GuildMemberRoleAddEvent e) {
+        updateNickname(e.getMember());
+    }
+    @Subscribe
+    public void onRoleRemmove(GuildMemberRoleRemoveEvent e) {
+        updateNickname(e.getMember());
+    }
 
+    private void updateNickname(Member mem) {
+        GuildConfig gc = getGuildConfig(mem.getGuild());
+        if (gc.getRolePrefix() == null) return;
+        for (Role role : mem.getRoles()) {
+            String prefix = gc.getRolePrefix().get(role.getId());
+            if (prefix != null) {
+                try {
+                    mem.getGuild().modifyNickname(mem, prefix + " " + mem.getUser().getName()).queue();
+                    return;
+                } catch (Exception e) {
+                    mem.getGuild().getJDA().getTextChannelById("371921432998969347").sendMessage(e.getLocalizedMessage()).queue();
+                    /* brak permów */
+                }
+            }
+        }
     }
     
     @Subscribe

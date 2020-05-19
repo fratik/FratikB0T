@@ -97,8 +97,8 @@ public class PrefixroleCommand extends Command {
             EmbedBuilder eb = new EmbedBuilder();
             eb.setFooter("© " + context.getShardManager().getShardById(0).getSelfUser().getName());
             eb.setColor(UserUtil.getPrimColor(context.getSender()));
-            eb.addField(" ", sb.toString(), false);
-            strArray.forEach(s -> eb.addField("elo", s.toString(), false));
+            if (strArray.isEmpty()) eb.addField(" ", sb.toString(), false);
+            else strArray.forEach(se -> eb.addField(" ", se, false));
             context.send(eb.build());
             if (setuj) guildDao.save(gc);
             return true;
