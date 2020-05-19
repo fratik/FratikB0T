@@ -82,15 +82,17 @@ public class PrefixroleCommand extends Command {
             boolean setuj = false;
             for (Map.Entry<String, String> entry : gc.getRolePrefix().entrySet()) {
                 Role r = context.getGuild().getRoleById(entry.getKey());
+                String s;
                 if (r == null) {
                     gc.getRolePrefix().remove(entry.getKey());
+                    s = "Rola usunięta :: " + entry.getValue() + "\n";
                     setuj = true;
                 } else {
-                    String s = r.getAsMention() + " :: " + entry.getValue() + "\n";
-                    if (sb.length() + s.length() >= 1996) {
-                        strArray.add(sb.toString());
-                        sb = new StringBuilder().append(s);
-                    } else sb.append(s);
+                    s = r.getAsMention() + " :: " + entry.getValue() + "\n";
+                if (sb.length() + s.length() >= 1996) {
+                    strArray.add(sb.toString());
+                    sb = new StringBuilder().append(s);
+                } else sb.append(s);
                 }
             }
 
