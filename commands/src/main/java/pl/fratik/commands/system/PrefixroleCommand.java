@@ -96,7 +96,7 @@ public class PrefixroleCommand extends Command {
             return true;
         }
         if (typ.equals("remove")) {
-            if (context.getArgs()[1] == null) {
+            if (context.getArgs().length == 0) {
                 CommonErrors.usage(context);
                 return false;
             }
@@ -110,7 +110,7 @@ public class PrefixroleCommand extends Command {
             guildDao.save(gc);
         }
         if (typ.equals("set")) {
-            if (context.getArgs()[1] == null || context.getArgs()[2] == null) {
+            if (context.getArgs().length < 2) {
                 CommonErrors.usage(context);
                 return false;
             }
