@@ -35,7 +35,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-@SuppressWarnings({"RedundantCollectionOperation", "ConstantConditions"})
+@SuppressWarnings("ConstantConditions")
 public class PrefixroleCommand extends Command {
 
     private static final int PREFIX_LENGTH = 8;
@@ -76,7 +76,6 @@ public class PrefixroleCommand extends Command {
                 context.send(context.getTranslated("prefixrole.list.isempty"));
                 return false;
             }
-
             ArrayList<String> strArray = new ArrayList<>();
             StringBuilder sb = new StringBuilder();
             boolean setuj = false;
@@ -89,18 +88,13 @@ public class PrefixroleCommand extends Command {
                     setuj = true;
                 } else s = r.getAsMention() + " :: " + entry.getValue() + "\n";
 
-                if (sb.length() + s.length() >= 1996) {
-                    strArray.add(sb.toString());
-                    sb = new StringBuilder().append(s);
-                } else sb.append(s);
+                sb.append(s);
             }
 
             EmbedBuilder eb = new EmbedBuilder();
             eb.setFooter("© " + context.getShardManager().getShardById(0).getSelfUser().getName());
             eb.setColor(UserUtil.getPrimColor(context.getSender()));
-            for (String str : strArray) {
-                eb.addField("elo", str, false);
-            }
+            eb.addField("elo", sb.toString(), false);
             context.send(eb.build());
             if (setuj) guildDao.save(gc);
             return true;
