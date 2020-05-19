@@ -105,7 +105,7 @@ public class PrefixroleCommand extends Command {
                 context.send(context.getTranslated("prefixrole.doesnt.set"));
                 return false;
             }
-            context.send(context.getTranslated("prefixrole.succesremove", r.getName()));
+            context.send(context.getTranslated("prefixrole.remove.succes", r.getName()));
             gc.getRolePrefix().remove(r.getId());
             guildDao.save(gc);
         }
@@ -118,10 +118,10 @@ public class PrefixroleCommand extends Command {
             String prefix = (String) context.getArgs()[2];
 
             if (prefix.length() >= PREFIX_LENGTH) {
-                context.send(context.getTranslated("prefixrole", PREFIX_LENGTH));
+                context.send(context.getTranslated("prefixrole.length", PREFIX_LENGTH));
                 return false;
             }
-            context.send(context.getTranslated("prefixrole", role.getName()));
+            context.send(context.getTranslated("prefixrole.set.succes", role.getName()));
             gc.getRolePrefix().remove(role.getId());
             gc.getRolePrefix().put(role.getId(), prefix);
             guildDao.save(gc);
