@@ -115,7 +115,7 @@ public class PrefixroleCommand extends Command {
         if (typ.equals("set")) {
             Role    role;
             String prefix;
-            
+
             try {
                 role = (Role) context.getArgs()[1];
                 prefix = (String) context.getArgs()[2];
@@ -124,12 +124,19 @@ public class PrefixroleCommand extends Command {
                 return false;
             }
 
+            if (role == null) {
+                context.send(context.getTranslated("prefixrole.badrole"));
+                return false;
+            }
+
             if (prefix.length() >= PREFIX_LENGTH) {
                 context.send(context.getTranslated("prefixrole.length", PREFIX_LENGTH));
                 return false;
             }
             context.send(context.getTranslated("prefixrole.set.succes", role.getName()));
-            if (gc.getRolePrefix().containsKey(role.getId())) gc.getRolePrefix().remove(role.getId());
+            try {
+                gc.getRolePrefix().remove(role.getId());
+            } catch (NullPointerException ignored) {}
             gc.getRolePrefix().put(role.getId(), prefix);
             guildDao.save(gc);
             return true;
