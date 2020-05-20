@@ -21,16 +21,15 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.Subscribe;
-import net.dv8tion.jda.api.entities.ChannelType;
-import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Role;
-import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberLeaveEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.event.DatabaseUpdateEvent;
+import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.CommonUtil;
 
 import java.util.ArrayList;
@@ -39,13 +38,16 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 class MemberListener {
     private final GuildDao guildDao;
+    private final Tlumaczenia tlumaczenia;
     private final Cache<String, GuildConfig> gcCache = Caffeine.newBuilder().expireAfterWrite(1, TimeUnit.HOURS).build();
 
-    MemberListener(GuildDao guildDao) {
+    MemberListener(GuildDao guildDao, Tlumaczenia tlumaczenia) {
         this.guildDao = guildDao;
+        this.tlumaczenia = tlumaczenia;
     }
 
     @Subscribe
@@ -120,5 +122,60 @@ class MemberListener {
     public void onDatabaseUpdateEvent(DatabaseUpdateEvent e) {
         if (e.getEntity() instanceof GuildConfig)
             gcCache.put(((GuildConfig) e.getEntity()).getGuildId(), (GuildConfig) e.getEntity());
+    }
+
+    @Subscribe
+    public void onLiczekMessage(GuildMessageReceivedEvent m) {
+        if (m.getAuthor().isBot() || m.getMessage().isWebhookMessage()) return;
+        GuildConfig gc = getGuildConfig(m.getGuild());
+        if (!gc.getLiczekKanal().equals(m.getChannel().getId())) return;
+
+        String msg = m.getMessage().getContentRaw();
+        if (msg.isEmpty()) {
+            m.getMessage().delete().queue();
+            return;
+        }
+
+        int liczba = -2137;
+        try {
+            liczba = Integer.parseInt(msg);
+        } catch (NumberFormatException e) {
+            m.getMessage().delete().queue();
+            return;
+        }
+
+        synchronized (m.getGuild()) {
+            List<Message> messages = getHistoryList(m.getChannel());
+            int kiedysMessage = Integer.parseInt(messages.get(1).getContentRaw());
+
+            if (messages.size() < 2 || liczba != kiedysMessage+1 || messages.get(1).getAuthor().getId().equals(m.getAuthor().getId())) {
+                m.getMessage().delete().queue();
+                return;
+            }
+
+            updateTopic(m.getChannel());
+        }
+    }
+
+    private List<Message> getHistoryList(TextChannel txt) {
+        List<Message> msgs = new ArrayList<>();
+        for (Message msg : txt.getIterableHistory().stream().limit(10).collect(Collectors.toList())) {
+            if (!msg.isEdited()) {
+                msgs.add(msg);
+                if (msgs.size() == 2) break;
+            } else msg.delete().queue();
+        }
+        return msgs;
+    }
+
+    private void updateTopic(TextChannel txt) {
+        GuildConfig gc = getGuildConfig(txt.getGuild());
+        String trans = tlumaczenia.get(gc.getLanguage(), "liczek.topic");
+        Message msg = getHistoryList(txt).get(0);
+        try {
+            int liczba = Integer.parseInt(msg.getContentDisplay());
+            String format = String.format(trans, msg.getAuthor().getAsMention(), liczba+1);
+            txt.getManager().setTopic(format).queue();
+        } catch (Exception ignored) {}
     }
 }
