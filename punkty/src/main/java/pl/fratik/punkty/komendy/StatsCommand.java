@@ -45,13 +45,11 @@ public class StatsCommand extends Command {
             context.send(context.getTranslated("punkty.off"));
             return false;
         }
-        Member mem;
+        Member mem = context.getMember();
         try {
             mem = (Member) context.getArgs()[0];
-        } catch (Exception e) {
-            mem = context.getMember();
-        }
-        EmbedBuilder eb = context.getBaseEmbed(context.getSender().getName(), mem.getUser()
+        } catch (Exception ignored) {}
+        EmbedBuilder eb = context.getBaseEmbed(mem.getUser().getName(), mem.getUser()
                 .getEffectiveAvatarUrl().replace(".webp", ".png"));
         eb.setTitle(context.getTranslated("stats.embed.title"));
         eb.setDescription(context.getTranslated("stats.embed.description"));
