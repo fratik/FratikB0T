@@ -25,7 +25,9 @@ import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberLeaveEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.events.message.guild.GuildMessageDeleteEvent;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
+import net.dv8tion.jda.api.events.message.guild.GuildMessageUpdateEvent;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.event.DatabaseUpdateEvent;
@@ -125,10 +127,13 @@ class MemberListener {
     }
 
     @Subscribe
-    public void onLiczekMessage(GuildMessageReceivedEvent m) {
-        if (m.getAuthor().isBot() || m.getMessage().isWebhookMessage()) return;
+    public void onLiczekSend(GuildMessageReceivedEvent m) {
         GuildConfig gc = getGuildConfig(m.getGuild());
         if (!gc.getLiczekKanal().equals(m.getChannel().getId())) return;
+        if (m.getAuthor().isBot() || m.getMessage().isWebhookMessage()) {
+            m.getMessage().delete().queue();
+            return;
+        }
 
         String msg = m.getMessage().getContentRaw();
         if (msg.isEmpty()) {
@@ -155,6 +160,21 @@ class MemberListener {
 
             updateTopic(m.getChannel());
         }
+    }
+
+    @Subscribe
+    public void onLiczekEdit(GuildMessageUpdateEvent m) {
+        GuildConfig gc = getGuildConfig(m.getGuild());
+        if (!gc.getLiczekKanal().equals(m.getChannel().getId())) return;
+        m.getMessage().delete().complete();
+        updateTopic(m.getChannel());
+    }
+
+    @Subscribe
+    public void onLiczekDelete(GuildMessageDeleteEvent m) {
+        GuildConfig gc = getGuildConfig(m.getGuild());
+        if (!gc.getLiczekKanal().equals(m.getChannel().getId())) return;
+        updateTopic(m.getChannel());
     }
 
     private List<Message> getHistoryList(TextChannel txt) {
