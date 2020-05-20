@@ -49,6 +49,7 @@ public class StatsCommand extends Command {
         try {
             mem = (Member) context.getArgs()[0];
         } catch (Exception ignored) {}
+        if (mem == null) mem = context.getMember();
         EmbedBuilder eb = context.getBaseEmbed(mem.getUser().getName(), mem.getUser()
                 .getEffectiveAvatarUrl().replace(".webp", ".png"));
         eb.setTitle(context.getTranslated("stats.embed.title"));
