@@ -35,9 +35,8 @@ public class PermLevelCommand extends Command {
         EmbedBuilder eb = context.getBaseEmbed();
         StringBuilder sb = new StringBuilder();
         for (PermLevel v : PermLevel.values()) {
-            sb.append(context.getTranslated(v.getLanguageKey() + "-  " +
-                    context.getTranslated("permlevel.lvl") +
-                    v.getNum()));
+            sb.append(context.getTranslated(v.getLanguageKey()) + "- " +
+                    context.getTranslated("permlevel.lvl") + " " + v.getNum() + "\n");
         }
         eb.setDescription(sb.toString());
         context.send(eb.build());
