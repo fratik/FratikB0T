@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package pl.fratik.commands.zabawa;
+package pl.fratik.liczek;
 
 import net.dv8tion.jda.api.entities.TextChannel;
 import pl.fratik.core.command.Command;
@@ -31,9 +31,10 @@ import java.util.LinkedHashMap;
 
 public class LiczekCommand extends Command {
 
-    GuildDao guildDao;
+    private final GuildDao guildDao;
 
     public LiczekCommand(GuildDao guildDao) {
+        this.guildDao = guildDao;
         name = "liczek";
         permLevel = PermLevel.ADMIN;
         category = CommandCategory.FUN;
@@ -42,8 +43,6 @@ public class LiczekCommand extends Command {
         hmap.put("remove|info|set", "string");
         hmap.put("kanal", "channel");
         uzycie = new Uzycie(hmap, new boolean[] {true, false});
-
-        this.guildDao = guildDao;
     }
 
     @Override

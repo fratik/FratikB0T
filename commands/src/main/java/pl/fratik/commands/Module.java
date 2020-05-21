@@ -134,9 +134,8 @@ public class Module implements Modul {
         commands.add(new SelfieCommand());
         commands.add(new EmojiInfoCommand());
         commands.add(new Rule34Command(eventWaiter, eventBus, managerArgumentow));
-        commands.add(new LiczekCommand(guildDao));
 
-        listener = new MemberListener(guildDao, tlumaczenia);
+        listener = new MemberListener(guildDao);
         eventBus.register(listener);
 
         commands.forEach(managerKomend::registerCommand);

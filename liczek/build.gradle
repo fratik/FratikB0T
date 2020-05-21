@@ -15,26 +15,24 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-rootProject.name = 'fratikbot'
-include ':core'
-include ':commands'
-include ':arguments'
-include ':api'
-include ':punkty'
-include ':starboard'
-
-if(file('sdk').exists()){
-    include ':sdk'
-    apply from: 'sdk/settings.gradle'
+jar {
+    archiveName = "liczek.jar"
+    destinationDir project.file('../plugins')
 }
-include ':moderation'
-include ':fratikcoiny'
-include ':music'
-include 'stats'
-include 'tags'
-include 'logs'
-include 'fdevstats'
-include 'dev'
-include 'gwarny'
-include 'liczek'
 
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+mainClassName = 'pl.fratik.liczek.Module'
+
+build.dependsOn jar
+
+dependencies {
+    compile project(":arguments")
+    compile project(":core")
+}
+
+shadowJar {
+    manifest {
+        attributes 'Main-Class': 'pl.fratik.liczek.Module'
+    }
+}
