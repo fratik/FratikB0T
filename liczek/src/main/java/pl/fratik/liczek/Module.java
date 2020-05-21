@@ -20,6 +20,7 @@ package pl.fratik.liczek;
 import com.google.common.eventbus.EventBus;
 import com.google.inject.Inject;
 import net.dv8tion.jda.api.sharding.ShardManager;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.MemberDao;
@@ -47,6 +48,7 @@ public class Module implements Modul {
     @Inject private Tlumaczenia tlumaczenia;
     @Inject private ManagerModulow managerModulow;
     @Inject private EventBus eventBus;
+    @Inject private RedisCacheManager redisCacheManager;
 
     private ArrayList<Command> commands;
     private LiczekListener listener;
@@ -61,7 +63,7 @@ public class Module implements Modul {
 
         commands.add(new LiczekCommand(guildDao));
 
-        listener = new LiczekListener(guildDao, tlumaczenia);
+        listener = new LiczekListener(guildDao, tlumaczenia, redisCacheManager);
         eventBus.register(listener);
 
         commands.forEach(managerKomend::registerCommand);

@@ -17,8 +17,6 @@
 
 package pl.fratik.liczek.listener;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.eventbus.Subscribe;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
@@ -26,23 +24,25 @@ import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageDeleteEvent;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageUpdateEvent;
+import pl.fratik.core.cache.Cache;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class LiczekListener {
     private final GuildDao guildDao;
     private final Tlumaczenia tlumaczenia;
-    private final Cache<String, GuildConfig> gcCache = Caffeine.newBuilder().expireAfterWrite(1, TimeUnit.HOURS).build();
+    private final Cache<GuildConfig> gcCache;
 
-    public LiczekListener(GuildDao guildDao, Tlumaczenia tlumaczenia) {
+    public LiczekListener(GuildDao guildDao, Tlumaczenia tlumaczenia, RedisCacheManager rcm) {
         this.guildDao = guildDao;
         this.tlumaczenia = tlumaczenia;
+        gcCache = rcm.new CacheRetriever<GuildConfig>(){}.getCache();
     }
 
     private GuildConfig getGuildConfig(Guild guild) {
