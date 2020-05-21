@@ -513,7 +513,10 @@ public class ModLogListener {
     }
 
     public static void sendAction(Case caze, Member adm, GuildConfig gc) {
-        if (caze.getFlagi().contains(Case.Flaga.SILENT) || gc.getWysylajDmOKickachLubBanach()) return;
+        if (gc.getWysylajDmOKickachLubBanach() == null) {
+            gc.setWysylajDmOKickachLubBanach(true); // nie chce mi sie kombinować z guilDao.save
+        }
+        if (caze.getFlagi().contains(Case.Flaga.SILENT) || !gc.getWysylajDmOKickachLubBanach()) return;
         MessageEmbed embed = ModLogBuilder.generate(caze, adm.getGuild(), adm.getJDA().getShardManager(),
                 gc.getLanguage(), managerKomend, true);
 
