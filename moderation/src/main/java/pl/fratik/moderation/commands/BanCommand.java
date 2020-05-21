@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,6 +31,7 @@ import pl.fratik.core.util.UserUtil;
 import pl.fratik.moderation.entity.Case;
 import pl.fratik.moderation.entity.CaseBuilder;
 import pl.fratik.moderation.listeners.ModLogListener;
+import pl.fratik.moderation.utils.ReasonUtils;
 
 import java.time.Instant;
 import java.util.*;
@@ -74,23 +75,28 @@ public class BanCommand extends ModerationCommand {
                 return false;
             }
         }
-        DurationUtil.Response durationResp = DurationUtil.parseDuration(powod);
+        DurationUtil.Response durationResp;
+        try {
+            durationResp = DurationUtil.parseDuration(powod);
+        } catch (IllegalArgumentException e) {
+            context.send(context.getTranslated("ban.max.duration"));
+            return false;
+        }
         powod = durationResp.getTekst();
         Instant banDo = durationResp.getDoKiedy();
         CaseBuilder cb = new CaseBuilder().setUser(uzytkownik).setGuild(context.getGuild())
                 .setCaseId(Case.getNextCaseId(context.getGuild())).setTimestamp(Instant.now())
                 .setMessageId(null);
-        if (banDo != null) cb.setKara(Kara.TIMEDBAN);
-        else cb.setKara(Kara.BAN);
+        cb.setKara(Kara.BAN);
         Case aCase = cb.createCase();
         aCase.setIssuerId(context.getSender());
-        aCase.setReason(powod);
+        ReasonUtils.parseFlags(aCase, powod);
         aCase.setValidTo(banDo);
         List<Case> caseList = ModLogListener.getKnownCases().getOrDefault(context.getGuild(), new ArrayList<>());
         caseList.add(aCase);
         ModLogListener.getKnownCases().put(context.getGuild(), caseList);
         try {
-            context.getGuild().ban(uzytkownik, 0, powod).reason(powod).complete();
+            context.getGuild().ban(uzytkownik, 0, aCase.getReason()).reason(aCase.getReason()).complete();
             context.send(context.getTranslated("ban.success", UserUtil.formatDiscrim(uzytkownik)));
         } catch (HierarchyException e) {
             caseList.remove(aCase);

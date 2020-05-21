@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,10 @@
 
 package pl.fratik.moderation.commands;
 
+import net.dv8tion.jda.api.OnlineStatus;
 import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Role;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.CommandCategory;
@@ -31,6 +34,9 @@ import pl.fratik.core.util.CommonErrors;
 import pl.fratik.core.util.StringUtil;
 
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class RolaCommand extends ModerationCommand {
 
@@ -53,9 +59,21 @@ public class RolaCommand extends ModerationCommand {
         }
         Role rola = (Role) context.getArgs()[0];
         GuildConfig gc = guildDao.get(context.getGuild());
+
         if (!gc.getUzytkownicyMogaNadacSobieTeRange().contains(rola.getId())) {
             context.send(context.getTranslated("rola.not.defined"));
             return false;
+        }
+
+        Integer maxRolesSize = gc.getMaxRoliDoSamododania();
+        if (maxRolesSize == null) maxRolesSize = 10;
+
+        if (maxRolesSize > 0) {
+            int memberRolesSize = (int) context.getMember().getRoles().stream().filter(r -> filtr(r, gc)).count();
+            if (memberRolesSize >= maxRolesSize) {
+                context.send(context.getTranslated("rola.maxroles", maxRolesSize, memberRolesSize, context.getPrefix()));
+                return false;
+            }
         }
         try {
             context.getGuild().addRoleToMember(context.getMember(), rola).complete();
@@ -67,7 +85,7 @@ public class RolaCommand extends ModerationCommand {
         return true;
     }
 
-    @SubCommand(name="list")
+    @SubCommand(name="list", aliases = "lista")
     public boolean list(@NotNull CommandContext context) {
         ArrayList<String> strArray = new ArrayList<>();
         StringBuilder sb = new StringBuilder();
@@ -100,6 +118,11 @@ public class RolaCommand extends ModerationCommand {
     @Override
     public PermLevel getPermLevel() {
         return PermLevel.EVERYONE;
+    }
+
+    private static boolean filtr(Role r, GuildConfig gc) {
+        if (gc.getUzytkownicyMogaNadacSobieTeRange().contains(r.getId())) { return true; }
+        return false;
     }
 
 }

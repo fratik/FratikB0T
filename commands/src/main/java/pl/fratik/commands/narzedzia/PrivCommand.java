@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -105,7 +105,7 @@ public class PrivCommand extends Command {
             ch.sendMessage(context.getTlumaczenia().get(context.getTlumaczenia().getLanguage(doKogo),
                     "priv.message", sender.getAsTag(), sender.getId(), tresc,
                     Ustawienia.instance.prefix, sender.getId(), Ustawienia.instance.prefix, id)).complete();
-            privDao.save(new Priv(id, doKogo.getId(), sender.getId(), tresc, false));
+            privDao.save(new Priv(id, sender.getId(), doKogo.getId(), tresc, null));
             context.send(context.getTranslated("priv.success"));
         } catch (Exception e) {
             context.send(context.getTranslated("priv.cant.send.dm"));

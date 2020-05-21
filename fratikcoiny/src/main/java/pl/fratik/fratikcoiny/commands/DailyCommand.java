@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -49,39 +49,37 @@ public class DailyCommand extends Command {
         MemberConfig mc = memberDao.get(context.getMember());
         Date dailyDate = mc.getDailyDate();
         Date teraz = new Date();
-        long dist;
-        if (mc.getDailyDate() != null) dist = dailyDate.getTime() - teraz.getTime();
-        else {
-            Calendar cal = Calendar.getInstance();
-            cal.setTime(teraz);
-            cal.add(Calendar.DAY_OF_MONTH, 1);
-            dailyDate = Date.from(cal.toInstant());
-            if (mc.getFratikCoiny() + 250 == Long.MAX_VALUE) {
-                context.send(context.getTranslated("daily.too.many.coins"));
+        if (mc.getDailyDate() != null) {
+            long dist = dailyDate.getTime() - teraz.getTime();
+            if (dist >= 0) {
+                context.send(context.getTranslated("daily.cooldown"));
                 return false;
             }
-            mc.setFratikCoiny(mc.getFratikCoiny() + 250);
-            mc.setDailyDate(dailyDate);
-            memberDao.save(mc);
-            context.send(context.getTranslated("daily.success", emotkaFc.getAsMention()));
-            return true;
-        }
-        if (dist >= 0) {
-            context.send(context.getTranslated("daily.cooldown"));
-            return false;
         }
         Calendar cal = Calendar.getInstance();
         cal.setTime(teraz);
         cal.add(Calendar.DAY_OF_MONTH, 1);
         dailyDate = Date.from(cal.toInstant());
-        if (mc.getFratikCoiny() + 250 == Long.MAX_VALUE) {
+        long fc = isHoliday() ? mc.getFratikCoiny() + 500 : mc.getFratikCoiny() + 250;
+        if (fc == Long.MAX_VALUE) {
             context.send(context.getTranslated("daily.too.many.coins"));
             return false;
         }
-        mc.setFratikCoiny(mc.getFratikCoiny() + 250);
+        String msg = isHoliday() ? "daily.success.holiday" : "daily.success";
+        mc.setFratikCoiny(fc);
         mc.setDailyDate(dailyDate);
         memberDao.save(mc);
-        context.send(context.getTranslated("daily.success", emotkaFc.getAsMention()));
+        context.send(context.getTranslated(msg, emotkaFc.getAsMention()));
         return true;
     }
+
+    private static Boolean isHoliday() { // mozna to pozniej gdzies przeniesc
+        Date teraz = new Date();
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(teraz);
+        if (calendar.get(Calendar.MONTH) == Calendar.DECEMBER && calendar.get(Calendar.DAY_OF_MONTH) == 24) return true;
+        // TODO: dodac inne swieta
+        return false;
+    }
 }
+

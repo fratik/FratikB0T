@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -64,7 +64,7 @@ public class UsunFcCommand extends Command {
             return false;
         }
         MemberConfig mc = memberDao.get(komu);
-        int hajs = Math.toIntExact(mc.getFratikCoiny() - ile);
+        long hajs = mc.getFratikCoiny() - ile;
         if (hajs < 0) {
             context.send(context.getTranslated("usunfc.badnumber.sub"));
             return false;

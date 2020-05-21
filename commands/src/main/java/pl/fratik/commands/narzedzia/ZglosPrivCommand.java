@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -154,6 +154,7 @@ public class ZglosPrivCommand extends Command {
             privDao.save(priv);
             context.send(context.getTranslated("zglospriv.success"));
         });
+        waiter.create();
         return true;
     }
 
@@ -161,6 +162,7 @@ public class ZglosPrivCommand extends Command {
     private void onReactionAdd(MessageReactionAddEvent e) {
         if (!e.getChannel().getId().equals(Ustawienia.instance.zglosPrivChannel)) return;
         if (e.getReactionEmote().isEmote()) return;
+        if (e.getUser() != null && e.getUser().isBot()) return;
         String s = e.getReactionEmote().getName();
         if (POTW.equals(s)) {
             Message msg = e.getChannel().retrieveMessageById(e.getMessageId()).complete();
@@ -171,8 +173,8 @@ public class ZglosPrivCommand extends Command {
             msg.delete().queue();
             Objects.requireNonNull(shardManager.getUserById(priv.getDoKogo())).openPrivateChannel().complete()
                     .sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(shardManager
-                            .getUserById(priv.getDoKogo())), "zglospriv.response1")).queue();
-        } else if (ODRZ.equals(s)) {
+                            .getUserById(priv.getDoKogo())), "zglospriv.response1", priv.getId())).queue();
+        } else if ("\u2757".equals(s)) {
             Message msg = e.getChannel().retrieveMessageById(e.getMessageId()).complete();
             if (msg.getEmbeds().isEmpty() || !msg.getAuthor().equals(e.getJDA().getSelfUser())) return;
             Priv priv = privDao.get(Objects.requireNonNull(msg.getEmbeds().get(0).getFooter()).getText());
@@ -186,7 +188,7 @@ public class ZglosPrivCommand extends Command {
                 msg.delete().queue();
                 Objects.requireNonNull(shardManager.getUserById(priv.getDoKogo())).openPrivateChannel().complete()
                         .sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(shardManager
-                                .getUserById(priv.getDoKogo())), "zglospriv.response2")).queue();
+                                .getUserById(priv.getDoKogo())), "zglospriv.response2", priv.getId())).queue();
             });
         }
     }

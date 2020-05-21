@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@ import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
+import pl.fratik.core.command.PermLevel;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Uzycie;
@@ -38,6 +39,7 @@ public class UstawPowitanieCommand extends Command {
         this.guildDao = guildDao;
         name = "ustawpowitanie";
         category = CommandCategory.SYSTEM;
+        permLevel = PermLevel.ADMIN;
         LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
         hmap.put("kanalDoPowitan", "channel");
         hmap.put("tekst", "string");

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -54,6 +54,7 @@ public class UserConfig implements DatabaseEntity {
     private List<String> privIgnored = new ArrayList<>();
     private boolean boomWlaczone = true;
     private boolean lvlupMessages = true;
+    private boolean lvlUpOnDM = false;
     private String location = null;
     @ConfigField(holdsEntity = ConfigField.Entities.EMOJI)
     private String reakcja = "436919889207361536";

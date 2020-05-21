@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -82,6 +82,11 @@ public class CommonErrors {
                 " " + tlumaczenia.get(language,command.getName().toLowerCase() + ".help.uzycie") + "");
         baseEmbed.addField(tlumaczenia.get(language, "generic.command.desc"),
                 tlumaczenia.get(language,command.getName().toLowerCase() + ".help.description"), false);
+        
+        String eldo = tlumaczenia.get(language,command.getName().toLowerCase() + ".help.extended");
+        if (!eldo.isEmpty() && !eldo.equals("!<pusto>!")) {
+            baseEmbed.addField(tlumaczenia.get(language, "generic.command.extended"), eldo, false);
+        }
         try {
             channel.sendMessage(baseEmbed.build()).queue();
         } catch (InsufficientPermissionException e) {

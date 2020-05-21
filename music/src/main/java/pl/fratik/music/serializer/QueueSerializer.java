@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -95,13 +95,13 @@ public class QueueSerializer extends StdSerializer<Queue> {
             this.piosenki = piosenki.stream().map(p -> new ParsedPiosenka(p.getAudioTrack().getInfo().uri,
                     p.getRequester(), p.getRequesterLanguage())).collect(Collectors.toList());
             this.autoZapisane = autoZapisane;
-            this.announceChannel = announceChannel.getId();
-            this.aktualnaPiosenka = new ParsedPiosenka(aktualnaPiosenka.getAudioTrack().getInfo().uri,
-                    aktualnaPiosenka.getRequester(), aktualnaPiosenka.getRequesterLanguage());
+            this.announceChannel = announceChannel == null ? null : announceChannel.getId();
+            this.aktualnaPiosenka = aktualnaPiosenka != null ? new ParsedPiosenka(aktualnaPiosenka.getAudioTrack()
+                    .getInfo().uri, aktualnaPiosenka.getRequester(), aktualnaPiosenka.getRequesterLanguage()) : null;
             this.aktualnaPozycja = aktualnaPozycja;
             this.pauza = pauza;
             this.repeatMode = repeatMode;
-            this.voiceChannel = voiceChannel.getId();
+            this.voiceChannel = voiceChannel == null ? null : voiceChannel.getId();
             this.volume = volume;
         }
     }

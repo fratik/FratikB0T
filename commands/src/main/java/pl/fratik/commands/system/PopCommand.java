@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -122,6 +122,10 @@ public class PopCommand extends Command {
             }
         };
         mw.setMessageHandler(e -> {
+            if (e.getMessage().getContentRaw().length() < 15) {
+                context.send(context.getTranslated("pop.min.length"));
+                return;
+            }
             if (e.getMessage().getContentRaw().length() >= 1000) {
                 context.send(context.getTranslated("pop.max.length"));
                 return;

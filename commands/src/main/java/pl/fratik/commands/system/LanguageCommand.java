@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -54,11 +54,11 @@ public class LanguageCommand extends Command {
             tekst.add("");
             for (Language l : Language.values()) {
                 if (l.equals(Language.DEFAULT)) continue;
-                tekst.add(String.format("%s %s", l.getEmoji(), l.getLocalized()));
+                tekst.add(String.format("%s %s", l.getEmoji().toString(), l.getLocalized()));
             }
             eb.setDescription(String.join("\n", tekst));
             context.send(eb.build());
-            return false;
+            return true;
         }
         UserConfig uc = userDao.get(context.getSender());
         uc.setLanguage((Language) context.getArgs()[0]);

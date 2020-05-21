@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@ import pl.fratik.commands.narzedzia.*;
 import pl.fratik.commands.system.*;
 import pl.fratik.commands.zabawa.*;
 import pl.fratik.core.Ustawienia;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.entity.*;
 import pl.fratik.core.manager.ManagerArgumentow;
@@ -52,6 +53,7 @@ public class Module implements Modul {
     @Inject private Tlumaczenia tlumaczenia;
     @Inject private ManagerModulow managerModulow;
     @Inject private EventBus eventBus;
+    @Inject private RedisCacheManager redisCacheManager;
     private ArrayList<Command> commands;
 
     private MemberListener listener;
@@ -73,7 +75,7 @@ public class Module implements Modul {
         commands.add(new PoziomCommand(guildDao, shardManager));
         commands.add(new BotstatsCommand(shardManager, managerModulow));
         if (Ustawienia.instance.apiUrls.get("image-server") != null && Ustawienia.instance.apiKeys.get("image-server") != null) {
-            commands.add(new GraficznaCommand("blurple", "/api/image/blurple", "avatarURL", false));
+            commands.add(new BlurpleCommand());
             commands.add(new StarcatchCommand());
             commands.add(new HugCommand());
             commands.add(new GraficznaCommand("startouch", "/api/image/startouch", "avatarURL", false));
@@ -87,6 +89,7 @@ public class Module implements Modul {
             commands.add(new GraficznaCommand("roksana", "/api/image/roksana", "avatarURL", false));
             commands.add(new GraficznaCommand("debilizm", "/api/image/debilizm", "avatarURL", false));
             commands.add(new GraficznaCommand("god", "/api/image/god", "avatarURL", false));
+            commands.add(new EatCommand());
             commands.add(new BigemojiCommand());
             commands.add(new ChainCommand());
         }
@@ -107,7 +110,7 @@ public class Module implements Modul {
         commands.add(new DashboardCommand());
         commands.add(new DonateCommand());
         commands.add(new OpuscCommand());
-        commands.add(new BoomCommand(eventWaiter, eventBus, userDao));
+        commands.add(new BoomCommand(eventWaiter, userDao, redisCacheManager));
         commands.add(new PomocCommand());
         commands.add(new PopCommand(shardManager, guildDao, eventWaiter, eventBus, tlumaczenia));
         commands.add(new PowiadomOPomocyCommand(shardManager));
@@ -133,9 +136,12 @@ public class Module implements Modul {
         commands.add(new McstatusCommand());
         commands.add(new SelfieCommand());
         commands.add(new EmojiInfoCommand());
+        if (Ustawienia.instance.apiKeys.get("osu") != null)
+            commands.add(new OsuCommand(shardManager, eventWaiter, eventBus));
         commands.add(new Rule34Command(eventWaiter, eventBus, managerArgumentow));
+        commands.add(new CoronastatsCommand());
 
-        listener = new MemberListener(guildDao);
+        listener = new MemberListener(guildDao, redisCacheManager);
         eventBus.register(listener);
 
         commands.forEach(managerKomend::registerCommand);

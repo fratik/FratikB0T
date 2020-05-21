@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -56,7 +56,7 @@ public class BlackjackCommand extends Command {
         }
         MemberConfig mc = memberDao.get(context.getMember());
         long zaklad = (Long) context.getArgs()[0];
-        if (mc.getFratikCoiny() < zaklad) {
+        if (zaklad == 0 || mc.getFratikCoiny() < zaklad) {
             context.send(context.getTranslated("blackjack.no.money"));
             return false;
         }

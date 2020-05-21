@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -74,10 +74,13 @@ public class GuildConfig implements DatabaseEntity {
     private String modRole = "";
     @ConfigField(holdsEntity = ConfigField.Entities.CHANNEL)
     private List<String> swearchannels = new ArrayList<>();
+    @ConfigField(holdsEntity = ConfigField.Entities.CHANNEL)
+    private List<String> nolvlchannelchange = new ArrayList<>();
     private Boolean warnAdminLubModTraciRange = true;
     private Integer warnyNaBan = 15;
     private Integer warnyNaKick = 5;
     private Integer warnyNaTymczasowegoBana = 10;
+    private Integer maxRoliDoSamododania = 0;
     @Deprecated
     private Boolean wymagajWeryfikacjiDwuetapowej = false;
     private Boolean wysylajDmOKickachLubBanach = true;
@@ -114,6 +117,14 @@ public class GuildConfig implements DatabaseEntity {
     private Boolean wysylajOgloszenia = false;
     @ConfigField(dontDisplayInSettings = true)
     private String liczekKanal = "";
+    private Map<String, Webhook> webhooki = new HashMap<>();
+    private String lvlUpMessage;
+    private Boolean resetujOstrzezeniaPrzyBanie = true;
+
+    // TODO: 09/04/2020 można to zrobić dla każdego Boolean'a, ale to już kwestia kosmetyki kodu chyba
+    public boolean isResetujOstrzezeniaPrzyBanie() {
+        return resetujOstrzezeniaPrzyBanie != null && resetujOstrzezeniaPrzyBanie;
+    }
 
     @Transient
     @JsonIgnore
@@ -122,4 +133,10 @@ public class GuildConfig implements DatabaseEntity {
         return "guilds";
     }
 
+    @Data
+    @AllArgsConstructor
+    public static class Webhook {
+        private final String id;
+        private final String token;
+    }
 }

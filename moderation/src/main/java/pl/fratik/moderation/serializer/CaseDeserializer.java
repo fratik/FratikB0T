@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -65,6 +65,14 @@ public class CaseDeserializer extends StdDeserializer<List<Case>> {
             aCase.setReason((String) elements.get("reason"));
             aCase.setIssuerId((String) elements.get("issuerId"));
             aCase.setValid((boolean) elements.get("valid"));
+            if (elements.containsKey("ileRazy")) aCase.setIleRazy((Integer) elements.get("ileRazy"));
+            if (elements.containsKey("flagi")) {
+                try {
+                    aCase.setFlagi(Case.Flaga.getFlagi((Long) elements.get("flagi")));
+                } catch (ClassCastException ignored) {
+                    aCase.setFlagi(Case.Flaga.getFlagi((Integer) elements.get("flagi")));
+                }
+            }
             try {
                 aCase.setValidTo(Instant.ofEpochMilli(((Long) elements.get(VALIDTO))), true);
             } catch (ClassCastException ignored) {

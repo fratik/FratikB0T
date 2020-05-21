@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -70,13 +70,13 @@ public class NetworkUtil {
         return client.newCall(req.build()).execute();
     }
 
-    public static JSONObject getJson(String url) throws IOException {
+    public static JSONResponse getJson(String url) throws IOException {
         Request req = new Request.Builder()
                 .header(UA, USER_AGENT)
                 .url(url)
                 .build();
         Response res = client.newCall(req).execute();
-        return res.body() == null ? null : new JSONObject(res.body().string());
+        return res.body() == null ? null : new JSONResponse(res.body().string(), res.code());
     }
 
     public static JSONArray getJsonArray(String url) throws IOException {

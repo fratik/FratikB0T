@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -51,6 +51,7 @@ public abstract class Command {
     @Getter protected boolean allowInDMs = false;
     @Getter protected final HashMap<String, Method> subCommands = new HashMap<>();
     @Getter protected int cooldown;
+    @Getter protected boolean ignoreGaPerm = false;
 
     protected boolean execute(@NotNull CommandContext context) {
         throw new UnsupportedOperationException("Komenda nie ma zaimplementowanej funkcji execute()");

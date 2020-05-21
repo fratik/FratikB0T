@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,6 +37,7 @@ import pl.fratik.moderation.entity.CaseBuilder;
 import pl.fratik.moderation.entity.CaseRow;
 import pl.fratik.moderation.entity.CasesDao;
 import pl.fratik.moderation.utils.ModLogBuilder;
+import pl.fratik.moderation.utils.ReasonUtils;
 import pl.fratik.moderation.utils.WarnUtil;
 
 import java.time.Instant;
@@ -107,26 +108,30 @@ public class WarnCommand extends ModerationCommand {
         TemporalAccessor timestamp = Instant.now();
         Case aCase = new CaseBuilder().setUser(uzytkownik.getUser()).setGuild(context.getGuild()).setCaseId(caseId)
                 .setTimestamp(timestamp).setMessageId(null).setKara(Kara.WARN).createCase();
-        aCase.setReason(powod);
+        ReasonUtils.parseFlags(aCase, powod);
         aCase.setIssuerId(context.getSender().getId());
         TextChannel mlog = null;
         if (gc.getModLog() != null && !gc.getModLog().equals("")) mlog = shardManager.getTextChannelById(gc.getModLog());
         if (mlog == null || !context.getGuild().getSelfMember().hasPermission(mlog,
                 Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_WRITE, Permission.MESSAGE_READ)) {
-            context.send(context.getTranslated("warn.success", UserUtil.formatDiscrim(uzytkownik)));
-            context.send(context.getTranslated("warn.nomodlogs", context.getPrefix()));
             caseRow.getCases().add(aCase);
+            context.send(context.getTranslated("warn.success", UserUtil.formatDiscrim(uzytkownik),
+                    WarnUtil.countCases(caseRow, uzytkownik.getId())));
+            if (!aCase.getFlagi().contains(Case.Flaga.SILENT)) context.send(context.getTranslated("warn.nomodlogs", context.getPrefix()));
             casesDao.save(caseRow);
             WarnUtil.takeAction(guildDao, casesDao, uzytkownik, context.getChannel(), context.getLanguage(),
                     context.getTlumaczenia(), managerKomend);
             return true;
         }
-        MessageEmbed embed = ModLogBuilder.generate(aCase, context.getGuild(), shardManager,
-                gc.getLanguage(), managerKomend);
-        Message message = mlog.sendMessage(embed).complete();
-        context.send(context.getTranslated("warn.success", UserUtil.formatDiscrim(uzytkownik)));
-        aCase.setMessageId(message.getId());
+        if (!aCase.getFlagi().contains(Case.Flaga.SILENT)) {
+            MessageEmbed embed = ModLogBuilder.generate(aCase, context.getGuild(), shardManager,
+                    gc.getLanguage(), managerKomend, true);
+            Message message = mlog.sendMessage(embed).complete();
+            aCase.setMessageId(message.getId());
+        }
         caseRow.getCases().add(aCase);
+        context.send(context.getTranslated("warn.success", UserUtil.formatDiscrim(uzytkownik),
+                WarnUtil.countCases(caseRow, uzytkownik.getId())));
         casesDao.save(caseRow);
         WarnUtil.takeAction(guildDao, casesDao, uzytkownik, context.getChannel(), context.getLanguage(),
                 context.getTlumaczenia(), managerKomend);

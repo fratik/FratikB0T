@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 package pl.fratik.music.commands;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
+import io.sentry.Sentry;
 import lombok.AllArgsConstructor;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.Permission;
@@ -30,6 +31,7 @@ import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.manager.ManagerArgumentow;
 import pl.fratik.core.util.EventWaiter;
 import pl.fratik.core.util.MessageWaiter;
+import pl.fratik.core.util.UserUtil;
 import pl.fratik.music.managers.ManagerMuzykiSerwera;
 import pl.fratik.music.managers.NowyManagerMuzyki;
 import pl.fratik.music.managers.SearchManager;
@@ -88,56 +90,75 @@ public class YoutubeCommand extends MusicCommand {
         AtomicReference<Boolean> udaloSie = new AtomicReference<>();
         VoiceChannel finalKanal = kanal;
         waiter.setMessageHandler(e -> new Thread(() -> {
-            String content = e.getMessage().getContentRaw();
-            int[] numerkiFilmow;
-            numerkiFilmow = Arrays.stream(content.split(",")).map(String::trim).mapToInt(Integer::parseInt).toArray();
-            deleted.set(true);
-            m.delete().queue();
-            for (int numerek : numerkiFilmow) {
-                if (numerek < 1 || numerek > liczba) {
-                    context.send(context.getTranslated("youtube.invalid.reply"));
+            try {
+                String content = e.getMessage().getContentRaw();
+                int[] numerkiFilmow;
+                numerkiFilmow = Arrays.stream(content.split(",")).map(String::trim).mapToInt(Integer::parseInt).toArray();
+                deleted.set(true);
+                m.delete().queue();
+                if (context.getMember().getVoiceState().getChannel() != finalKanal) {
+                    context.send(context.getTranslated("youtube.badchannel"));
                     udaloSie.set(false);
                     return;
                 }
-            }
-            List<SearchManager.SearchResult.SearchEntry> entries = new ArrayList<>();
-            for (int numerek : numerkiFilmow)
-                entries.add(result.getEntries().get(numerek - 1));
-            ManagerMuzykiSerwera mms = managerMuzyki.getManagerMuzykiSerwera(context.getGuild());
-            List<AudioTrack> audioTracks = new ArrayList<>();
-            for (SearchManager.SearchResult.SearchEntry entry : entries) {
-                List<AudioTrack> tracks = managerMuzyki.getAudioTracks(entry.getUrl());
-                if (tracks.isEmpty()) continue;
-                audioTracks.add(tracks.get(0));
-            }
-            if (audioTracks.isEmpty()) {
-                context.send(context.getTranslated("youtube.cant.find"));
+                for (int numerek : numerkiFilmow) {
+                    if (numerek < 1 || numerek > liczba) {
+                        context.send(context.getTranslated("youtube.invalid.reply"));
+                        udaloSie.set(false);
+                        return;
+                    }
+                }
+                List<SearchManager.SearchResult.SearchEntry> entries = new ArrayList<>();
+                for (int numerek : numerkiFilmow)
+                    entries.add(result.getEntries().get(numerek - 1));
+                ManagerMuzykiSerwera mms = managerMuzyki.getManagerMuzykiSerwera(context.getGuild());
+                List<AudioTrack> audioTracks = new ArrayList<>();
+                for (SearchManager.SearchResult.SearchEntry entry : entries) {
+                    List<AudioTrack> tracks = managerMuzyki.getAudioTracks(entry.getUrl());
+                    if (tracks.isEmpty()) continue;
+                    audioTracks.add(tracks.get(0));
+                }
+                if (audioTracks.isEmpty()) {
+                    context.send(context.getTranslated("youtube.cant.find"));
+                    udaloSie.set(false);
+                    return;
+                }
+                if (!mms.isConnected()) {
+                    mms.setAnnounceChannel(context.getChannel());
+                    mms.connect(finalKanal);
+                }
+                if (!mms.isConnected()) {
+                    udaloSie.set(false);
+                    return;
+                }
+                List<AudioTrack> added = new ArrayList<>(); // można by to było zrobić mniejszą ilością varów ale jestem juz taki śpiący ;_; ej sonar-lint to nie kod, uspokój sie
+                for (AudioTrack at : audioTracks) {
+                    mms.addToQueue(context.getSender(), at, context.getLanguage());
+                    added.add(at);
+                }
+                if (added.size() == 1) {
+                    if (!mms.isPlaying()) mms.play();
+                    else context.getChannel().sendMessage(new MessageBuilder(context.getTranslated("play.queued",
+                            added.get(0).getInfo().title)).stripMentions(context.getGuild()).build()).queue();
+                } else {
+                    context.getChannel().sendMessage(new MessageBuilder(context.getTranslated("play.queued.multiple",
+                            added.size())).stripMentions(context.getGuild()).build()).queue();
+                    if (!mms.isPlaying()) mms.play();
+                }
+                udaloSie.set(true);
+            } catch (NumberFormatException error) {
+                deleted.set(true);
+                m.delete().queue(null, a -> {});
+                context.send(context.getTranslated("youtube.invalid.reply"));
                 udaloSie.set(false);
-                return;
-            }
-            if (!mms.isConnected()) {
-                mms.setAnnounceChannel(context.getChannel());
-                mms.connect(finalKanal);
-            }
-            if (!mms.isConnected()) {
+            } catch (Exception error) {
+                Sentry.getContext().setUser(new io.sentry.event.User(context.getSender().getId(),
+                        UserUtil.formatDiscrim(context.getSender()), null, null));
+                Sentry.capture(error);
+                Sentry.clearContext();
+                context.send(context.getTranslated("youtube.errored"));
                 udaloSie.set(false);
-                return;
             }
-            List<AudioTrack> added = new ArrayList<>(); // można by to było zrobić mniejszą ilością varów ale jestem juz taki śpiący ;_; ej sonar-lint to nie kod, uspokój sie
-            for (AudioTrack at : audioTracks) {
-                mms.addToQueue(context.getSender(), at, context.getLanguage());
-                added.add(at);
-            }
-            if (added.size() == 1) {
-                if (!mms.isPlaying()) mms.play();
-                else context.getChannel().sendMessage(new MessageBuilder(context.getTranslated("play.queued",
-                        added.get(0).getInfo().title)).stripMentions(context.getGuild()).build()).queue();
-            } else {
-                context.getChannel().sendMessage(new MessageBuilder(context.getTranslated("play.queued.multiple",
-                        added.size())).stripMentions(context.getGuild()).build()).queue();
-                if (!mms.isPlaying()) mms.play();
-            }
-            udaloSie.set(true);
         }).start());
         waiter.setTimeoutHandler(() -> {
             deleted.set(true);

@@ -1,4 +1,6 @@
 # FratikB0T
+[![Crowdin](https://badges.crowdin.net/fratikb0t/localized.svg)](https://crowdin.com/project/fratikb0t)
+
 Wielofunkcyjny bot Discord. Teraz Open Source.  
 _(bosh brzmię jak nadgryzione jabłko)_
 
@@ -10,7 +12,7 @@ _(bosh brzmię jak nadgryzione jabłko)_
 [Serwer Discord](#serwer-discord)
 
 ## Co to być?
-Bot na Discorda zawierajacy 131 komend, istniejący od 2 lat i posiadający ~~3000+~~ 1500+ serwerów.
+Bot na Discorda zawierajacy 131 komend, istniejący od 2 lat i posiadający ~~3000+~~ 2137+ serwerów.
 Całą wieczność na prywatnych repo, ale odechciewa mi się powoli to wszystko ogarniać więc boom, Open Source.
 
 ## Kompilacja
@@ -26,14 +28,14 @@ Użyj `gradlew.bat jar` (Windows) / `./gradlew jar` (Linux/macOS), a pluginy mag
 - PostgreSQL (9/10/11 działają)
 - [Lavalink](https://github.com/Frederikam/Lavalink)
 - klucze API: (opcjonalne)
-    - image-server: https://api.fratikbot.pl oraz klucz (Open Source wkrótce)
+    - image-server: https://api.fratikbot.pl oraz klucz lub ~~(Open Source wkrótce)~~ [self-hosted](https://github.com/fratik/FratikB0T-API)
     - yt/yt2: osobne klucze do YouTube API, używane w wyszukiwaniu utworów/zdobywaniu miniatur
     - sentry-dsn: (do apiKeys, nie apiUrls!) link do sentry
     - pixiv: do komendy fb!rule34, dane logowania w formacie `e-mail:hasło`
     
 ### Uruchomienie
 ```shell script
-java -jar <zbudowany rdzeń>.jar
+java -jar <zbudowany rdzeń>.jar <token>
 ```
 
 ### Konfiguracja
@@ -44,4 +46,4 @@ Rdzeń wzorowany na [Kyoko v2](https://github.com/KyokoBot/kyoko/tree/kyoko-v2).
 Dashboard (Open Source wkrótce) dla wersji 3 stworzony przez [SebeeDev](https://github.com/SebeeDev). 
 
 ## Serwer Discord
-[![https://discordapp.com/api/guilds/345655892882096139/embed.png?style=banner4](https://discordapp.com/api/guilds/345655892882096139/embed.png?style=banner4)](https://discord.gg/CZ8pXah)
+[![https://discord.com/api/guilds/345655892882096139/embed.png?style=banner4](https://discord.com/api/guilds/345655892882096139/embed.png?style=banner4)](https://discord.gg/CZ8pXah)

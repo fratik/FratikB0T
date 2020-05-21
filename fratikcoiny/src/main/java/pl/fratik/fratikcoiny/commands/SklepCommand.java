@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -75,7 +75,7 @@ public class SklepCommand extends Command {
         return false;
     }
 
-    @SubCommand(name="kup")
+    @SubCommand(name="kup", aliases = "buy")
     public boolean kup(CommandContext context) {
         GuildConfig gc = guildDao.get(context.getGuild());
         if (context.getArgs().length == 0 || (context.getArgs().length > 0 && context.getArgs()[0] == null)) {
@@ -143,7 +143,7 @@ public class SklepCommand extends Command {
         return true;
     }
 
-    @SubCommand(name="sprzedaj")
+    @SubCommand(name="sprzedaj", aliases = "sell")
     public boolean sprzedaj(CommandContext context) {
         GuildConfig gc = guildDao.get(context.getGuild());
         if (context.getArgs().length == 0 || (context.getArgs().length > 0 && context.getArgs()[0] == null)) {
@@ -223,7 +223,7 @@ public class SklepCommand extends Command {
         return true;
     }
 
-    @SubCommand(name="ustaw")
+    @SubCommand(name="ustaw", aliases = "set")
     public boolean dodaj(CommandContext context) {
         if (UserUtil.getPermlevel(context.getMember(), guildDao, shardManager).getNum() < 2) {
             context.send(context.getTranslated("sklep.ustaw.noperms"));
@@ -290,7 +290,7 @@ public class SklepCommand extends Command {
         return true;
     }
 
-    @SubCommand(name="usun")
+    @SubCommand(name="usun", aliases = "delete")
     public boolean usun(CommandContext context) {
         if (UserUtil.getPermlevel(context.getMember(), guildDao, shardManager).getNum() < 2) {
             context.send(context.getTranslated("sklep.usun.noperms"));

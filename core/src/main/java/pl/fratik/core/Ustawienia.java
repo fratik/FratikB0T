@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,6 +36,7 @@ import java.util.*;
 public class Ustawienia {
     @SuppressWarnings("squid:S1444")
     public static Ustawienia instance;
+    public String token = "tylko w przypadku szyfrowania configu";
     public String devs = "267761613438713876";
     public String gadmRole = "371306270030037024";
     public String zgaRole = "414418843352432640";
@@ -60,6 +61,8 @@ public class Ustawienia {
     public int port = 8080;
     public LogSettings logSettings = new LogSettings();
     public FdevStats fdevStats = new FdevStats();
+    @SerializedName("allowedIPs")
+    public List<String> allowedIPs = new ArrayList<>();
 
     public static class GamesClass {
         public Activity.ActivityType type = Activity.ActivityType.DEFAULT;
@@ -67,14 +70,60 @@ public class Ustawienia {
     }
 
     public static class Emotki {
-        public String greenTick = "0";
-        public String redTick = "0";
-        public String fratikCoin = "0";
-        public String online = "0";
-        public String idle = "0";
-        public String dnd = "0";
-        public String offline = "0";
-        public String loading = "0";
+        public String greenTick = "436919889207361536";
+        public String redTick = "436919889232658442";
+        public String fratikCoin = "477416566556721174";
+        public String online = "440100180591902720";
+        public String idle = "440100179920551938";
+        public String dnd = "440100180008894465";
+        public String offline = "440100180142850059";
+        public String loading = "503651397049516053";
+        public String osu300 = "648144059830894603";
+        public String osu100 = "648144059877294081";
+        public String osu50 = "648144059415789569";
+        public String osumiss = "648144059172651010";
+        public String osukatu = "648144061068214285";
+        public String osugeki = "648144059478573056";
+        public String osuSS = "648144059315126292";
+        public String osuSSH = "648144059160068096";
+        public String osuS = "648144059185233940";
+        public String osuSH = "648144058635780097";
+        public String osuA = "648144059231371285";
+        public String osuB = "648144059692613633";
+        public String osuC = "648144059025588254";
+        public String osuD = "648144059105411083";
+        // mody, patrz OsuCommand.java:150
+        public String osuNF = "648144059126251521";
+        public String osuEZ = "648144059088633897";
+        public String osuTD = "648168370692423716";
+        public String osuHD = "648144059314995250";
+        public String osuHR = "648144059965374505";
+        public String osuSD = "648144059600470041";
+        public String osuDT = "648144059730493450";
+        public String osuRX = "648144059268988928";
+        public String osuHT = "648144059143159848";
+        public String osuNC = "648144059147354112";
+        public String osuFL = "648144059080245297";
+        public String osuAO = "648144060539863066";
+        public String osuSO = "648144059411726336";
+        public String osuAP = "648144059184971776";
+        public String osuPF = "648144058992295937";
+        public String osu4K = "648144058757283853";
+        public String osu5K = "648144058602094597";
+        public String osu6K = "648144059432697856";
+        public String osu7K = "648144059042627584";
+        public String osu8K = "648144059285766194";
+        public String osuFI = "648144059629568011";
+        public String osuRD = "648144059688419339";
+        public String osuCN = "648144058744569857";
+        public String osuTP = "648144059491287050";
+        public String osu9K = "648171467187683339";
+        public String osuCOOPK = "648152364007555092";
+        public String osu1K = "648169231308816394";
+        public String osu3K = "648169231527182356";
+        public String osu2K = "648169231510274048";
+        public String osuV2 = "648158730017570816";
+        public String osuLM = "648152361935831053";
     }
 
     public static class ShardSettings {

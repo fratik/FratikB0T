@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,7 +28,6 @@ import pl.fratik.core.util.GuildUtil;
 import pl.fratik.core.util.UserUtil;
 
 public class DashboardCommand extends Command {
-    private GuildUtil guildUitl;
 
     public DashboardCommand() {
         name = "dashboard";
@@ -45,7 +44,7 @@ public class DashboardCommand extends Command {
         eb.addField(context.getTranslated("dashboard.embed.page"), context.getTranslated("generic.click",
                 Ustawienia.instance.botUrl), true);
         eb.addField(context.getTranslated("dashboard.embed.managepage"), context.getTranslated("generic.click",
-                guildUitl.getManageLink(context.getGuild())), true);
+                GuildUtil.getManageLink(context.getGuild())), true);
 
         eb.setColor(UserUtil.getPrimColor(context.getMember().getUser()));
         eb.setDescription(context.getTranslated("dashboard.embed.description"));

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,6 +44,10 @@ import java.awt.*;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.util.Arrays;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 import static pl.fratik.core.manager.implementation.ManagerModulowImpl.moduleClassLoader;
 
@@ -61,6 +65,8 @@ public class EvalCommand extends Command {
     private final MemberDao memberDao;
 
     private ScriptEngine engine;
+    private ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+    private ScheduledFuture<?> tak;
     private boolean lock;
     private boolean babelEnabled;
 
@@ -80,14 +86,11 @@ public class EvalCommand extends Command {
         category = CommandCategory.SYSTEM;
         permLevel = PermLevel.BOTOWNER;
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
-        Thread sEngineThread = new Thread(this::setupEngine);
-        sEngineThread.setName("Setup Engine Thread");
-        sEngineThread.start();
         aliases = new String[] {"ev"};
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
+    public synchronized boolean execute(@NotNull CommandContext context) {
         EmbedBuilder ebStart = new EmbedBuilder();
         ebStart.setColor(Color.YELLOW);
         ebStart.addField("\ud83d\udce4 INPUT", codeBlock("js", (String) context.getArgs()[0]), false);
@@ -97,6 +100,10 @@ public class EvalCommand extends Command {
             if (lock) {
                 message.editMessage("Poczekaj chwilkę, silnik się ładuje..").queue();
                 while (lock) Thread.sleep(100);
+            }
+            if (tak != null) {
+                if (!tak.cancel(false)) while (!tak.isDone()) Thread.sleep(100);
+                else tak = null;
             }
             if (engine == null) {
                 message.editMessage("Silnik JS nie został załadowany, proszę czekać dłużej \\o/").queue();
@@ -151,6 +158,7 @@ public class EvalCommand extends Command {
             eb.addField("\u2620\ufe0f ERROR", codeBlock(e.toString()), false);
             message.editMessage(eb.build()).override(true).queue();
         }
+        tak = executor.schedule(this::unloadEngine, 5, TimeUnit.MINUTES);
         return true;
     }
 
@@ -162,7 +170,7 @@ public class EvalCommand extends Command {
         return "```" + code + "\n" + text.replaceAll("`", "\u200b`\u200b") + "```";
     }
 
-    private void setupEngine() {
+    private synchronized void setupEngine() {
         lock = true;
         engine = new NashornScriptEngineFactory().getScriptEngine(moduleClassLoader);
 
@@ -193,6 +201,16 @@ public class EvalCommand extends Command {
             }
             logger.info("Loaded Babel Polyfill!");
         }
+        lock = false;
+        tak = executor.schedule(this::unloadEngine, 5, TimeUnit.MINUTES);
+    }
+
+    private void unloadEngine() {
+        lock = true;
+        logger.info("Unloading engine - 5 minutes of inactivity!");
+        engine = null;
+        System.gc();
+        tak = null;
         lock = false;
     }
 
