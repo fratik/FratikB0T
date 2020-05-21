@@ -34,10 +34,12 @@ public class PermLevelCommand extends Command {
     public boolean execute(CommandContext context) {
         EmbedBuilder eb = context.getBaseEmbed();
         StringBuilder sb = new StringBuilder();
+        sb.append("```asciidoc");
         for (PermLevel v : PermLevel.values()) {
-            sb.append(context.getTranslated(v.getLanguageKey()) + "- " +
+            sb.append(context.getTranslated(v.getLanguageKey()) + " :: " +
                     context.getTranslated("permlevel.lvl") + " " + v.getNum() + "\n");
         }
+        sb.append("```");
         eb.setDescription(sb.toString());
         context.send(eb.build());
         return true;
