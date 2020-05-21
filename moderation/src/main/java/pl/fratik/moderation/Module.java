@@ -93,6 +93,7 @@ public class Module implements Modul {
         ModLogBuilder.setGuildDao(guildDao);
         ModLogListener.setTlumaczenia(tlumaczenia);
         ModLogListener.setManagerKomend(managerKomend);
+        ModLogListener.setUserDao(userDao);
         LogListener.setTlumaczenia(tlumaczenia);
         modLogListener = new ModLogListener(guildDao, shardManager, casesDao);
         logListener = new LogListener(guildDao, purgeDao, redisCacheManager);

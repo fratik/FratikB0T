@@ -35,6 +35,7 @@ import net.dv8tion.jda.api.sharding.ShardManager;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Kara;
+import pl.fratik.core.entity.UserDao;
 import pl.fratik.core.event.ScheduleEvent;
 import pl.fratik.core.manager.ManagerKomend;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
@@ -51,6 +52,7 @@ public class ModLogListener {
     private final GuildDao guildDao;
     private final ShardManager shardManager;
     private final CasesDao casesDao;
+    @Setter private static UserDao userDao;
     @Setter private static Tlumaczenia tlumaczenia;
     @Setter private static ManagerKomend managerKomend;
 
@@ -510,6 +512,19 @@ public class ModLogListener {
         knownCases.put(guild, zabijciemnie);
     }
 
+    public static void sendAction(Case caze, Member adm, GuildConfig gc) {
+        if (caze.getFlagi().contains(Case.Flaga.SILENT) || gc.getWysylajDmOKickachLubBanach()) return;
+        MessageEmbed embed = ModLogBuilder.generate(caze, adm.getGuild(), adm.getJDA().getShardManager(),
+                gc.getLanguage(), managerKomend, true);
+
+        User u = adm.getJDA().getUserById(caze.getUserId());
+        if (u == null) throw new NullPointerException("Czekaj co");
+
+        try {
+            u.openPrivateChannel().complete().sendMessage(embed).complete();
+        } catch (Exception ignored) {}
+
+    }
 
     public enum ModLogMode {
         MODLOG,

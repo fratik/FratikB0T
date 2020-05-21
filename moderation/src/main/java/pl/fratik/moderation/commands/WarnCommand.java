@@ -36,6 +36,7 @@ import pl.fratik.moderation.entity.Case;
 import pl.fratik.moderation.entity.CaseBuilder;
 import pl.fratik.moderation.entity.CaseRow;
 import pl.fratik.moderation.entity.CasesDao;
+import pl.fratik.moderation.listeners.ModLogListener;
 import pl.fratik.moderation.utils.ModLogBuilder;
 import pl.fratik.moderation.utils.ReasonUtils;
 import pl.fratik.moderation.utils.WarnUtil;
@@ -135,6 +136,7 @@ public class WarnCommand extends ModerationCommand {
         casesDao.save(caseRow);
         WarnUtil.takeAction(guildDao, casesDao, uzytkownik, context.getChannel(), context.getLanguage(),
                 context.getTlumaczenia(), managerKomend);
+        ModLogListener.sendAction(aCase, context.getMember(), gc);
         return true;
     }
 }
