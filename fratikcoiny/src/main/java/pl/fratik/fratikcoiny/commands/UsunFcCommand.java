@@ -64,7 +64,7 @@ public class UsunFcCommand extends Command {
             return false;
         }
         MemberConfig mc = memberDao.get(komu);
-        int hajs = Math.toIntExact(mc.getFratikCoiny() - ile);
+        long hajs = mc.getFratikCoiny() - ile;
         if (hajs < 0) {
             context.send(context.getTranslated("usunfc.badnumber.sub"));
             return false;
