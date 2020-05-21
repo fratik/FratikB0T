@@ -71,3 +71,4 @@ build
 **/build
 plugins
 start.sh
+.name
