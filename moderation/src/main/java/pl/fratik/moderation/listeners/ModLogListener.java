@@ -35,7 +35,6 @@ import net.dv8tion.jda.api.sharding.ShardManager;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Kara;
-import pl.fratik.core.entity.UserDao;
 import pl.fratik.core.event.ScheduleEvent;
 import pl.fratik.core.manager.ManagerKomend;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
@@ -52,7 +51,6 @@ public class ModLogListener {
     private final GuildDao guildDao;
     private final ShardManager shardManager;
     private final CasesDao casesDao;
-    @Setter private static UserDao userDao;
     @Setter private static Tlumaczenia tlumaczenia;
     @Setter private static ManagerKomend managerKomend;
 
@@ -513,28 +511,18 @@ public class ModLogListener {
     }
 
     public static void sendAction(Case caze, Member adm, GuildConfig gc) {
-        TextChannel txt = adm.getJDA().getTextChannelById("542786398957076520");
         if (gc.getWysylajDmOKickachLubBanach() == null) {
             gc.setWysylajDmOKickachLubBanach(true); // nie chce mi sie kombinować z guilDao.save
-            txt.sendMessage("gc jest nullem, teraz jest " + gc.getWysylajDmOKickachLubBanach()).queue();
         }
-        boolean flag = caze.getFlagi().contains(Case.Flaga.SILENT);
-        boolean conf = gc.getWysylajDmOKickachLubBanach();
-        txt.sendMessage("flag=" + flag + " conf=" + conf).queue();
         if (caze.getFlagi().contains(Case.Flaga.SILENT) || !gc.getWysylajDmOKickachLubBanach()) return;
-        txt.sendMessage("elo").queue();
         MessageEmbed embed = ModLogBuilder.generate(caze, adm.getGuild(), adm.getJDA().getShardManager(),
                 gc.getLanguage(), managerKomend, true);
 
         User u = adm.getJDA().getUserById(caze.getUserId());
         if (u == null) throw new NullPointerException("Czekaj co");
-        txt.sendMessage("elo2").queue();
         try {
             u.openPrivateChannel().complete().sendMessage(embed).complete();
-        } catch (Exception e) {
-            txt.sendMessage("chuj kurwa " + e.getLocalizedMessage()).queue();
-        }
-
+        } catch (Exception ignored) { }
     }
 
     public enum ModLogMode {

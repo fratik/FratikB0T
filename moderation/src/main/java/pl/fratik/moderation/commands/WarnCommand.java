@@ -17,12 +17,12 @@
 
 package pl.fratik.moderation.commands;
 
-import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.sharding.ShardManager;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
@@ -112,6 +112,7 @@ public class WarnCommand extends ModerationCommand {
         ReasonUtils.parseFlags(aCase, powod);
         aCase.setIssuerId(context.getSender().getId());
         TextChannel mlog = null;
+        ModLogListener.sendAction(aCase, context.getMember(), gc);
         if (gc.getModLog() != null && !gc.getModLog().equals("")) mlog = shardManager.getTextChannelById(gc.getModLog());
         if (mlog == null || !context.getGuild().getSelfMember().hasPermission(mlog,
                 Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_WRITE, Permission.MESSAGE_READ)) {
@@ -136,7 +137,6 @@ public class WarnCommand extends ModerationCommand {
         casesDao.save(caseRow);
         WarnUtil.takeAction(guildDao, casesDao, uzytkownik, context.getChannel(), context.getLanguage(),
                 context.getTlumaczenia(), managerKomend);
-        ModLogListener.sendAction(aCase, context.getMember(), gc);
         return true;
     }
 }
