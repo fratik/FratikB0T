@@ -20,6 +20,7 @@ package pl.fratik.moderation.listeners;
 import com.google.common.eventbus.Subscribe;
 import lombok.Getter;
 import lombok.Setter;
+import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.audit.ActionType;
 import net.dv8tion.jda.api.audit.AuditLogEntry;
@@ -37,6 +38,7 @@ import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Kara;
 import pl.fratik.core.event.ScheduleEvent;
 import pl.fratik.core.manager.ManagerKomend;
+import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.moderation.entity.*;
 import pl.fratik.moderation.utils.ModLogBuilder;
@@ -521,7 +523,11 @@ public class ModLogListener {
         User u = adm.getJDA().getUserById(caze.getUserId());
         if (u == null) throw new NullPointerException("Czekaj co");
         try {
-            u.openPrivateChannel().complete().sendMessage(embed).complete();
+            MessageBuilder msg = new MessageBuilder();
+            Language lang = tlumaczenia.getLanguage(u);
+            msg.setEmbed(embed);
+            msg.setContent(tlumaczenia.get(lang, "modlog.dm.msg", adm.getGuild().getName()));
+            u.openPrivateChannel().complete().sendMessage(msg.build()).complete();
         } catch (Exception ignored) { }
     }
 

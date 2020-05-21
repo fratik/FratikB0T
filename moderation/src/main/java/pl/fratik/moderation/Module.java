@@ -112,7 +112,7 @@ public class Module implements Modul {
         commands = new ArrayList<>();
 
         commands.add(new PurgeCommand(logListener));
-        commands.add(new BanCommand());
+        commands.add(new BanCommand(guildDao));
         commands.add(new UnbanCommand());
         commands.add(new KickCommand());
         commands.add(new WarnCommand(guildDao, casesDao, shardManager, managerKomend));
