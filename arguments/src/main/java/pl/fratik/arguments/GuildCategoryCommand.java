@@ -28,7 +28,7 @@ import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class GuildCategoryCommand extends Argument {
+public class GuildCategoryArgument extends Argument {
 
     public GuildCategoryCommand() {
         name = "guildcategory";
