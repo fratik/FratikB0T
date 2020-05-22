@@ -80,9 +80,9 @@ public class UstawPoziomCommand extends Command {
                     setuj = true;
                 } else {
                     String append = context.getTranslated("ustawpoziom.list.desc",
-                            entry.getValue(),
+                            entry.getKey(),
                             context.getTranslated(pl.getLanguageKey()),
-                            entry.getValue());
+                            entry.getValue()) + "\n";
                     if (sb.toString().length() + append.length() >= 900) {
                         list.add(sb.toString());
                         sb = new StringBuilder();

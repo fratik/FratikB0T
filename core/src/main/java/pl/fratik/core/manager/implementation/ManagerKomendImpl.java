@@ -265,7 +265,9 @@ public class ManagerKomendImpl implements ManagerKomend {
 
                 GuildConfig gc = guildDao.get(event.getGuild());
                 Integer cmdpl = c.getPermLevel().getNum();
-                if (gc.getPermLevel().containsKey(c.getName())) cmdpl = gc.getPermLevel().get(c.getName());
+                try {
+                    if (gc.getPermLevel().containsKey(c.getName())) cmdpl = gc.getPermLevel().get(c.getName());
+                } catch (Exception ignored) {}
 
                 if (cmdpl > plvl.getNum()) {
                     Language l = tlumaczenia.getLanguage(event.getMember());
