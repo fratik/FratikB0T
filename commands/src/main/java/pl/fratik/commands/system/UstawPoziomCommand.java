@@ -92,7 +92,7 @@ public class UstawPoziomCommand extends Command {
             }
             if (list.isEmpty()) eb.setDescription(sb.toString());
             else list.forEach(s -> eb.addField(" ", s, false));
-            context.send(eb.toString());
+            context.send(eb.build());
             if (setuj) guildDao.save(gc);
             return true;
         }
@@ -124,6 +124,10 @@ public class UstawPoziomCommand extends Command {
                 CommonErrors.usage(context);
                 return false;
             }
+            if (lvl == null) {
+                context.send(context.getTranslated("ustawpoziom.set.badlvl"));
+                return false;
+            }
             PermLevel plvl = PermLevel.getPermLevel(lvl);
             if (plvl == null) {
                 context.send(context.getTranslated("ustawpoziom.set.badlvl"));
@@ -135,7 +139,7 @@ public class UstawPoziomCommand extends Command {
                 break;
             }
             if (ccmd == null) {
-                context.send(context.getTranslated("ustawpoziom.set.badlcmd"));
+                context.send(context.getTranslated("ustawpoziom.set.badcmd"));
                 return false;
             }
 
@@ -146,6 +150,11 @@ public class UstawPoziomCommand extends Command {
 
             if (ccmd.getCategory() == CommandCategory.MODERATION && plvl.getNum() == 0) {
                 context.send(context.getTranslated("ustawpoziom.set.moderationcmd"));
+                return false;
+            }
+
+            if (ccmd.getPermLevel().getNum() > 4) {
+                context.send(context.getTranslated("ustawpoziom.set.gacmd"));
                 return false;
             }
 
