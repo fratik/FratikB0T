@@ -63,7 +63,7 @@ public class UstawPoziomCommand extends Command {
             gc.setPermLevel(new HashMap<>());
             setuj = true;
         }
-        if (typ.equals("list")) {
+        if (typ.equals("list") || typ.equals("lista")) {
             if (gc.getPermLevel().isEmpty()) {
                 context.send(context.getTranslated("ustawpoziom.list.isempty"));
                 return false;
@@ -95,7 +95,7 @@ public class UstawPoziomCommand extends Command {
             if (setuj) guildDao.save(gc);
             return true;
         }
-        if (typ.equals("remove")) {
+        if (typ.equals("remove") || typ.equals("reset") || typ.equals("clear")) {
             String cmd;
             try {
                 cmd = ((String) context.getArgs()[1]).toLowerCase();
@@ -112,7 +112,7 @@ public class UstawPoziomCommand extends Command {
             context.send(context.getTranslated("ustawpoziom.remove.succes"));
             return true;
         }
-        if (typ.equals("set")) {
+        if (typ.equals("set") || typ.equals("add")) {
             String cmd;
             Integer lvl;
             PermLevel plvl;
