@@ -263,7 +263,11 @@ public class ManagerKomendImpl implements ManagerKomend {
                     plvl = UserUtil.getPermlevel(event.getAuthor(), shardManager);
                 }
 
-                if (c.getPermLevel().getNum() > plvl.getNum()) {
+                GuildConfig gc = guildDao.get(event.getGuild());
+                Integer cmdpl = c.getPermLevel().getNum();
+                if (gc.getPermLevel().containsKey(c.getName())) cmdpl = gc.getPermLevel().get(c.getName());
+
+                if (cmdpl > plvl.getNum()) {
                     Language l = tlumaczenia.getLanguage(event.getMember());
                     event.getChannel().sendMessage(tlumaczenia.get(l, "generic.permlevel.too.small",
                             UserUtil.getPermlevel(event.getMember(), guildDao, shardManager).getNum(), c.getPermLevel().getNum()))

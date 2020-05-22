@@ -18,7 +18,6 @@
 package pl.fratik.commands.system;
 
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.MessageBuilder;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
@@ -70,9 +69,9 @@ public class UstawPoziomCommand extends Command {
                 return false;
             }
             ArrayList<String> list = new ArrayList<>();
-            MessageBuilder sb = new MessageBuilder();
-            EmbedBuilder eb = context.getBaseEmbed();
-            eb.setColor(UserUtil.getPrimColor(context.getSender()));
+            StringBuilder sb = new StringBuilder();
+            EmbedBuilder embed = context.getBaseEmbed();
+            embed.setColor(UserUtil.getPrimColor(context.getSender()));
 
             for (Map.Entry<String, Integer> entry : gc.getPermLevel().entrySet()) {
                 PermLevel pl = PermLevel.getPermLevel(entry.getValue());
@@ -86,13 +85,13 @@ public class UstawPoziomCommand extends Command {
                             entry.getValue());
                     if (sb.toString().length() + append.length() >= 900) {
                         list.add(sb.toString());
-                        sb = new MessageBuilder();
+                        sb = new StringBuilder();
                     } else sb.append(append);
                 }
             }
-            if (list.isEmpty()) eb.setDescription(sb.toString());
-            else list.forEach(s -> eb.addField(" ", s, false));
-            context.send(eb.build());
+            if (list.isEmpty()) embed.setDescription(sb.toString());
+            else list.forEach(s -> embed.addField(" ", s, false));
+            context.send(embed.build());
             if (setuj) guildDao.save(gc);
             return true;
         }
@@ -116,6 +115,7 @@ public class UstawPoziomCommand extends Command {
         if (typ.equals("set")) {
             String cmd;
             Integer lvl;
+            PermLevel plvl;
             Command ccmd = null;
             try {
                 cmd = ((String) context.getArgs()[1]).toLowerCase();
@@ -124,11 +124,13 @@ public class UstawPoziomCommand extends Command {
                 CommonErrors.usage(context);
                 return false;
             }
-            if (lvl == null) {
+
+            try {
+                plvl = PermLevel.getPermLevel(lvl);
+            } catch (Exception e) {
                 context.send(context.getTranslated("ustawpoziom.set.badlvl"));
                 return false;
             }
-            PermLevel plvl = PermLevel.getPermLevel(lvl);
             if (plvl == null) {
                 context.send(context.getTranslated("ustawpoziom.set.badlvl"));
                 return false;
@@ -143,7 +145,8 @@ public class UstawPoziomCommand extends Command {
                 return false;
             }
 
-            if (ccmd.getPermLevel().getNum() > UserUtil.getPermlevel(context.getMember(), guildDao, context.getShardManager()).getNum()) {
+            PermLevel jegolvl = UserUtil.getPermlevel(context.getMember(), guildDao, context.getShardManager());
+            if (ccmd.getPermLevel().getNum() > jegolvl.getNum() || plvl.getNum() > jegolvl.getNum()) {
                 context.send(context.getTranslated("ustawpoziom.set.nopermissions"));
                 return false;
             }
