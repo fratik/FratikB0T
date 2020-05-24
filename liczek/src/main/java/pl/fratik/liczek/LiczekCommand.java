@@ -34,19 +34,19 @@ public class LiczekCommand extends Command {
         permLevel = PermLevel.ADMIN;
         category = CommandCategory.FUN;
         uzycieDelim = " ";
-        uzycie = new Uzycie("kanal", "channel", true);
+        uzycie = new Uzycie("kanal", "channel", false);
     }
 
     @SubCommand(name = "info", emptyUsage = true)
     public boolean info(CommandContext context) {
         GuildConfig gc = guildDao.get(context.getGuild());
         if (gc.getLiczekKanal() == null || gc.getLiczekKanal().isEmpty()) {
-            context.send(context.getTranslated("liczek.not.channel.found"));
+            context.send(context.getTranslated("liczek.not.configured"));
             return false;
         }
         TextChannel txt = context.getGuild().getTextChannelById(gc.getLiczekKanal());
         if (txt == null) {
-            context.send(context.getTranslated("liczek.not.channel.found"));
+            context.send(context.getTranslated("liczek.channel.removed"));
             return false;
         }
         context.send(context.getTranslated("liczek.info", txt.getAsMention()));
@@ -62,7 +62,7 @@ public class LiczekCommand extends Command {
         }
         gc.setLiczekKanal("");
         guildDao.save(gc);
-        context.send(context.getTranslated("liczek.succes.remove"));
+        context.send(context.getTranslated("liczek.success.remove"));
         return true;
     }
 
@@ -82,7 +82,7 @@ public class LiczekCommand extends Command {
         }
         gc.setLiczekKanal(txt.getId());
         guildDao.save(gc);
-        context.send(context.getTranslated("liczek.succes.save", txt.getAsMention()));
+        context.send(context.getTranslated("liczek.success.save", txt.getAsMention()));
         return true;
     }
 
