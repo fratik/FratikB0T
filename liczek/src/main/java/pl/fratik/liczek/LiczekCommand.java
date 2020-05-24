@@ -33,6 +33,7 @@ public class LiczekCommand extends Command {
         name = "liczek";
         permLevel = PermLevel.ADMIN;
         category = CommandCategory.FUN;
+        uzycieDelim = " ";
         uzycie = new Uzycie("kanal", "channel", true);
     }
 
