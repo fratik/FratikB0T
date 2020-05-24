@@ -104,10 +104,8 @@ public class AkcjeCommand extends ModerationCommand {
                         true)
                 .addField(context.getTranslated("akcje.embed.kicks"), String.valueOf(kickow), true)
                 .addField(context.getTranslated("akcje.embed.bans"), String.valueOf(banow), true)
-                .addField(context.getTranslated("akcje.embed.mutes"),
-                        String.format(context.getTranslated("akcje.embed.mutes.content"),
-                                (mutow - unmutow), mutow, unmutow),
-                        true)
+                .addField(context.getTranslated("akcje.embed.mutes"), String.valueOf(mutow), true)
+                .addField(context.getTranslated("akcje.embed.unmutes"), String.valueOf(unmutow), true)
                 .setDescription(context.getTranslated("akcje.embed.description")).setFooter("%s/%s", null));
         for (Case aCase : caseRow.getCases().stream().filter(c -> c.getUserId().equals(user.getId())).collect(Collectors.toList())) {
             EmbedBuilder eb = new EmbedBuilder(ModLogBuilder.generate(aCase, context.getGuild(), shardManager, context.getLanguage(), managerKomend, false));
