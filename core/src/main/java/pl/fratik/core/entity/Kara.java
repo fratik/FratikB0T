@@ -23,29 +23,35 @@ import java.awt.*;
 
 public enum Kara {
 
-    KICK(0, new Color(0x800080)),
-    BAN(2, new Color(0xff7f00)),
-    WARN(3, new Color(0xffff00)),
-    REMOVEADMIN(4),
-    REMOVEMOD(5),
-    UNBAN(6, new Color(0xff00)),
-    UNWARN(7, new Color(0x800080)),
-    MUTE(8, new Color(0xffffff)),
-    UNMUTE(9, new Color(0xff00)),
-    NOTATKA(10, new Color(0xa9a9a9));
+    KICK(0, new Color(0x800080), true, false),
+    BAN(2, new Color(0xff7f00), true, false),
+    WARN(3, new Color(0xffff00), true, false),
+    REMOVEADMIN(4, false, false),
+    REMOVEMOD(5, false, false),
+    UNBAN(6, new Color(0xff00), true, true),
+    UNWARN(7, new Color(0x800080), true, true),
+    MUTE(8, new Color(0xffffff), true, false),
+    UNMUTE(9, new Color(0xff00), true, true),
+    NOTATKA(10, new Color(0xa9a9a9), false, false);
 
     @Getter private final int numerycznie;
     @Getter private Color kolor;
     @Getter private final boolean dlaWarnow;
+    @Getter private final boolean domyslna;
+    @Getter private final boolean usuwa;
 
-    Kara(int num, Color color) {
+    Kara(int num, Color color, boolean domyslna, boolean usuwa) {
         numerycznie = num;
         kolor = color;
+        this.domyslna = domyslna;
+        this.usuwa = usuwa;
         dlaWarnow = false;
     }
 
-    Kara(int num) {
+    Kara(int num, boolean domyslna, boolean usuwa) {
         numerycznie = num;
+        this.domyslna = domyslna;
+        this.usuwa = usuwa;
         dlaWarnow = true;
     }
 

@@ -120,6 +120,8 @@ public class GuildConfig implements DatabaseEntity {
     private Map<String, Webhook> webhooki = new HashMap<>();
     private String lvlUpMessage;
     private Boolean resetujOstrzezeniaPrzyBanie = true;
+    private Kara karaZaReklame = Kara.WARN;
+    private Integer dlugoscKaryZaReklame = null;
 
     // TODO: 09/04/2020 można to zrobić dla każdego Boolean'a, ale to już kwestia kosmetyki kodu chyba
     public boolean isResetujOstrzezeniaPrzyBanie() {

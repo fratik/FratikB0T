@@ -38,6 +38,7 @@ import io.undertow.websockets.core.StreamSourceFrameChannel;
 import io.undertow.websockets.core.WebSocketChannel;
 import io.undertow.websockets.core.WebSockets;
 import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.Getter;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.Permission;
@@ -431,6 +432,26 @@ public class Module implements Modul {
                 Exchange.body().sendJson(ex, new Exceptions.GenericException("Internal server error"), 500);
             }
         });
+        routes.get("/api/kary", ex -> {
+            Optional<String> langTmp = Exchange.queryParams().queryParam(ex, "language");
+            Language lang = null;
+            if (!langTmp.isPresent()) {
+                Exchange.body().sendJson(ex, new Exceptions.NoLanguageException(), 400);
+                return;
+            }
+            for (Language l : Language.values()) {
+                if (l == Language.DEFAULT) continue;
+                if (l.getShortName().equals(langTmp.get())) lang = l;
+            }
+            if (lang == null) {
+                Exchange.body().sendJson(ex, new Exceptions.InvalidLanguageException(), 400);
+                return;
+            }
+            List<KaraWApi> kary = new ArrayList<>();
+            for (Kara k : Kara.values())
+                kary.add(new KaraWApi(k, tlumaczenia, lang));
+            Exchange.body().sendJson(ex, kary);
+        });
         Rundka rundka = rundkaDao.getAll().stream().filter(Rundka::isTrwa).findAny().orElse(null);
         if (rundka != null) {
             RundkaCommand.setNumerRundy(rundka.getIdRundki());
@@ -642,5 +663,33 @@ public class Module implements Modul {
 
     private enum Status {
         GLOBALADMIN, ZGA, DEV
+    }
+
+    @Data
+    private static class KaraWApi {
+        private final String nazwa;
+        private final String nazwaOrig;
+        private final String kolor;
+        private final int num;
+        private final boolean dlaWarnow;
+        private final boolean domyslna;
+        private final boolean usuwa;
+
+        KaraWApi(Kara k, Tlumaczenia tlum, Language lang) {
+            nazwa = tlum.get(lang, "modlog." + k.name().toLowerCase());
+            nazwaOrig = k.name();
+            if (k.getKolor() == null) kolor = null;
+            else {
+                String hexColor = Integer.toHexString(k.getKolor().getRGB() & 0xffffff);
+                if (hexColor.length() < 6) {
+                    hexColor = "000000".substring(0, 6 - hexColor.length()) + hexColor;
+                }
+                kolor = hexColor;
+            }
+            num = k.getNumerycznie();
+            dlaWarnow = k.isDlaWarnow();
+            domyslna = k.isDomyslna();
+            usuwa = k.isUsuwa();
+        }
     }
 }

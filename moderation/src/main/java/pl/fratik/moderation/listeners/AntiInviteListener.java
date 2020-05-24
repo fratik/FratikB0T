@@ -41,6 +41,7 @@ import pl.fratik.moderation.utils.ModLogBuilder;
 import pl.fratik.moderation.utils.WarnUtil;
 
 import java.time.Instant;
+import java.util.Calendar;
 import java.util.List;
 
 public class AntiInviteListener {
@@ -96,10 +97,34 @@ public class AntiInviteListener {
         if (!containsInvite(msg.getContentRaw())) return;
         String trans = msg.isEdited() ? "antiinvite.notice.edited" : "antiinvite.notice";
         try {
+            Kara kara = getKara(msg.getGuild());
+            Integer dlugosc = null;
+            switch (kara) {
+                case BAN:
+                    trans += ".ban";
+                    dlugosc = getDlugosc(msg.getGuild());
+                    break;
+                case KICK:
+                    trans += ".kick";
+                    break;
+                case MUTE:
+                    trans += ".mute";
+                    dlugosc = getDlugosc(msg.getGuild());
+                    break;
+                case WARN:
+                default:
+                    trans += ".warn";
+                    break;
+            }
             msg.delete().queue();
             synchronized (msg.getGuild()) {
-                Case c = new CaseBuilder(msg.getGuild()).setUser(msg.getAuthor().getId()).setKara(Kara.WARN)
+                Case c = new CaseBuilder(msg.getGuild()).setUser(msg.getAuthor().getId()).setKara(kara)
                         .setTimestamp(Instant.now()).createCase();
+                if (dlugosc != null && dlugosc > 0) {
+                    Calendar cal = Calendar.getInstance();
+                    cal.add(Calendar.DAY_OF_MONTH, dlugosc);
+                    c.setValidTo(cal.toInstant());
+                }
                 c.setIssuerId(msg.getJDA().getSelfUser());
                 c.setReason(tlumaczenia.get(tlumaczenia.getLanguage(msg.getGuild()), "antiinvite.reason"));
                 String mlogchan = getModLogChan(msg.getGuild());
@@ -146,5 +171,13 @@ public class AntiInviteListener {
 
     private String getModLogChan(Guild guild) {
         return gcCache.get(guild.getId(), guildDao::get).getModLog();
+    }
+
+    private Kara getKara(Guild guild) {
+        return gcCache.get(guild.getId(), guildDao::get).getKaraZaReklame();
+    }
+
+    private Integer getDlugosc(Guild guild) {
+        return gcCache.get(guild.getId(), guildDao::get).getDlugoscKaryZaReklame();
     }
 }
