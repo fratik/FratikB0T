@@ -52,13 +52,13 @@ public class Module implements Modul {
         commands = new ArrayList<>();
 
         commands.add(new DailyCommand(memberDao, guildDao, redisCacheManager));
-        commands.add(new DodajCommand(memberDao));
-        commands.add(new UsunCommand(memberDao));
+        commands.add(new DodajCommand(memberDao, guildDao, redisCacheManager));
+        commands.add(new UsunCommand(memberDao, guildDao, redisCacheManager));
         commands.add(new GiveCommand(memberDao, guildDao, redisCacheManager));
-        commands.add(new KasaCommand(memberDao));
+        commands.add(new KasaCommand(memberDao, guildDao, redisCacheManager));
         commands.add(new SklepCommand(guildDao, memberDao, eventWaiter, shardManager, eventBus, redisCacheManager));
-        commands.add(new BlackjackCommand(memberDao, eventWaiter));
-        commands.add(new SlotsCommand(memberDao));
+        commands.add(new BlackjackCommand(memberDao, guildDao, redisCacheManager, eventWaiter));
+        commands.add(new SlotsCommand(memberDao, guildDao, redisCacheManager));
 
         commands.forEach(managerKomend::registerCommand);
 
