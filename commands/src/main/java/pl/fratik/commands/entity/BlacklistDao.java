@@ -40,7 +40,7 @@ public class BlacklistDao implements Dao<Blacklist> {
 
     @Override
     public Blacklist get(String id) {
-        return mapper.load(id).orElse(null);
+        return mapper.load(id).orElse(new Blacklist(id));
     }
 
     @Override
