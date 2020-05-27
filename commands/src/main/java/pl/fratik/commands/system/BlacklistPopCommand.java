@@ -79,13 +79,14 @@ public class BlacklistPopCommand extends Command {
             xd.setBlacklisted(false);
             xd.setReason(null);
             xd.setExecutor(null);
+            context.send(context.getTranslated("blacklistpop.success.removed"));
         } else {
             xd.setBlacklisted(true);
             xd.setReason(powod);
             xd.setExecutor(context.getSender().getId());
+            context.send(context.getTranslated("blacklistpop.success.added"));
         }
         blacklistDao.save(xd);
-        context.send(context.getTranslated("blacklistpop.success"));
         return true;
     }
 }
