@@ -150,16 +150,16 @@ public class PopCommand extends Command {
             }
         };
         mw.setMessageHandler(e -> {
+            if (e.getMessage().getContentRaw().trim().equalsIgnoreCase(context.getTranslated("pop.abort"))) {
+                context.send(context.getTranslated("pop.aborted"));
+                return;
+            }
             if (e.getMessage().getContentRaw().length() < 15) {
                 context.send(context.getTranslated("pop.min.length"));
                 return;
             }
             if (e.getMessage().getContentRaw().length() >= 1000) {
                 context.send(context.getTranslated("pop.max.length"));
-                return;
-            }
-            if (e.getMessage().getContentRaw().trim().equalsIgnoreCase(context.getTranslated("pop.abort"))) {
-                context.send(context.getTranslated("pop.aborted"));
                 return;
             }
             Role role = context.getGuild().createRole().setColor(decode("#f11515"))
