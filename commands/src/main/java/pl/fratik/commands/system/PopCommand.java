@@ -28,8 +28,12 @@ import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.commands.entity.Blacklist;
+import pl.fratik.commands.entity.BlacklistDao;
 import pl.fratik.core.Globals;
 import pl.fratik.core.Ustawienia;
+import pl.fratik.core.cache.Cache;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.command.*;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.SilentExecutionFail;
@@ -54,14 +58,24 @@ public class PopCommand extends Command {
     private final EventWaiter eventWaiter;
     private final EventBus eventBus;
     private final Tlumaczenia tlumaczenia;
+    private final BlacklistDao blacklistDao;
+    private final Cache<Blacklist> blacklistCache;
     private boolean bypass = false;
 
-    public PopCommand(ShardManager shardManager, GuildDao guildDao, EventWaiter eventWaiter, EventBus eventBus, Tlumaczenia tlumaczenia) {
+    public PopCommand(ShardManager shardManager,
+                      GuildDao guildDao,
+                      EventWaiter eventWaiter,
+                      EventBus eventBus,
+                      Tlumaczenia tlumaczenia,
+                      BlacklistDao blacklistDao,
+                      RedisCacheManager rcm) {
         this.shardManager = shardManager;
         this.guildDao = guildDao;
         this.eventWaiter = eventWaiter;
         this.eventBus = eventBus;
         this.tlumaczenia = tlumaczenia;
+        this.blacklistDao = blacklistDao;
+        blacklistCache = rcm.new CacheRetriever<Blacklist>(){}.getCache();
         name = "pop";
         category = CommandCategory.SYSTEM;
         cooldown = 10; // TODO: 22.02.19 pomoc 2.0
@@ -84,6 +98,20 @@ public class PopCommand extends Command {
     @Override
     public boolean execute(@NotNull CommandContext context) {
         if (!Globals.inFratikDev) throw new IllegalStateException("nie na fdev");
+        Blacklist ubl = blacklistCache.get(context.getSender().getId(), blacklistDao::get);
+        if (ubl.isBlacklisted()) {
+            String tag = context.getShardManager().retrieveUserById(ubl.getExecutor()).complete().getAsTag();
+            context.send(context.getTranslated("pop.user.blacklisted", tag, ubl.getReason(),
+                    context.getPrefix(), tag));
+            return false;
+        }
+        Blacklist sbl = blacklistCache.get(context.getGuild().getId(), blacklistDao::get);
+        if (sbl.isBlacklisted()) {
+            String tag = context.getShardManager().retrieveUserById(sbl.getExecutor()).complete().getAsTag();
+            context.send(context.getTranslated("pop.server.blacklisted", tag, sbl.getReason(),
+                    context.getPrefix(), tag));
+            return false;
+        }
         if (context.getGuild().getTimeCreated().toInstant().toEpochMilli() - Instant.now().toEpochMilli() > -1209600000
                 && !bypass) {
             context.send(context.getTranslated("pop.server.young"));
