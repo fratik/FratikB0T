@@ -21,7 +21,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import gg.amy.pgorm.annotations.GIndex;
 import gg.amy.pgorm.annotations.PrimaryKey;
 import gg.amy.pgorm.annotations.Table;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import pl.fratik.core.entity.DatabaseEntity;
@@ -30,7 +29,6 @@ import pl.fratik.core.entity.DatabaseEntity;
 @GIndex("id")
 @Data
 @RequiredArgsConstructor
-@AllArgsConstructor
 public class Blacklist implements DatabaseEntity {
     @PrimaryKey
     private final String id;
