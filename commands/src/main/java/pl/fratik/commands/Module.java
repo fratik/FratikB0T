@@ -112,7 +112,7 @@ public class Module implements Modul {
         commands.add(new OpuscCommand());
         commands.add(new BoomCommand(eventWaiter, userDao, redisCacheManager));
         commands.add(new PomocCommand());
-        commands.add(new PopCommand(shardManager, guildDao, eventWaiter, eventBus, tlumaczenia));
+        commands.add(new PopCommand(shardManager, guildDao, eventWaiter, eventBus, tlumaczenia, blacklistDao));
         commands.add(new PowiadomOPomocyCommand(shardManager));
         commands.add(new OsiemBallCommand());
         commands.add(new ChooseCommand());
