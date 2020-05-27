@@ -17,6 +17,7 @@
 
 package pl.fratik.commands.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import gg.amy.pgorm.annotations.GIndex;
 import gg.amy.pgorm.annotations.PrimaryKey;
 import gg.amy.pgorm.annotations.Table;
@@ -38,6 +39,7 @@ public class Blacklist implements DatabaseEntity {
     private String executor;
 
     @Override
+    @JsonIgnore
     public String getTableName() {
         return "blacklist";
     }

@@ -98,15 +98,18 @@ public class PopCommand extends Command {
     @Override
     public boolean execute(@NotNull CommandContext context) {
         if (!Globals.inFratikDev) throw new IllegalStateException("nie na fdev");
-        if (blacklistCache.get(context.getSender().getId(), blacklistDao::get).isBlacklisted()) {
-            Blacklist bl = blacklistCache.get(context.getSender().getId(), blacklistDao::get);
-            String tag = context.getShardManager().retrieveUserById(bl.getExecutor()).complete().getAsTag();
-            context.send(context.getTranslated("pop.user.blacklisted", tag, bl.getReason(),
+        Blacklist ubl = blacklistCache.get(context.getSender().getId(), blacklistDao::get);
+        if (ubl.isBlacklisted()) {
+            String tag = context.getShardManager().retrieveUserById(ubl.getExecutor()).complete().getAsTag();
+            context.send(context.getTranslated("pop.user.blacklisted", tag, ubl.getReason(),
                     context.getPrefix(), tag));
             return false;
         }
-        if (blacklistCache.get(context.getGuild().getId(), blacklistDao::get).isBlacklisted()) {
-            context.send(context.getTranslated("pop.server.blacklisted"));
+        Blacklist sbl = blacklistCache.get(context.getGuild().getId(), blacklistDao::get);
+        if (sbl.isBlacklisted()) {
+            String tag = context.getShardManager().retrieveUserById(sbl.getExecutor()).complete().getAsTag();
+            context.send(context.getTranslated("pop.server.blacklisted", tag, sbl.getReason(),
+                    context.getPrefix(), tag));
             return false;
         }
         if (context.getGuild().getTimeCreated().toInstant().toEpochMilli() - Instant.now().toEpochMilli() > -1209600000
