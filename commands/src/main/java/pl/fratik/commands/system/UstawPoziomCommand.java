@@ -116,7 +116,7 @@ public class UstawPoziomCommand extends Command {
             String cmd;
             Integer lvl;
             PermLevel plvl;
-            Command ccmd = null;
+            Command ccmd;
             try {
                 cmd = ((String) context.getArgs()[1]).toLowerCase();
                 lvl = (Integer) context.getArgs()[2];
@@ -152,7 +152,7 @@ public class UstawPoziomCommand extends Command {
                 return false;
             }
 
-            if (ccmd.getPermLevel().getNum() > PermLevel.GADMIN.getNum()) {
+            if (ccmd.getPermLevel().getNum() >= PermLevel.GADMIN.getNum()) {
                 context.send(context.getTranslated("ustawpoziom.set.gacmd"));
                 return false;
             }
