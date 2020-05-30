@@ -135,11 +135,7 @@ public class UstawPoziomCommand extends Command {
                 context.send(context.getTranslated("ustawpoziom.set.badlvl"));
                 return false;
             }
-            for (Map.Entry<String, Command> entry : managerKomend.getCommands().entrySet()) {
-                if (!entry.getKey().equals(cmd)) continue;
-                ccmd = entry.getValue();
-                break;
-            }
+            ccmd = managerKomend.getCommands().get(cmd);
             if (ccmd == null) {
                 context.send(context.getTranslated("ustawpoziom.set.badcmd"));
                 return false;
@@ -151,12 +147,12 @@ public class UstawPoziomCommand extends Command {
                 return false;
             }
 
-            if (ccmd.getCategory() == CommandCategory.MODERATION && plvl.getNum() == 0) {
+            if (ccmd.getCategory() == CommandCategory.MODERATION && plvl.getNum() == PermLevel.EVERYONE.getNum()) {
                 context.send(context.getTranslated("ustawpoziom.set.moderationcmd"));
                 return false;
             }
 
-            if (ccmd.getPermLevel().getNum() > 4) {
+            if (ccmd.getPermLevel().getNum() > PermLevel.GADMIN.getNum()) {
                 context.send(context.getTranslated("ustawpoziom.set.gacmd"));
                 return false;
             }
