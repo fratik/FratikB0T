@@ -15,26 +15,30 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-rootProject.name = 'fratikbot'
-include ':core'
-include ':commands'
-include ':arguments'
-include ':api'
-include ':punkty'
-include ':starboard'
+package pl.fratik.commands.entity;
 
-if(file('sdk').exists()){
-    include ':sdk'
-    apply from: 'sdk/settings.gradle'
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import gg.amy.pgorm.annotations.GIndex;
+import gg.amy.pgorm.annotations.PrimaryKey;
+import gg.amy.pgorm.annotations.Table;
+import lombok.Data;
+import lombok.RequiredArgsConstructor;
+import pl.fratik.core.entity.DatabaseEntity;
+
+@Table("blacklist")
+@GIndex("id")
+@Data
+@RequiredArgsConstructor
+public class Blacklist implements DatabaseEntity {
+    @PrimaryKey
+    private final String id;
+    private boolean blacklisted = false;
+    private String reason;
+    private String executor;
+
+    @Override
+    @JsonIgnore
+    public String getTableName() {
+        return "blacklist";
+    }
 }
-include ':moderation'
-include ':fratikcoiny'
-include ':music'
-include 'stats'
-include 'tags'
-include 'logs'
-include 'fdevstats'
-include 'dev'
-include 'gwarny'
-include 'liczek'
-

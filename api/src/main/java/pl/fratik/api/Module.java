@@ -592,7 +592,7 @@ public class Module implements Modul {
     }
 
     private String generateInviteLink(String id) {
-        return "https://discordapp.com/oauth2/authorize?client_id=" +
+        return "https://discord.com/oauth2/authorize?client_id=" +
                 id + "&permissions=" +
                 Globals.permissions + "&scope=bot";
     }

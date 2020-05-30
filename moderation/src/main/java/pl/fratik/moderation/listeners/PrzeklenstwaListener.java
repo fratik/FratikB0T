@@ -118,6 +118,7 @@ public class PrzeklenstwaListener {
                     WarnUtil.takeAction(guildDao, casesDao, e.getMember(), e.getChannel(),
                             tlumaczenia.getLanguage(e.getGuild()), tlumaczenia, managerKomend);
                 }
+                return;
             }
         }
     }

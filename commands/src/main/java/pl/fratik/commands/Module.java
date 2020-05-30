@@ -20,6 +20,7 @@ package pl.fratik.commands;
 import com.google.common.eventbus.EventBus;
 import com.google.inject.Inject;
 import net.dv8tion.jda.api.sharding.ShardManager;
+import pl.fratik.commands.entity.BlacklistDao;
 import pl.fratik.commands.entity.PrivDao;
 import pl.fratik.commands.narzedzia.*;
 import pl.fratik.commands.system.*;
@@ -65,6 +66,7 @@ public class Module implements Modul {
     @Override
     public boolean startUp() {
         PrivDao privDao = new PrivDao(managerBazyDanych, eventBus);
+        BlacklistDao blacklistDao = new BlacklistDao(managerBazyDanych, eventBus);
 
         commands = new ArrayList<>();
 
@@ -75,7 +77,7 @@ public class Module implements Modul {
         commands.add(new PoziomCommand(guildDao, shardManager));
         commands.add(new BotstatsCommand(shardManager, managerModulow));
         if (Ustawienia.instance.apiUrls.get("image-server") != null && Ustawienia.instance.apiKeys.get("image-server") != null) {
-            commands.add(new GraficznaCommand("blurple", "/api/image/blurple", "avatarURL", false));
+            commands.add(new BlurpleCommand());
             commands.add(new StarcatchCommand());
             commands.add(new HugCommand());
             commands.add(new GraficznaCommand("startouch", "/api/image/startouch", "avatarURL", false));
@@ -112,7 +114,7 @@ public class Module implements Modul {
         commands.add(new OpuscCommand());
         commands.add(new BoomCommand(eventWaiter, userDao, redisCacheManager));
         commands.add(new PomocCommand());
-        commands.add(new PopCommand(shardManager, guildDao, eventWaiter, eventBus, tlumaczenia));
+        commands.add(new PopCommand(shardManager, guildDao, eventWaiter, eventBus, tlumaczenia, blacklistDao, redisCacheManager));
         commands.add(new PowiadomOPomocyCommand(shardManager));
         commands.add(new OsiemBallCommand());
         commands.add(new ChooseCommand());
@@ -140,6 +142,7 @@ public class Module implements Modul {
             commands.add(new OsuCommand(shardManager, eventWaiter, eventBus));
         commands.add(new Rule34Command(eventWaiter, eventBus, managerArgumentow));
         commands.add(new CoronastatsCommand());
+        commands.add(new BlacklistPopCommand(userDao, blacklistDao));
 
         listener = new MemberListener(guildDao, redisCacheManager);
         eventBus.register(listener);
