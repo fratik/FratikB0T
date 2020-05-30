@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 
 public class GuildCategoryArgument extends Argument {
 
-    public GuildCategoryCommand() {
+    public GuildCategoryArgument() {
         name = "guildcategory";
     }
 
