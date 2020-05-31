@@ -49,7 +49,7 @@ public class Module implements Modul {
         arguments.add(new LongArgument());
         arguments.add(new MessageArgument());
         arguments.add(new VoiceChannelArgument());
-        arguments.add(new GuildCategoryCommand());
+        arguments.add(new GuildCategoryArgument());
 
         arguments.forEach(managerArgumentow::registerArgument);
 
