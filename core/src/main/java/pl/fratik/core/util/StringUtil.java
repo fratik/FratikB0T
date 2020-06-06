@@ -80,7 +80,7 @@ public class StringUtil {
 
     public static String escapeMarkdown(String text) {
         return text == null ? "" : text.replaceAll("_", "\\_").replaceAll("\\*", "\\*")
-                .replaceAll("~", "\\~").replaceAll("`", "\\`");
+                .replaceAll("~", "\\~").replaceAll("`", "\\`").replaceAll("\\|", "\\|");
     }
 
     public static String generateId() {

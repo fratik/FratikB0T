@@ -26,6 +26,7 @@ import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.util.ClassicEmbedPaginator;
 import pl.fratik.core.util.EventWaiter;
+import pl.fratik.core.util.StringUtil;
 import pl.fratik.core.util.UserUtil;
 import pl.fratik.tags.entity.Tags;
 import pl.fratik.tags.entity.TagsDao;
@@ -60,7 +61,7 @@ public class ListTagCommand extends Command {
         final StringBuilder[] sb = {new StringBuilder()};
         tags.getTagi().stream().sorted(Comparator.comparing(t -> t.getName().toLowerCase())).forEachOrdered(tag -> {
             if (tag.getName().length() > MAX_TAG_NAME_LENGTH) return;
-            sb[0].append(tag.getName()).append(" ");
+            sb[0].append(StringUtil.escapeMarkdown(tag.getName())).append(" ");
             if (sb[0].length() >= 1000) {
                 pages.add(renderEmbed(sb[0], context));
                 sb[0] = new StringBuilder();
