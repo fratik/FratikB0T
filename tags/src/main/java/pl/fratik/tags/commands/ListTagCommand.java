@@ -34,6 +34,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+import static pl.fratik.tags.Module.MAX_TAG_NAME_LENGTH;
+
 public class ListTagCommand extends Command {
     private final TagsDao tagsDao;
     private final EventWaiter eventWaiter;
@@ -57,6 +59,7 @@ public class ListTagCommand extends Command {
         List<EmbedBuilder> pages = new ArrayList<>();
         final StringBuilder[] sb = {new StringBuilder()};
         tags.getTagi().stream().sorted(Comparator.comparing(t -> t.getName().toLowerCase())).forEachOrdered(tag -> {
+            if (tag.getName().length() > MAX_TAG_NAME_LENGTH) return;
             sb[0].append(tag.getName()).append(" ");
             if (sb[0].length() >= 1000) {
                 pages.add(renderEmbed(sb[0], context));

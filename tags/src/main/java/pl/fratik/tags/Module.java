@@ -39,6 +39,8 @@ import java.util.ArrayList;
 
 @SuppressWarnings("FieldCanBeLocal")
 public class Module implements Modul {
+    public static final int MAX_TAG_NAME_LENGTH = 32;
+
     @Inject private EventBus eventBus;
     @Inject private ManagerBazyDanych managerBazyDanych;
     @Inject private EventWaiter eventWaiter;
