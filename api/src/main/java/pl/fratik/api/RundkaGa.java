@@ -119,6 +119,13 @@ class RundkaGa {
                 eb.addField("Jesteś aktywny na FratikDev?", odp.getAktywnoscFdev() ? "Tak" : "Nie", false);
                 eb.addField("Dlaczego chcesz zostać Global Adminem?", odp.getDlaczegoGa(), false);
                 eb.addField("Dlaczego mamy Cię wybrać?", odp.getDlaczegoWybrac(), false);
+                eb.addField("Jak ustawić rolę za poziom?", odp.getRoleZaPoziom(), false);
+                eb.addField("Jaka komenda służy do naprawienia ilości gwiazdek w starboardzie?", odp.getNaprawaStarboard(), false);
+                eb.addField("W skali 1-10, jak oceniasz znajomość całego bota?", String.valueOf(odp.getZnajomosc()), false);
+                eb.addField("Co zrobisz, gdy nie będziesz wiedział jak pomóc użytkownikowi podczas prośby o pomoc?",
+                        odp.getProblemPodczasPopa(), false);
+                eb.addField("Komenda fb!language zmienia język serwera czy użytkownika?", odp.getCoRobiLanguage(), false);
+                eb.addField("W jaki sposób można wyłączyć punkty?", odp.getWylaczeniePunktow(), false);
                 eb.addField("Data stworzenia konta", sdf.format(new Date(user.getTimeCreated()
                         .toInstant().toEpochMilli())), false);
                 eb.addField("Data dołączenia", sdf.format(new Date(mem.getTimeJoined()
