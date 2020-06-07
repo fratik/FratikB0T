@@ -121,7 +121,6 @@ public class MuteCommand extends ModerationCommand {
         try {
             context.getGuild().addRoleToMember(uzytkownik, rola).complete();
             context.send(context.getTranslated("mute.success", UserUtil.formatDiscrim(uzytkownik)));
-            ModLogListener.sendAction(aCase, context.getMember(), gc);
         } catch (Exception ignored) {
             caseList.remove(aCase);
             ModLogListener.getKnownCases().put(context.getGuild(), caseList);
