@@ -174,6 +174,6 @@ class StatsService extends AbstractScheduledService {
 
     @Override
     protected Scheduler scheduler() {
-        return Scheduler.newFixedRateSchedule(0, 5, TimeUnit.MINUTES);
+        return Scheduler.newFixedRateSchedule(0, 15, TimeUnit.MINUTES);
     }
 }
