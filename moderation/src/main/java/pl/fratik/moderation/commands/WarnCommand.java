@@ -36,7 +36,6 @@ import pl.fratik.moderation.entity.Case;
 import pl.fratik.moderation.entity.CaseBuilder;
 import pl.fratik.moderation.entity.CaseRow;
 import pl.fratik.moderation.entity.CasesDao;
-import pl.fratik.moderation.listeners.ModLogListener;
 import pl.fratik.moderation.utils.ModLogBuilder;
 import pl.fratik.moderation.utils.ReasonUtils;
 import pl.fratik.moderation.utils.WarnUtil;
@@ -112,7 +111,6 @@ public class WarnCommand extends ModerationCommand {
         ReasonUtils.parseFlags(aCase, powod);
         aCase.setIssuerId(context.getSender().getId());
         TextChannel mlog = null;
-        ModLogListener.sendAction(aCase, context.getMember(), gc);
         if (gc.getModLog() != null && !gc.getModLog().equals("")) mlog = shardManager.getTextChannelById(gc.getModLog());
         if (mlog == null || !context.getGuild().getSelfMember().hasPermission(mlog,
                 Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_WRITE, Permission.MESSAGE_READ)) {

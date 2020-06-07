@@ -81,7 +81,6 @@ public class KickCommand extends ModerationCommand {
         ReasonUtils.parseFlags(aCase, powod);
         List<Case> caseList = ModLogListener.getKnownCases().getOrDefault(context.getGuild(), new ArrayList<>());
         caseList.add(aCase);
-
         ModLogListener.getKnownCases().put(context.getGuild(), caseList);
         try {
             context.getGuild().kick(uzytkownik).reason(aCase.getReason()).complete();

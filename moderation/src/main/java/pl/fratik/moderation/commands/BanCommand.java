@@ -102,7 +102,6 @@ public class BanCommand extends ModerationCommand {
         try {
             context.getGuild().ban(uzytkownik, 0, aCase.getReason()).reason(aCase.getReason()).complete();
             context.send(context.getTranslated("ban.success", UserUtil.formatDiscrim(uzytkownik)));
-            ModLogListener.sendAction(aCase, context.getMember(), guildDao.get(context.getGuild()));
         } catch (HierarchyException e) {
             caseList.remove(aCase);
             ModLogListener.getKnownCases().put(context.getGuild(), caseList);
