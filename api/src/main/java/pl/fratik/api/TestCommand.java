@@ -19,13 +19,15 @@ package pl.fratik.api;
 
 import com.google.common.eventbus.EventBus;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.api.entity.*;
+import pl.fratik.api.entity.CzestotliwoscPrzebywania;
+import pl.fratik.api.entity.Oceny;
+import pl.fratik.api.entity.Plec;
+import pl.fratik.api.entity.RundkaOdpowiedzFull;
 import pl.fratik.api.event.RundkaAnswerVoteEvent;
 import pl.fratik.api.event.RundkaNewAnswerEvent;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
-import pl.fratik.core.command.PermLevel;
 
 public class TestCommand extends Command {
     private final EventBus eventBus;
@@ -40,11 +42,12 @@ public class TestCommand extends Command {
     @Override
     public boolean execute(@NotNull CommandContext context) {
         try {
-            RundkaOdpowiedzFull odp = new RundkaOdpowiedzFull(context.getSender().getId(), 1, "jakies na pewno",
-                    Plec.MEZCZYZNA, "fb!conf", "fb!ustawPowitanie/ustawPozegnanie",
-                    "fb!usunPowitanie/usunPozegnanie", PermLevel.GADMIN.getNum(),
-                    CzestotliwoscPrzebywania.CalyDzien, true, "bo tak",
-                    "bo musicie", null, new Oceny());
+            RundkaOdpowiedzFull odp = new RundkaOdpowiedzFull(context.getSender().getId(), 1, "nie ma",
+                    Plec.INNA, "fb!conf", "fb!ustawPowitanie/ustawPozegnanie",
+                    "fb!usunPowitanie/usunPozegnanie", 5,
+                    CzestotliwoscPrzebywania.CalyDzien, true, "idk", "idk",
+                    "tak", "t a k", 10, "idk", "lol",
+                    "lol", "xdr", new Oceny());
             eventBus.post(new RundkaNewAnswerEvent(odp));
             context.send("Wysłano fałszywe podanie");
             Thread.sleep(5000);
