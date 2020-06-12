@@ -66,6 +66,30 @@ class RundkaGa {
                 Exchange.body().sendJson(ex, new Rundka.RundkaWrapper(null, false, null));
             }
         });
+        routes.get("/api/rundka/{nr}/{userId}", ex -> {
+            String userId = Exchange.pathParams().pathParam(ex, "userId").orElse("");
+            if (userId.isEmpty()) {
+                Exchange.body().sendJson(ex, new Exceptions.NoUserParam(), 400);
+                return;
+            }
+            Integer nr;
+            try {
+                nr = Integer.valueOf(Exchange.pathParams().pathParam(ex, "nr").orElse("0"));
+            } catch (NumberFormatException e) {
+                nr = null;
+            }
+            if (nr == null) {
+                Exchange.body().sendJson(ex, new Exceptions.GenericException("nieprawidłowy nr rundki"), 400);
+                return;
+            }
+            Rundka rundka = rundkaDao.get(nr);
+            RundkaOdpowiedzFull a = rundka.getZgloszenia().stream().filter(r -> r.getUserId().equals(userId)).findFirst().orElse(null);
+            if (a == null) {
+                Exchange.body().sendJson(ex, new Exceptions.GenericException("nie znaleziono takiego zgłoszenia"), 404);
+                return;
+            }
+            Exchange.body().sendJson(ex, a);
+        });
         routes.post("/api/rundka", ex -> {
             synchronized (this) {
                 if (!RundkaCommand.isRundkaOn()) {
@@ -131,21 +155,33 @@ class RundkaGa {
                 eb.addField("Data dołączenia", sdf.format(new Date(mem.getTimeJoined()
                         .toInstant().toEpochMilli())), false);
                 eb.addField("ID", user.getId(), false);
+                MessageEmbed embed = eb.build();
                 Rundka rundka = rundkaDao.get(odp.getRundka());
-                TextChannel ch = shardManager.getTextChannelById(rundka.getVoteChannel());
-                Objects.requireNonNull(shardManager.getRoleById(Ustawienia.instance.gadmRole))
-                        .getManager().setMentionable(true).complete();
-                Message msg = Objects.requireNonNull(ch)
-                        .sendMessage("<@&" + Ustawienia.instance.gadmRole + ">").embed(eb.build()).complete();
-                Objects.requireNonNull(shardManager.getRoleById(Ustawienia.instance.gadmRole))
-                        .getManager().setMentionable(false).complete();
-                msg.addReaction(Objects.requireNonNull(fdev.getEmoteById(Ustawienia.instance.emotki.greenTick))).complete();
-                msg.addReaction(Objects.requireNonNull(fdev.getEmoteById(Ustawienia.instance.emotki.redTick))).complete();
-                msg.pin().complete();
-                odp.setMessageId(msg.getId());
                 eventBus.post(new RundkaNewAnswerEvent(odp));
                 rundka.getZgloszenia().add(odp);
                 rundkaDao.save(rundka);
+                Objects.requireNonNull(shardManager.getRoleById(Ustawienia.instance.gadmRole))
+                        .getManager().setMentionable(true).complete();
+                TextChannel ch = shardManager.getTextChannelById(rundka.getVoteChannel());
+                if (ch == null) throw new NullPointerException("nie ma kanalu do glosowania");
+                if (embed.isSendable(ch.getJDA().getAccountType())) {
+                    Message msg = ch.sendMessage("<@&" + Ustawienia.instance.gadmRole + ">").embed(embed).complete();
+                    msg.addReaction(Objects.requireNonNull(fdev.getEmoteById(Ustawienia.instance.emotki.greenTick))).complete();
+                    msg.addReaction(Objects.requireNonNull(fdev.getEmoteById(Ustawienia.instance.emotki.redTick))).complete();
+                    msg.pin().complete();
+                    odp.setMessageId(msg.getId());
+                } else {
+                    Message msg = ch.sendMessage("<@&" + Ustawienia.instance.gadmRole + ">\n" +
+                            "Podanie jest za długie by wyświetlić je na kanale: " +
+                            "zajrzyj na https://fratikbot.pl/rekru/podanie/" + odp.getRundka() + "/" + odp.getUserId())
+                            .complete();
+                    msg.addReaction(Objects.requireNonNull(fdev.getEmoteById(Ustawienia.instance.emotki.greenTick))).complete();
+                    msg.addReaction(Objects.requireNonNull(fdev.getEmoteById(Ustawienia.instance.emotki.redTick))).complete();
+                    msg.pin().complete();
+                    odp.setMessageId(msg.getId());
+                }
+                Objects.requireNonNull(shardManager.getRoleById(Ustawienia.instance.gadmRole))
+                        .getManager().setMentionable(false).complete();
             }
         });
     }
