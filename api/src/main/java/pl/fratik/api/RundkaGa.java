@@ -123,8 +123,6 @@ class RundkaGa {
                 }
                 Rundka rundka = rundkaDao.get(odp.getRundka());
                 eventBus.post(new RundkaNewAnswerEvent(odp));
-                rundka.getZgloszenia().add(odp);
-                rundkaDao.save(rundka);
                 Objects.requireNonNull(shardManager.getRoleById(Ustawienia.instance.gadmRole))
                         .getManager().setMentionable(true).complete();
                 TextChannel ch = shardManager.getTextChannelById(rundka.getVoteChannel());
@@ -186,6 +184,8 @@ class RundkaGa {
                 }
                 Objects.requireNonNull(shardManager.getRoleById(Ustawienia.instance.gadmRole))
                         .getManager().setMentionable(false).complete();
+                rundka.getZgloszenia().add(odp);
+                rundkaDao.save(rundka);
             }
         });
     }
