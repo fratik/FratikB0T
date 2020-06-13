@@ -135,7 +135,7 @@ public class AntiInviteListener {
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     private boolean isAntiinvite(Guild guild) {
         Boolean a = gcCache.get(guild.getId(), guildDao::get).getAntiInvite();
-        return a != null;
+        return a != null && a;
     }
 
     private boolean isIgnored(TextChannel channel) {
