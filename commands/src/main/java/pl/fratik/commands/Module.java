@@ -142,7 +142,7 @@ public class Module implements Modul {
         commands.add(new CoronastatsCommand());
         commands.add(new PrefixroleCommand(guildDao));
 
-        listener = new MemberListener(guildDao, redisCacheManager);
+        listener = new MemberListener(guildDao, tlumaczenia, redisCacheManager);
         eventBus.register(listener);
 
         commands.forEach(managerKomend::registerCommand);

@@ -30,18 +30,23 @@ import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.event.DatabaseUpdateEvent;
+import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.CommonUtil;
 
-import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 
 class MemberListener {
     private final GuildDao guildDao;
     private final Cache<GuildConfig> gcCache;
+    private final Tlumaczenia tlumaczenia;
 
-    MemberListener(GuildDao guildDao, RedisCacheManager redisCacheManager) {
+    MemberListener(GuildDao guildDao, Tlumaczenia tlumaczenia, RedisCacheManager redisCacheManager) {
         this.guildDao = guildDao;
+        this.tlumaczenia = tlumaczenia;
         gcCache = redisCacheManager.new CacheRetriever<GuildConfig>(){}.getCache();
     }
 
@@ -117,6 +122,7 @@ class MemberListener {
     public void onRoleAdd(GuildMemberRoleAddEvent e) {
         updateNickname(e.getMember());
     }
+
     @Subscribe
     public void onRoleRemmove(GuildMemberRoleRemoveEvent e) {
         updateNickname(e.getMember());
@@ -129,27 +135,27 @@ class MemberListener {
             String prefix = gc.getRolePrefix().get(role.getId());
             if (prefix == null) continue;
             
-            AtomicReference<String> nick = new AtomicReference<>(mem.getNickname());
-            if (nick.get() == null) nick.set(mem.getUser().getName());
+            String nick = mem.getNickname();
+            if (nick == null) nick = mem.getUser().getName();
             else {
-                gc.getRolePrefix().values().forEach(p -> {
-                    if (nick.toString().startsWith(p)) {
-                        nick.set(nick.toString().substring(p.length()));
+                for (String p : gc.getRolePrefix().values()) {
+                    if (nick.startsWith(p)) {
+                        nick = nick.substring(p.length());
                     }
-                });
+                }
             }
-            if (nick.toString().startsWith(" ")) nick.set(nick.toString().substring(1));
-            else nick.set(nick.toString());
-            if ((prefix + nick).length() > 31) {
-                int dlugosc = (prefix + nick).length() - 31;
-                nick.set(nick.toString().substring(dlugosc));
-            }
+            if (nick.startsWith(" ")) nick = nick.substring(1);
             try {
-                mem.getGuild().modifyNickname(mem, prefix + " " + nick.toString()).queue();
-                return;
+                if ((prefix + nick).length() > 31) {
+                    nick = nick.substring(0, Math.min((prefix + nick).length(), 31));
+                    mem.getGuild().modifyNickname(mem, prefix + " " + nick).queue();
+                }
             } catch (Exception e) {
-                /* brak permów */
+                TextChannel a = getFullLogs(mem.getGuild());
+                if (a != null) a.sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(mem.getGuild()),
+                        "prefixrole.no.perms", mem.getUser().getAsTag())).queue();
             }
+            break;
         }
     }
     
@@ -157,5 +163,18 @@ class MemberListener {
     public void onDatabaseUpdateEvent(DatabaseUpdateEvent e) {
         if (e.getEntity() instanceof GuildConfig)
             gcCache.put(((GuildConfig) e.getEntity()).getGuildId(), (GuildConfig) e.getEntity());
+    }
+
+    private TextChannel getFullLogs(Guild guild) {
+        GuildConfig gc = getGuildConfig(guild);
+        if (gc.getFullLogs() == null) return null;
+        String id = null;
+        if (!gc.getFullLogs().isEmpty()) {
+            TextChannel kanal = guild.getTextChannelById(gc.getFullLogs());
+            if (kanal == null) return null;
+            id = kanal.getId();
+        }
+        if (id == null) return null;
+        return guild.getTextChannelById(id);
     }
 }

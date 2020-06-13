@@ -52,7 +52,7 @@ public class PrefixroleCommand extends Command {
         hmap.put("prefix", "string");
         uzycie = new Uzycie(hmap, new boolean[] {true, false, false});
         permLevel = PermLevel.ADMIN;
-        category = CommandCategory.SYSTEM;
+        category = CommandCategory.MODERATION;
         cooldown = 5;
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
 
