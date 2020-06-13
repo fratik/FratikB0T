@@ -569,7 +569,7 @@ public class Module implements Modul {
             if (odp instanceof RundkaOdpowiedzFull)
                 e = new RundkaNewAnswerEvent(new RundkaOdpowiedzSanitized
                         ((RundkaOdpowiedzFull) odp, odp.getUserId().equals(c.userId) ||
-                                UserUtil.isGadm(shardManager.retrieveUserById(c.userId).complete(), shardManager), shardManager));
+                                UserUtil.isStaff(shardManager.retrieveUserById(c.userId).complete(), shardManager), shardManager));
             WebSockets.sendText(Json.serializer().toString(e), c.ch, null);
         }
     }
@@ -579,14 +579,14 @@ public class Module implements Modul {
         for (Map.Entry<String, WscWrapper> entry : webSocketChannels.entrySet()) {
             RundkaAnswerVoteEvent e = finalE;
             if (!entry.getValue().userId.equals(e.getOdpowiedz().getUserId()) &&
-                    !UserUtil.isGadm(shardManager.retrieveUserById(entry.getValue().userId).complete(), shardManager))
+                    !UserUtil.isStaff(shardManager.retrieveUserById(entry.getValue().userId).complete(), shardManager))
                 continue;
             WscWrapper c = entry.getValue();
             RundkaOdpowiedz odp = e.getOdpowiedz();
             if (odp instanceof RundkaOdpowiedzFull)
                 e = new RundkaAnswerVoteEvent(new RundkaOdpowiedzSanitized
                         ((RundkaOdpowiedzFull) odp, odp.getUserId().equals(c.userId) ||
-                                UserUtil.isGadm(shardManager.retrieveUserById(c.userId).complete(), shardManager), shardManager));
+                                UserUtil.isStaff(shardManager.retrieveUserById(c.userId).complete(), shardManager), shardManager));
             WebSockets.sendText(Json.serializer().toString(e), c.ch, null);
         }
     }
