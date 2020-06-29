@@ -52,6 +52,7 @@ public class LiczekListener {
     @Subscribe
     public void onLiczekSend(GuildMessageReceivedEvent m) {
         GuildConfig gc = getGuildConfig(m.getGuild());
+        if (gc.getLiczekKanal() == null || gc.getLiczekKanal().isEmpty()) return;
         if (!gc.getLiczekKanal().equals(m.getChannel().getId())) return;
         if (m.getAuthor().isBot() || m.getMessage().isWebhookMessage()) {
             m.getMessage().delete().queue();
@@ -88,6 +89,7 @@ public class LiczekListener {
     @Subscribe
     public void onLiczekEdit(GuildMessageUpdateEvent m) {
         GuildConfig gc = getGuildConfig(m.getGuild());
+        if (gc.getLiczekKanal() == null || gc.getLiczekKanal().isEmpty()) return;
         if (!gc.getLiczekKanal().equals(m.getChannel().getId())) return;
         m.getMessage().delete().complete();
         updateTopic(m.getChannel());
@@ -96,6 +98,7 @@ public class LiczekListener {
     @Subscribe
     public void onLiczekDelete(GuildMessageDeleteEvent m) {
         GuildConfig gc = getGuildConfig(m.getGuild());
+        if (gc.getLiczekKanal() == null || gc.getLiczekKanal().isEmpty()) return;
         if (!gc.getLiczekKanal().equals(m.getChannel().getId())) return;
         updateTopic(m.getChannel());
     }
