@@ -29,8 +29,10 @@ import pl.fratik.stats.entity.CommandCountStatsDao;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -67,8 +69,9 @@ class StatsService extends AbstractScheduledService {
         VoiceChannel serwery = shardManager.getVoiceChannelById(ustst.serwery);
         VoiceChannel ram = shardManager.getVoiceChannelById(ustst.ram);
         VoiceChannel komdzis = shardManager.getVoiceChannelById(ustst.komdzis);
+        VoiceChannel ostAkt = shardManager.getVoiceChannelById(ustst.ostakt);
         if (status == null || uptime == null || wersja == null || ping == null || users == null || serwery == null ||
-                ram == null || komdzis == null) return;
+                ram == null || komdzis == null || ostAkt == null) return;
         if (firstStart) {
             status.getManager().setName("\uD83D\uDDA5 Status: wczytywanie").queue();
             uptime.getManager().setName("\uD83D\uDDA5 Uptime: N/a").queue();
@@ -78,6 +81,7 @@ class StatsService extends AbstractScheduledService {
             serwery.getManager().setName("Wczytywanie...").queue();
             ram.getManager().setName("Wczytywanie...").queue();
             komdzis.getManager().setName("Wczytywanie...").queue();
+            ostAkt.getManager().setName("\uD83D\uDD52 Ost. akt: " + new SimpleDateFormat("HH:mm").format(new Date())).queue();
             firstStart = false;
             return;
         }
@@ -97,6 +101,7 @@ class StatsService extends AbstractScheduledService {
         double memoryUsage = round((double) (total - free) / 1024 / 1024);
         ram.getManager().setName(String.format("\uD83D\uDCBE %s MB", memoryUsage)).queue();
         komdzis.getManager().setName(String.format("\uD83D\uDCC8 Komend dzisiaj: %s", getKomendDzisiaj())).queue();
+        ostAkt.getManager().setName("\uD83D\uDD52 Ost. akt: " + new SimpleDateFormat("HH:mm").format(new Date())).queue();
     }
 
     private static double round(double value) {
@@ -147,8 +152,9 @@ class StatsService extends AbstractScheduledService {
         VoiceChannel serwery = shardManager.getVoiceChannelById(ustst.serwery);
         VoiceChannel ram = shardManager.getVoiceChannelById(ustst.ram);
         VoiceChannel komdzis = shardManager.getVoiceChannelById(ustst.komdzis);
+        VoiceChannel ostAkt = shardManager.getVoiceChannelById(ustst.ostakt);
         if (status == null || uptime == null || wersja == null || ping == null || users == null || serwery == null ||
-                ram == null || komdzis == null) return;
+                ram == null || komdzis == null || ostAkt == null) return;
         List<Future<?>> futures = new ArrayList<>();
         futures.add(status.getManager()
                 .setName("\uD83D\uDDA5 Status: offline").submit());
@@ -162,6 +168,7 @@ class StatsService extends AbstractScheduledService {
         futures.add(serwery.getManager().setName("Bot jest offline").submit());
         futures.add(ram.getManager().setName("Bot jest offline").submit());
         futures.add(komdzis.getManager().setName("Bot jest offline").submit());
+        futures.add(ostAkt.getManager().setName("Bot jest offline").submit());
         for (Future<?> future : futures) {
             try {
                 future.get();
