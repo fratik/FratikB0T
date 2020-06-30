@@ -21,6 +21,8 @@ import com.google.common.eventbus.EventBus;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.exceptions.ErrorResponseException;
+import net.dv8tion.jda.api.requests.ErrorResponse;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandCategory;
@@ -57,7 +59,13 @@ public class ServerinfoCommand extends Command {
         sdf.setTimeZone(UserUtil.getTimeZone(context.getSender(), userDao));
         eb.addField(context.getTranslated("serverinfo.created"),
                 sdf.format(new Date(context.getGuild().getTimeCreated().toInstant().toEpochMilli())), true);
-        Member ow = context.getGuild().getOwner();
+        Member ow;
+        try {
+            ow = context.getGuild().retrieveOwner().complete();
+        } catch (ErrorResponseException e) {
+            if (e.getErrorResponse() == ErrorResponse.UNKNOWN_MEMBER) ow = null;
+            else throw e;
+        }
         if (ow != null) eb.addField(context.getTranslated("serverinfo.owner"),
                 UserUtil.formatDiscrim(ow), true);
         else eb.addField(context.getTranslated("serverinfo.owner"),
@@ -89,7 +97,7 @@ public class ServerinfoCommand extends Command {
             eb.addField(context.getTranslated("serverinfo.place"), String.valueOf(pozycja.intValue()), true);
         else eb.addField(context.getTranslated("serverinfo.place"), "???", true);
         eb.addField(context.getTranslated("serverinfo.members"),
-                String.valueOf(context.getGuild().getMembers().size()), true);
+                String.valueOf(context.getGuild().getMemberCount()), true);
         if (context.getGuild().getIconUrl() != null)
             eb.setThumbnail(context.getGuild().getIconUrl().replace(".webp", ".png") + "?size=2048");
         eb.setColor(GuildUtil.getPrimColor(context.getGuild()));

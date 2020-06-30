@@ -141,10 +141,18 @@ public class Module implements Modul {
                     }
                     if (member == null || !member.hasPermission(Permission.MANAGE_SERVER)) continue;
                 }
+                Member owner;
+                try {
+                    owner = guild.retrieveOwner().complete();
+                } catch (ErrorResponseException e) {
+                    if (e.getErrorResponse() == ErrorResponse.UNKNOWN_MEMBER) owner = null;
+                    else throw e;
+                }
+                List<Member> members = guild.loadMembers().get();
                 guilds.add(new pl.fratik.api.entity.Guild(guild.getName(), guild.getId(),
-                        guild.getIconId(), guild.getOwner() == null ? null :
-                        new pl.fratik.api.entity.User(Objects.requireNonNull(guild.getOwner()).getUser().getName(),
-                                guild.getOwner().getUser().getDiscriminator(), null, guild.getOwnerId(),
+                        guild.getIconId(), owner == null ? null :
+                        new pl.fratik.api.entity.User(owner.getUser().getName(),
+                                owner.getUser().getDiscriminator(), null, guild.getOwnerId(),
                         null, null),
                         !guild.getSelfMember().getRoles().isEmpty() ?
                                 new pl.fratik.api.entity.Role(guild.getSelfMember().getRoles().get(0).getName(),
@@ -152,8 +160,8 @@ public class Module implements Modul {
                                         guild.getSelfMember().getRoles().get(0).getPermissionsRaw(),
                                         guild.getSelfMember().getRoles().get(0).getPositionRaw(),
                                         guild.getSelfMember().getRoles().get(0).isManaged()) : null,
-                        (int) guild.getMembers().stream().filter(m -> !m.getUser().isBot()).count(),
-                        (int) guild.getMembers().stream().filter(m -> m.getUser().isBot()).count(),
+                        (int) members.stream().filter(m -> !m.getUser().isBot()).count(),
+                        (int) members.stream().filter(m -> m.getUser().isBot()).count(),
                         guild.getRoles().size(), guild.getTextChannels().size(), guild.getVoiceChannels().size(),
                         guild.getTimeCreated().toInstant().toEpochMilli()));
             }

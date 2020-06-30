@@ -118,7 +118,7 @@ public class StatusService extends AbstractScheduledService {
         AtomicInteger res = new AtomicInteger();
         shardManager.getShards().forEach(jda -> {
             for (Guild g : jda.getGuilds()) {
-                res.addAndGet(g.getMembers().size());
+                res.addAndGet(g.getMemberCount());
             }
         });
         return res.intValue();
@@ -127,7 +127,7 @@ public class StatusService extends AbstractScheduledService {
     private int fetchUserCount(JDA jda) {
         AtomicInteger res = new AtomicInteger();
         for (Guild g : jda.getGuilds()) {
-            res.addAndGet(g.getMembers().size());
+            res.addAndGet(g.getMemberCount());
         }
         return res.intValue();
     }

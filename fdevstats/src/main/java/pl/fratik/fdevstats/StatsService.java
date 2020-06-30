@@ -19,6 +19,7 @@ package pl.fratik.fdevstats;
 
 import com.google.common.util.concurrent.AbstractScheduledService;
 import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.VoiceChannel;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import pl.fratik.core.Statyczne;
@@ -91,7 +92,7 @@ class StatsService extends AbstractScheduledService {
                                 Statyczne.startDate.toInstant().getEpochSecond() * 1000, true)).queue();
         ping.getManager().setName(String.format("\uD83C\uDFD3 %sms",
                 (int) Math.floor(shardManager.getAverageGatewayPing()))).queue();
-        int uz = shardManager.getGuilds().stream().map(g -> g.getMembers().size()).reduce(Integer::sum).orElse(0);
+        int uz = shardManager.getGuilds().stream().map(Guild::getMemberCount).reduce(Integer::sum).orElse(0);
         users.getManager().setName(String.format("\uD83D\uDD17 %s użytkownik%s", uz, rzeczownik(uz, "ów")))
                 .queue();
         serwery.getManager().setName(String.format("\uD83D\uDD17 %s serwer%s",
