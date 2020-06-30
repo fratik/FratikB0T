@@ -46,6 +46,7 @@ import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
+import net.dv8tion.jda.api.requests.ErrorResponse;
 import net.dv8tion.jda.api.requests.RestAction;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.apache.commons.io.IOUtils;
@@ -131,7 +132,13 @@ public class Module implements Modul {
             List<pl.fratik.api.entity.Guild> guilds = new ArrayList<>();
             for (Guild guild : shardManager.getGuilds()) {
                 if (userId != null) {
-                    Member member = guild.getMemberById(userId);
+                    Member member;
+                    try {
+                        member = guild.retrieveMemberById(userId).complete();
+                    } catch (ErrorResponseException e) {
+                        if (e.getErrorResponse() == ErrorResponse.UNKNOWN_MEMBER) member = null;
+                        else throw e;
+                    }
                     if (member == null || !member.hasPermission(Permission.MANAGE_SERVER)) continue;
                 }
                 guilds.add(new pl.fratik.api.entity.Guild(guild.getName(), guild.getId(),

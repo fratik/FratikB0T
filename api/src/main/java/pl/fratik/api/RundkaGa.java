@@ -163,8 +163,9 @@ class RundkaGa {
                     eb.addField("ID", user.getId(), false);
                     MessageEmbed embed = eb.build();
                     if (ch == null) throw new NullPointerException("nie ma kanalu do glosowania");
-                    if (embed.isSendable(ch.getJDA().getAccountType())) {
-                        Message msg = ch.sendMessage("<@&" + Ustawienia.instance.gadmRole + ">").embed(embed).complete();
+                    if (embed.isSendable()) {
+                        Message msg = ch.sendMessage("<@&" + Ustawienia.instance.gadmRole + ">")
+                                .mentionRoles(Ustawienia.instance.gadmRole).embed(embed).complete();
                         msg.addReaction(Objects.requireNonNull(fdev.getEmoteById(Ustawienia.instance.emotki.greenTick))).complete();
                         msg.addReaction(Objects.requireNonNull(fdev.getEmoteById(Ustawienia.instance.emotki.redTick))).complete();
                         msg.pin().complete();
@@ -176,6 +177,7 @@ class RundkaGa {
                     Message msg = ch.sendMessage("<@&" + Ustawienia.instance.gadmRole + ">\n" +
                             "Podanie jest za długie by wyświetlić je na kanale: " +
                             "zajrzyj na https://fratikbot.pl/rekru/podanie/" + odp.getRundka() + "/" + odp.getUserId())
+                            .mentionRoles(Ustawienia.instance.gadmRole)
                             .complete();
                     msg.addReaction(Objects.requireNonNull(fdev.getEmoteById(Ustawienia.instance.emotki.greenTick))).complete();
                     msg.addReaction(Objects.requireNonNull(fdev.getEmoteById(Ustawienia.instance.emotki.redTick))).complete();

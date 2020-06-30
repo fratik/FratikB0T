@@ -31,7 +31,6 @@ import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.event.DatabaseUpdateEvent;
-import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.CommonUtil;
 
 import java.util.ArrayList;
@@ -62,8 +61,8 @@ class MemberListener {
             TextChannel cha = e.getGuild().getTextChannelById(ch.getKey());
             if (cha == null) continue;
             cha.sendMessage(ch.getValue()
-                    .replaceAll("\\{\\{user}}", e.getMember().getUser().getAsTag().replaceAll("@(everyone|here)", "@\u200b$1"))
-                    .replaceAll("\\{\\{server}}", e.getGuild().getName().replaceAll("@(everyone|here)", "@\u200b$1"))).queue();
+                    .replaceAll("\\{\\{user}}", e.getMember().getUser().getAsTag())
+                    .replaceAll("\\{\\{server}}", e.getGuild().getName())).queue();
         }
     }
 
@@ -86,9 +85,9 @@ class MemberListener {
             TextChannel cha = e.getGuild().getTextChannelById(ch.getKey());
             if (cha == null || !cha.canTalk()) continue;
             cha.sendMessage(ch.getValue()
-                    .replaceAll("\\{\\{user}}", e.getMember().getUser().getAsTag().replaceAll("@(everyone|here)", "@\u200b$1"))
+                    .replaceAll("\\{\\{user}}", e.getMember().getUser().getAsTag())
                     .replaceAll("\\{\\{mention}}", e.getMember().getAsMention())
-                    .replaceAll("\\{\\{server}}", e.getGuild().getName().replaceAll("@(everyone|here)", "@\u200b$1"))).queue();
+                    .replaceAll("\\{\\{server}}", e.getGuild().getName())).queue();
         }
     }
 

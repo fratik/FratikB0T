@@ -107,7 +107,7 @@ class TagsManager {
     private MessageEmbed generateEmbed(Tag tag, Language lang, Guild guild) {
         EmbedBuilder eb = new EmbedBuilder();
         if (tag.getCreatedBy() != null) {
-            User createdBy = shardManager.getUserById(tag.getCreatedBy());
+            User createdBy = shardManager.retrieveUserById(tag.getCreatedBy()).complete();
             if (createdBy == null) createdBy = shardManager.retrieveUserById(tag.getCreatedBy()).complete();
             eb.setFooter(createdBy.getAsTag(), createdBy.getEffectiveAvatarUrl());
             Member mem = guild.getMember(createdBy);

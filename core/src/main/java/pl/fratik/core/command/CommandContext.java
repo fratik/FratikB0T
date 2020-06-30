@@ -114,7 +114,7 @@ public class CommandContext {
                     .withExtra("wiadomosc", message).withSentryInterface(new ExceptionInterface(blad)));
             Sentry.clearContext();
         }
-        return event.getChannel().sendMessage(String.valueOf(message).replaceAll("@(everyone|here)", "@\u200b$1")).complete();
+        return event.getChannel().sendMessage(message).complete();
     }
 
 //    @Deprecated
@@ -131,7 +131,7 @@ public class CommandContext {
                     .withExtra("wiadomosc", message).withSentryInterface(new ExceptionInterface(blad)));
             Sentry.clearContext();
         }
-        event.getChannel().sendMessage(String.valueOf(message).replaceAll("@(everyone|here)", "@\u200b$1")).queue(callback);
+        event.getChannel().sendMessage(message).queue(callback);
     }
 
     public void send(MessageEmbed message, Consumer<Message> callback) {

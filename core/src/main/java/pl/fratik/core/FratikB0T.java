@@ -28,8 +28,12 @@ import lombok.Getter;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.OnlineStatus;
 import net.dv8tion.jda.api.entities.Activity;
+import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.requests.GatewayIntent;
+import net.dv8tion.jda.api.requests.restaction.MessageAction;
 import net.dv8tion.jda.api.sharding.DefaultShardManagerBuilder;
 import net.dv8tion.jda.api.sharding.ShardManager;
+import net.dv8tion.jda.api.utils.MemberCachePolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.cache.RedisCacheManager;
@@ -58,6 +62,7 @@ import pl.fratik.core.webhook.WebhookManager;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.Optional;
 import java.util.concurrent.Executors;
@@ -183,19 +188,23 @@ class FratikB0T {
                 int count = Integer.parseUnsignedInt(shards[2]);
 
                 logger.info("Oczekiwanie na shard'y...");
-                DefaultShardManagerBuilder builder = new DefaultShardManagerBuilder();
+                DefaultShardManagerBuilder builder = DefaultShardManagerBuilder.createLight(token,
+                        GatewayIntent.GUILD_MEMBERS, GatewayIntent.GUILD_BANS, GatewayIntent.GUILD_VOICE_STATES,
+                        GatewayIntent.GUILD_MESSAGES, GatewayIntent.GUILD_MESSAGE_REACTIONS,
+                        GatewayIntent.DIRECT_MESSAGES, GatewayIntent.DIRECT_MESSAGE_REACTIONS);
                 builder.setShardsTotal(count);
                 builder.setShards(min, max);
                 builder.setEnableShutdownHook(false);
                 builder.setAudioSendFactory(new NativeAudioSendFactory());
                 builder.setAutoReconnect(true);
-                builder.setToken(token);
+                builder.setMemberCachePolicy(MemberCachePolicy.VOICE);
                 builder.setStatus(OnlineStatus.DO_NOT_DISTURB);
                 builder.setActivity(Activity.playing(String.format("Ładowanie... (%s shard(ów))", count)));
                 builder.addEventListeners(eventHandler);
                 builder.setVoiceDispatchInterceptor(eventHandler);
                 builder.setBulkDeleteSplittingEnabled(false);
                 builder.setCallbackPool(Executors.newFixedThreadPool(4));
+                MessageAction.setDefaultMentions(EnumSet.of(Message.MentionType.EMOTE, Message.MentionType.CHANNEL));
                 ShardManager shardManager = builder.build();
                 ManagerArgumentow managerArgumentow = new ManagerArgumentowImpl();
                 Uzycie.setManagerArgumentow(managerArgumentow);

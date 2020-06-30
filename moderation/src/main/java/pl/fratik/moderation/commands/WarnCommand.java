@@ -88,19 +88,17 @@ public class WarnCommand extends ModerationCommand {
             context.send(context.getTranslated("warn.no.bot"));
             return false;
         }
-        if (context.getGuild().getMemberById(uzytkownik.getUser().getId()) != null) {
-            if (uzytkownik.isOwner()) {
-                context.send(context.getTranslated("warn.cant.warn.owner"));
-                return false;
-            }
-            if (!context.getMember().canInteract(uzytkownik)) {
-                context.send(context.getTranslated("warn.user.cant.interact"));
-                return false;
-            }
-            if (!context.getGuild().getSelfMember().canInteract(uzytkownik)) {
-                context.send(context.getTranslated("warn.bot.cant.interact"));
-                return false;
-            }
+        if (uzytkownik.isOwner()) {
+            context.send(context.getTranslated("warn.cant.warn.owner"));
+            return false;
+        }
+        if (!context.getMember().canInteract(uzytkownik)) {
+            context.send(context.getTranslated("warn.user.cant.interact"));
+            return false;
+        }
+        if (!context.getGuild().getSelfMember().canInteract(uzytkownik)) {
+            context.send(context.getTranslated("warn.bot.cant.interact"));
+            return false;
         }
         GuildConfig gc = guildDao.get(context.getGuild());
         CaseRow caseRow = casesDao.get(context.getGuild());

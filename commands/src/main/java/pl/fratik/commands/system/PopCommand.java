@@ -188,6 +188,7 @@ public class PopCommand extends Command {
             if (ch == null) throw new IllegalStateException("nie ma popChannel/nieprawidłowy");
             Message msg = ch
                     .sendMessage("<@&423855296415268865>\nhttp://discord.gg/" + invite.getCode()).embed(eb.build())
+                    .mentionRoles("423855296415268865")
                     .complete();
             popRole.getManager().setMentionable(false).complete();
             msg.addReaction("\uD83D\uDDD1").queue();

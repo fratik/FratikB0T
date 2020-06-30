@@ -81,19 +81,17 @@ public class NotatkaCommand extends ModerationCommand {
             context.send(context.getTranslated("notatka.cant.note.yourself"));
             return false;
         }
-        if (context.getGuild().getMemberById(uzytkownik.getUser().getId()) != null) {
-            if (uzytkownik.isOwner()) {
-                context.send(context.getTranslated("notatka.cant.note.owner"));
-                return false;
-            }
-            if (!context.getMember().canInteract(uzytkownik)) {
-                context.send(context.getTranslated("notatka.user.cant.interact"));
-                return false;
-            }
-            if (!context.getGuild().getSelfMember().canInteract(uzytkownik)) {
-                context.send(context.getTranslated("notatka.bot.cant.interact"));
-                return false;
-            }
+        if (uzytkownik.isOwner()) {
+            context.send(context.getTranslated("notatka.cant.note.owner"));
+            return false;
+        }
+        if (!context.getMember().canInteract(uzytkownik)) {
+            context.send(context.getTranslated("notatka.user.cant.interact"));
+            return false;
+        }
+        if (!context.getGuild().getSelfMember().canInteract(uzytkownik)) {
+            context.send(context.getTranslated("notatka.bot.cant.interact"));
+            return false;
         }
         GuildConfig gc = guildDao.get(context.getGuild());
         CaseRow caseRow = casesDao.get(context.getGuild());

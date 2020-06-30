@@ -51,7 +51,7 @@ public class ModLogBuilder {
     public static MessageEmbed generate(Case aCase, Guild guild, ShardManager sm, Language lang, ManagerKomend managerKomend, boolean modlog) {
         String iId = aCase.getIssuerId();
         if (iId == null || iId.isEmpty()) iId = "0";
-        User iUser = sm.getUserById(iId);
+        User iUser = sm.retrieveUserById(iId).complete();
         String reason = aCase.getReason();
         if (reason == null || reason.isEmpty()) reason = tlumaczenia.get(lang, "modlog.reason.unknown");
         if (iUser == null) iId = tlumaczenia.get(lang, "modlog.mod.unknown",

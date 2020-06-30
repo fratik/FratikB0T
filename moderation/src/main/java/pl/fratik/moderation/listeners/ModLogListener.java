@@ -31,6 +31,8 @@ import net.dv8tion.jda.api.events.guild.member.GuildMemberLeaveEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberRoleAddEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberRoleRemoveEvent;
 import net.dv8tion.jda.api.events.role.RoleDeleteEvent;
+import net.dv8tion.jda.api.exceptions.ErrorResponseException;
+import net.dv8tion.jda.api.requests.ErrorResponse;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
@@ -426,7 +428,14 @@ public class ModLogListener {
             if (muteRole == null) return;
             List<Case> caseList = knownCases.getOrDefault(guild, new ArrayList<>());
             caseList.add(aCase);
-            Member member = guild.getMemberById(akcja.getCase().getUserId());
+            Member member;
+            try {
+                member = guild.retrieveMemberById(akcja.getCase().getUserId()).complete();
+            } catch (ErrorResponseException er) {
+                if (er.getErrorResponse() == ErrorResponse.UNKNOWN_MEMBER)
+                    member = null;
+                else throw er;
+            }
             if (member == null) return;
             guild.removeRoleFromMember(member, muteRole)
                     .reason(reason).queue(null, t -> {

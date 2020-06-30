@@ -20,6 +20,8 @@ package pl.fratik.moderation.entity;
 import lombok.EqualsAndHashCode;
 import lombok.Setter;
 import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.exceptions.ErrorResponseException;
+import net.dv8tion.jda.api.requests.ErrorResponse;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import net.dv8tion.jda.internal.entities.AbstractMessage;
 
@@ -64,7 +66,13 @@ public class LogMessage extends AbstractMessage {
     @Nonnull
     @Override
     public User getAuthor() {
-        User user = shardManager.getUserById(authorId);
+        User user;
+        try {
+            user = shardManager.retrieveUserById(authorId).complete();
+        } catch (ErrorResponseException e) {
+            if (e.getErrorResponse() == ErrorResponse.UNKNOWN_USER) user = null;
+            throw e;
+        }
         if (user == null) throw new IllegalStateException("użytkownik nie istnieje!");
         return user;
     }

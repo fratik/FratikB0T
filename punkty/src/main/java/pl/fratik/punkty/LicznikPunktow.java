@@ -282,10 +282,8 @@ public class LicznikPunktow {
                     if (event.getChannel().equals(ch) && !uc.isLvlupMessages()) return;
                     if (gc.getLvlUpMessage() != null && !gc.getLvlUpMessage().isEmpty())  {
                         ch.sendMessage(gc.getLvlUpMessage()
-                                .replaceAll("\\{\\{mention}}", event.getMember().getUser().getAsMention()
-                                        .replaceAll("@(everyone|here)", "@\u200b$1"))
-                                .replaceAll("\\{\\{user}}", UserUtil.formatDiscrim(event.getMember())
-                                        .replaceAll("@(everyone|here)", "@\u200b$1"))
+                                .replaceAll("\\{\\{mention}}", event.getMember().getUser().getAsMention())
+                                .replaceAll("\\{\\{user}}", UserUtil.formatDiscrim(event.getMember()))
                                 .replaceAll("\\{\\{level}}", String.valueOf(event.getLevel()))
                                 .replaceAll("\\{\\{guild}}", event.getMember().getGuild().getName()))
                                 .queue(null, kurwa -> {});
@@ -353,10 +351,9 @@ public class LicznikPunktow {
                 log.debug("Zrzucam {} danych z serwera {}...", map.size(), guild);
                 map.forEach((id, pkt) -> {
                     pktSerwera.addAndGet(pkt);
-                    if (guild.getMemberById(id) == null) return;
                     PunktyRow punktyRow = punktyDao.get(id + "-" + guild.getId());
                     punktySerwera.merge(guild, pkt - punktyRow.getPunkty(), Integer::sum);
-                    punktyUzytkownika.merge(shardManager.getUserById(id), pkt - punktyRow.getPunkty(), Integer::sum);
+                    punktyUzytkownika.merge(shardManager.retrieveUserById(id).complete(), pkt - punktyRow.getPunkty(), Integer::sum);
                     punktyRow.setPunkty(pkt);
                     punktyDao.save(punktyRow);
                 });

@@ -69,14 +69,14 @@ public class WarnUtil {
                 member.getGuild().kick(member).reason(tlumaczenia.get(lang,
                         "modlog.auto.kick.audit.reason", cases)).complete();
                 channel.sendMessage(tlumaczenia.get(lang, "modlog.auto.kick.notice",
-                        member.getUser().getAsTag().replaceAll("@(everyone|here)", "@\u200b$1"),
+                        member.getUser().getAsTag(),
                         cases, managerKomend.getPrefixes(member.getGuild()).get(0))).complete();
             } catch (Exception e) {
                 errored = true;
             }
             if (errored) {
                 channel.sendMessage(tlumaczenia.get(lang, "modlog.auto.kick.cant",
-                        member.getUser().getAsTag().replaceAll("@(everyone|here)", "@\u200b$1"),
+                        member.getUser().getAsTag(),
                         cases, managerKomend.getPrefixes(member.getGuild()).get(0))).complete();
                 return;
             }
@@ -99,7 +99,7 @@ public class WarnUtil {
                         "modlog.auto.tempban.audit.reason", cases,
                         gc.getDlugoscTymczasowegoBanaZaWarny())).complete();
                 channel.sendMessage(tlumaczenia.get(lang, "modlog.auto.tempban.notice",
-                        member.getUser().getAsTag().replaceAll("@(everyone|here)", "@\u200b$1"),
+                        member.getUser().getAsTag(),
                         gc.getDlugoscTymczasowegoBanaZaWarny(), cases,
                         managerKomend.getPrefixes(member.getGuild()).get(0))).complete();
             } catch (Exception e) {
@@ -107,7 +107,7 @@ public class WarnUtil {
             }
             if (errored) {
                 channel.sendMessage(tlumaczenia.get(lang, "modlog.auto.tempban.cant",
-                        member.getUser().getAsTag().replaceAll("@(everyone|here)", "@\u200b$1"),
+                        member.getUser().getAsTag(),
                         gc.getDlugoscTymczasowegoBanaZaWarny(), cases,
                         managerKomend.getPrefixes(member.getGuild()).get(0))).complete();
             }
@@ -125,14 +125,14 @@ public class WarnUtil {
                 member.getGuild().ban(member, 0).reason(tlumaczenia.get(lang,
                         "modlog.auto.ban.audit.reason", cases)).complete();
                 channel.sendMessage(tlumaczenia.get(lang, "modlog.auto.ban.notice",
-                        member.getUser().getAsTag().replaceAll("@(everyone|here)", "@\u200b$1"),
+                        member.getUser().getAsTag(),
                         cases, managerKomend.getPrefixes(member.getGuild()).get(0))).complete();
             } catch (Exception e) {
                 errored = true;
             }
             if (errored) {
                 channel.sendMessage(tlumaczenia.get(lang, "modlog.auto.ban.cant",
-                        member.getUser().getAsTag().replaceAll("@(everyone|here)", "@\u200b$1"),
+                        member.getUser().getAsTag(),
                         cases, managerKomend.getPrefixes(member.getGuild()).get(0))).complete();
             }
             if (gc.isResetujOstrzezeniaPrzyBanie()) {
