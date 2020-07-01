@@ -19,7 +19,6 @@ package pl.fratik.starboard.entity;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -35,8 +34,7 @@ public class StarData {
     private String channel;
     private String starboardMessageId;
 
-    protected StarData() {
-        LoggerFactory.getLogger(StarData.class).warn("Constructor StarData() jest przestarzały!", new Exception());
+    public StarData() {
         starredOn = new Date();
     }
 
