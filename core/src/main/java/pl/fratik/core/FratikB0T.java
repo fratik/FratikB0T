@@ -33,6 +33,7 @@ import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.requests.restaction.MessageAction;
 import net.dv8tion.jda.api.sharding.DefaultShardManagerBuilder;
 import net.dv8tion.jda.api.sharding.ShardManager;
+import net.dv8tion.jda.api.utils.ChunkingFilter;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
 import net.dv8tion.jda.api.utils.cache.CacheFlag;
 import org.slf4j.Logger;
@@ -198,7 +199,8 @@ class FratikB0T {
                 builder.setEnableShutdownHook(false);
                 builder.setAudioSendFactory(new NativeAudioSendFactory());
                 builder.setAutoReconnect(true);
-                builder.setMemberCachePolicy(MemberCachePolicy.VOICE);
+                builder.setChunkingFilter(ChunkingFilter.include(Long.parseLong(Ustawienia.instance.botGuild)));
+                builder.setMemberCachePolicy(MemberCachePolicy.VOICE.or(MemberCachePolicy.OWNER));
                 builder.setStatus(OnlineStatus.DO_NOT_DISTURB);
                 builder.setActivity(Activity.playing(String.format("Ładowanie... (%s shard(ów))", count)));
                 builder.addEventListeners(eventHandler);

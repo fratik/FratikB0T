@@ -27,7 +27,7 @@ import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.channel.text.TextChannelCreateEvent;
 import net.dv8tion.jda.api.events.guild.GuildBanEvent;
 import net.dv8tion.jda.api.events.guild.GuildUnbanEvent;
-import net.dv8tion.jda.api.events.guild.member.GuildMemberLeaveEvent;
+import net.dv8tion.jda.api.events.guild.member.GuildMemberRemoveEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberRoleAddEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberRoleRemoveEvent;
 import net.dv8tion.jda.api.events.role.RoleDeleteEvent;
@@ -189,9 +189,9 @@ public class ModLogListener {
     }
 
     @Subscribe
-    public void onMemberRemove(GuildMemberLeaveEvent guildMemberLeaveEvent) {
-        Guild guild = guildMemberLeaveEvent.getGuild();
-        User user = guildMemberLeaveEvent.getUser();
+    public void onMemberRemove(GuildMemberRemoveEvent e) {
+        Guild guild = e.getGuild();
+        User user = e.getUser();
         if (!guild.getSelfMember().hasPermission(Permission.VIEW_AUDIT_LOGS)) return;
 
         guild.retrieveAuditLogs().type(ActionType.KICK).queue(entries -> {
