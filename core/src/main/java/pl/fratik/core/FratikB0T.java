@@ -34,6 +34,7 @@ import net.dv8tion.jda.api.requests.restaction.MessageAction;
 import net.dv8tion.jda.api.sharding.DefaultShardManagerBuilder;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
+import net.dv8tion.jda.api.utils.cache.CacheFlag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.cache.RedisCacheManager;
@@ -191,7 +192,7 @@ class FratikB0T {
                 DefaultShardManagerBuilder builder = DefaultShardManagerBuilder.createLight(token,
                         GatewayIntent.GUILD_MEMBERS, GatewayIntent.GUILD_BANS, GatewayIntent.GUILD_VOICE_STATES,
                         GatewayIntent.GUILD_MESSAGES, GatewayIntent.GUILD_MESSAGE_REACTIONS,
-                        GatewayIntent.DIRECT_MESSAGES, GatewayIntent.DIRECT_MESSAGE_REACTIONS);
+                        GatewayIntent.DIRECT_MESSAGES, GatewayIntent.DIRECT_MESSAGE_REACTIONS, GatewayIntent.GUILD_EMOJIS);
                 builder.setShardsTotal(count);
                 builder.setShards(min, max);
                 builder.setEnableShutdownHook(false);
@@ -204,6 +205,7 @@ class FratikB0T {
                 builder.setVoiceDispatchInterceptor(eventHandler);
                 builder.setBulkDeleteSplittingEnabled(false);
                 builder.setCallbackPool(Executors.newFixedThreadPool(4));
+                builder.enableCache(CacheFlag.EMOTE);
                 MessageAction.setDefaultMentions(EnumSet.of(Message.MentionType.EMOTE, Message.MentionType.CHANNEL));
                 ShardManager shardManager = builder.build();
                 ManagerArgumentow managerArgumentow = new ManagerArgumentowImpl();
