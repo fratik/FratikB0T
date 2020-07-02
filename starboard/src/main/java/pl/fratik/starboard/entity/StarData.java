@@ -34,10 +34,6 @@ public class StarData {
     private String channel;
     private String starboardMessageId;
 
-    public StarData() {
-        starredOn = new Date();
-    }
-
     public StarData(String author) {
         this.author = author;
         starredOn = new Date();
