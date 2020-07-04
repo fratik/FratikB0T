@@ -190,7 +190,7 @@ class FratikB0T {
                 int count = Integer.parseUnsignedInt(shards[2]);
 
                 logger.info("Oczekiwanie na shard'y...");
-                DefaultShardManagerBuilder builder = DefaultShardManagerBuilder.createLight(token,
+                DefaultShardManagerBuilder builder = DefaultShardManagerBuilder.create(token,
                         GatewayIntent.GUILD_MEMBERS, GatewayIntent.GUILD_BANS, GatewayIntent.GUILD_VOICE_STATES,
                         GatewayIntent.GUILD_MESSAGES, GatewayIntent.GUILD_MESSAGE_REACTIONS,
                         GatewayIntent.DIRECT_MESSAGES, GatewayIntent.DIRECT_MESSAGE_REACTIONS, GatewayIntent.GUILD_EMOJIS);
@@ -199,8 +199,8 @@ class FratikB0T {
                 builder.setEnableShutdownHook(false);
                 builder.setAudioSendFactory(new NativeAudioSendFactory());
                 builder.setAutoReconnect(true);
-                builder.setChunkingFilter(ChunkingFilter.include(Long.parseLong(Ustawienia.instance.botGuild)));
-                builder.setMemberCachePolicy(MemberCachePolicy.VOICE.or(MemberCachePolicy.OWNER));
+                builder.setChunkingFilter(ChunkingFilter.ALL);
+                builder.setMemberCachePolicy(MemberCachePolicy.ALL);
                 builder.setStatus(OnlineStatus.DO_NOT_DISTURB);
                 builder.setActivity(Activity.playing(String.format("Ładowanie... (%s shard(ów))", count)));
                 builder.addEventListeners(eventHandler);
