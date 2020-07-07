@@ -199,7 +199,7 @@ class FratikB0T {
                 builder.setEnableShutdownHook(false);
                 builder.setAudioSendFactory(new NativeAudioSendFactory());
                 builder.setAutoReconnect(true);
-                builder.setChunkingFilter(ChunkingFilter.ALL);
+                builder.setChunkingFilter(ChunkingFilter.NONE);
                 builder.setMemberCachePolicy(MemberCachePolicy.ALL);
                 builder.setStatus(OnlineStatus.DO_NOT_DISTURB);
                 builder.setActivity(Activity.playing(String.format("Ładowanie... (%s shard(ów))", count)));
