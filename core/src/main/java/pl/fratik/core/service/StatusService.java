@@ -24,6 +24,7 @@ import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.SelfUser;
 import net.dv8tion.jda.api.sharding.ShardManager;
+import pl.fratik.core.Globals;
 import pl.fratik.core.Statyczne;
 import pl.fratik.core.Ustawienia;
 
@@ -57,30 +58,6 @@ public class StatusService extends AbstractScheduledService {
         String data = sdf.format(new Date());
         SelfUser selfUser = Objects.requireNonNull(shardManager.getShardById(0)).getSelfUser();
         int rok = Integer.parseInt(new SimpleDateFormat("yyyy").format(new Date()));
-        if (data.equals("1201")) {
-            if (!(selfUser.getName().startsWith("\uD83C\uDF89 ") && selfUser.getName().endsWith(" \uD83C\uDF89")))
-                selfUser.getManager().setName("\uD83C\uDF89 " + selfUser.getName() + " \uD83C\uDF89").complete();
-            shardManager.setActivity(Activity.watching("fratika świętującego swoje " + (rok - 2005) + " urodziny!"));
-            return true;
-        }
-        if (data.equals("1301")) {
-            if (selfUser.getName().startsWith("\uD83C\uDF89 ") && selfUser.getName().endsWith(" \uD83C\uDF89"))
-                selfUser.getManager().setName(selfUser.getName().replace("\uD83C\uDF89 ", "")
-                        .replace(" \uD83C\uDF89", "")).complete();
-            return false;
-        }
-        if (data.equals("2207")) {
-            if (!(selfUser.getName().startsWith("\uD83C\uDF89 ") && selfUser.getName().endsWith(" \uD83C\uDF89")))
-                selfUser.getManager().setName("\uD83C\uDF89 " + selfUser.getName() + " \uD83C\uDF89").complete();
-            shardManager.setActivity(Activity.watching("siebie świętującego swoje " + (rok - 2017) + " urodziny!"));
-            return true;
-        }
-        if (data.equals("2307")) {
-            if (selfUser.getName().startsWith("\uD83C\uDF89 ") && selfUser.getName().endsWith(" \uD83C\uDF89"))
-                selfUser.getManager().setName(selfUser.getName().replace("\uD83C\uDF89 ", "")
-                        .replace(" \uD83C\uDF89", "")).complete();
-            return false;
-        }
         if (data.equals("2412")) {
             if (!(selfUser.getName().startsWith("\uD83C\uDF84 ") && selfUser.getName().endsWith(" \uD83C\uDF84")))
                 selfUser.getManager().setName("\uD83C\uDF84 " + selfUser.getName() + " \uD83C\uDF84").complete();
@@ -91,6 +68,19 @@ public class StatusService extends AbstractScheduledService {
             if (selfUser.getName().startsWith("\uD83C\uDF84 ") && selfUser.getName().endsWith(" \uD83C\uDF84"))
                 selfUser.getManager().setName(selfUser.getName().replace("\uD83C\uDF84 ", "")
                         .replace(" \uD83C\uDF84", "")).complete();
+            return false;
+        }
+        if (Globals.clientId != 338359366891732993L) return false;
+        if (data.equals("2207")) {
+            if (!(selfUser.getName().startsWith("\uD83C\uDF89 ") && selfUser.getName().endsWith(" \uD83C\uDF89")))
+                selfUser.getManager().setName("\uD83C\uDF89 " + selfUser.getName() + " \uD83C\uDF89").complete();
+            shardManager.setActivity(Activity.watching("siebie świętującego swoje " + (rok - 2017) + " urodziny!"));
+            return true;
+        }
+        if (data.equals("2307")) {
+            if (selfUser.getName().startsWith("\uD83C\uDF89 ") && selfUser.getName().endsWith(" \uD83C\uDF89"))
+                selfUser.getManager().setName(selfUser.getName().replace("\uD83C\uDF89 ", "")
+                        .replace(" \uD83C\uDF89", "")).complete();
             return false;
         }
         return false;
@@ -133,14 +123,13 @@ public class StatusService extends AbstractScheduledService {
     }
 
     public static void setCustomGame(Activity customGame) {
-        if (customGame == null) setCustomPresence(null, null);
-        else setCustomPresence(OnlineStatus.ONLINE, customGame);
+        setCustomPresence(OnlineStatus.ONLINE, customGame);
     }
 
     public static void setCustomPresence(OnlineStatus status, Activity customGame) {
-        StatusService.customGame = customGame;
         StatusService.customStatus = status;
-        shardManager.setPresence(status, customGame);
+        StatusService.customGame = customGame;
+        shardManager.setPresence(status == null ? OnlineStatus.ONLINE : status, customGame);
     }
 
     @Override
