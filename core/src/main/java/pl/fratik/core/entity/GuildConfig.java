@@ -116,6 +116,8 @@ public class GuildConfig implements DatabaseEntity {
     @ConfigField(dontDisplayInSettings = true)
     private Map<String, String> pozegnania = new HashMap<>();
     private Boolean wysylajOgloszenia = false;
+    @ConfigField(dontDisplayInSettings = true)
+    private String liczekKanal = "";
     private Map<String, Webhook> webhooki = new HashMap<>();
     private String lvlUpMessage;
     private Boolean resetujOstrzezeniaPrzyBanie = true;

@@ -19,6 +19,8 @@ package pl.fratik.arguments;
 
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.exceptions.ErrorResponseException;
+import net.dv8tion.jda.api.requests.ErrorResponse;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.arguments.Argument;
 import pl.fratik.core.arguments.ArgumentContext;
@@ -33,8 +35,15 @@ public class MemberArgument extends Argument {
     @Override
     public Member execute(@NotNull ArgumentContext context) {
         try {
-            if (context.getGuild().getMemberById(context.getArg()) != null)
-                return context.getGuild().getMemberById(context.getArg());
+            Member member;
+            try {
+                member = context.getGuild().retrieveMemberById(context.getArg()).complete();
+            } catch (ErrorResponseException e) {
+                if (e.getErrorResponse() == ErrorResponse.UNKNOWN_MEMBER || e.getErrorResponse() == ErrorResponse.UNKNOWN_USER)
+                    member = null;
+                else throw e;
+            }
+            if (member != null) return member;
             if (!context.getEvent().getMessage().getMentionedMembers().isEmpty() && context.getEvent().getMessage().getMentionedMembers().get(0) != null)
                 return context.getEvent().getMessage().getMentionedMembers().get(0);
         } catch (Exception ignored) {
@@ -47,8 +56,15 @@ public class MemberArgument extends Argument {
     @Override
     public Object execute(String argument, Tlumaczenia tlumaczenia, Language language, Guild guild) {
         try {
-            if (guild.getMemberById(argument) != null)
-                return guild.getMemberById(argument);
+            Member member;
+            try {
+                member = guild.retrieveMemberById(argument).complete();
+            } catch (ErrorResponseException e) {
+                if (e.getErrorResponse() == ErrorResponse.UNKNOWN_MEMBER || e.getErrorResponse() == ErrorResponse.UNKNOWN_USER)
+                    member = null;
+                else throw e;
+            }
+            if (member != null) return member;
         } catch (Exception ignored) {
             return null;
         }

@@ -28,8 +28,6 @@ import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.command.PermLevel;
 import pl.fratik.core.util.UserUtil;
 
-import java.util.Objects;
-
 public class InviteCommand extends Command {
 
     public InviteCommand() {
@@ -56,7 +54,7 @@ public class InviteCommand extends Command {
     }
 
     private String generateInviteLink(String id) {
-        return "https://discordapp.com/oauth2/authorize?client_id=" +
+        return "https://discord.com/oauth2/authorize?client_id=" +
                 id + "&permissions=" +
                 Globals.permissions + "&scope=bot";
     }

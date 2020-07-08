@@ -44,6 +44,8 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
+import static pl.fratik.tags.Module.MAX_TAG_NAME_LENGTH;
+
 class TagsManager {
     private final TagsDao tagsDao;
     private final ManagerKomend managerKomend;
@@ -67,6 +69,7 @@ class TagsManager {
         @NotNull Tags tagi = Objects.requireNonNull(tagsCache.get(e.getGuild().getId(), tagsDao::get));
         Tag tag = getTagByName(getFirstWord(e.getMessage()), tagi);
         if (tag == null) return;
+        if (tag.getName().length() > MAX_TAG_NAME_LENGTH) return;
         if (managerKomend.getRegistered().stream().anyMatch(c -> c.getName().equals(tag.getName()))) return;
         try {
             webhookManager.send(tag.getContent(), e.getTextChannel());
@@ -104,7 +107,7 @@ class TagsManager {
     private MessageEmbed generateEmbed(Tag tag, Language lang, Guild guild) {
         EmbedBuilder eb = new EmbedBuilder();
         if (tag.getCreatedBy() != null) {
-            User createdBy = shardManager.getUserById(tag.getCreatedBy());
+            User createdBy = shardManager.retrieveUserById(tag.getCreatedBy()).complete();
             if (createdBy == null) createdBy = shardManager.retrieveUserById(tag.getCreatedBy()).complete();
             eb.setFooter(createdBy.getAsTag(), createdBy.getEffectiveAvatarUrl());
             Member mem = guild.getMember(createdBy);

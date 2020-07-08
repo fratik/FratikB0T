@@ -47,7 +47,6 @@ public abstract class Command {
     @Getter protected String uzycieDelim = "";
     @Getter protected PermLevel permLevel = PermLevel.EVERYONE;
     @Getter protected CommandCategory category = CommandCategory.BASIC;
-    @Getter protected CommandType type = CommandType.NORMAL;
     @Getter protected final ArrayList<Permission> permissions = getBasicPermissions();
     @Getter protected boolean allowInDMs = false;
     @Getter protected final HashMap<String, Method> subCommands = new HashMap<>();

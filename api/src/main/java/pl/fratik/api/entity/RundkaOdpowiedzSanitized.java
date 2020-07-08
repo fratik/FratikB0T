@@ -20,8 +20,6 @@ package pl.fratik.api.entity;
 import lombok.Data;
 import net.dv8tion.jda.api.sharding.ShardManager;
 
-import java.util.Objects;
-
 @Data
 public class RundkaOdpowiedzSanitized implements RundkaOdpowiedz {
     private final String userId;
@@ -31,7 +29,7 @@ public class RundkaOdpowiedzSanitized implements RundkaOdpowiedz {
     private Integer ocenyNie;
 
     public RundkaOdpowiedzSanitized(RundkaOdpowiedzFull rundkaOdpowiedz, boolean dolaczOceny, ShardManager shardManager) {
-        net.dv8tion.jda.api.entities.User u = Objects.requireNonNull(shardManager.getUserById(rundkaOdpowiedz.getUserId()));
+        net.dv8tion.jda.api.entities.User u = shardManager.retrieveUserById(rundkaOdpowiedz.getUserId()).complete();
         user = new User(u.getName(), u.getDiscriminator(), u.getEffectiveAvatarUrl(), u.getId(), null, null);
         userId = rundkaOdpowiedz.getUserId();
         rundka = rundkaOdpowiedz.getRundka();

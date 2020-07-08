@@ -17,7 +17,7 @@
 
 package pl.fratik.punkty.komendy;
 
-import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.User;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.*;
 import pl.fratik.core.entity.MemberConfig;
@@ -62,21 +62,13 @@ public class RankingCommand extends Command {
                 String liczbaStringed;
                 if (liczba <= 9) liczbaStringed = "[ " + liczba;
                 else liczbaStringed = "[" + liczba;
-                Member uzytkownik = context.getGuild().getMemberById(id);
-                if (uzytkownik != null)
-                    tekst.add(String.format("%s] %s: %s", liczbaStringed, UserUtil.formatDiscrim(uzytkownik), punkty));
-                else
-                    tekst.add(String.format("%s] %s: %s", liczbaStringed, context.getTranslated("ranking.user.left", id),
-                            punkty));
+                User uzytkownik = context.getShardManager().retrieveUserById(id).complete();
+                tekst.add(String.format("%s] %s: %s", liczbaStringed, UserUtil.formatDiscrim(uzytkownik), punkty));
                 if (liczba != dane.size()) tekst.add("");
             } else {
                 int liczba = miejsce.incrementAndGet();
-                Member uzytkownik = context.getGuild().getMemberById(id);
-                if (uzytkownik != null)
-                    tekst.add(String.format("[%s] %s: %s", liczba, UserUtil.formatDiscrim(uzytkownik), punkty));
-                else
-                    tekst.add(String.format("[%s] %s: %s", liczba, context.getTranslated("ranking.user.left", id),
-                            punkty));
+                User uzytkownik = context.getShardManager().retrieveUserById(id).complete();
+                tekst.add(String.format("[%s] %s: %s", liczba, UserUtil.formatDiscrim(uzytkownik), punkty));
                 if (liczba != dane.size()) tekst.add("");
             }
         });
@@ -100,22 +92,14 @@ public class RankingCommand extends Command {
                 String liczbaStringed;
                 if (liczba <= 9) liczbaStringed = "[ " + liczba;
                 else liczbaStringed = "[" + liczba;
-                Member uzytkownik = context.getGuild().getMemberById(id);
-                if (uzytkownik != null)
-                    tekst.add(String.format("%s] %s: %s", liczbaStringed, UserUtil.formatDiscrim(uzytkownik), poziom));
-                else
-                    tekst.add(String.format("%s] %s: %s", liczbaStringed, context.getTranslated("ranking.user.left", id),
-                            poziom));
+                User uzytkownik = context.getShardManager().retrieveUserById(id).complete();
+                tekst.add(String.format("%s] %s: %s", liczbaStringed, UserUtil.formatDiscrim(uzytkownik), poziom));
                 if (liczba != Math.min(10, dane.size())) tekst.add("");
             } else {
                 int liczba = miejsce.incrementAndGet();
                 if (liczba > 10) return;
-                Member uzytkownik = context.getGuild().getMemberById(id);
-                if (uzytkownik != null)
-                    tekst.add(String.format("[%s] %s: %s", liczba, UserUtil.formatDiscrim(uzytkownik), poziom));
-                else
-                    tekst.add(String.format("[%s] %s: %s", liczba, context.getTranslated("ranking.user.left", id),
-                            poziom));
+                User uzytkownik = context.getShardManager().retrieveUserById(id).complete();
+                tekst.add(String.format("[%s] %s: %s", liczba, UserUtil.formatDiscrim(uzytkownik), poziom));
                 if (liczba != Math.min(10, dane.size())) tekst.add("");
             }
         });
@@ -143,22 +127,14 @@ public class RankingCommand extends Command {
                 String liczbaStringed;
                 if (liczba <= 9) liczbaStringed = "[ " + liczba;
                 else liczbaStringed = "[" + liczba;
-                Member uzytkownik = context.getGuild().getMemberById(id);
-                if (uzytkownik != null)
-                    tekst.add(String.format("%s] %s: %s", liczbaStringed, UserUtil.formatDiscrim(uzytkownik), fc));
-                else
-                    tekst.add(String.format("%s] %s: %s", liczbaStringed, context.getTranslated("ranking.user.left", id),
-                            fc));
+                User uzytkownik = context.getShardManager().retrieveUserById(id).complete();
+                tekst.add(String.format("%s] %s: %s", liczbaStringed, UserUtil.formatDiscrim(uzytkownik), fc));
                 if (liczba != Math.min(10, dane.size())) tekst.add("");
             } else {
                 int liczba = miejsce.incrementAndGet();
                 if (liczba > 10) return;
-                Member uzytkownik = context.getGuild().getMemberById(id);
-                if (uzytkownik != null)
-                    tekst.add(String.format("[%s] %s: %s", liczba, UserUtil.formatDiscrim(uzytkownik), fc));
-                else
-                    tekst.add(String.format("[%s] %s: %s", liczba, context.getTranslated("ranking.user.left", id),
-                            fc));
+                User uzytkownik = context.getShardManager().retrieveUserById(id).complete();
+                tekst.add(String.format("[%s] %s: %s", liczba, UserUtil.formatDiscrim(uzytkownik), fc));
                 if (liczba != Math.min(10, dane.size())) tekst.add("");
             }
         });

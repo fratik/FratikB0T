@@ -64,9 +64,7 @@ public class LogMessage extends AbstractMessage {
     @Nonnull
     @Override
     public User getAuthor() {
-        User user = shardManager.getUserById(authorId);
-        if (user == null) throw new IllegalStateException("użytkownik nie istnieje!");
-        return user;
+        return shardManager.retrieveUserById(authorId).complete();
     }
 
     @Nonnull

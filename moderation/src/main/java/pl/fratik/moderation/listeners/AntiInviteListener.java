@@ -88,8 +88,8 @@ public class AntiInviteListener {
     private boolean containsInvite(String s) {
         s = s.toLowerCase();
         return s.contains("discord.gg/") || s.contains("discord.io/") || s.contains("discord.me/") ||
-                s.contains("discordapp.com/invite/") || s.contains("invite.gg/") ||
-                s.contains("dus.im/");
+                s.contains("discord.com/invite/") || s.contains("discordapp.com/invite/") ||
+                s.contains("invite.gg/") || s.contains("dus.im/");
     }
 
     private synchronized void addKara(Message msg) {
@@ -135,7 +135,7 @@ public class AntiInviteListener {
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     private boolean isAntiinvite(Guild guild) {
         Boolean a = gcCache.get(guild.getId(), guildDao::get).getAntiInvite();
-        return a != null;
+        return a != null && a;
     }
 
     private boolean isIgnored(TextChannel channel) {

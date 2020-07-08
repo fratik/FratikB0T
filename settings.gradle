@@ -22,7 +22,6 @@ include ':arguments'
 include ':api'
 include ':punkty'
 include ':starboard'
-
 if(file('sdk').exists()){
     include ':sdk'
     apply from: 'sdk/settings.gradle'
@@ -35,5 +34,5 @@ include 'tags'
 include 'logs'
 include 'fdevstats'
 include 'dev'
-include 'gwarny'
+include 'liczek'
 

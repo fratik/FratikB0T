@@ -46,6 +46,7 @@ import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
+import net.dv8tion.jda.api.requests.ErrorResponse;
 import net.dv8tion.jda.api.requests.RestAction;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.apache.commons.io.IOUtils;
@@ -131,13 +132,26 @@ public class Module implements Modul {
             List<pl.fratik.api.entity.Guild> guilds = new ArrayList<>();
             for (Guild guild : shardManager.getGuilds()) {
                 if (userId != null) {
-                    Member member = guild.getMemberById(userId);
+                    Member member;
+                    try {
+                        member = guild.retrieveMemberById(userId).complete();
+                    } catch (ErrorResponseException e) {
+                        if (e.getErrorResponse() == ErrorResponse.UNKNOWN_MEMBER) member = null;
+                        else throw e;
+                    }
                     if (member == null || !member.hasPermission(Permission.MANAGE_SERVER)) continue;
                 }
+                Member owner;
+                try {
+                    owner = guild.retrieveOwner().complete();
+                } catch (ErrorResponseException e) {
+                    if (e.getErrorResponse() == ErrorResponse.UNKNOWN_MEMBER) owner = null;
+                    else throw e;
+                }
                 guilds.add(new pl.fratik.api.entity.Guild(guild.getName(), guild.getId(),
-                        guild.getIconId(), guild.getOwner() == null ? null :
-                        new pl.fratik.api.entity.User(Objects.requireNonNull(guild.getOwner()).getUser().getName(),
-                                guild.getOwner().getUser().getDiscriminator(), null, guild.getOwnerId(),
+                        guild.getIconId(), owner == null ? null :
+                        new pl.fratik.api.entity.User(owner.getUser().getName(),
+                                owner.getUser().getDiscriminator(), null, guild.getOwnerId(),
                         null, null),
                         !guild.getSelfMember().getRoles().isEmpty() ?
                                 new pl.fratik.api.entity.Role(guild.getSelfMember().getRoles().get(0).getName(),
@@ -145,8 +159,7 @@ public class Module implements Modul {
                                         guild.getSelfMember().getRoles().get(0).getPermissionsRaw(),
                                         guild.getSelfMember().getRoles().get(0).getPositionRaw(),
                                         guild.getSelfMember().getRoles().get(0).isManaged()) : null,
-                        (int) guild.getMembers().stream().filter(m -> !m.getUser().isBot()).count(),
-                        (int) guild.getMembers().stream().filter(m -> m.getUser().isBot()).count(),
+                        guild.getMemberCount(),
                         guild.getRoles().size(), guild.getTextChannels().size(), guild.getVoiceChannels().size(),
                         guild.getTimeCreated().toInstant().toEpochMilli()));
             }
@@ -569,7 +582,7 @@ public class Module implements Modul {
             if (odp instanceof RundkaOdpowiedzFull)
                 e = new RundkaNewAnswerEvent(new RundkaOdpowiedzSanitized
                         ((RundkaOdpowiedzFull) odp, odp.getUserId().equals(c.userId) ||
-                                UserUtil.isGadm(shardManager.retrieveUserById(c.userId).complete(), shardManager), shardManager));
+                                UserUtil.isStaff(shardManager.retrieveUserById(c.userId).complete(), shardManager), shardManager));
             WebSockets.sendText(Json.serializer().toString(e), c.ch, null);
         }
     }
@@ -579,20 +592,20 @@ public class Module implements Modul {
         for (Map.Entry<String, WscWrapper> entry : webSocketChannels.entrySet()) {
             RundkaAnswerVoteEvent e = finalE;
             if (!entry.getValue().userId.equals(e.getOdpowiedz().getUserId()) &&
-                    !UserUtil.isGadm(shardManager.retrieveUserById(entry.getValue().userId).complete(), shardManager))
+                    !UserUtil.isStaff(shardManager.retrieveUserById(entry.getValue().userId).complete(), shardManager))
                 continue;
             WscWrapper c = entry.getValue();
             RundkaOdpowiedz odp = e.getOdpowiedz();
             if (odp instanceof RundkaOdpowiedzFull)
                 e = new RundkaAnswerVoteEvent(new RundkaOdpowiedzSanitized
                         ((RundkaOdpowiedzFull) odp, odp.getUserId().equals(c.userId) ||
-                                UserUtil.isGadm(shardManager.retrieveUserById(c.userId).complete(), shardManager), shardManager));
+                                UserUtil.isStaff(shardManager.retrieveUserById(c.userId).complete(), shardManager), shardManager));
             WebSockets.sendText(Json.serializer().toString(e), c.ch, null);
         }
     }
 
     private String generateInviteLink(String id) {
-        return "https://discordapp.com/oauth2/authorize?client_id=" +
+        return "https://discord.com/oauth2/authorize?client_id=" +
                 id + "&permissions=" +
                 Globals.permissions + "&scope=bot";
     }

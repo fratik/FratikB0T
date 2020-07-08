@@ -82,7 +82,6 @@ public class EvalCommand extends Command {
         this.memberDao = memberDao;
         name = "eval";
         uzycie = new Uzycie("code", "string", true);
-        type = CommandType.DEBUG;
         category = CommandCategory.SYSTEM;
         permLevel = PermLevel.BOTOWNER;
         permissions.add(Permission.MESSAGE_EMBED_LINKS);

@@ -96,7 +96,7 @@ class GuildStats {
         });
         routes.get("/api/stats", ex -> {
             int guilds = shardManager.getGuilds().size();
-            int members = shardManager.getGuilds().stream().map(g -> g.getMembers().size()).reduce(Integer::sum)
+            int members = shardManager.getGuilds().stream().map(Guild::getMemberCount).reduce(Integer::sum)
                     .orElse(0);
             int textChannels = shardManager.getTextChannels().size();
             int voiceChannels = shardManager.getVoiceChannels().size();
@@ -175,7 +175,7 @@ class GuildStats {
         if (g == null) throw new IllegalArgumentException("nie ma takiego serwera");
         List<MembersStats> list = new ArrayList<>();
         for (MembersStats o : cacheMms.get(guildId, s -> stats.getMembersStatsDao().getAllForGuild(guildId))) {
-            if (o.getDate() == stats.getCurrentStorageDate()) o.setCount(g.getMembers().size());
+            if (o.getDate() == stats.getCurrentStorageDate()) o.setCount(g.getMemberCount());
             list.add(o);
         }
         return list;

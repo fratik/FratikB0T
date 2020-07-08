@@ -129,34 +129,23 @@ public class LogListener {
         }
         if (znaneAkcje.remove(messageDeleteEvent.getMessageId())) return;
         try {
-            messageDeleteEvent.getGuild().retrieveAuditLogs().type(ActionType.MESSAGE_DELETE).queue(
-                    audiologi -> {
-                        User deletedBy = null;
-                        for (AuditLogEntry log : audiologi) {
-                            if (log.getType() == ActionType.MESSAGE_DELETE
-                                    && log.getTimeCreated().isAfter(OffsetDateTime.now().minusMinutes(1))
-                                    && messageDeleteEvent.getChannel().getId().equals(log.getOption(AuditLogOption.CHANNEL))
-                                    && m.getAuthorId() == log.getTargetIdLong()) {
-                                deletedBy = log.getUser();
-                                break;
-                            }
-                        }
-                        MessageEmbed embed = generateEmbed(LogType.DELETE, m, deletedBy, m.getContentRaw(), false);
-                        try {
-                            channel.sendMessage(embed).queue();
-                        } catch (Exception ignored) {
-                            /*lul*/
-                        }
-                    },
-                    error -> {
-                        MessageEmbed embed = generateEmbed(LogType.DELETE, m, null, m.getContentRaw(), true);
-                        try {
-                            channel.sendMessage(embed).queue();
-                        } catch (Exception ignored) {
-                            /*lul*/
-                        }
-                    }
-            );
+            List<AuditLogEntry> audiologi = messageDeleteEvent.getGuild().retrieveAuditLogs().type(ActionType.MESSAGE_DELETE).complete();
+            User deletedBy = null;
+            for (AuditLogEntry log : audiologi) {
+                if (log.getType() == ActionType.MESSAGE_DELETE
+                        && log.getTimeCreated().isAfter(OffsetDateTime.now().minusMinutes(1))
+                        && messageDeleteEvent.getChannel().getId().equals(log.getOption(AuditLogOption.CHANNEL))
+                        && m.getAuthorId() == log.getTargetIdLong()) {
+                    deletedBy = log.getUser();
+                    break;
+                }
+            }
+            MessageEmbed embed = generateEmbed(LogType.DELETE, m, deletedBy, m.getContentRaw(), false);
+            try {
+                channel.sendMessage(embed).queue();
+            } catch (Exception ignored) {
+                /*lul*/
+            }
         } catch (Exception e) {
             MessageEmbed embed = generateEmbed(LogType.DELETE, m, null, m.getContentRaw(), true);
             try {

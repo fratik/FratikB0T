@@ -70,8 +70,12 @@ public class UserArgument extends Argument {
     @Override
     public User execute(String argument, Tlumaczenia tlumaczenia, Language language) {
         try {
-            if (shardManager.getUserById(argument) != null)
-                return shardManager.getUserById(argument);
+            try { //NOSONAR
+                if (shardManager.retrieveUserById(argument).complete() != null)
+                    return shardManager.retrieveUserById(argument).complete();
+            } catch (Exception e1) {
+                // nic
+            }
             Matcher matcher = MENTION_REGEX.matcher(argument);
             if (matcher.matches()) {
                 return shardManager.retrieveUserById(matcher.group()).complete();

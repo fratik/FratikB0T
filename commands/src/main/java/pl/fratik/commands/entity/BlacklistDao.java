@@ -15,12 +15,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package pl.fratik.gwarny.entity;
+package pl.fratik.commands.entity;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.eventbus.EventBus;
 import gg.amy.pgorm.PgMapper;
-import net.dv8tion.jda.api.entities.User;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.entity.Dao;
 import pl.fratik.core.event.DatabaseUpdateEvent;
@@ -28,46 +27,35 @@ import pl.fratik.core.manager.ManagerBazyDanych;
 
 import java.util.List;
 
-public class GwarnDao implements Dao<GwarnData> {
-    private final PgMapper<GwarnData> mapper;
+public class BlacklistDao implements Dao<Blacklist> {
+
     private final EventBus eventBus;
+    private final PgMapper<Blacklist> mapper;
 
-    public GwarnDao(ManagerBazyDanych managerBazyDanych, EventBus eventBus) {
-        this.eventBus = eventBus;
+    public BlacklistDao(ManagerBazyDanych managerBazyDanych, EventBus eventBus) {
         if (managerBazyDanych == null) throw new IllegalStateException("managerBazyDanych == null");
-        mapper = managerBazyDanych.getPgStore().mapSync(GwarnData.class);
+        mapper = managerBazyDanych.getPgStore().mapSync(Blacklist.class);
+        this.eventBus = eventBus;
     }
 
     @Override
-    public GwarnData get(String id) {
-        return mapper.load(id).orElseGet(() -> newObject(id));
-    }
-
-    public GwarnData get(User user) {
-        return get(user.getId());
+    public Blacklist get(String id) {
+        return mapper.load(id).orElse(new Blacklist(id));
     }
 
     @Override
-    public List<GwarnData> getAll() {
+    public List<Blacklist> getAll() {
         return mapper.loadAll();
     }
 
     @Override
-    public void save(GwarnData toCos) {
+    public void save(Blacklist toCos) {
         ObjectMapper objMapper = new ObjectMapper();
         String jsoned;
-        try {
-            jsoned = objMapper.writeValueAsString(toCos);
-        } catch (Exception ignored) {
-            jsoned = toCos.toString();
-        }
+        try { jsoned = objMapper.writeValueAsString(toCos); } catch (Exception ignored) { jsoned = toCos.toString(); }
         LoggerFactory.getLogger(getClass()).debug("Zmiana danych w DB: {} -> {} -> {}", toCos.getTableName(),
                 toCos.getClass().getName(), jsoned);
         mapper.save(toCos);
         eventBus.post(new DatabaseUpdateEvent(toCos));
-    }
-
-    private GwarnData newObject(String id) {
-        return new GwarnData(id);
     }
 }
