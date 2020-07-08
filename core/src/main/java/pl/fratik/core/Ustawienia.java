@@ -171,6 +171,7 @@ public class Ustawienia {
         public String serwery = "";
         public String ram = "";
         public String komdzis = "";
+        public String ostakt = "";
     }
 
     public static class Webhooki extends AbstractMap<String, String> {

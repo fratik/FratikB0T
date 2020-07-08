@@ -64,16 +64,13 @@ public class UnmuteCommand extends ModerationCommand {
             context.send(context.getTranslated("unmute.cant.unmute.yourself"));
             return false;
         }
-        Member mem = context.getGuild().getMemberById(uzytkownik.getUser().getId());
-        if (mem != null) {
-            if (mem.isOwner()) {
-                context.send(context.getTranslated("unmute.cant.unmute.owner"));
-                return false;
-            }
-            if (!context.getMember().canInteract(mem)) {
-                context.send(context.getTranslated("unmute.cant.interact"));
-                return false;
-            }
+        if (uzytkownik.isOwner()) {
+            context.send(context.getTranslated("unmute.cant.unmute.owner"));
+            return false;
+        }
+        if (!context.getMember().canInteract(uzytkownik)) {
+            context.send(context.getTranslated("unmute.cant.interact"));
+            return false;
         }
         try {
             rola = context.getGuild().getRoleById(gc.getWyciszony());

@@ -427,17 +427,9 @@ public class ManagerKomendImpl implements ManagerKomend {
 
     @Override
     public Emoji getReakcja(User user, boolean success) {
-        UserConfig uc = ucCache.getIfPresent(user.getId());
+        UserConfig uc = ucCache.get(user.getId(), userDao::get);
         String r = success ? uc.getReakcja() : uc.getReakcjaBlad();
-        if (r == null) {
-            UserConfig config = userDao.get(user);
-            ucCache.put(user.getId(), config);
-            if (success) {
-                return Emoji.resolve(config.getReakcja(), shardManager);
-            } else {
-                return Emoji.resolve(config.getReakcjaBlad(), shardManager);
-            }
-        } else return Emoji.resolve(r, shardManager);
+        return Emoji.resolve(r, shardManager);
     }
 
     @Override

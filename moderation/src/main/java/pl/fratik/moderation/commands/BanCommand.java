@@ -20,7 +20,9 @@ package pl.fratik.moderation.commands;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.exceptions.HierarchyException;
+import net.dv8tion.jda.api.requests.ErrorResponse;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
@@ -64,7 +66,13 @@ public class BanCommand extends ModerationCommand {
             context.send(context.getTranslated("ban.cant.ban.yourself"));
             return false;
         }
-        Member uzMem = context.getGuild().getMemberById(uzytkownik.getId());
+        Member uzMem;
+        try {
+            uzMem = context.getGuild().retrieveMemberById(uzytkownik.getId()).complete();
+        } catch (ErrorResponseException e) {
+            if (e.getErrorResponse() == ErrorResponse.UNKNOWN_MEMBER) uzMem = null;
+            else throw e;
+        }
         if (uzMem != null) {
             if (uzMem.isOwner()) {
                 context.send(context.getTranslated("ban.cant.ban.owner"));

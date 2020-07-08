@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 FratikB0T Contributors
+ * Copyright (C) 2019 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,14 +15,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package pl.fratik.gwarny;
+package pl.fratik.liczek;
 
 import com.google.common.eventbus.EventBus;
 import com.google.inject.Inject;
 import net.dv8tion.jda.api.sharding.ShardManager;
-import pl.fratik.core.arguments.Argument;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.command.Command;
-import pl.fratik.core.entity.*;
+import pl.fratik.core.entity.GuildDao;
+import pl.fratik.core.entity.MemberDao;
+import pl.fratik.core.entity.UserDao;
 import pl.fratik.core.manager.ManagerArgumentow;
 import pl.fratik.core.manager.ManagerBazyDanych;
 import pl.fratik.core.manager.ManagerKomend;
@@ -30,64 +32,39 @@ import pl.fratik.core.manager.ManagerModulow;
 import pl.fratik.core.moduly.Modul;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.EventWaiter;
-import pl.fratik.gwarny.arguments.GadminArgument;
-import pl.fratik.gwarny.commands.GwarnCommand;
-import pl.fratik.gwarny.commands.GwarnlistCommand;
-import pl.fratik.gwarny.commands.UngwarnCommand;
-import pl.fratik.gwarny.entity.GwarnDao;
+import pl.fratik.liczek.listener.LiczekListener;
 
 import java.util.ArrayList;
 
 public class Module implements Modul {
-    @Inject
-    private ManagerKomend managerKomend;
-    @Inject
-    private ManagerArgumentow managerArgumentow;
-    @Inject
-    private EventWaiter eventWaiter;
-    @Inject
-    private GuildDao guildDao;
-    @Inject
-    private MemberDao memberDao;
-    @Inject
-    private UserDao userDao;
-    @Inject
-    private GbanDao gbanDao;
-    @Inject
-    private ScheduleDao scheduleDao;
-    @Inject
-    private ManagerBazyDanych managerBazyDanych;
-    @Inject
-    private ShardManager shardManager;
-    @Inject
-    private Tlumaczenia tlumaczenia;
-    @Inject
-    private ManagerModulow managerModulow;
-    @Inject
-    private EventBus eventBus;
+    @Inject private ManagerKomend managerKomend;
+    @Inject private ManagerArgumentow managerArgumentow;
+    @Inject private EventWaiter eventWaiter;
+    @Inject private GuildDao guildDao;
+    @Inject private MemberDao memberDao;
+    @Inject private UserDao userDao;
+    @Inject private ManagerBazyDanych managerBazyDanych;
+    @Inject private ShardManager shardManager;
+    @Inject private Tlumaczenia tlumaczenia;
+    @Inject private ManagerModulow managerModulow;
+    @Inject private EventBus eventBus;
+    @Inject private RedisCacheManager redisCacheManager;
 
     private ArrayList<Command> commands;
-    private ArrayList<Argument> arguments;
-    private GwarnDao gwarnDao;
+    private LiczekListener listener;
 
     public Module() {
-        arguments = new ArrayList<>();
         commands = new ArrayList<>();
     }
 
     @Override
     public boolean startUp() {
-        gwarnDao = new GwarnDao(managerBazyDanych, eventBus);
-
-        arguments = new ArrayList<>();
         commands = new ArrayList<>();
 
-        arguments.add(new GadminArgument(shardManager));
-        arguments.forEach(managerArgumentow::registerArgument);
+        commands.add(new LiczekCommand(guildDao));
 
-        commands.add(new GwarnCommand(gwarnDao));
-        commands.add(new GwarnlistCommand(gwarnDao, eventWaiter, eventBus));
-        commands.add(new UngwarnCommand(gwarnDao));
+        listener = new LiczekListener(guildDao, tlumaczenia, redisCacheManager);
+        eventBus.register(listener);
 
         commands.forEach(managerKomend::registerCommand);
         return true;
@@ -95,8 +72,8 @@ public class Module implements Modul {
 
     @Override
     public boolean shutDown() {
-        arguments.forEach(managerArgumentow::unregisterArgument);
         commands.forEach(managerKomend::unregisterCommand);
+        eventBus.unregister(listener);
         return true;
     }
 }
