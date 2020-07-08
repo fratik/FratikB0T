@@ -23,6 +23,7 @@ import gg.amy.pgorm.annotations.PrimaryKey;
 import gg.amy.pgorm.annotations.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import pl.fratik.core.command.PermLevel;
 import pl.fratik.core.tlumaczenia.Language;
 
 import java.beans.Transient;
@@ -118,7 +119,7 @@ public class GuildConfig implements DatabaseEntity {
     private Map<String, Webhook> webhooki = new HashMap<>();
     private String lvlUpMessage;
     private Boolean resetujOstrzezeniaPrzyBanie = true;
-    private Map<String, Integer> permLevel = new HashMap<>();
+    private Map<String, PermLevel> cmdPermLevelOverrides = new HashMap<>();
 
     // TODO: 09/04/2020 można to zrobić dla każdego Boolean'a, ale to już kwestia kosmetyki kodu chyba
     public boolean isResetujOstrzezeniaPrzyBanie() {

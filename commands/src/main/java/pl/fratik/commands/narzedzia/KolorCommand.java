@@ -117,7 +117,7 @@ public class KolorCommand extends Command {
     private String getCssName(Color color) {
         try {
             InputStream st = getClass().getResourceAsStream("/colors.json");
-            JsonObject jsonObject = new JsonParser().parse(new InputStreamReader(st, StandardCharsets.UTF_8))
+            JsonObject jsonObject = JsonParser.parseReader(new InputStreamReader(st, StandardCharsets.UTF_8))
                     .getAsJsonObject();
             for (Map.Entry<String, JsonElement> entry : jsonObject.entrySet()) {
                 int[] rgbTmp = new int[3];
@@ -139,7 +139,7 @@ public class KolorCommand extends Command {
     private Color getCssColor(CommandContext context) {
         try {
             InputStream st = getClass().getResourceAsStream("/colors.json");
-            JsonObject jsonObject = new JsonParser().parse(new InputStreamReader(st, StandardCharsets.UTF_8))
+            JsonObject jsonObject = JsonParser.parseReader(new InputStreamReader(st, StandardCharsets.UTF_8))
                     .getAsJsonObject();
             for (Map.Entry<String, JsonElement> entry : jsonObject.entrySet()) {
                 int[] rgba = new int[4];

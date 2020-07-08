@@ -61,4 +61,8 @@ public class RolesCommand extends ModerationCommand {
         return PermLevel.EVERYONE;
     }
 
+    @Override
+    public boolean isAllowPermLevelEveryone() {
+        return true;
+    }
 }

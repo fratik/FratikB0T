@@ -263,16 +263,17 @@ public class ManagerKomendImpl implements ManagerKomend {
                     plvl = UserUtil.getPermlevel(event.getAuthor(), shardManager);
                 }
 
-                GuildConfig gc = guildDao.get(event.getGuild());
-                Integer cmdpl = c.getPermLevel().getNum();
+                GuildConfig gc = gcCache.get(event.getGuild().getId(), guildDao::get);
+                PermLevel customPlvl = null;
                 try {
-                    if (gc.getPermLevel().containsKey(c.getName())) cmdpl = gc.getPermLevel().get(c.getName());
+                    if (gc.getCmdPermLevelOverrides().containsKey(c.getName()))
+                        customPlvl = gc.getCmdPermLevelOverrides().get(c.getName());
                 } catch (Exception ignored) {}
 
-                if (cmdpl > plvl.getNum()) {
+                if ((customPlvl == null ? c.getPermLevel() : customPlvl).getNum() > plvl.getNum()) {
                     Language l = tlumaczenia.getLanguage(event.getMember());
                     event.getChannel().sendMessage(tlumaczenia.get(l, "generic.permlevel.too.small",
-                            UserUtil.getPermlevel(event.getMember(), guildDao, shardManager).getNum(), cmdpl))
+                            UserUtil.getPermlevel(event.getMember(), guildDao, shardManager).getNum(), customPlvl))
                             .queue();
                     return;
                 }
@@ -285,14 +286,14 @@ public class ManagerKomendImpl implements ManagerKomend {
                         Collections.singletonList(String.join(" ", argsNotDelimed)).toArray(new String[]{});
                 CommandContext context;
                 try {
-                    context = new CommandContext(shardManager, tlumaczenia, c, event, prefix, parts[0], args);
+                    context = new CommandContext(shardManager, tlumaczenia, c, event, prefix, parts[0], args, customPlvl);
                 } catch (ArgsMissingException e) {
                     EmbedBuilder eb = new EmbedBuilder()
                             .setColor(Color.decode("#bef7c3"))
                             .setFooter("© " + event.getJDA().getSelfUser().getName(),
                                     event.getJDA().getSelfUser().getEffectiveAvatarUrl()
                                             .replace(".webp", ".png"));
-                    CommonErrors.usage(eb, tlumaczenia, tlumaczenia.getLanguage(event.getMember()), prefix, c, event.getChannel());
+                    CommonErrors.usage(eb, tlumaczenia, tlumaczenia.getLanguage(event.getMember()), prefix, c, event.getChannel(), customPlvl);
                     return;
                 }
 

@@ -46,6 +46,7 @@ public class UstawieniaCommand extends Command {
         type = CommandType.MODERATION;
         category = CommandCategory.MODERATION;
         allowInDMs = false;
+        allowPermLevelEveryone = false;
 
         this.eventWaiter = eventWaiter;
         this.userDao = userDao;

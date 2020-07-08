@@ -18,6 +18,7 @@
 package pl.fratik.commands.system;
 
 import net.dv8tion.jda.api.EmbedBuilder;
+import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
@@ -32,7 +33,7 @@ import pl.fratik.core.util.UserUtil;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class UstawPoziomCommand extends Command {
 
@@ -50,49 +51,49 @@ public class UstawPoziomCommand extends Command {
         hmap.put("permlevel", "integer");
         uzycie = new Uzycie(hmap, new boolean[] {true, false, false});
         uzycieDelim = " ";
+        allowPermLevelChange = false;
         this.guildDao = guildDao;
         this.managerKomend = managerKomend;
     }
 
     @Override
-    public boolean execute(CommandContext context) {
+    public boolean execute(@NotNull CommandContext context) {
         String typ = ((String) context.getArgs()[0]).toLowerCase();
         GuildConfig gc = guildDao.get(context.getGuild());
-        boolean setuj = false;
-        if (gc.getPermLevel() == null) {
-            gc.setPermLevel(new HashMap<>());
-            setuj = true;
+        final AtomicBoolean setuj = new AtomicBoolean(false);
+        if (gc.getCmdPermLevelOverrides() == null) {
+            gc.setCmdPermLevelOverrides(new HashMap<>());
+            setuj.set(true);
         }
         if (typ.equals("list") || typ.equals("lista")) {
-            if (gc.getPermLevel().isEmpty()) {
+            if (gc.getCmdPermLevelOverrides().isEmpty()) {
                 context.send(context.getTranslated("ustawpoziom.list.isempty"));
                 return false;
             }
             ArrayList<String> list = new ArrayList<>();
-            StringBuilder sb = new StringBuilder();
+            final StringBuilder[] sb = {new StringBuilder()};
             EmbedBuilder embed = context.getBaseEmbed();
             embed.setColor(UserUtil.getPrimColor(context.getSender()));
 
-            for (Map.Entry<String, Integer> entry : gc.getPermLevel().entrySet()) {
-                PermLevel pl = PermLevel.getPermLevel(entry.getValue());
-                if (pl == null) {
-                    gc.getPermLevel().remove(entry.getKey());
-                    setuj = true;
+            gc.getCmdPermLevelOverrides().entrySet().stream().sorted((a, b) -> a.getKey().compareToIgnoreCase(b.getKey())).forEach(entry -> {
+                if (!managerKomend.getCommands().containsKey(entry.getKey())) {
+                    gc.getCmdPermLevelOverrides().remove(entry.getKey());
+                    setuj.set(true);
                 } else {
                     String append = context.getTranslated("ustawpoziom.list.desc",
                             entry.getKey(),
-                            context.getTranslated(pl.getLanguageKey()),
-                            entry.getValue()) + "\n";
-                    if (sb.toString().length() + append.length() >= 900) {
-                        list.add(sb.toString());
-                        sb = new StringBuilder();
-                    } else sb.append(append);
+                            entry.getValue().getNum(),
+                            context.getTranslated(entry.getValue().getLanguageKey())) + "\n";
+                    if (sb[0].toString().length() + append.length() >= 900) {
+                        list.add(sb[0].toString());
+                        sb[0] = new StringBuilder();
+                    } else sb[0].append(append);
                 }
-            }
-            if (list.isEmpty()) embed.setDescription(sb.toString());
+            });
+            if (list.isEmpty()) embed.setDescription(sb[0].toString());
             else list.forEach(s -> embed.addField(" ", s, false));
             context.send(embed.build());
-            if (setuj) guildDao.save(gc);
+            if (setuj.get()) guildDao.save(gc);
             return true;
         }
         if (typ.equals("remove") || typ.equals("reset") || typ.equals("clear")) {
@@ -103,11 +104,15 @@ public class UstawPoziomCommand extends Command {
                 CommonErrors.usage(context);
                 return false;
             }
-            if (!gc.getPermLevel().containsKey(cmd)) {
+            if (!managerKomend.getCommands().containsKey(cmd)) {
+                context.send(context.getTranslated("ustawpoziom.set.unknowncmd"));
+                return false;
+            }
+            if (!gc.getCmdPermLevelOverrides().containsKey(cmd)) {
                 context.send(context.getTranslated("ustawpoziom.remove.doesnt.exist"));
                 return false;
             }
-            gc.getPermLevel().remove(cmd);
+            gc.getCmdPermLevelOverrides().remove(cmd);
             guildDao.save(gc);
             context.send(context.getTranslated("ustawpoziom.remove.succes"));
             return true;
@@ -127,17 +132,19 @@ public class UstawPoziomCommand extends Command {
 
             try {
                 plvl = PermLevel.getPermLevel(lvl);
+                if (plvl == null) throw new Exception("jeśli to czytasz, idź na wybory");
             } catch (Exception e) {
-                context.send(context.getTranslated("ustawpoziom.set.badlvl"));
-                return false;
-            }
-            if (plvl == null) {
-                context.send(context.getTranslated("ustawpoziom.set.badlvl"));
+                context.send(context.getTranslated("ustawpoziom.set.unknownplvl"));
                 return false;
             }
             ccmd = managerKomend.getCommands().get(cmd);
             if (ccmd == null) {
-                context.send(context.getTranslated("ustawpoziom.set.badcmd"));
+                context.send(context.getTranslated("ustawpoziom.set.unknowncmd"));
+                return false;
+            }
+
+            if (plvl.getNum() > PermLevel.OWNER.getNum()) {
+                context.send(context.getTranslated("ustawpoziom.set.gaplvl", PermLevel.OWNER.getNum()));
                 return false;
             }
 
@@ -147,27 +154,31 @@ public class UstawPoziomCommand extends Command {
                 return false;
             }
 
-            if (ccmd.getCategory() == CommandCategory.MODERATION && plvl.getNum() == PermLevel.EVERYONE.getNum()) {
-                context.send(context.getTranslated("ustawpoziom.set.moderationcmd"));
+            if (!ccmd.isAllowPermLevelChange()) {
+                context.send(context.getTranslated("ustawpoziom.set.edit.not.allowed"));
                 return false;
             }
 
-            if (ccmd.getPermLevel().getNum() >= PermLevel.GADMIN.getNum()) {
-                context.send(context.getTranslated("ustawpoziom.set.gacmd"));
+            if (!ccmd.isAllowPermLevelEveryone() && plvl.getNum() == PermLevel.EVERYONE.getNum()) {
+                context.send(context.getTranslated("ustawpoziom.set.everyone.not.allowed", plvl.getNum()));
                 return false;
             }
 
-            if (ccmd.getName().equals("ustawpoziom")) {
-                context.send(context.getTranslated("ustawpoziom.set.poziomcmd"));
-                return false;
+            if (ccmd.getPermLevel().equals(plvl)) {
+                if (gc.getCmdPermLevelOverrides().remove(cmd) != null) {
+                    context.send(context.getTranslated("ustawpoziom.set.default.value", plvl.getNum()));
+                    guildDao.save(gc);
+                    return true;
+                } else {
+                    context.send(context.getTranslated("ustawpoziom.set.not.changed", plvl.getNum(), ccmd.getPermLevel().getNum()));
+                    return false;
+                }
             }
 
-            gc.getPermLevel().remove(ccmd.getName());
-            gc.getPermLevel().put(ccmd.getName(), plvl.getNum());
+            gc.getCmdPermLevelOverrides().put(ccmd.getName(), plvl);
             guildDao.save(gc);
-            context.send(context.getTranslated("ustawpoziom.set.succes",
-                    ccmd.getName(), plvl.getNum(),
-                    context.getTranslated(plvl.getLanguageKey())));
+            context.send(context.getTranslated("ustawpoziom.set.success",
+                    ccmd.getName(), plvl.getNum(), context.getTranslated(plvl.getLanguageKey())));
             return true;
         }
         CommonErrors.usage(context);
