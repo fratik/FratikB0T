@@ -38,8 +38,7 @@ public class PermLevelCommand extends Command {
         StringBuilder sb = new StringBuilder();
         sb.append("```asciidoc" + "\n");
         for (PermLevel v : PermLevel.values()) {
-            sb.append(context.getTranslated(v.getLanguageKey()) + " :: " +
-                    context.getTranslated("permlevel.lvl") + " " + v.getNum() + "\n");
+            sb.append(v.getNum()).append(" :: ").append(context.getTranslated(v.getLanguageKey())).append("\n");
         }
         sb.append("```");
         eb.setDescription(sb.toString());
