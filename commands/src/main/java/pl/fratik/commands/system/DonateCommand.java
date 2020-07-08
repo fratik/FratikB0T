@@ -25,7 +25,7 @@ import pl.fratik.core.command.CommandContext;
 public class DonateCommand extends Command {
     public DonateCommand() {
         name = "donate";
-        category = CommandCategory.SYSTEM;
+        category = CommandCategory.BASIC;
     }
 
     @Override

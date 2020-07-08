@@ -20,6 +20,7 @@ package pl.fratik.commands.narzedzia;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import pl.fratik.core.command.Command;
+import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.command.PermLevel;
 
@@ -27,6 +28,7 @@ public class PermLevelCommand extends Command {
 
     public PermLevelCommand() {
         name = "permlevel";
+        category = CommandCategory.BASIC;
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
     }
 
