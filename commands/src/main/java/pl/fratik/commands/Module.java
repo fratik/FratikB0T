@@ -142,6 +142,7 @@ public class Module implements Modul {
             commands.add(new OsuCommand(shardManager, eventWaiter, eventBus));
         commands.add(new Rule34Command(eventWaiter, eventBus, managerArgumentow));
         commands.add(new CoronastatsCommand());
+        commands.add(new PermLevelCommand());
         commands.add(new BlacklistPopCommand(userDao, blacklistDao));
 
         listener = new MemberListener(guildDao, redisCacheManager);

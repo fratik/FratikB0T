@@ -15,22 +15,35 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package pl.fratik.commands.system;
+package pl.fratik.commands.narzedzia;
 
-import org.jetbrains.annotations.NotNull;
+import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.Permission;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
+import pl.fratik.core.command.PermLevel;
 
-public class DonateCommand extends Command {
-    public DonateCommand() {
-        name = "donate";
+public class PermLevelCommand extends Command {
+
+    public PermLevelCommand() {
+        name = "permlevel";
         category = CommandCategory.BASIC;
+        permissions.add(Permission.MESSAGE_EMBED_LINKS);
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        context.send(context.getTranslated("donate.plz"));
+    public boolean execute(CommandContext context) {
+        EmbedBuilder eb = context.getBaseEmbed();
+        StringBuilder sb = new StringBuilder();
+        sb.append("```asciidoc" + "\n");
+        for (PermLevel v : PermLevel.values()) {
+            sb.append(v.getNum()).append(" :: ").append(context.getTranslated(v.getLanguageKey())).append("\n");
+        }
+        sb.append("```");
+        eb.setDescription(sb.toString());
+        context.send(eb.build());
         return true;
     }
+
 }

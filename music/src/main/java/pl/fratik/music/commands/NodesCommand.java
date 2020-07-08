@@ -19,10 +19,7 @@ package pl.fratik.music.commands;
 
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.Ustawienia;
-import pl.fratik.core.command.Command;
-import pl.fratik.core.command.CommandContext;
-import pl.fratik.core.command.PermLevel;
-import pl.fratik.core.command.SubCommand;
+import pl.fratik.core.command.*;
 import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.util.CommonErrors;
 
@@ -31,6 +28,7 @@ import java.util.LinkedHashMap;
 public class NodesCommand extends Command {
     public NodesCommand() {
         name = "nodes";
+        category = CommandCategory.SYSTEM;
         permLevel = PermLevel.BOTOWNER;
         LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
         hmap.put("node", "string");

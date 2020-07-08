@@ -48,7 +48,6 @@ public class HelpCommand extends Command {
         this.shardManager = shardManager;
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         name = "help";
-        type = CommandType.NORMAL;
         uzycie = new Uzycie("kategoria", "category");
         aliases = new String[] {"commands"};
         category = CommandCategory.BASIC;
