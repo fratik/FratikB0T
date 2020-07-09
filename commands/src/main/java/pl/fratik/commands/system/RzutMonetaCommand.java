@@ -31,6 +31,7 @@ public class RzutMonetaCommand extends Command {
         name = "rzutmoneta";
         category = CommandCategory.FUN;
         aliases = new String[] {"rzutm", "moneta", "rm"};
+        allowPermLevelChange = false;
     }
 
     @Override

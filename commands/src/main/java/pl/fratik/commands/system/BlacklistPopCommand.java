@@ -53,6 +53,7 @@ public class BlacklistPopCommand extends Command {
         uzycie = new Uzycie(hmap, new boolean[] {true, true, false});
         uzycieDelim = " ";
         allowInDMs = true;
+        allowPermLevelChange = false;
     }
 
     @Override

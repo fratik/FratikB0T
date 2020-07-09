@@ -46,6 +46,7 @@ public class ChainCommand extends Command {
         permissions.add(Permission.MESSAGE_ATTACH_FILES);
         cooldown = 5;
         aliases = new String[] {"lozeczko"};
+        allowPermLevelChange = false;
     }
 
     @Override

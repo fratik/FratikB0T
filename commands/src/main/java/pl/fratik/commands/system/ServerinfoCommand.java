@@ -48,6 +48,7 @@ public class ServerinfoCommand extends Command {
         category = CommandCategory.SYSTEM;
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         aliases = new String[] {"serwerinfo"};
+        allowPermLevelChange = false;
     }
 
     @Override

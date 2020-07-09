@@ -30,6 +30,7 @@ public class OpuscCommand extends Command {
         permLevel = PermLevel.ADMIN;
         category = CommandCategory.SYSTEM;
         aliases = new String[] {"koniec"};
+        allowPermLevelEveryone = false;
     }
 
     @Override

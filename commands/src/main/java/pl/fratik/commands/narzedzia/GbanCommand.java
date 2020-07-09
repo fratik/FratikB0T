@@ -54,6 +54,7 @@ public class GbanCommand extends Command {
         hmap.put("[...]", STRINGARGTYPE);
         uzycie = new Uzycie(hmap, new boolean[] {true, true, false});
         uzycieDelim = " ";
+        allowPermLevelChange = false;
     }
 
     @Override

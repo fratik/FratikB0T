@@ -34,6 +34,7 @@ public class OsiemBallCommand extends Command {
         category = CommandCategory.FUN;
         uzycie = new Uzycie("pytanie", "string", true);
         aliases = new String[] {"pytanie"};
+        allowPermLevelChange = false;
     }
 
     @Override

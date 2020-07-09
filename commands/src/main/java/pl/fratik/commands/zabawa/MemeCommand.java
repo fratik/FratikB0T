@@ -43,6 +43,7 @@ public class MemeCommand extends Command {
         category = CommandCategory.FUN;
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         aliases = new String[] {"memes", "pokazmiswojetowary", "memez"};
+        allowPermLevelChange = false;
     }
 
     @Override

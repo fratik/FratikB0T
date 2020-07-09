@@ -155,7 +155,7 @@ public class UstawPoziomCommand extends Command {
             }
 
             if (!ccmd.isAllowPermLevelChange()) {
-                context.send(context.getTranslated("ustawpoziom.set.edit.not.allowed"));
+                context.send(context.getTranslated("ustawpoziom.set.edit.not.allowed", context.getPrefix()));
                 return false;
             }
 

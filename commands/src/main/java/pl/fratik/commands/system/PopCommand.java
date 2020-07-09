@@ -83,6 +83,7 @@ public class PopCommand extends Command {
         permissions.add(Permission.CREATE_INSTANT_INVITE);
         permissions.add(Permission.MANAGE_ROLES);
         permissions.add(Permission.MANAGE_CHANNEL);
+        allowPermLevelEveryone = false;
     }
 
     @Override

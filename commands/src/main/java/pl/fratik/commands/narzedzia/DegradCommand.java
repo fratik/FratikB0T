@@ -49,6 +49,7 @@ public class DegradCommand extends Command {
         permissions.add(Permission.MESSAGE_ATTACH_FILES);
         uzycie = new Uzycie("gadmin", "user");
         aliases = new String[] {"papa", "plynik"};
+        allowPermLevelChange = false;
     }
 
     @Override

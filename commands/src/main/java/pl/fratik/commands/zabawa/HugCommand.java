@@ -41,6 +41,7 @@ public class HugCommand extends Command {
         permissions.add(Permission.MESSAGE_ATTACH_FILES);
         cooldown = 5;
         aliases = new String[] {"tulas", "przytul"};
+        allowPermLevelChange = false;
     }
 
     @Override

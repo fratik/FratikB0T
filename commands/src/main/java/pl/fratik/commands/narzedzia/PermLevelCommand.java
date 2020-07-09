@@ -30,6 +30,7 @@ public class PermLevelCommand extends Command {
         name = "permlevel";
         category = CommandCategory.BASIC;
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
+        allowPermLevelChange = false;
     }
 
     @Override

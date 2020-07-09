@@ -264,11 +264,7 @@ public class ManagerKomendImpl implements ManagerKomend {
                 }
 
                 GuildConfig gc = gcCache.get(event.getGuild().getId(), guildDao::get);
-                PermLevel customPlvl = null;
-                try {
-                    if (gc.getCmdPermLevelOverrides().containsKey(c.getName()))
-                        customPlvl = gc.getCmdPermLevelOverrides().get(c.getName());
-                } catch (Exception ignored) {}
+                PermLevel customPlvl = getPermLevelOverride(c, gc);
 
                 if ((customPlvl == null ? c.getPermLevel() : customPlvl).getNum() > plvl.getNum()) {
                     Language l = tlumaczenia.getLanguage(event.getMember());
@@ -364,6 +360,18 @@ public class ManagerKomendImpl implements ManagerKomend {
                 executor.submit(runnable);
             }
         }
+    }
+
+    public static PermLevel getPermLevelOverride(Command c, GuildConfig gc) {
+        PermLevel override = gc.getCmdPermLevelOverrides().get(c.getName());
+        if (!checkPermLevelOverride(c, gc, override)) return null;
+        return override;
+    }
+
+    public static boolean checkPermLevelOverride(Command c, GuildConfig gc, PermLevel override) {
+        return gc.getCmdPermLevelOverrides().containsKey(c.getName()) && // https://simulator.io/board/N4iB1fbHf1/1
+                ((c.isAllowPermLevelChange() && override != PermLevel.EVERYONE) ||
+                ((c.isAllowPermLevelChange() && c.isAllowPermLevelEveryone()) && override == PermLevel.EVERYONE));
     }
 
     private void zareaguj(CommandContext context, boolean success) {

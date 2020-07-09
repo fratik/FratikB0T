@@ -62,6 +62,7 @@ public class CytujCommand extends Command {
         hmap.put("[...]", STRINGARGTYPE);
         uzycie = new Uzycie(hmap, new boolean[] {true, false, false});
         aliases = new String[] {"zacytuj", "cytat", "ktośkiedyśnapisał..."};
+        allowPermLevelChange = false;
     }
 
     @Override

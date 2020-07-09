@@ -44,7 +44,7 @@ public class UstawieniaCommand extends Command {
         aliases = new String[] {"conf", "settings"};
         category = CommandCategory.BASIC;
         allowInDMs = false;
-        allowPermLevelEveryone = false;
+        allowPermLevelChange = false;
 
         this.eventWaiter = eventWaiter;
         this.userDao = userDao;

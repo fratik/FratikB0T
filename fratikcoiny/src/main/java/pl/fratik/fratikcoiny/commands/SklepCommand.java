@@ -67,6 +67,7 @@ public class SklepCommand extends Command {
         hmap.put("[...]", "string");
         uzycie = new Uzycie(hmap, new boolean[] {false, false, false, false});
         uzycieDelim = " ";
+        allowPermLevelChange = false;
     }
 
     @Override

@@ -62,6 +62,7 @@ public class OgloszenieCommand extends Command {
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         category = CommandCategory.SYSTEM;
         aliases = new String[] {"news", "broadcast"};
+        allowPermLevelChange = false;
     }
 
     @Override

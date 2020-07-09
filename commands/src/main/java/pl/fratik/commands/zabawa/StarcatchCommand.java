@@ -42,6 +42,7 @@ public class StarcatchCommand extends Command {
         permissions.add(Permission.MESSAGE_ATTACH_FILES);
         cooldown = 5;
         aliases = new String[] {"photocatch"};
+        allowPermLevelChange = false;
     }
 
     @Override

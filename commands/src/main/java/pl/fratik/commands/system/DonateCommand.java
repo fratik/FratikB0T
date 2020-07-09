@@ -26,6 +26,7 @@ public class DonateCommand extends Command {
     public DonateCommand() {
         name = "donate";
         category = CommandCategory.BASIC;
+        allowPermLevelChange = false;
     }
 
     @Override

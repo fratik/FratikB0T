@@ -38,6 +38,7 @@ public class RegulaminCommand extends ModerationCommand {
         category = CommandCategory.MODERATION;
         uzycie = new Uzycie("zasada", "integer", true);
         aliases = new String[] {"zasady", "reg", "zasada", "rules"};
+        allowPermLevelChange = false;
     }
 
     @Override

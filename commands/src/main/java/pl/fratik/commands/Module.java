@@ -71,7 +71,7 @@ public class Module implements Modul {
         commands = new ArrayList<>();
 
         commands.add(new PingCommand());
-        commands.add(new HelpCommand(managerKomend, guildDao, shardManager));
+        commands.add(new HelpCommand(managerKomend, guildDao, shardManager, redisCacheManager));
         commands.add(new LanguageCommand(userDao));
         commands.add(new UstawieniaCommand(eventWaiter, userDao, guildDao, managerArgumentow, shardManager, tlumaczenia));
         commands.add(new PoziomCommand(guildDao, shardManager));

@@ -27,6 +27,7 @@ public class PomocCommand extends Command {
     public PomocCommand() {
         name = "pomoc";
         category = CommandCategory.SYSTEM;
+        allowPermLevelChange = false;
     }
 
     @Override

@@ -47,6 +47,7 @@ public class KolorCommand extends Command {
         aliases = new String[] {"color", "paleta", "colors"};
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         permissions.add(Permission.MESSAGE_ATTACH_FILES);
+        allowPermLevelChange = false;
     }
 
     @Override

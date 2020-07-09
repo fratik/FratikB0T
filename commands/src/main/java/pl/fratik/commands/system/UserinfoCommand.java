@@ -50,6 +50,7 @@ public class UserinfoCommand extends Command {
         category = CommandCategory.SYSTEM;
         uzycie = new Uzycie("osoba", "user");
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
+        allowPermLevelChange = false;
     }
 
     @Override
