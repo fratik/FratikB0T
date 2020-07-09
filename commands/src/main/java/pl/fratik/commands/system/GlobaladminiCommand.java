@@ -51,6 +51,7 @@ public class GlobaladminiCommand extends Command {
         permissions.add(Permission.MESSAGE_ADD_REACTION);
         permissions.add(Permission.MESSAGE_MANAGE); // TODO: 22.02.19 wersja bez tych permow
         aliases = new String[] {"ga", "globaladmin"};
+        allowPermLevelChange = false;
     }
 
     @Override

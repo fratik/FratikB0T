@@ -57,6 +57,7 @@ public class HypixelCommand extends Command {
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         cooldown = 3;
         hypixelAPI = new HypixelAPI(UUID.fromString(Ustawienia.instance.apiKeys.get("hypixelToken")));
+        allowPermLevelChange = false;
     }
 
     @Override

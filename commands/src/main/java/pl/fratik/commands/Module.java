@@ -71,7 +71,7 @@ public class Module implements Modul {
         commands = new ArrayList<>();
 
         commands.add(new PingCommand());
-        commands.add(new HelpCommand(managerKomend, guildDao, shardManager));
+        commands.add(new HelpCommand(managerKomend, guildDao, shardManager, redisCacheManager));
         commands.add(new LanguageCommand(userDao));
         commands.add(new UstawieniaCommand(eventWaiter, userDao, guildDao, managerArgumentow, shardManager, tlumaczenia));
         commands.add(new PoziomCommand(guildDao, shardManager));
@@ -142,6 +142,7 @@ public class Module implements Modul {
             commands.add(new OsuCommand(shardManager, eventWaiter, eventBus));
         commands.add(new Rule34Command(eventWaiter, eventBus, managerArgumentow));
         commands.add(new CoronastatsCommand());
+        commands.add(new UstawPoziomCommand(guildDao, managerKomend));
         commands.add(new PermLevelCommand());
         commands.add(new BlacklistPopCommand(userDao, blacklistDao));
 

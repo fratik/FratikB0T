@@ -42,6 +42,7 @@ public class PogodaCommand extends Command {
         aliases = new String[] {"weather", "w", "pg", "prognoza", "pogodynka", "meteo", "meteostp", "warunkiatmosferyczne"};
         allowInDMs = true;
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
+        allowPermLevelChange = false;
     }
 
     @Override

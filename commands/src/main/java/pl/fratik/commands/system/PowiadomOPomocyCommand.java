@@ -39,6 +39,7 @@ public class PowiadomOPomocyCommand extends Command {
         aliases = new String[] {"powiadompop"};
         category = CommandCategory.SYSTEM;
         permLevel = PermLevel.GADMIN;
+        allowPermLevelChange = false;
     }
 
     @Override

@@ -79,6 +79,7 @@ public class Rule34Command extends NsfwCommand {
             LoggerFactory.getLogger(getClass()).error("Pixiv nie możliwy do użycia - nieprawidłowe dane logowania!");
             pixiv = null;
         }
+        allowPermLevelChange = false;
     }
 
     @Override

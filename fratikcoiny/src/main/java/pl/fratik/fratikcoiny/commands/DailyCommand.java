@@ -40,6 +40,7 @@ public class DailyCommand extends Command {
         category = CommandCategory.MONEY;
         permissions.add(Permission.MESSAGE_EXT_EMOJI);
         aliases = new String[] {"dzienna", "dziennazaplata", "zaplatadzienna", "kasazadarmo", "kieszonkowe", "getfc", "wyplata"};
+        allowPermLevelChange = false;
     }
 
     @Override

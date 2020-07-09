@@ -33,6 +33,7 @@ public class PasswordCommand extends Command {
         aliases = new String[] {"haslo", "wygenerujhaslo"};
         uzycie = new Uzycie("znaki", "integer", false);
         cooldown = 4;
+        allowPermLevelChange = false;
     }
 
     @Override

@@ -54,6 +54,7 @@ public class TekstCommand extends MusicCommand {
         aliases = new String[] {"lyrics"};
         requireConnection = false;
         uzycie = new Uzycie("tytul", "string", false);
+        allowPermLevelChange = false;
     }
 
     @Override

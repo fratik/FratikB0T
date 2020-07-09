@@ -39,6 +39,7 @@ public class LvlupCommand extends Command {
         name = "lvlup";
         aliases = new String[] {"pktNaPoziom", "getPoziom", "zaIleLevelUp", "kiedyNastepnyPoziom", "ilePunktowNaPoziom"};
         category = CommandCategory.POINTS;
+        allowPermLevelChange = false;
     }
 
     @Override

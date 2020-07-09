@@ -36,6 +36,7 @@ public class InviteCommand extends Command {
         permLevel = PermLevel.EVERYONE;
         aliases = new String[] {"dodajbota"};
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
+        allowPermLevelChange = false;
     }
 
     @Override

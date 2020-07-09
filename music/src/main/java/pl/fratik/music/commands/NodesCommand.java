@@ -35,6 +35,7 @@ public class NodesCommand extends Command {
         hmap.put("[...]", "string");
         uzycie = new Uzycie(hmap, new boolean[] {true, false});
         uzycieDelim = " ";
+        allowPermLevelChange = false;
     }
 
     @Override

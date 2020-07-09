@@ -34,6 +34,7 @@ public class DashboardCommand extends Command {
         category = CommandCategory.SYSTEM;
         aliases = new String[] {"strona"};
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
+        allowPermLevelChange = false;
     }
 
     @Override

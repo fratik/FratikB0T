@@ -37,6 +37,7 @@ public class StatsCommand extends Command {
         category = CommandCategory.POINTS;
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         uzycie = new Uzycie("uzytkownik", "member", false);
+        allowPermLevelChange = false;
     }
 
     @Override

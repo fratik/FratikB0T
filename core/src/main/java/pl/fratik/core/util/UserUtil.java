@@ -42,6 +42,7 @@ import java.util.TimeZone;
 
 public class UserUtil {
 
+    @Setter private static Cache<GuildConfig> gcCache;
     @Setter private static Cache<GbanData> gbanCache;
     @Setter private static Cache<String> timeZoneCache;
 
@@ -99,7 +100,7 @@ public class UserUtil {
             return PermLevel.OWNER;
         if (max.getNum() >= 3 && member.getPermissions().contains(Permission.MANAGE_SERVER))
             return PermLevel.MANAGESERVERPERMS;
-        GuildConfig gc = guildDao.get(member.getGuild());
+        GuildConfig gc = gcCache.get(member.getGuild().getId(), guildDao::get);
         if (max.getNum() >= 2 && gc.getAdminRole() != null && gc.getAdminRole().length() != 0 &&
                 member.getRoles().stream().map(ISnowflake::getId).anyMatch(id -> gc.getAdminRole().equals(id)))
             return PermLevel.ADMIN;

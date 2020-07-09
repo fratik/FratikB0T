@@ -45,4 +45,9 @@ abstract class ModerationCommand extends Command {
     public boolean isIgnoreGaPerm() {
         return true;
     }
+
+    @Override
+    public boolean isAllowPermLevelEveryone() {
+        return false;
+    }
 }

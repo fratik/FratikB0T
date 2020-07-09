@@ -79,6 +79,7 @@ public class OsuCommand extends Command {
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         osu = Osu.getAPI(instance.apiKeys.get("osu"));
         cooldown = 15;
+        allowPermLevelChange = false;
     }
 
     @Override

@@ -44,6 +44,7 @@ public class RankingCommand extends Command {
         permLevel = PermLevel.EVERYONE;
         category = CommandCategory.POINTS;
         cooldown = 7;
+        allowPermLevelChange = false;
     }
 
     @SuppressWarnings("squid:S1192")

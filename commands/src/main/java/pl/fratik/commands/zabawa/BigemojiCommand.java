@@ -42,6 +42,7 @@ public class BigemojiCommand extends Command {
         uzycieDelim = " ";
         aliases = new String[] {"bigmoji"};
         permissions.add(Permission.MESSAGE_ATTACH_FILES);
+        allowPermLevelChange = false;
     }
 
     @Override

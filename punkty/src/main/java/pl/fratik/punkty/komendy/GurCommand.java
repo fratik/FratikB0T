@@ -52,6 +52,7 @@ public class GurCommand extends Command {
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         permissions.add(Permission.MESSAGE_MANAGE);
         permissions.add(Permission.MESSAGE_ADD_REACTION);
+        allowPermLevelChange = false;
     }
 
     @Override

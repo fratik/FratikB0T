@@ -68,6 +68,7 @@ public class McstatusCommand extends Command {
         allowInDMs = true;
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         cooldown = 13;
+        allowPermLevelChange = false;
     }
 
     private static final Pattern DOMAIN_PATTERN = Pattern.compile("((?:www\\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]*" +

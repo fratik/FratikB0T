@@ -34,6 +34,7 @@ public class AvatarCommand extends Command {
         uzycie = new Uzycie("osoba", "user");
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         aliases = new String[] {"prof", "profilowe", "awatar"};
+        allowPermLevelChange = false;
     }
 
     @Override

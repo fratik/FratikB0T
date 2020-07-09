@@ -86,6 +86,7 @@ public class EvalCommand extends Command {
         permLevel = PermLevel.BOTOWNER;
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         aliases = new String[] {"ev"};
+        allowPermLevelChange = false;
     }
 
     @Override

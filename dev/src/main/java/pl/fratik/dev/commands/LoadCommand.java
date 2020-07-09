@@ -46,6 +46,7 @@ public class LoadCommand extends Command {
         permLevel = PermLevel.BOTOWNER;
         uzycie = new Uzycie("modul", "string");
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
+        allowPermLevelChange = false;
     }
 
     @Override

@@ -39,6 +39,7 @@ public class FixstarCommand extends Command {
         category = CommandCategory.STARBOARD;
         uzycie = new Uzycie("wiadomosc", "message", true);
         permissions.add(Permission.MESSAGE_HISTORY);
+        allowPermLevelChange = false;
     }
 
     @Override

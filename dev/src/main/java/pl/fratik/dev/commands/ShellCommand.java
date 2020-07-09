@@ -31,6 +31,7 @@ public class ShellCommand extends Command {
         name = "shell";
         permLevel = PermLevel.BOTOWNER;
         category = CommandCategory.SYSTEM;
+        allowPermLevelChange = false;
     }
 
     @Override

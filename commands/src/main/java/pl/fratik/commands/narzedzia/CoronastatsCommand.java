@@ -41,6 +41,7 @@ public class CoronastatsCommand extends Command {
         cooldown = 5;
         category = CommandCategory.UTILITY;
         uzycie = new Uzycie("kraj", "string", false);
+        allowPermLevelChange = false;
     }
 
     @Override
