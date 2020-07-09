@@ -248,7 +248,7 @@ class FratikB0T {
 
                 Globals.clientId = shard.get().getSelfUser().getIdLong();
 
-                if (shard.get().getSelfUser().getId().equals("338359366891732993")) {
+                if (shard.get().getSelfUser().getId().equals(Ustawienia.instance.productionBotId)) {
                     Globals.inDiscordBotsServer = Globals.production = true;
                 }
 
@@ -282,7 +282,7 @@ class FratikB0T {
                     Thread.sleep(100);
                 }
 
-                if (shardManager.getGuildById("345655892882096139") != null) Globals.inFratikDev = true;
+                if (shardManager.getGuildById(Ustawienia.instance.botGuild) != null) Globals.inFratikDev = true;
 
                 shardManager.setStatus(OnlineStatus.ONLINE);
                 shardManager.setActivity(Activity.playing("Dzień doberek! | v" + WERSJA));
