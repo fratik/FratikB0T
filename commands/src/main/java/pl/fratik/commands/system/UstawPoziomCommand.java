@@ -27,6 +27,7 @@ import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.manager.ManagerKomend;
+import pl.fratik.core.manager.implementation.ManagerKomendImpl;
 import pl.fratik.core.util.CommonErrors;
 import pl.fratik.core.util.UserUtil;
 
@@ -76,7 +77,8 @@ public class UstawPoziomCommand extends Command {
             embed.setColor(UserUtil.getPrimColor(context.getSender()));
 
             gc.getCmdPermLevelOverrides().entrySet().stream().sorted((a, b) -> a.getKey().compareToIgnoreCase(b.getKey())).forEach(entry -> {
-                if (!managerKomend.getCommands().containsKey(entry.getKey())) {
+                Command cmd = managerKomend.getCommands().get(entry.getKey());
+                if (cmd == null || !ManagerKomendImpl.checkPermLevelOverride(cmd, gc, entry.getValue())) {
                     gc.getCmdPermLevelOverrides().remove(entry.getKey());
                     setuj.set(true);
                 } else {
