@@ -364,6 +364,8 @@ public class ManagerKomendImpl implements ManagerKomend {
     }
 
     public static PermLevel getPermLevelOverride(Command c, GuildConfig gc) {
+        if (gc.getCmdPermLevelOverrides() == null)
+            gc.setCmdPermLevelOverrides(new HashMap<>());
         PermLevel override = gc.getCmdPermLevelOverrides().get(c.getName());
         if (!checkPermLevelOverride(c, gc, override)) return null;
         return override;
