@@ -266,10 +266,11 @@ public class ManagerKomendImpl implements ManagerKomend {
                 GuildConfig gc = gcCache.get(event.getGuild().getId(), guildDao::get);
                 PermLevel customPlvl = getPermLevelOverride(c, gc);
 
-                if ((customPlvl == null ? c.getPermLevel() : customPlvl).getNum() > plvl.getNum()) {
+                final PermLevel permLevel = customPlvl == null ? c.getPermLevel() : customPlvl;
+                if (permLevel.getNum() > plvl.getNum()) {
                     Language l = tlumaczenia.getLanguage(event.getMember());
                     event.getChannel().sendMessage(tlumaczenia.get(l, "generic.permlevel.too.small",
-                            UserUtil.getPermlevel(event.getMember(), guildDao, shardManager).getNum(), customPlvl))
+                            UserUtil.getPermlevel(event.getMember(), guildDao, shardManager).getNum(), permLevel.getNum()))
                             .queue();
                     return;
                 }
