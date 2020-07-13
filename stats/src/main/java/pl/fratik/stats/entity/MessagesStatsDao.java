@@ -59,6 +59,14 @@ public class MessagesStatsDao implements Dao<MessagesStats> {
         return mapper.loadManyBySubkey("data->>'date'", String.valueOf(date));
     }
 
+    public List<MessagesStats> getAllBefore(long date) {
+        return mapper.loadManyBySubkey("data->>'date'", String.valueOf(date), "<");
+    }
+
+    public boolean delete(MessagesStats msgs) {
+        return mapper.delete(msgs.getUniqid()).orElse(false);
+    }
+
     @Override
     public void save(MessagesStats toCos) {
         ObjectMapper objMapper = new ObjectMapper();

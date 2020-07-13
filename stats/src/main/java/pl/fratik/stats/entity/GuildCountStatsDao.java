@@ -46,6 +46,10 @@ public class GuildCountStatsDao implements Dao<GuildCountStats> {
         return mapper.load(id).orElseGet(() -> newObject(id));
     }
 
+    public List<GuildCountStats> getBefore(long date) {
+        return mapper.loadManyBySubkey("data->>'date'", String.valueOf(date), "<");
+    }
+
     @Override
     public List<GuildCountStats> getAll() {
         return mapper.loadAll();
@@ -53,6 +57,10 @@ public class GuildCountStatsDao implements Dao<GuildCountStats> {
 
     public List<GuildCountStats> getAll(int limit) {
         return mapper.loadRaw("SELECT * FROM %s ORDER BY data->>'date' DESC LIMIT " + limit + ";");
+    }
+
+    public boolean delete(GuildCountStats gcs) {
+        return mapper.delete(gcs.getDate()).orElse(false);
     }
 
     @Override

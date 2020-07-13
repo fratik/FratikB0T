@@ -187,8 +187,11 @@ public class PgMapper<T> {
      * subkey.
      */
     public List<T> loadManyBySubkey(final String subKey, final String subKeyData) {
+        return loadManyBySubkey(subKey, subKeyData, "=");
+    }
+    public List<T> loadManyBySubkey(final String subKey, final String subKeyData, String compareSymbol) {
         final List<T> data = new ArrayList<>();
-        store.sql("SELECT * FROM " + table.value() + " WHERE " + subKey + " = ?;", c -> {
+        store.sql("SELECT * FROM " + table.value() + " WHERE " + subKey + " " + compareSymbol + " ?;", c -> {
             c.setObject(1, subKeyData);
             final ResultSet resultSet = c.executeQuery();
             if(resultSet.isBeforeFirst()) {

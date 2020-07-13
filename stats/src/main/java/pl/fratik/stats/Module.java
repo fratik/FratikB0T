@@ -36,6 +36,7 @@ import pl.fratik.core.manager.ManagerModulow;
 import pl.fratik.core.moduly.Modul;
 import pl.fratik.stats.entity.*;
 
+import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.*;
 import java.util.concurrent.Executors;
@@ -78,6 +79,7 @@ public class Module implements Modul {
     }
 
     private void zrzut() {
+        //#region Zapis statystyk
         CommandCountStats ccs = commandCountStatsDao.get(getCurrentStorageDate());
         if (ccs.getCount() + komend != ccs.getCount() || ccs.getCount() == 0) {
             ccs.setCount(ccs.getCount() + komend);
@@ -132,6 +134,22 @@ public class Module implements Modul {
                 messagesStatsDao.save(ms);
             }
         }
+        //#endregion
+        //#region Usunięcie przestarzałych statystyk
+        Calendar cal = Calendar.getInstance();
+        cal.setTimeZone(TimeZone.getTimeZone(ZoneOffset.UTC));
+        cal.setTime(Date.from(Instant.ofEpochMilli(getCurrentStorageDate())));
+        cal.add(Calendar.YEAR, -2);
+        long twoYearsAgo = cal.toInstant().toEpochMilli();
+        List<CommandCountStats> ccsToRemove = commandCountStatsDao.getBefore(twoYearsAgo);
+        for (CommandCountStats cc : ccsToRemove) commandCountStatsDao.delete(cc);
+        List<GuildCountStats> gcsToRemove = guildCountStatsDao.getBefore(twoYearsAgo);
+        for (GuildCountStats gc : gcsToRemove) guildCountStatsDao.delete(gc);
+        List<MembersStats> mssToRemove = membersStatsDao.getAllBefore(twoYearsAgo);
+        for (MembersStats ms : mssToRemove) membersStatsDao.delete(ms);
+        List<MessagesStats> msgsToRemove = messagesStatsDao.getAllBefore(twoYearsAgo);
+        for (MessagesStats msg : msgsToRemove) messagesStatsDao.delete(msg);
+        //#endregion
     }
 
     public long getCurrentStorageDate() {
