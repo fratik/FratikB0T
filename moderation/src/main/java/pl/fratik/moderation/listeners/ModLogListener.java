@@ -190,13 +190,14 @@ public class ModLogListener {
 
     @Subscribe
     public void onMemberRemove(GuildMemberRemoveEvent e) {
+        OffsetDateTime now = OffsetDateTime.now();
         Guild guild = e.getGuild();
         User user = e.getUser();
         if (!guild.getSelfMember().hasPermission(Permission.VIEW_AUDIT_LOGS)) return;
 
         guild.retrieveAuditLogs().type(ActionType.KICK).queue(entries -> {
             for (AuditLogEntry entry : entries) {
-                if (!entry.getTimeCreated().isAfter(OffsetDateTime.now().minusSeconds(15))) continue;
+                if (!entry.getTimeCreated().isAfter(now.minusSeconds(15))) continue;
                 if (entry.getTargetIdLong() == user.getIdLong()) {
                     if (knownCases.get(guild) == null || knownCases.get(guild).stream()
                             .noneMatch(c -> c.getUserId().equals(user.getId()) && c.getType() == Kara.KICK)) {
