@@ -19,7 +19,6 @@ package pl.fratik.moderation.commands;
 
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.requests.restaction.MessageAction;
 import org.jetbrains.annotations.NotNull;
@@ -29,7 +28,6 @@ import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.util.UserUtil;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -65,8 +63,7 @@ public class RolementionCommand extends ModerationCommand {
         }
         context.getMessage().delete().queue();
 
-        MessageAction msg = context.getChannel().sendMessage(rola.getAsMention()).
-                allowedMentions(Collections.singleton(Message.MentionType.ROLE));
+        MessageAction msg = context.getChannel().sendMessage(rola.getAsMention()).mentionRoles(rola.getIdLong());
 
         if (tekst != null) {
             EmbedBuilder eb = new EmbedBuilder();
