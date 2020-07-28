@@ -83,7 +83,6 @@ public class RolementionCommand extends ModerationCommand {
             return true;
         }
         msg.complete();
-        rola.getManager().setMentionable(state).complete();
         return true;
     }
 
