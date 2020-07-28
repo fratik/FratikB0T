@@ -82,8 +82,6 @@ public class RolementionCommand extends ModerationCommand {
             rola.getManager().setMentionable(state).complete();
             return true;
         }
-        boolean state = rola.isMentionable();
-        rola.getManager().setMentionable(true).complete();
         msg.complete();
         rola.getManager().setMentionable(state).complete();
         return true;
