@@ -18,6 +18,7 @@
 package pl.fratik.moderation.commands;
 
 import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
@@ -80,6 +81,13 @@ public class BanCommand extends ModerationCommand {
             }
             if (!context.getMember().canInteract(uzMem)) {
                 context.send(context.getTranslated("ban.cant.interact"));
+                return false;
+            }
+        }
+        List<Guild.Ban> bany = context.getGuild().retrieveBanList().complete();
+        for (Guild.Ban ban : bany) {
+            if (ban.getUser().getId().equals(uzytkownik.getId())) {
+                context.send(context.getTranslated("ban.already.has.ban"));
                 return false;
             }
         }
