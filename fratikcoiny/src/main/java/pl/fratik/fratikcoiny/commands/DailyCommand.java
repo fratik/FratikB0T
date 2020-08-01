@@ -70,7 +70,7 @@ public class DailyCommand extends Command {
         mc.setFratikCoiny(fc);
         mc.setDailyDate(dailyDate);
         memberDao.save(mc);
-        context.send(context.getTranslated(msg, emotkaFc.getAsMention()));
+        context.send(context.getTranslated(msg, emotkaFc.getAsMention(), mc.getFratikCoiny(), emotkaFc.getAsMention()));
         return true;
     }
 
