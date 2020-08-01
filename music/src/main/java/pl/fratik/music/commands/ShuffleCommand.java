@@ -22,12 +22,12 @@ import pl.fratik.core.entity.GuildDao;
 import pl.fratik.music.managers.ManagerMuzykiSerwera;
 import pl.fratik.music.managers.NowyManagerMuzyki;
 
-public class ShuffleQueueCommand extends MusicCommand {
+public class ShuffleCommand extends MusicCommand {
 
     private final NowyManagerMuzyki managerMuzyki;
     private final GuildDao guildDao;
 
-    public ShuffleQueueCommand(NowyManagerMuzyki managerMuzyki, GuildDao guildDao) {
+    public ShuffleCommand(NowyManagerMuzyki managerMuzyki, GuildDao guildDao) {
         name = "shuffle";
         aliases = new String[] {"shufflequeue", "mieszajkolejka", "randomqueue"};
         requireConnection = true;
@@ -44,12 +44,12 @@ public class ShuffleQueueCommand extends MusicCommand {
         }
 
         if (mms.getKolejka().isEmpty()) {
-            context.send(context.getTranslated("shufflequeue.queueempty"));
+            context.send(context.getTranslated("shuffle.queueempty"));
             return false;
         }
 
         mms.shuffleQueue();
-        context.send(context.getTranslated("shufflequeue.success"));
+        context.send(context.getTranslated("shuffle.success"));
 
         return true;
     }

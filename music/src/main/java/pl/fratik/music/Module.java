@@ -99,7 +99,7 @@ public class Module implements Modul {
         commands.add(new LeaveCommand(managerMuzyki));
         commands.add(new NowplayingCommand(managerMuzyki));
         commands.add(new PauseCommand(managerMuzyki, guildDao));
-        commands.add(new ShuffleQueueCommand(managerMuzyki, guildDao));
+        commands.add(new ShuffleCommand(managerMuzyki, guildDao));
         if (Ustawienia.instance.apiKeys.containsKey("genius"))
             commands.add(new TekstCommand(eventWaiter, eventBus, managerMuzyki));
         commands.add(new NodesCommand());
