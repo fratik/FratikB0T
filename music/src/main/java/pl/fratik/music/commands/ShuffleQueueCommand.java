@@ -28,8 +28,8 @@ public class ShuffleQueueCommand extends MusicCommand {
     private final GuildDao guildDao;
 
     public ShuffleQueueCommand(NowyManagerMuzyki managerMuzyki, GuildDao guildDao) {
-        name = "shufflequeue";
-        aliases = new String[] {"shuffle", "mieszajkolejka", "randomqueue"};
+        name = "shuffle";
+        aliases = new String[] {"shufflequeue", "mieszajkolejka", "randomqueue"};
         requireConnection = true;
         this.managerMuzyki = managerMuzyki;
         this.guildDao = guildDao;
@@ -49,7 +49,7 @@ public class ShuffleQueueCommand extends MusicCommand {
         }
 
         mms.shuffleQueue();
-        context.send(context.getTranslated("shufflequeue.succes"));
+        context.send(context.getTranslated("shufflequeue.success"));
 
         return true;
     }
