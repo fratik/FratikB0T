@@ -83,6 +83,13 @@ public class BanCommand extends ModerationCommand {
                 return false;
             }
         }
+        try {
+            context.getGuild().retrieveBanById(uzytkownik.getId()).complete();
+            context.send(context.getTranslated("ban.already.banned"));
+            return false;
+        } catch (ErrorResponseException e) {
+            // użytkownik nie ma bana
+        }
         DurationUtil.Response durationResp;
         try {
             durationResp = DurationUtil.parseDuration(powod);
