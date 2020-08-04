@@ -17,6 +17,7 @@
 
 package pl.fratik.starboard;
 
+import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.Subscribe;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
@@ -65,6 +66,7 @@ public class StarboardListener {
     }
 
     @Subscribe
+    @AllowConcurrentEvents
     public void starAddEvent(MessageReactionAddEvent event) {
         executor.submit(() -> {
             if (!event.isFromGuild()) return;
@@ -99,6 +101,14 @@ public class StarboardListener {
                     toIgnore.add(event.getMessageId());
                     event.getReaction().removeReaction(event.getUser()).queue(null, throwableConsumer);
                     event.getChannel().sendMessage(tlumaczenia.get(l, "starboard.cant.star.yourself", event.getUser().getAsMention()))
+                            .queue(m -> m.delete().queueAfter(15, TimeUnit.SECONDS));
+                    return;
+                }
+                if (stdCache.get(message.getGuild().getId(), starDataDao::get).getBlacklista().contains(event.getUser().getId())) {
+                    Language l = tlumaczenia.getLanguage(message.getMember());
+                    toIgnore.add(event.getMessageId());
+                    event.getReaction().removeReaction(event.getUser()).queue(null, throwableConsumer);
+                    event.getChannel().sendMessage(tlumaczenia.get(l, "starboard.blacklisted", event.getUser().getAsMention()))
                             .queue(m -> m.delete().queueAfter(15, TimeUnit.SECONDS));
                     return;
                 }
