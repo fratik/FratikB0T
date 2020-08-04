@@ -140,6 +140,14 @@ public class StarboardListener {
                             .queue(m -> m.delete().queueAfter(5, TimeUnit.SECONDS));
                     return;
                 }
+                if (stdCache.get(msg.getGuild().getId(), starDataDao::get).getBlacklista().contains(event.getUser().getId())) {
+                    Language l = tlumaczenia.getLanguage(msg.getMember());
+                    toIgnore.add(event.getMessageId());
+                    event.getReaction().removeReaction(event.getUser()).queue(null, throwableConsumer);
+                    event.getChannel().sendMessage(tlumaczenia.get(l, "starboard.blacklisted", event.getUser().getAsMention()))
+                            .queue(m -> m.delete().queueAfter(5, TimeUnit.SECONDS));
+                    return;
+                }
                 try {
                     starManager.addStar(msg, event.getUser(), starsData);
                 } catch (IllegalStateException e) {
