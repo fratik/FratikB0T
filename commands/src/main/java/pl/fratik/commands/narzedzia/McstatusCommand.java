@@ -118,17 +118,18 @@ public class McstatusCommand extends Command {
                             .append(resp.getPlayers().getMax()).append("**\n\n");
                     if (resp.getPlayers().getSample() != null && !resp.getPlayers().getSample().isEmpty()) {
                         int plejers = resp.getPlayers().getOnline();
-                        for (ServerListPing17.Player p : resp.getPlayers().getSample().stream().sorted((a, b) -> a.getName()
-                                .compareToIgnoreCase(b.getName())).collect(Collectors.toList())) {
+                        for (ServerListPing17.Player p : resp.getPlayers().getSample()/*.stream().sorted((a, b) -> a.getName()
+                                .compareToIgnoreCase(b.getName())).collect(Collectors.toList())*/) {
                             if (players.length() + (p.getName() + "\n").length() > 1000 -
                                     (context.getTranslated("mcstatus.embed.players.more", plejers)).length()) {
                                 players.append(context.getTranslated("mcstatus.embed.players.more", plejers));
                             }
-                            players.append(p.getName()).append("\n");
+                            players.append(replaceMinecraftFormatting(p.getName())).append("\n");
                         }
                     }
                     eb.addField(context.getTranslated("mcstatus.embed.players"), players.toString(), false);
-                    eb.addField(context.getTranslated("mcstatus.embed.version"), resp.getVersion().getName(), false);
+                    eb.addField(context.getTranslated("mcstatus.embed.version"),
+                            replaceMinecraftFormatting(resp.getVersion().getName()), false);
                     eb.addField(context.getTranslated("mcstatus.embed.motd"), formatMotd(resp.getDescription()), false);
                     eb.addField(context.getTranslated("mcstatus.embed.ip"), ip + ":" + port, false);
                     eb.setFooter(resp.getTime() + " ms", null);
@@ -205,9 +206,9 @@ public class McstatusCommand extends Command {
                         xd[0] = adress.getHostAddress();
                         xd[1] = 25565;
                     } else {
-                        xd[0] = ((SRVRecord) r[0]).getTarget().toString(true);
-                        if (DOMAIN_PATTERN.matcher((String) xd[0]).find())
-                            return resolveIpAndPort((String) xd[0], ((SRVRecord) r[0]).getPort());
+                        xd[0] = ((SRVRecord) r[0]).getTarget().toString(false);
+//                        if (DOMAIN_PATTERN.matcher((String) xd[0]).find())
+//                            return resolveIpAndPort((String) xd[0], ((SRVRecord) r[0]).getPort());
                         xd[1] = ((SRVRecord) r[0]).getPort();
                     }
                 } else {
@@ -217,7 +218,7 @@ public class McstatusCommand extends Command {
             } catch (Exception e) {
                 if (DOMAIN_PATTERN.matcher(ip).find()) {
                     Record[] r = new Lookup("_minecraft._tcp." + ip, Type.SRV).run();
-                    xd[0] = ((SRVRecord) r[0]).getTarget().toString(true);
+                    xd[0] = ((SRVRecord) r[0]).getTarget().toString(false);
                     if (DOMAIN_PATTERN.matcher((String) xd[0]).find())
                         return resolveIpAndPort((String) xd[0], ((SRVRecord) r[0]).getPort());
                     xd[1] = ((SRVRecord) r[0]).getPort();
