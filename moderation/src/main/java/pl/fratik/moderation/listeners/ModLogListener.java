@@ -47,6 +47,7 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.temporal.TemporalAccessor;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 public class ModLogListener {
 
@@ -195,9 +196,9 @@ public class ModLogListener {
         User user = e.getUser();
         if (!guild.getSelfMember().hasPermission(Permission.VIEW_AUDIT_LOGS)) return;
 
-        guild.retrieveAuditLogs().type(ActionType.KICK).queue(entries -> {
+        guild.retrieveAuditLogs().type(ActionType.KICK).delay(2, TimeUnit.SECONDS).queue(entries -> {
             for (AuditLogEntry entry : entries) {
-                if (!entry.getTimeCreated().isAfter(now.minusSeconds(15))) continue;
+                if (!entry.getTimeCreated().isAfter(now.minusSeconds(30))) continue;
                 if (entry.getTargetIdLong() == user.getIdLong()) {
                     if (knownCases.get(guild) == null || knownCases.get(guild).stream()
                             .noneMatch(c -> c.getUserId().equals(user.getId()) && c.getType() == Kara.KICK)) {
