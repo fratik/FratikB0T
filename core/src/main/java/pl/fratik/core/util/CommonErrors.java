@@ -24,6 +24,7 @@ import net.dv8tion.jda.api.exceptions.InsufficientPermissionException;
 import pl.fratik.core.Globals;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandContext;
+import pl.fratik.core.command.PermLevel;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 
@@ -74,10 +75,11 @@ public class CommonErrors {
     }
 
     public static void usage(CommandContext context) {
-        usage(context.getBaseEmbed(null), context.getTlumaczenia(), context.getLanguage(), context.getPrefix(), context.getCommand(), context.getChannel());
+        usage(context.getBaseEmbed(null), context.getTlumaczenia(), context.getLanguage(), context.getPrefix(), context.getCommand(), context.getChannel(), context.getCustomPermLevel());
     }
 
-    public static void usage(EmbedBuilder baseEmbed, Tlumaczenia tlumaczenia, Language language, String prefix, Command command, MessageChannel channel) {
+    public static void usage(EmbedBuilder baseEmbed, Tlumaczenia tlumaczenia, Language language, String prefix,
+                             Command command, MessageChannel channel, PermLevel customPermLevel) {
         baseEmbed.setDescription(tlumaczenia.get(language, "generic.usage") + "\n" + prefix + command.getName() +
                 " " + tlumaczenia.get(language,command.getName().toLowerCase() + ".help.uzycie") + "");
         baseEmbed.addField(tlumaczenia.get(language, "generic.command.desc"),
@@ -87,6 +89,13 @@ public class CommonErrors {
         if (!eldo.isEmpty() && !eldo.equals("!<pusto>!")) {
             baseEmbed.addField(tlumaczenia.get(language, "generic.command.extended"), eldo, false);
         }
+        PermLevel plvl = customPermLevel == null ? command.getPermLevel() : customPermLevel;
+        String plvlval;
+        if (customPermLevel == null) plvlval = tlumaczenia.get(language, "generic.command.permlevel.value",
+                plvl.getNum(), tlumaczenia.get(language, plvl.getLanguageKey()));
+        else plvlval = tlumaczenia.get(language, "generic.command.permlevel.value.overwritten",
+                plvl.getNum(), tlumaczenia.get(language, plvl.getLanguageKey()));
+        baseEmbed.addField(tlumaczenia.get(language, "generic.command.permlevel"), plvlval, false);
         try {
             channel.sendMessage(baseEmbed.build()).queue();
         } catch (InsufficientPermissionException e) {

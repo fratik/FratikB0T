@@ -263,10 +263,14 @@ public class ManagerKomendImpl implements ManagerKomend {
                     plvl = UserUtil.getPermlevel(event.getAuthor(), shardManager);
                 }
 
-                if (c.getPermLevel().getNum() > plvl.getNum()) {
+                GuildConfig gc = gcCache.get(event.getGuild().getId(), guildDao::get);
+                PermLevel customPlvl = getPermLevelOverride(c, gc);
+
+                final PermLevel permLevel = customPlvl == null ? c.getPermLevel() : customPlvl;
+                if (permLevel.getNum() > plvl.getNum()) {
                     Language l = tlumaczenia.getLanguage(event.getMember());
                     event.getChannel().sendMessage(tlumaczenia.get(l, "generic.permlevel.too.small",
-                            UserUtil.getPermlevel(event.getMember(), guildDao, shardManager).getNum(), c.getPermLevel().getNum()))
+                            UserUtil.getPermlevel(event.getMember(), guildDao, shardManager).getNum(), permLevel.getNum()))
                             .queue();
                     return;
                 }
@@ -279,14 +283,14 @@ public class ManagerKomendImpl implements ManagerKomend {
                         Collections.singletonList(String.join(" ", argsNotDelimed)).toArray(new String[]{});
                 CommandContext context;
                 try {
-                    context = new CommandContext(shardManager, tlumaczenia, c, event, prefix, parts[0], args);
+                    context = new CommandContext(shardManager, tlumaczenia, c, event, prefix, parts[0], args, customPlvl);
                 } catch (ArgsMissingException e) {
                     EmbedBuilder eb = new EmbedBuilder()
                             .setColor(Color.decode("#bef7c3"))
                             .setFooter("© " + event.getJDA().getSelfUser().getName(),
                                     event.getJDA().getSelfUser().getEffectiveAvatarUrl()
                                             .replace(".webp", ".png"));
-                    CommonErrors.usage(eb, tlumaczenia, tlumaczenia.getLanguage(event.getMember()), prefix, c, event.getChannel());
+                    CommonErrors.usage(eb, tlumaczenia, tlumaczenia.getLanguage(event.getMember()), prefix, c, event.getChannel(), customPlvl);
                     return;
                 }
 
@@ -359,6 +363,20 @@ public class ManagerKomendImpl implements ManagerKomend {
         }
     }
 
+    public static PermLevel getPermLevelOverride(Command c, GuildConfig gc) {
+        if (gc.getCmdPermLevelOverrides() == null)
+            gc.setCmdPermLevelOverrides(new HashMap<>());
+        PermLevel override = gc.getCmdPermLevelOverrides().get(c.getName());
+        if (!checkPermLevelOverride(c, gc, override)) return null;
+        return override;
+    }
+
+    public static boolean checkPermLevelOverride(Command c, GuildConfig gc, PermLevel override) {
+        return gc.getCmdPermLevelOverrides().containsKey(c.getName()) && // https://simulator.io/board/N4iB1fbHf1/1
+                ((c.isAllowPermLevelChange() && override != PermLevel.EVERYONE) ||
+                ((c.isAllowPermLevelChange() && c.isAllowPermLevelEveryone()) && override == PermLevel.EVERYONE));
+    }
+
     private void zareaguj(CommandContext context, boolean success) {
         try {
             Emoji reakcja = getReakcja(context.getSender(), success);
@@ -427,17 +445,9 @@ public class ManagerKomendImpl implements ManagerKomend {
 
     @Override
     public Emoji getReakcja(User user, boolean success) {
-        UserConfig uc = ucCache.getIfPresent(user.getId());
+        UserConfig uc = ucCache.get(user.getId(), userDao::get);
         String r = success ? uc.getReakcja() : uc.getReakcjaBlad();
-        if (r == null) {
-            UserConfig config = userDao.get(user);
-            ucCache.put(user.getId(), config);
-            if (success) {
-                return Emoji.resolve(config.getReakcja(), shardManager);
-            } else {
-                return Emoji.resolve(config.getReakcjaBlad(), shardManager);
-            }
-        } else return Emoji.resolve(r, shardManager);
+        return Emoji.resolve(r, shardManager);
     }
 
     @Override

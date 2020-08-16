@@ -47,6 +47,7 @@ import pl.fratik.music.entity.QueueDao;
 import pl.fratik.music.entity.RepeatMode;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ScheduledExecutorService;
@@ -338,6 +339,14 @@ public class NowyManagerMuzykiSerwera implements ManagerMuzykiSerwera {
                 }
             }, 30, TimeUnit.SECONDS);
         }
+    }
+
+    @Override
+    public void shuffleQueue() {
+        ArrayList<Piosenka> piosenki = new ArrayList<>(getKolejka());
+        kolejka.clear();
+        Collections.shuffle(piosenki);
+        kolejka.addAll(piosenki);
     }
 
     static class Listener extends PlayerEventListenerAdapter {

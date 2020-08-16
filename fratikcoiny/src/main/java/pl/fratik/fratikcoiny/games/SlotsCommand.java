@@ -57,6 +57,7 @@ public class SlotsCommand extends Command {
         maszynaLosujaca = new SlotMachine(3, symbole);
         aliases = new String[] {"maszyna", "lotto", "magicznyautomat"};
         permissions.add(Permission.MESSAGE_EXT_EMOJI);
+        allowPermLevelChange = false;
     }
 
     @Override

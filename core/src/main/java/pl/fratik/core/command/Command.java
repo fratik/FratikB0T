@@ -18,6 +18,7 @@
 package pl.fratik.core.command;
 
 import io.sentry.Sentry;
+import io.sentry.event.User;
 import lombok.Getter;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.exceptions.InsufficientPermissionException;
@@ -46,12 +47,13 @@ public abstract class Command {
     @Getter protected String uzycieDelim = "";
     @Getter protected PermLevel permLevel = PermLevel.EVERYONE;
     @Getter protected CommandCategory category = CommandCategory.BASIC;
-    @Getter protected CommandType type = CommandType.NORMAL;
     @Getter protected final ArrayList<Permission> permissions = getBasicPermissions();
     @Getter protected boolean allowInDMs = false;
     @Getter protected final HashMap<String, Method> subCommands = new HashMap<>();
     @Getter protected int cooldown;
     @Getter protected boolean ignoreGaPerm = false;
+    @Getter protected boolean allowPermLevelEveryone = true;
+    @Getter protected boolean allowPermLevelChange = true;
 
     protected boolean execute(@NotNull CommandContext context) {
         throw new UnsupportedOperationException("Komenda nie ma zaimplementowanej funkcji execute()");
@@ -87,11 +89,11 @@ public abstract class Command {
                     if (m.getAnnotation(SubCommand.class).emptyUsage()) {
                         return (Boolean) m.invoke(this, new CommandContext(context.getShardManager(),
                                 context.getTlumaczenia(), this, context.getEvent(),
-                                context.getPrefix(), context.getLabel()));
+                                context.getPrefix(), context.getLabel(), null));
                     } else {
                         return (Boolean) m.invoke(this, new CommandContext(context.getShardManager(),
                                 context.getTlumaczenia(), this, context.getEvent(),
-                                context.getPrefix(), context.getLabel(), argsListTmp.toArray(new String[0])));
+                                context.getPrefix(), context.getLabel(), argsListTmp.toArray(new String[0]), null));
                     }
                 } catch (ArgsMissingException e) {
                     CommonErrors.usage(context);
@@ -101,14 +103,14 @@ public abstract class Command {
                     throw e; // rethrow
                 } catch (InvocationTargetException e) {
                     logger.error("Caught error while executing subcommand \"" + name + "\"", e.getCause());
-                    Sentry.getContext().setUser(new io.sentry.event.User(context.getSender().getId(),
+                    Sentry.getContext().setUser(new User(context.getSender().getId(),
                             UserUtil.formatDiscrim(context.getSender()), null, null));
                     Sentry.capture(e);
                     Sentry.clearContext();
                     CommonErrors.exception(context, e.getCause() != null ? e.getCause() : e);
                 } catch (Exception e) {
                     logger.error("Caught error while executing command \"" + name + "\"", e);
-                    Sentry.getContext().setUser(new io.sentry.event.User(context.getSender().getId(),
+                    Sentry.getContext().setUser(new User(context.getSender().getId(),
                             UserUtil.formatDiscrim(context.getSender()), null, null));
                     Sentry.capture(e);
                     Sentry.clearContext();

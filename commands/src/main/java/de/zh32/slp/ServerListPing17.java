@@ -98,9 +98,7 @@ public class ServerListPing17 {
 
             socket.setSoTimeout(this.timeout);
 
-            long now = System.currentTimeMillis();
             socket.connect(host, timeout);
-            long peng = System.currentTimeMillis();
 
             outputStream = socket.getOutputStream();
             dataOutputStream = new DataOutputStream(outputStream);
@@ -151,6 +149,7 @@ public class ServerListPing17 {
 
             dataOutputStream.writeByte(0x09); //size of packet
             dataOutputStream.writeByte(0x01); //0x01 for ping
+            long now = System.currentTimeMillis();
             dataOutputStream.writeLong(now); //time!?
 
             readVarInt(dataInputStream);
@@ -163,6 +162,7 @@ public class ServerListPing17 {
                 throw new IOException("Invalid packetID");
             }
             dataInputStream.readLong(); //read response
+            long peng = System.currentTimeMillis();
 
             response = gson.fromJson(json, StatusResponse.class);
             response.setTime((int) (peng - now));

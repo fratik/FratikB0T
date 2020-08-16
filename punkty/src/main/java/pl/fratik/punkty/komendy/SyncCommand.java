@@ -55,7 +55,7 @@ public class SyncCommand extends Command {
         GuildConfig gc = guildDao.get(context.getGuild());
         AtomicInteger udaloSieDla = new AtomicInteger();
         ArrayList<User> nieUdaloSie = new ArrayList<>();
-        for (Member member : context.getGuild().getMembers()) {
+        for (Member member : context.getGuild().loadMembers().get()) {
             int poziom = LicznikPunktow.calculateLvl(LicznikPunktow.getPunkty(member));
             List<Role> roleList = new ArrayList<>();
             gc.getRoleZaPoziomy().forEach((lvl, id) -> {

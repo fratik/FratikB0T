@@ -52,6 +52,7 @@ public class ZglosCommand extends ModerationCommand {
         hmap.put("[...]", "string");
         uzycie = new Uzycie(hmap, new boolean[] {true, true, false});
         aliases = new String[] {"report"};
+        allowPermLevelChange = false;
     }
 
     @Override

@@ -67,6 +67,7 @@ public class SklepCommand extends Command {
         hmap.put("[...]", "string");
         uzycie = new Uzycie(hmap, new boolean[] {false, false, false, false});
         uzycieDelim = " ";
+        allowPermLevelChange = false;
     }
 
     @Override
@@ -391,7 +392,7 @@ public class SklepCommand extends Command {
                 eb.setFooter(tlumaczenia.get(l, "sklep.embed.react.sprzedaj"), null);
                 return eb;
             case INFO:
-                eb.setTitle(tlumaczenia.get(l, "sklep.embed.info", rola));
+                eb.setTitle(tlumaczenia.get(l, "sklep.embed.info", rola.getName()));
                 eb.addField(tlumaczenia.get(l, "sklep.embed.opis"),
                         opis == null || opis.isEmpty() ? tlumaczenia.get(l, "sklep.embed.opis.pusty") : opis,
                         false);

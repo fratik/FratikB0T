@@ -49,6 +49,7 @@ public class EatCommand extends Command {
         permLevel = PermLevel.EVERYONE;
         permissions.add(Permission.MESSAGE_ATTACH_FILES);
         cooldown = 5;
+        allowPermLevelChange = false;
     }
 
     @Override

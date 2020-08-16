@@ -40,6 +40,7 @@ public class DailyCommand extends Command {
         category = CommandCategory.MONEY;
         permissions.add(Permission.MESSAGE_EXT_EMOJI);
         aliases = new String[] {"dzienna", "dziennazaplata", "zaplatadzienna", "kasazadarmo", "kieszonkowe", "getfc", "wyplata"};
+        allowPermLevelChange = false;
     }
 
     @Override
@@ -69,7 +70,7 @@ public class DailyCommand extends Command {
         mc.setFratikCoiny(fc);
         mc.setDailyDate(dailyDate);
         memberDao.save(mc);
-        context.send(context.getTranslated(msg, emotkaFc.getAsMention()));
+        context.send(context.getTranslated(msg, emotkaFc.getAsMention(), mc.getFratikCoiny(), emotkaFc.getAsMention()));
         return true;
     }
 

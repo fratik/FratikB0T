@@ -18,13 +18,14 @@
 package pl.fratik.commands.narzedzia;
 
 import com.google.common.eventbus.EventBus;
-import net.dv8tion.jda.api.sharding.ShardManager;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.exceptions.PermissionException;
+import net.dv8tion.jda.api.requests.restaction.MessageAction;
+import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandCategory;
@@ -34,6 +35,7 @@ import pl.fratik.core.event.PluginMessageEvent;
 import pl.fratik.core.util.UserUtil;
 
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -60,6 +62,7 @@ public class CytujCommand extends Command {
         hmap.put("[...]", STRINGARGTYPE);
         uzycie = new Uzycie(hmap, new boolean[] {true, false, false});
         aliases = new String[] {"zacytuj", "cytat", "ktośkiedyśnapisał..."};
+        allowPermLevelChange = false;
     }
 
     @Override
@@ -136,14 +139,17 @@ public class CytujCommand extends Command {
         Matcher matcher = Pattern.compile("[(http(s)?)://(www\\.)?a-zA-Z0-9@:%._\\+~#=]{2,256}\\.[a-z]{2,6" +
                 "}\\b([-a-zA-Z0-9@:%_\\+.~#?&//=]*)", Pattern.CASE_INSENSITIVE | Pattern.DOTALL).matcher(tresc);
         tresc = matcher.replaceAll("[URL]");
-        if (!context.getMember().hasPermission(context.getChannel(), Permission.MESSAGE_MENTION_EVERYONE))
-            tresc = tresc.replaceAll("@(everyone|here)", "@\u200b$1");
+        EnumSet<Message.MentionType> alments = MessageAction.getDefaultMentions();
+        if (context.getMember().hasPermission(context.getChannel(), Permission.MESSAGE_MENTION_EVERYONE)) {
+            alments.add(Message.MentionType.EVERYONE);
+            alments.add(Message.MentionType.HERE);
+        }
         try {
             eventBus.post(new PluginMessageEvent("commands", "moderation", "znaneAkcje-add:" + context.getMessage().getId()));
             context.getMessage().delete().queue();
         } catch (Exception ignored) {/*lul*/}
-        context.getChannel().sendMessage(eb.build()).content("**" + UserUtil.formatDiscrim(context.getSender())
-                + "**: " + tresc).queue();
+        context.getChannel().sendMessage(eb.build()).allowedMentions(alments)
+                .content("**" + UserUtil.formatDiscrim(context.getSender()) + "**: " + tresc).queue();
         if (!msg.getEmbeds().isEmpty()) {
             context.send(msg.getEmbeds().get(0));
         }

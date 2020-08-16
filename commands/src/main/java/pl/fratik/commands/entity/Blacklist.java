@@ -15,37 +15,30 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package pl.fratik.gwarny.entity;
+package pl.fratik.commands.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import gg.amy.pgorm.annotations.GIndex;
 import gg.amy.pgorm.annotations.PrimaryKey;
 import gg.amy.pgorm.annotations.Table;
-import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.RequiredArgsConstructor;
 import pl.fratik.core.entity.DatabaseEntity;
 
-import java.util.ArrayList;
-import java.util.List;
-
-@Table("gwarny")
+@Table("blacklist")
 @GIndex("id")
 @Data
-@AllArgsConstructor
-public class GwarnData implements DatabaseEntity {
+@RequiredArgsConstructor
+public class Blacklist implements DatabaseEntity {
     @PrimaryKey
     private final String id;
-    private final List<Gwarn> gwarny;
-
-    public GwarnData(String id) {
-        this.id = id;
-        gwarny = new ArrayList<>();
-    }
+    private boolean blacklisted = false;
+    private String reason;
+    private String executor;
 
     @Override
     @JsonIgnore
     public String getTableName() {
-        return "gwarny";
+        return "blacklist";
     }
-
 }

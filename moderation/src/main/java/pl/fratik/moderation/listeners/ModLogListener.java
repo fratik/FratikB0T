@@ -27,10 +27,12 @@ import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.channel.text.TextChannelCreateEvent;
 import net.dv8tion.jda.api.events.guild.GuildBanEvent;
 import net.dv8tion.jda.api.events.guild.GuildUnbanEvent;
-import net.dv8tion.jda.api.events.guild.member.GuildMemberLeaveEvent;
+import net.dv8tion.jda.api.events.guild.member.GuildMemberRemoveEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberRoleAddEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberRoleRemoveEvent;
 import net.dv8tion.jda.api.events.role.RoleDeleteEvent;
+import net.dv8tion.jda.api.exceptions.ErrorResponseException;
+import net.dv8tion.jda.api.requests.ErrorResponse;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
@@ -46,6 +48,7 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.temporal.TemporalAccessor;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 public class ModLogListener {
 
@@ -187,14 +190,15 @@ public class ModLogListener {
     }
 
     @Subscribe
-    public void onMemberRemove(GuildMemberLeaveEvent guildMemberLeaveEvent) {
-        Guild guild = guildMemberLeaveEvent.getGuild();
-        User user = guildMemberLeaveEvent.getUser();
+    public void onMemberRemove(GuildMemberRemoveEvent e) {
+        OffsetDateTime now = OffsetDateTime.now();
+        Guild guild = e.getGuild();
+        User user = e.getUser();
         if (!guild.getSelfMember().hasPermission(Permission.VIEW_AUDIT_LOGS)) return;
 
-        guild.retrieveAuditLogs().type(ActionType.KICK).queue(entries -> {
+        guild.retrieveAuditLogs().type(ActionType.KICK).delay(2, TimeUnit.SECONDS).queue(entries -> {
             for (AuditLogEntry entry : entries) {
-                if (!entry.getTimeCreated().isAfter(OffsetDateTime.now().minusSeconds(15))) continue;
+                if (!entry.getTimeCreated().isAfter(now.minusSeconds(30))) continue;
                 if (entry.getTargetIdLong() == user.getIdLong()) {
                     if (knownCases.get(guild) == null || knownCases.get(guild).stream()
                             .noneMatch(c -> c.getUserId().equals(user.getId()) && c.getType() == Kara.KICK)) {
@@ -429,7 +433,14 @@ public class ModLogListener {
             if (muteRole == null) return;
             List<Case> caseList = knownCases.getOrDefault(guild, new ArrayList<>());
             caseList.add(aCase);
-            Member member = guild.getMemberById(akcja.getCase().getUserId());
+            Member member;
+            try {
+                member = guild.retrieveMemberById(akcja.getCase().getUserId()).complete();
+            } catch (ErrorResponseException er) {
+                if (er.getErrorResponse() == ErrorResponse.UNKNOWN_MEMBER)
+                    member = null;
+                else throw er;
+            }
             if (member == null) return;
             guild.removeRoleFromMember(member, muteRole)
                     .reason(reason).queue(null, t -> {

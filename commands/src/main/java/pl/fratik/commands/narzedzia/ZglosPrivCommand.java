@@ -69,6 +69,7 @@ public class ZglosPrivCommand extends Command {
         uzycie = new Uzycie(hmap, new boolean[] {true, true, false});
         aliases = new String[] {"reportpriv", "reportdm", "reportmsg", "reportpv", "reportprivee"};
         uzycieDelim = " ";
+        allowPermLevelChange = false;
     }
 
     @Override
@@ -171,9 +172,9 @@ public class ZglosPrivCommand extends Command {
             priv.setZgloszone(false);
             privDao.save(priv);
             msg.delete().queue();
-            Objects.requireNonNull(shardManager.getUserById(priv.getDoKogo())).openPrivateChannel().complete()
-                    .sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(shardManager
-                            .getUserById(priv.getDoKogo())), "zglospriv.response1", priv.getId())).queue();
+            shardManager.retrieveUserById(priv.getDoKogo()).complete().openPrivateChannel().complete()
+                    .sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(shardManager.retrieveUserById
+                            (priv.getDoKogo()).complete()), "zglospriv.response1", priv.getId())).queue();
         } else if ("\u2757".equals(s)) {
             Message msg = e.getChannel().retrieveMessageById(e.getMessageId()).complete();
             if (msg.getEmbeds().isEmpty() || !msg.getAuthor().equals(e.getJDA().getSelfUser())) return;
@@ -186,9 +187,9 @@ public class ZglosPrivCommand extends Command {
                     .complete();
             msg2.delete().queueAfter(1, TimeUnit.MINUTES, woid -> {
                 msg.delete().queue();
-                Objects.requireNonNull(shardManager.getUserById(priv.getDoKogo())).openPrivateChannel().complete()
-                        .sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(shardManager
-                                .getUserById(priv.getDoKogo())), "zglospriv.response2", priv.getId())).queue();
+                shardManager.retrieveUserById(priv.getDoKogo()).complete().openPrivateChannel().complete()
+                        .sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(shardManager.retrieveUserById
+                                (priv.getDoKogo()).complete()), "zglospriv.response2", priv.getId())).queue();
             });
         }
     }

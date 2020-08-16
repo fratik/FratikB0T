@@ -41,6 +41,7 @@ public class McpremiumCommand extends Command {
         allowInDMs = true;
         aliases = new String[] {"minecraftpremium", "premka", "mcpremka", "premiummc"};
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
+        allowPermLevelChange = false;
     }
 
     @Override

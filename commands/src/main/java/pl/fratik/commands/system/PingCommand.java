@@ -32,6 +32,7 @@ public class PingCommand extends Command {
         name = "ping";
         category = CommandCategory.BASIC;
         permLevel = PermLevel.EVERYONE;
+        allowPermLevelChange = false;
     }
 
     @Override

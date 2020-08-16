@@ -36,11 +36,12 @@ public class EmojiInfoCommand extends Command {
 
     public EmojiInfoCommand() {
         name = "emojiinfo";
-        category = CommandCategory.BASIC;
+        category = CommandCategory.UTILITY;
         permLevel = PermLevel.EVERYONE;
         aliases = new String[] {"infoemotka", "infoemoji"};
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         uzycie = new Uzycie("emotka", "emote", true);
+        allowPermLevelChange = false;
     }
 
     @Override

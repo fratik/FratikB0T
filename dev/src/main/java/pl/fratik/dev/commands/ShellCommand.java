@@ -29,9 +29,9 @@ import java.util.concurrent.TimeUnit;
 public class ShellCommand extends Command {
     public ShellCommand() {
         name = "shell";
-        type = CommandType.DEBUG;
         permLevel = PermLevel.BOTOWNER;
         category = CommandCategory.SYSTEM;
+        allowPermLevelChange = false;
     }
 
     @Override

@@ -18,15 +18,22 @@
 package pl.fratik.commands.system;
 
 import com.google.common.collect.Ordering;
-import net.dv8tion.jda.api.sharding.ShardManager;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.ChannelType;
+import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.command.*;
+import pl.fratik.core.cache.Cache;
+import pl.fratik.core.cache.RedisCacheManager;
+import pl.fratik.core.command.Command;
+import pl.fratik.core.command.CommandCategory;
+import pl.fratik.core.command.CommandContext;
+import pl.fratik.core.command.PermLevel;
+import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.manager.ManagerKomend;
+import pl.fratik.core.manager.implementation.ManagerKomendImpl;
 import pl.fratik.core.util.UserUtil;
 
 import java.util.ArrayList;
@@ -41,19 +48,21 @@ public class HelpCommand extends Command {
     private final ManagerKomend managerKomend;
     private final GuildDao guildDao;
     private final ShardManager shardManager;
+    private final Cache<GuildConfig> gcCache;
 
-    public HelpCommand(ManagerKomend managerKomend, GuildDao guildDao, ShardManager shardManager) {
+    public HelpCommand(ManagerKomend managerKomend, GuildDao guildDao, ShardManager shardManager, RedisCacheManager redisCacheManager) {
         this.managerKomend = managerKomend;
         this.guildDao = guildDao;
         this.shardManager = shardManager;
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         name = "help";
-        type = CommandType.NORMAL;
         uzycie = new Uzycie("kategoria", "category");
         aliases = new String[] {"commands"};
         category = CommandCategory.BASIC;
         permLevel = PermLevel.EVERYONE;
         allowInDMs = true;
+        allowPermLevelChange = false;
+        gcCache = redisCacheManager.new CacheRetriever<GuildConfig>(){}.getCache();
     }
 
     @Override
@@ -67,8 +76,10 @@ public class HelpCommand extends Command {
         kategorieRaw.forEach((cc, listRaw) -> {
             List<String> list = new ArrayList<>();
             for (String cmd : listRaw) {
-                if ((managerKomend.getCommands().get(cmd).getPermLevel().getNum() >
-                        UserUtil.getPermlevel(context.getMember(), guildDao, shardManager).getNum()) ||
+                Command command = managerKomend.getCommands().get(cmd);
+                PermLevel plvl = ManagerKomendImpl.getPermLevelOverride(command, gcCache.get(context.getGuild().getId(), guildDao::get));
+                if (plvl == null) plvl = command.getPermLevel();
+                if ((plvl.getNum() > UserUtil.getPermlevel(context.getMember(), guildDao, shardManager).getNum()) ||
                         (!managerKomend.getCommands().get(cmd).isAllowInDMs() &&
                                 context.getChannel().getType() == ChannelType.PRIVATE)) continue;
                 list.add(cmd);

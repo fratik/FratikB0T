@@ -46,6 +46,7 @@ public class BlackjackCommand extends Command {
         uzycie = new Uzycie("zakład", "long", true);
         aliases = new String[] {"bj", "zagrajwblackjack", "zagrajwbj"};
         permissions.add(Permission.MESSAGE_EXT_EMOJI);
+        allowPermLevelChange = false;
     }
 
     @Override

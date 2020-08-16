@@ -38,6 +38,7 @@ public class BlacklistPrivCommand extends Command {
         uzycie = new Uzycie("osoba", "user", true);
         uzycieDelim = " ";
         allowInDMs = true;
+        allowPermLevelChange = false;
     }
 
     @Override

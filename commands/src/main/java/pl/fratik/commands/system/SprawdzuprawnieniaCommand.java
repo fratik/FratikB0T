@@ -40,6 +40,7 @@ public class SprawdzuprawnieniaCommand extends Command {
         uzycie = new Uzycie("kanal", "channel", false);
         aliases = new String[] {"sprawdzpermy"};
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
+        allowPermLevelChange = false;
     }
 
     private static final List<Permission> perms;

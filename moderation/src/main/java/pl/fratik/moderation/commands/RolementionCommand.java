@@ -20,6 +20,7 @@ package pl.fratik.moderation.commands;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Role;
+import net.dv8tion.jda.api.requests.restaction.MessageAction;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.command.PermLevel;
@@ -61,6 +62,9 @@ public class RolementionCommand extends ModerationCommand {
             return false;
         }
         context.getMessage().delete().queue();
+
+        MessageAction msg = context.getChannel().sendMessage(rola.getAsMention()).mentionRoles(rola.getIdLong());
+
         if (tekst != null) {
             EmbedBuilder eb = new EmbedBuilder();
             eb.setAuthor(UserUtil.formatDiscrim(context.getSender()), null, context.getSender()
@@ -71,14 +75,11 @@ public class RolementionCommand extends ModerationCommand {
             else eb.setColor(UserUtil.getPrimColor(context.getSender()));
             boolean state = rola.isMentionable();
             rola.getManager().setMentionable(true).complete();
-            context.getChannel().sendMessage(rola.getAsMention()).embed(eb.build()).complete();
+            msg.embed(eb.build()).complete();
             rola.getManager().setMentionable(state).complete();
             return true;
         }
-        boolean state = rola.isMentionable();
-        rola.getManager().setMentionable(true).complete();
-        context.getChannel().sendMessage(rola.getAsMention()).complete();
-        rola.getManager().setMentionable(state).complete();
+        msg.complete();
         return true;
     }
 

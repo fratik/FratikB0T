@@ -60,6 +60,7 @@ public class RemindCommand extends Command {
         uzycieDelim = " ";
         allowInDMs = true;
         aliases = new String[] {"remindme", "przypomnij", "todo", "reminder", "przypomnienie", "rappel", "przypomniszmi"};
+        allowPermLevelChange = false;
     }
 
     @Override

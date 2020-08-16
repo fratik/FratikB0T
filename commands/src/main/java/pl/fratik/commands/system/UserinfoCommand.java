@@ -18,15 +18,12 @@
 package pl.fratik.commands.system;
 
 import com.google.common.eventbus.EventBus;
-import net.dv8tion.jda.api.entities.Emote;
-import net.dv8tion.jda.api.sharding.ShardManager;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.OnlineStatus;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.Ustawienia;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
@@ -53,6 +50,7 @@ public class UserinfoCommand extends Command {
         category = CommandCategory.SYSTEM;
         uzycie = new Uzycie("osoba", "user");
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
+        allowPermLevelChange = false;
     }
 
     @Override
@@ -73,23 +71,16 @@ public class UserinfoCommand extends Command {
                 sdf.format(new Date(member.getTimeJoined().toInstant().toEpochMilli())), true);
         else eb.addField(context.getTranslated("userinfo.joinedat"),
                 context.getTranslated("userinfo.joinedat.nodata"), true);
-        if (member != null) {
-            eb.addField(context.getTranslated("userinfo.status"),
-                    formatStatus(member.getOnlineStatus()), true);
-            eb.addField(context.getTranslated("userinfo.playing"),
-                    member.getActivities().isEmpty() ? context.getTranslated("userinfo.playing.not.playing")
-                            : member.getActivities().get(0).getName(), true);
-        }
         PluginMessageEvent event = new PluginMessageEvent("commands", "punkty", "punktyDao-getPunkty:"
                 + osoba.getId());
+        PluginMessageEvent event2 = new PluginMessageEvent("commands", "punkty",
+                "punktyDao-getAllUserPunkty:");
         eventBus.post(event);
+        eventBus.post(event2);
         awaitPluginResponse(event);
         Integer punkty = (Integer) event.getResponse();
         Integer pozycja = null;
         int pozycjaTmp = 0;
-        PluginMessageEvent event2 = new PluginMessageEvent("commands", "punkty",
-                "punktyDao-getAllUserPunkty:");
-        eventBus.post(event2);
         awaitPluginResponse(event2);
         if (event2.getResponse() != null) {
             //noinspection unchecked
@@ -122,29 +113,6 @@ public class UserinfoCommand extends Command {
             } catch (InterruptedException e) {
                 break;
             }
-        }
-    }
-
-    private String formatStatus(OnlineStatus status) {
-        Emote online = shardManager.getEmoteById(Ustawienia.instance.emotki.online);
-        Emote idle = shardManager.getEmoteById(Ustawienia.instance.emotki.idle);
-        Emote dnd = shardManager.getEmoteById(Ustawienia.instance.emotki.dnd);
-        Emote offline = shardManager.getEmoteById(Ustawienia.instance.emotki.offline);
-        if (online == null || idle == null || dnd == null || offline == null) {
-            // lol xd
-            return "???";
-        }
-        switch (status) {
-            case ONLINE:
-                return online.getAsMention();
-            case IDLE:
-                return idle.getAsMention();
-            case DO_NOT_DISTURB:
-                return dnd.getAsMention();
-            case OFFLINE:
-                return offline.getAsMention();
-            default:
-                return "???";
         }
     }
 }

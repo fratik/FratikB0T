@@ -22,14 +22,13 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.OnlineStatus;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.SelfUser;
 import net.dv8tion.jda.api.sharding.ShardManager;
+import pl.fratik.core.Globals;
 import pl.fratik.core.Statyczne;
 import pl.fratik.core.Ustawienia;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -55,43 +54,15 @@ public class StatusService extends AbstractScheduledService {
     private boolean checkDates() {
         SimpleDateFormat sdf = new SimpleDateFormat("ddMM");
         String data = sdf.format(new Date());
-        SelfUser selfUser = Objects.requireNonNull(shardManager.getShardById(0)).getSelfUser();
         int rok = Integer.parseInt(new SimpleDateFormat("yyyy").format(new Date()));
-        if (data.equals("1201")) {
-            if (!(selfUser.getName().startsWith("\uD83C\uDF89 ") && selfUser.getName().endsWith(" \uD83C\uDF89")))
-                selfUser.getManager().setName("\uD83C\uDF89 " + selfUser.getName() + " \uD83C\uDF89").complete();
-            shardManager.setActivity(Activity.watching("fratika świętującego swoje " + (rok - 2005) + " urodziny!"));
-            return true;
-        }
-        if (data.equals("1301")) {
-            if (selfUser.getName().startsWith("\uD83C\uDF89 ") && selfUser.getName().endsWith(" \uD83C\uDF89"))
-                selfUser.getManager().setName(selfUser.getName().replace("\uD83C\uDF89 ", "")
-                        .replace(" \uD83C\uDF89", "")).complete();
-            return false;
-        }
-        if (data.equals("2207")) {
-            if (!(selfUser.getName().startsWith("\uD83C\uDF89 ") && selfUser.getName().endsWith(" \uD83C\uDF89")))
-                selfUser.getManager().setName("\uD83C\uDF89 " + selfUser.getName() + " \uD83C\uDF89").complete();
-            shardManager.setActivity(Activity.watching("siebie świętującego swoje " + (rok - 2017) + " urodziny!"));
-            return true;
-        }
-        if (data.equals("2307")) {
-            if (selfUser.getName().startsWith("\uD83C\uDF89 ") && selfUser.getName().endsWith(" \uD83C\uDF89"))
-                selfUser.getManager().setName(selfUser.getName().replace("\uD83C\uDF89 ", "")
-                        .replace(" \uD83C\uDF89", "")).complete();
-            return false;
-        }
         if (data.equals("2412")) {
-            if (!(selfUser.getName().startsWith("\uD83C\uDF84 ") && selfUser.getName().endsWith(" \uD83C\uDF84")))
-                selfUser.getManager().setName("\uD83C\uDF84 " + selfUser.getName() + " \uD83C\uDF84").complete();
             shardManager.setActivity(Activity.playing("Wesołych świąt!"));
             return true;
         }
-        if (data.equals("2712")) {
-            if (selfUser.getName().startsWith("\uD83C\uDF84 ") && selfUser.getName().endsWith(" \uD83C\uDF84"))
-                selfUser.getManager().setName(selfUser.getName().replace("\uD83C\uDF84 ", "")
-                        .replace(" \uD83C\uDF84", "")).complete();
-            return false;
+        if (Globals.clientId != 338359366891732993L) return false;
+        if (data.equals("2207")) {
+            shardManager.setActivity(Activity.watching("siebie świętującego swoje " + (rok - 2017) + " urodziny!"));
+            return true;
         }
         return false;
     }
@@ -118,7 +89,7 @@ public class StatusService extends AbstractScheduledService {
         AtomicInteger res = new AtomicInteger();
         shardManager.getShards().forEach(jda -> {
             for (Guild g : jda.getGuilds()) {
-                res.addAndGet(g.getMembers().size());
+                res.addAndGet(g.getMemberCount());
             }
         });
         return res.intValue();
@@ -127,20 +98,19 @@ public class StatusService extends AbstractScheduledService {
     private int fetchUserCount(JDA jda) {
         AtomicInteger res = new AtomicInteger();
         for (Guild g : jda.getGuilds()) {
-            res.addAndGet(g.getMembers().size());
+            res.addAndGet(g.getMemberCount());
         }
         return res.intValue();
     }
 
     public static void setCustomGame(Activity customGame) {
-        if (customGame == null) setCustomPresence(null, null);
-        else setCustomPresence(OnlineStatus.ONLINE, customGame);
+        setCustomPresence(OnlineStatus.ONLINE, customGame);
     }
 
     public static void setCustomPresence(OnlineStatus status, Activity customGame) {
-        StatusService.customGame = customGame;
         StatusService.customStatus = status;
-        shardManager.setPresence(status, customGame);
+        StatusService.customGame = customGame;
+        shardManager.setPresence(status == null ? OnlineStatus.ONLINE : status, customGame);
     }
 
     @Override

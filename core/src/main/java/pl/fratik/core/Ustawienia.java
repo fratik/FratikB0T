@@ -42,6 +42,7 @@ public class Ustawienia {
     public String zgaRole = "414418843352432640";
     public String devRole = "428561212796829707";
     public String botGuild = "345655892882096139";
+    public String productionBotId = "338359366891732993";
     public String prefix = "fb!";
     public ShardSettings shard = new ShardSettings();
     public Lavalink lavalink = new Lavalink();
@@ -171,6 +172,7 @@ public class Ustawienia {
         public String serwery = "";
         public String ram = "";
         public String komdzis = "";
+        public String ostakt = "";
     }
 
     public static class Webhooki extends AbstractMap<String, String> {

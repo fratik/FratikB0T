@@ -24,8 +24,9 @@ import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
-import net.dv8tion.jda.api.events.guild.member.GuildMemberLeaveEvent;
+import net.dv8tion.jda.api.events.guild.member.GuildMemberRemoveEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.requests.restaction.MessageAction;
 import pl.fratik.core.cache.Cache;
 import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.entity.GuildConfig;
@@ -55,14 +56,14 @@ class MemberListener {
     }
 
     @Subscribe
-    public void onMemberLeaveEvent(GuildMemberLeaveEvent e) {
+    public void onMemberLeaveEvent(GuildMemberRemoveEvent e) {
         GuildConfig gc = getGuildConfig(e.getGuild());
         for (Map.Entry<String, String> ch : gc.getPozegnania().entrySet()) {
             TextChannel cha = e.getGuild().getTextChannelById(ch.getKey());
             if (cha == null) continue;
             cha.sendMessage(ch.getValue()
-                    .replaceAll("\\{\\{user}}", e.getMember().getUser().getAsTag().replaceAll("@(everyone|here)", "@\u200b$1"))
-                    .replaceAll("\\{\\{server}}", e.getGuild().getName().replaceAll("@(everyone|here)", "@\u200b$1"))).queue();
+                    .replaceAll("\\{\\{user}}", e.getUser().getAsTag())
+                    .replaceAll("\\{\\{server}}", e.getGuild().getName())).queue();
         }
     }
 
@@ -84,10 +85,13 @@ class MemberListener {
         for (Map.Entry<String, String> ch : gc.getPowitania().entrySet()) {
             TextChannel cha = e.getGuild().getTextChannelById(ch.getKey());
             if (cha == null || !cha.canTalk()) continue;
-            cha.sendMessage(ch.getValue()
-                    .replaceAll("\\{\\{user}}", e.getMember().getUser().getAsTag().replaceAll("@(everyone|here)", "@\u200b$1"))
+            boolean hasMentions = ch.getValue().contains("{{mention}}");
+            MessageAction ma = cha.sendMessage(ch.getValue()
+                    .replaceAll("\\{\\{user}}", e.getMember().getUser().getAsTag())
                     .replaceAll("\\{\\{mention}}", e.getMember().getAsMention())
-                    .replaceAll("\\{\\{server}}", e.getGuild().getName().replaceAll("@(everyone|here)", "@\u200b$1"))).queue();
+                    .replaceAll("\\{\\{server}}", e.getGuild().getName()));
+            if (hasMentions) ma.mention(e.getMember()).queue();
+            else ma.queue();
         }
     }
 

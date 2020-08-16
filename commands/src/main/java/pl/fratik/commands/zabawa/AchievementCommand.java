@@ -38,6 +38,7 @@ public class AchievementCommand extends Command {
         permissions.add(Permission.MESSAGE_ATTACH_FILES);
         uzycie = new Uzycie("tresc", "string", true);
         cooldown = 5;
+        allowPermLevelChange = false;
     }
 
     @Override

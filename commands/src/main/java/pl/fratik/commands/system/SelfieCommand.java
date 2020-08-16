@@ -36,6 +36,7 @@ public class SelfieCommand extends Command {
         permLevel = PermLevel.BOTOWNER;
         aliases = new String[] {"ryjfratika"};
         permissions.add(Permission.MESSAGE_ATTACH_FILES);
+        allowPermLevelChange = false;
     }
 
     @SubCommand(name="pc")

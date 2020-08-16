@@ -41,6 +41,7 @@ public class GraficznaCommand extends Command {
     { //NOSONAR
         cooldown = 5;
         uzycie = new Uzycie("osoba", "user");
+        allowPermLevelChange = false;
     }
 
     public GraficznaCommand(String name, String endpoint, boolean preventOnSender) {

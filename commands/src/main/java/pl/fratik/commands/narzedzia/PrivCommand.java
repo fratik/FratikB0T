@@ -53,6 +53,7 @@ public class PrivCommand extends Command {
         allowInDMs = true;
         uzycieDelim = " ";
         aliases = new String[] {"pw", "dm", "msg", "pv", "privee"};
+        allowPermLevelChange = false;
     }
 
     @Override

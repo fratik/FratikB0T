@@ -44,6 +44,7 @@ public class GiveCommand extends Command {
         uzycie = new Uzycie(hmap, new boolean[] {true, true});
         uzycieDelim = " ";
         aliases = new String[] {"daj", "dk", "dajmukase", "dajmutrochekasy", "dajmumojakase", "pay"};
+        allowPermLevelChange = false;
     }
 
     @Override

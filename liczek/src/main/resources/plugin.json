@@ -1,6 +1,6 @@
 {
-  "name": "gwarny",
-  "main": "pl.fratik.gwarny.Module",
+  "name": "liczek",
+  "main": "pl.fratik.liczek.Module",
   "dependencies": [
     "arguments"
   ],

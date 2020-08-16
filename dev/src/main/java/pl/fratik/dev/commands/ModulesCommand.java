@@ -41,6 +41,7 @@ public class ModulesCommand extends Command {
         category = CommandCategory.SYSTEM;
         permLevel = PermLevel.BOTOWNER;
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
+        allowPermLevelChange = false;
     }
 
     @Override

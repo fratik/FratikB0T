@@ -24,7 +24,6 @@ import pl.fratik.commands.util.OldSettingsRenderer;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
-import pl.fratik.core.command.CommandType;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.UserDao;
 import pl.fratik.core.manager.ManagerArgumentow;
@@ -43,9 +42,9 @@ public class UstawieniaCommand extends Command {
     public UstawieniaCommand(EventWaiter eventWaiter, UserDao userDao, GuildDao guildDao, ManagerArgumentow managerArgumentow, ShardManager shardManager, Tlumaczenia tlumaczenia) {
         name = "ustawienia";
         aliases = new String[] {"conf", "settings"};
-        type = CommandType.MODERATION;
-        category = CommandCategory.MODERATION;
+        category = CommandCategory.BASIC;
         allowInDMs = false;
+        allowPermLevelChange = false;
 
         this.eventWaiter = eventWaiter;
         this.userDao = userDao;

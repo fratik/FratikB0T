@@ -21,7 +21,10 @@ import lombok.EqualsAndHashCode;
 import lombok.Setter;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.sharding.ShardManager;
+import net.dv8tion.jda.internal.JDAImpl;
 import net.dv8tion.jda.internal.entities.AbstractMessage;
+import net.dv8tion.jda.internal.entities.UserImpl;
+import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -33,16 +36,27 @@ public class LogMessage extends AbstractMessage {
     private final long id;
     private final long guildId;
     private final long authorId;
+    private final String authorAvatar; //tylko jesli webhook
+    private final String authorName; //tylko jesli webhook
     private final long channelId;
     private final OffsetDateTime editedTime;
+    private final boolean isWebhook;
 
     public LogMessage(Message message) {
         super(message.getContentRaw(), message.getNonce(), message.isTTS());
         this.id = message.getIdLong();
         this.guildId = message.getGuild().getIdLong();
-        this.authorId = message.getAuthor().getIdLong();
         this.channelId = message.getChannel().getIdLong();
         this.editedTime = message.isEdited() ? message.getTimeEdited() : null;
+        this.isWebhook = message.isWebhookMessage();
+        this.authorId = message.getAuthor().getIdLong();
+        if (isWebhook) {
+            authorAvatar = message.getAuthor().getAvatarId();
+            authorName = message.getAuthor().getName();
+        } else {
+            authorAvatar = null;
+            authorName = null;
+        }
     }
 
     @Override
@@ -64,9 +78,22 @@ public class LogMessage extends AbstractMessage {
     @Nonnull
     @Override
     public User getAuthor() {
-        User user = shardManager.getUserById(authorId);
-        if (user == null) throw new IllegalStateException("użytkownik nie istnieje!");
-        return user;
+        if (isWebhook) {
+            UserImpl ussr = new UserImpl(authorId, null) {
+                @NotNull
+                @Override
+                public JDAImpl getJDA() {
+                    throw new UnsupportedOperationException("fake user");
+                }
+            };
+            ussr.setName(authorName);
+            ussr.setAvatarId(authorAvatar);
+            ussr.setDiscriminator("0000");
+            ussr.setFake(true);
+            ussr.setBot(true);
+            return ussr;
+        }
+        return shardManager.retrieveUserById(authorId).complete();
     }
 
     @Nonnull
@@ -97,5 +124,10 @@ public class LogMessage extends AbstractMessage {
     @Override
     public boolean isEdited() {
         return editedTime != null;
+    }
+
+    @Override
+    public boolean isWebhookMessage() {
+        return isWebhook;
     }
 }

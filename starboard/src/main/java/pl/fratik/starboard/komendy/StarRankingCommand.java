@@ -56,6 +56,7 @@ public class StarRankingCommand extends Command {
         category = CommandCategory.STARBOARD;
         cooldown = 15;
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
+        allowPermLevelChange = false;
     }
 
     @Override

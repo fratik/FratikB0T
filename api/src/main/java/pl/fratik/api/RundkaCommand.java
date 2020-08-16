@@ -50,6 +50,7 @@ public class RundkaCommand extends Command {
         uzycie = new Uzycie(hmap, new boolean[] {true, true, true});
         category = CommandCategory.SYSTEM;
         permLevel = PermLevel.BOTOWNER;
+        allowPermLevelChange = false;
     }
 
     @Getter @Setter private static boolean rundkaOn = false;

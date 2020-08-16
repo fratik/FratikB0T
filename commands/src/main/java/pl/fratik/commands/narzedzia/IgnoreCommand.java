@@ -39,6 +39,7 @@ public class IgnoreCommand extends Command {
         aliases = new String[] {"ignoruj", "wezgoodemnie"};
         uzycieDelim = " ";
         allowInDMs = true;
+        allowPermLevelChange = false;
     }
 
     @Override

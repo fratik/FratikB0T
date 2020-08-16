@@ -43,6 +43,7 @@ public class LanguageCommand extends Command {
         aliases = new String[] {"jezyk"};
         this.userDao = userDao;
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
+        allowPermLevelChange = false;
     }
 
     @Override

@@ -35,6 +35,12 @@ public class RundkaOdpowiedzFull implements RundkaOdpowiedz {
     private final Boolean aktywnoscFdev;
     private final String dlaczegoGa;
     private final String dlaczegoWybrac;
+    private final String roleZaPoziom;
+    private final String naprawaStarboard;
+    private final Integer znajomosc;
+    private final String problemPodczasPopa;
+    private final String coRobiLanguage;
+    private final String wylaczeniePunktow;
     private String messageId;
     private Oceny oceny;
 }
