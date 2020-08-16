@@ -244,7 +244,7 @@ public class SklepCommand extends Command {
         String opis = null;
         if (!(context.getArgs().length == 2 || (context.getArgs().length > 2 && context.getArgs()[2] == null))) {
             opis = Arrays.stream(Arrays.copyOfRange(context.getArgs(), 2, context.getArgs().length))
-                    .map(Object::toString).collect(Collectors.joining(uzycieDelim));
+                    .map(o -> o == null ? "" : o.toString()).collect(Collectors.joining(uzycieDelim));
         }
         if (gc.getRoleDoKupienia().containsKey(rola.getId())) {
             context.send(context.getTranslated("sklep.ustaw.alreadyset"));

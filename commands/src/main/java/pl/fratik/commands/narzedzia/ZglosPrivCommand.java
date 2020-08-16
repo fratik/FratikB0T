@@ -90,7 +90,7 @@ public class ZglosPrivCommand extends Command {
         String id = (String) context.getArgs()[0];
         if (context.getArgs().length > 1 && context.getArgs()[1] != null)
             powod = Arrays.stream(Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length))
-                    .map(Object::toString).collect(Collectors.joining(uzycieDelim));
+                    .map(o -> o == null ? "" : o.toString()).collect(Collectors.joining(uzycieDelim));
         if (powod.isEmpty()) {
             CommonErrors.usage(context);
             return false;
