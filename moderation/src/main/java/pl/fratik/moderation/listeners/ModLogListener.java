@@ -98,8 +98,7 @@ public class ModLogListener {
             } catch (Exception e) {
                 // nie mamy permów i guess
             }
-            Member srember = guild.getMember(guildBanEvent.getUser());
-            setAndSend(guildConfig, caseRow, mode, mlogchan, aCase, odpowiedzialny, powod, guild, srember);
+            setAndSend(guildConfig, caseRow, mode, mlogchan, aCase, odpowiedzialny, powod, guild, true);
         } else {
             Optional<Case> oCase = knownCases.get(guild).stream()
                     .filter(c -> c.getUserId().equals(guildBanEvent.getUser().getId()) && c.getType() == Kara.BAN)
@@ -111,8 +110,7 @@ public class ModLogListener {
             ModeResolver modeResolver = new ModeResolver(guildConfig).invoke();
             ModLogMode mode = modeResolver.getMode();
             TextChannel mlogchan = modeResolver.getMlogchan();
-            Member srember = guild.getMember(guildBanEvent.getUser());
-            checkSendActionAndSave(guild, aCase, guildConfig, caseRow, mode, mlogchan, srember);
+            checkSendActionAndSave(guild, aCase, guildConfig, caseRow, mode, mlogchan, true);
             List<Case> zabijciemnie = knownCases.get(guild);
             zabijciemnie.remove(aCase);
             knownCases.put(guild, zabijciemnie);
@@ -157,7 +155,7 @@ public class ModLogListener {
             } catch (Exception e) {
                 // nie mamy permów i guess
             }
-            setAndSend(guildConfig, caseRow, mode, mlogchan, aCase, odpowiedzialny, powod, guild, null);
+            setAndSend(guildConfig, caseRow, mode, mlogchan, aCase, odpowiedzialny, powod, guild, false);
         } else {
             Optional<Case> oCase = knownCases.get(guild).stream()
                     .filter(c -> c.getUserId().equals(guildUnbanEvent.getUser().getId()) && c.getType() == Kara.UNBAN)
@@ -214,14 +212,14 @@ public class ModLogListener {
                         User odpowiedzialny = entry.getUser();
                         String powod = entry.getReason();
                         Member srember = guild.getMember(user);
-                        setAndSend(guildConfig, caseRow, mode, mlogchan, aCase, odpowiedzialny, powod, guild, srember);
+                        setAndSend(guildConfig, caseRow, mode, mlogchan, aCase, odpowiedzialny, powod, guild, true);
                     } else {
                         Optional<Case> oCase = knownCases.get(guild).stream()
                                 .filter(c -> c.getUserId().equals(user.getId()) && c.getType() == Kara.KICK)
                                 .findFirst();
                         if (!oCase.isPresent()) throw NOCASEEXC;
-                        Member srember = guild.getMember(user);
-                        if (!oCase.get().getFlagi().contains(Case.Flaga.SILENT) && srember != null) sendAction(oCase.get(), guild, guildDao.get(guild));
+                        if (!oCase.get().getFlagi().contains(Case.Flaga.SILENT))
+                            sendAction(oCase.get(), guild, guildDao.get(guild));
                         saveKnownCase(guild, oCase.get());
                     }
                     break;
@@ -452,10 +450,10 @@ public class ModLogListener {
         }
     }
 
-    private void setAndSend(GuildConfig guildConfig, CaseRow caseRow, ModLogMode mode, TextChannel mlogchan, Case aCase, User odpowiedzialny, String powod, Guild guild, Member srember) {
+    private void setAndSend(GuildConfig guildConfig, CaseRow caseRow, ModLogMode mode, TextChannel mlogchan, Case aCase, User odpowiedzialny, String powod, Guild guild, boolean send) {
         if (odpowiedzialny != null) aCase.setIssuerId(odpowiedzialny);
         if (powod != null) aCase.setReason(powod);
-        checkSendActionAndSave(guild, aCase, guildConfig, caseRow, mode, mlogchan, srember);
+        checkSendActionAndSave(guild, aCase, guildConfig, caseRow, mode, mlogchan, send);
     }
 
     private void saveToModLog(Case aCase, GuildConfig guildConfig, CaseRow caseRow, TextChannel mlogchan, Guild guild) {
@@ -537,8 +535,8 @@ public class ModLogListener {
         } catch (Exception ignored) { }
     }
 
-    private void checkSendActionAndSave(Guild guild, Case aCase, GuildConfig guildConfig, CaseRow caseRow, ModLogMode mode, TextChannel mlogchan, Member srember) {
-        if (!aCase.getFlagi().contains(Case.Flaga.SILENT) && srember != null) sendAction(aCase, guild, guildConfig);
+    private void checkSendActionAndSave(Guild guild, Case aCase, GuildConfig guildConfig, CaseRow caseRow, ModLogMode mode, TextChannel mlogchan, boolean send) {
+        if (!aCase.getFlagi().contains(Case.Flaga.SILENT) && send) sendAction(aCase, guild, guildConfig);
         if (mode == ModLogMode.MODLOG) {
             saveToModLog(aCase, guildConfig, caseRow, mlogchan, guild);
         } else {
