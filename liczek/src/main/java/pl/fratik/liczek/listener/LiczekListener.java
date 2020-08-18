@@ -75,7 +75,13 @@ public class LiczekListener {
 
         synchronized (m.getGuild()) {
             List<Message> messages = getHistoryList(m.getChannel());
-            int kiedysMessage = Integer.parseInt(messages.get(1).getContentRaw());
+            int kiedysMessage;
+            try {
+                kiedysMessage = Integer.parseInt(messages.get(1).getContentRaw());
+            } catch (NumberFormatException e) {
+                //nieprawidłowa liczba
+                return;
+            }
 
             if (messages.size() < 2 || liczba != kiedysMessage+1 || messages.get(1).getAuthor().getId().equals(m.getAuthor().getId())) {
                 m.getMessage().delete().queue();

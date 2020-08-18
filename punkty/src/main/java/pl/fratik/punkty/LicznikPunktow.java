@@ -163,7 +163,8 @@ public class LicznikPunktow {
             return;
         }
         if (event.getAuthor().isBot() || UserUtil.isGbanned(event.getAuthor()) || getCooldown(event.getMember()) ||
-                !punktyWlaczone(event.getGuild())) {
+                !punktyWlaczone(event.getGuild()) || getNoLvlChannelChange(event.getGuild())
+                .contains(event.getChannel().getId())) {
             if (UserUtil.isGbanned(event.getAuthor())) log.debug("{} jest zgbanowany, nie liczę punktu",
                     event.getAuthor());
             else if (event.getAuthor().isBot()) log.debug("{} jest botem, nie liczę punktu", event.getAuthor());
@@ -171,9 +172,9 @@ public class LicznikPunktow {
                 log.debug("{} ({}) jest na cooldownie!", event.getAuthor(), event.getGuild());
             else if (!punktyWlaczone(event.getGuild()))
                 log.debug("Punkty na serwerze {} są wyłączone", event.getGuild());
-            else if (guildDao.get(event.getGuild()).getNolvlchannelchange().contains(event.getChannel().getId())) {
-                log.debug("Naliczanie punktow na kanale {} na serwerze {} jest wylaczone", event.getChannel().getId(),
-                        event.getGuild().getId());
+            else if (getNoLvlChannelChange(event.getGuild()).contains(event.getChannel().getId())) {
+                log.debug("Naliczanie punktow na kanale {} ({}) jest wylaczone", event.getChannel(),
+                        event.getGuild());
             }
             return;
         }
@@ -240,6 +241,12 @@ public class LicznikPunktow {
         Boolean chuj = gcCache.get(guild.getId(), guildDao::get).getPunktyWlaczone();
         if (chuj == null) return true;
         return chuj;
+    }
+
+    private List<String> getNoLvlChannelChange(Guild guild) {
+        List<String> list = guildDao.get(guild).getNolvlchannelchange();
+        if (list == null) return Collections.emptyList();
+        return list;
     }
 
     private int getPktFromFileSize(double sizeInBytes) {

@@ -242,15 +242,36 @@ public class LogListener {
                 null, message.getAuthor().getEffectiveAvatarUrl().replace(".webp", ".png"));
         if (type == LogType.EDIT) {
             eb.setTimestamp(message.getTimeEdited());
-            eb.addField(tlumaczenia.get(l, "fulllog.old.content"), oldContent, false);
-            eb.addField(tlumaczenia.get(l, "fulllog.new.content"), message.getContentRaw(), false);
+            String oldCnt = oldContent;
+            String oldCnt2 = null;
+            if (oldContent.length() >= 1021) {
+                oldCnt = oldContent.substring(0, 1021).trim() + "...";
+                oldCnt2 = "..." + oldContent.substring(1022).trim();
+            }
+            String newCnt = message.getContentRaw();
+            String newCnt2 = null;
+            if (oldContent.length() >= 1021) {
+                newCnt = message.getContentRaw().substring(0, 1021).trim() + "...";
+                newCnt2 = "..." + message.getContentRaw().substring(1022).trim();
+            }
+            eb.addField(tlumaczenia.get(l, "fulllog.old.content"), oldCnt, false);
+            if (oldCnt2 != null) eb.addField(tlumaczenia.get(l, "fulllog.old.content.pt2"), oldCnt2, false);
+            eb.addField(tlumaczenia.get(l, "fulllog.new.content"), newCnt, false);
+            if (newCnt2 != null) eb.addField(tlumaczenia.get(l, "fulllog.new.content.pt2"), newCnt2, false);
             pushChannel(eb, l, message);
             eb.addField(tlumaczenia.get(l, "fulllog.message.id"), message.getId(), false);
             eb.setColor(decode("#ffa500"));
             eb.setFooter(tlumaczenia.get(l, "fulllog.edit"), null);
         }
         if (type == LogType.DELETE) {
-            eb.addField(tlumaczenia.get(l, "fulllog.content"), message.getContentRaw(), false);
+            String cnt = message.getContentRaw();
+            String cnt2 = null;
+            if (message.getContentRaw().length() >= 1024) {
+                cnt = message.getContentRaw().substring(0, 1021).trim() + "...";
+                cnt2 = "..." + message.getContentRaw().substring(1022).trim();
+            }
+            eb.addField(tlumaczenia.get(l, "fulllog.content"), cnt, false);
+            if (cnt2 != null) eb.addField(tlumaczenia.get(l, "fulllog.content.pt2"), cnt2, false);
             pushChannel(eb, l, message);
             eb.addField(tlumaczenia.get(l, "fulllog.message.id"), message.getId(), false);
             String rmby = "fulllog.removed.by";

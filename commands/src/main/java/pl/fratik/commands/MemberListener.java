@@ -77,7 +77,9 @@ class MemberListener {
             role.add(rola);
         }
         if (role.isEmpty()) return;
-        e.getGuild().modifyMemberRoles(e.getMember(), role, new ArrayList<>()).queue();
+        try {
+            e.getGuild().modifyMemberRoles(e.getMember(), role, new ArrayList<>()).queue(null, i -> {});
+        } catch (Exception ignored) {} // nie nasz problem lmao
     }
 
     private void przywitanie(GuildMemberJoinEvent e) {
