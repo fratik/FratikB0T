@@ -1,5 +1,5 @@
 # FratikB0T
-[![TeamCity](https://ci.fratikbot.pl/app/rest/builds/buildType:FratikB0Ty_FratikB0T_Buildy_Build/statusIcon)](https://ci.fratikbot.pl/project/Kamil_P2wb0t)
+[![TeamCity](https://ci.fratikbot.pl/app/rest/builds/buildType:FratikB0Ty_FratikB0T_Buildy_Build/statusIcon)](https://ci.fratikbot.pl/project/FratikB0Ty_FratikB0T)
 [![Crowdin](https://badges.crowdin.net/fratikb0t/localized.svg)](https://crowdin.com/project/fratikb0t)
 ![ForksCound](https://img.shields.io/github/forks/fratik/FratikB0T)
 ![Contributors](https://img.shields.io/github/contributors/fratik/FratikB0T)
