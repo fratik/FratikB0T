@@ -31,6 +31,7 @@ import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.command.PermLevel;
 import pl.fratik.core.entity.Uzycie;
+import pl.fratik.core.util.CommonErrors;
 import pl.fratik.core.util.UserUtil;
 
 import java.io.*;
@@ -55,6 +56,10 @@ public class DegradCommand extends Command {
     @Override
     public boolean execute(@NotNull CommandContext context) {
         User gadmin = (User) context.getArgs()[0];
+        if (gadmin == null) {
+            CommonErrors.usage(context);
+            return false;
+        }
         if (!Globals.inFratikDev) throw new IllegalStateException("bot nie na FDev");
         @SuppressWarnings("ConstantConditions") // sprawdzamy to wyżej
         Member czlonek = shardManager.getGuildById(Ustawienia.instance.botGuild).getMember(gadmin);
