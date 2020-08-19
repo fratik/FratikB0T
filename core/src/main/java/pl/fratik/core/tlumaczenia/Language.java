@@ -25,9 +25,9 @@ import java.util.Locale;
 public enum Language {
     DEFAULT(null, null, null, null),
     ENGLISH("en-US", "English (US)", "UNICODE:\uD83C\uDDFA\uD83C\uDDF8", new Locale("en_US")),
-    POLISH("pl", "Polski", "UNICODE:\uD83C\uDDF5\uD83C\uDDF1", new Locale("pl_PL"))//,
-    /*POLISH_WULG("pl-WG", "Polski (wulgarny)", "663853676053659687", new Locale("pl_WG")),
-    PONGLISH("pl-EN", "Ponglish", "665552851820478515", new Locale("pl_EN"))*/;
+    POLISH("pl", "Polski", "UNICODE:\uD83C\uDDF5\uD83C\uDDF1", new Locale("pl_PL")),
+    POLISH_WULG("pl-WG", "Polski (wulgarny)", "663853676053659687", new Locale("pl_WG"));
+    //PONGLISH("pl-EN", "Ponglish", "665552851820478515", new Locale("pl_EN"));
 
     @Getter private final String shortName;
     @Getter private final String localized;
