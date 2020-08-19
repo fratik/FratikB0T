@@ -1,5 +1,10 @@
 # FratikB0T
+[![TeamCity](https://ci.fratikbot.pl/app/rest/builds/buildType:FratikB0Ty_FratikB0T_Buildy_Build/statusIcon)](https://ci.fratikbot.pl/project/FratikB0Ty_FratikB0T)
 [![Crowdin](https://badges.crowdin.net/fratikb0t/localized.svg)](https://crowdin.com/project/fratikb0t)
+![ForksCound](https://img.shields.io/github/forks/fratik/FratikB0T)
+![Contributors](https://img.shields.io/github/contributors/fratik/FratikB0T)
+![StarBaterie](https://img.shields.io/github/stars/fratik/FratikB0T)
+[![License: GPLv3](https://img.shields.io/github/license/fratik/FratikB0T)](https://www.gnu.org/licenses/gpl-3.0)
 
 Wielofunkcyjny bot Discord. Teraz Open Source.  
 _(bosh brzmię jak nadgryzione jabłko)_
