@@ -28,6 +28,8 @@ import pl.fratik.core.util.UserUtil;
 import pl.fratik.invite.entity.InviteConfig;
 import pl.fratik.invite.entity.InviteDao;
 
+import java.time.Instant;
+
 public class InvitesCommand extends Command {
 
     private InviteDao inviteDao;
@@ -54,7 +56,7 @@ public class InvitesCommand extends Command {
         eb.setColor(UserUtil.getPrimColor(osoba));
         eb.setThumbnail(UserUtil.getAvatarUrl(osoba));
         eb.setTitle(UserUtil.formatDiscrim(osoba));
-
+        eb.setTimestamp(Instant.now());
         if (!context.getGuild().getSelfMember().hasPermission(Permission.MANAGE_SERVER)) {
             eb.setDescription(context.getTranslated("invites.maybie.doesnt.work"));
         }

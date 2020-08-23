@@ -52,8 +52,12 @@ public class TopInvitesCommnad extends Command {
     public boolean execute(CommandContext context) {
         Task<List<Member>> task = context.getGuild().loadMembers();
         List<Member> members = new ArrayList<>();
-        task.onError(m -> context.send(context.getTranslated("topinvites.error")));
         task.onSuccess(members::addAll);
+
+        if (members.isEmpty()) {
+            context.send(context.getTranslated("topinvites.error"));
+            return false;
+        }
 
         EmbedBuilder eb = new EmbedBuilder();
         StringBuilder sb = new StringBuilder();
@@ -68,18 +72,21 @@ public class TopInvitesCommnad extends Command {
         }
 
         int rank = 1;
+        int tempRank = 1;
         for (Map.Entry<Member, Integer> sorted : sortByValue(zaproszenia).entrySet()) {
             sb.append("**#").append(rank).append("** ");
             sb.append(sorted.getKey().getAsMention());
             sb.append(" [`").append(UserUtil.formatDiscrim(sorted.getKey())).append("`] ");
             sb.append(context.getTranslated("topinvites.invtes", sorted.getValue())).append("\n");
             rank++;
-            if (rank > 10) {
+            tempRank++;
+            if (tempRank > 10) {
                 eb.setColor(UserUtil.getPrimColor(context.getSender()));
                 eb.setDescription(sb.toString());
                 pages.add(eb);
                 sb = new StringBuilder();
                 eb = new EmbedBuilder();
+                tempRank = 0;
             }
             if (pages.size() >= 5) break;
         }
@@ -92,7 +99,7 @@ public class TopInvitesCommnad extends Command {
         new ClassicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(), context.getTlumaczenia(), eventBus)
             .create(context.getChannel());
 
-        return !members.isEmpty();
+        return true;
     }
 
     public static HashMap<Member, Integer> sortByValue(HashMap<Member, Integer> hm) {
