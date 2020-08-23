@@ -60,9 +60,9 @@ public class JoinListener {
 
     @Subscribe
     public void onMemberJoin(GuildMemberRemoveEvent e) {
-        InviteConfig ic = inviteDao.get(e.getUser().getId());
+        InviteConfig ic = inviteDao.get(e.getUser().getId(), e.getGuild().getId());
         if (ic.getDolaczylZJegoZaproszenia() == null) return;
-        InviteConfig zarazMuOdjebieZapro = inviteDao.get(ic.getDolaczylZJegoZaproszenia());
+        InviteConfig zarazMuOdjebieZapro = inviteDao.get(ic.getDolaczylZJegoZaproszenia(), e.getGuild().getId());
         zarazMuOdjebieZapro.setLeaveInvites(zarazMuOdjebieZapro.getLeaveInvites() + 1);
         inviteDao.save(zarazMuOdjebieZapro);
     }

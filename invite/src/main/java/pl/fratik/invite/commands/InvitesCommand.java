@@ -45,7 +45,7 @@ public class InvitesCommand extends Command {
         if (context.getArgs().length != 0) osoba = (User) context.getArgs()[0];
         if (osoba == null) osoba = context.getSender();
 
-        InviteConfig dao = inviteDao.get(osoba.getId());
+        InviteConfig dao = inviteDao.get(osoba.getId(), context.getGuild().getId());
 
         EmbedBuilder eb = new EmbedBuilder();
         eb.setColor(UserUtil.getPrimColor(osoba));
