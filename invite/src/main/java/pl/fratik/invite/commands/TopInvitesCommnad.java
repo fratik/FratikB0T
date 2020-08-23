@@ -71,7 +71,8 @@ public class TopInvitesCommnad extends Command {
         for (Map.Entry<Member, Integer> sorted : sortByValue(zaproszenia).entrySet()) {
             sb.append("**#").append(rank).append("** ");
             sb.append(sorted.getKey().getAsMention());
-            sb.append(" [`").append(UserUtil.formatDiscrim(sorted.getKey())).append("`]\n");
+            sb.append(" [`").append(UserUtil.formatDiscrim(sorted.getKey())).append("`] ");
+            sb.append(context.getTranslated("topinvites.invtes", sorted.getValue())).append("\n");
             rank++;
             if (rank > 10) {
                 eb.setColor(UserUtil.getPrimColor(context.getSender()));
