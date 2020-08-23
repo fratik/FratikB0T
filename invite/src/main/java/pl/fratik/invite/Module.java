@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,52 +15,47 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package pl.fratik.liczek;
+package pl.fratik.invite;
 
 import com.google.common.eventbus.EventBus;
 import com.google.inject.Inject;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.command.Command;
-import pl.fratik.core.entity.GuildDao;
-import pl.fratik.core.entity.MemberDao;
-import pl.fratik.core.entity.UserDao;
-import pl.fratik.core.manager.ManagerArgumentow;
 import pl.fratik.core.manager.ManagerBazyDanych;
 import pl.fratik.core.manager.ManagerKomend;
-import pl.fratik.core.manager.ManagerModulow;
 import pl.fratik.core.moduly.Modul;
-import pl.fratik.core.tlumaczenia.Tlumaczenia;
-import pl.fratik.core.util.EventWaiter;
-import pl.fratik.liczek.listener.LiczekListener;
+import pl.fratik.invite.cache.InvitesCache;
+import pl.fratik.invite.commands.InvitesCommand;
+import pl.fratik.invite.entity.InviteDao;
+import pl.fratik.invite.listeners.JoinListener;
 
 import java.util.ArrayList;
 
 public class Module implements Modul {
     @Inject private ManagerKomend managerKomend;
-    @Inject private ManagerArgumentow managerArgumentow;
-    @Inject private EventWaiter eventWaiter;
-    @Inject private GuildDao guildDao;
-    @Inject private MemberDao memberDao;
-    @Inject private UserDao userDao;
     @Inject private ManagerBazyDanych managerBazyDanych;
-    @Inject private ShardManager shardManager;
-    @Inject private Tlumaczenia tlumaczenia;
-    @Inject private ManagerModulow managerModulow;
     @Inject private EventBus eventBus;
     @Inject private RedisCacheManager redisCacheManager;
+    @Inject private ShardManager shardManager;
 
     private ArrayList<Command> commands;
-    private LiczekListener listener;
+    private JoinListener joinListener;
+    private InvitesCache invitesCache;
 
     @Override
     public boolean startUp() {
+        InviteDao inviteDao = new InviteDao(managerBazyDanych, eventBus);
+
+        this.invitesCache = new InvitesCache(redisCacheManager, shardManager);
+        this.joinListener = new JoinListener(inviteDao, invitesCache);
+        invitesCache.load();
+
+        eventBus.register(invitesCache);
+        eventBus.register(joinListener);
+
         commands = new ArrayList<>();
-
-        commands.add(new LiczekCommand(guildDao));
-
-        listener = new LiczekListener(guildDao, tlumaczenia, redisCacheManager);
-        eventBus.register(listener);
+        commands.add(new InvitesCommand(inviteDao));
 
         commands.forEach(managerKomend::registerCommand);
         return true;
@@ -68,8 +63,9 @@ public class Module implements Modul {
 
     @Override
     public boolean shutDown() {
-        commands.forEach(managerKomend::unregisterCommand);
-        eventBus.unregister(listener);
+        invitesCache.inviteCache.invalidateAll();
+        eventBus.unregister(joinListener);
         return true;
     }
+
 }

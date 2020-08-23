@@ -15,25 +15,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-rootProject.name = 'FratikB0T'
-include ':core'
-include ':commands'
-include ':arguments'
-include ':api'
-include ':punkty'
-include ':starboard'
-if(file('sdk').exists()){
-    include ':sdk'
-    apply from: 'sdk/settings.gradle'
-}
-include ':moderation'
-include ':fratikcoiny'
-include ':music'
-include 'stats'
-include 'tags'
-include 'logs'
-include 'fdevstats'
-include 'dev'
-include 'liczek'
-include 'invite'
+package pl.fratik.invite.cache;
 
+import lombok.Data;
+import net.dv8tion.jda.api.entities.Invite;
+
+@Data
+public class FakeInvite {
+
+    private int uses = 0;
+
+    public FakeInvite(Invite invite) {
+        this.uses = invite.getUses();
+    }
+
+}
