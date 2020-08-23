@@ -45,6 +45,7 @@ public class JoinListener {
         for (Invite invite : zaproszenia) {
             FakeInvite inv = invitesCache.inviteCache.getIfPresent(e.getGuild().getId() + "." + invite.getCode());
             if (inv == null || (invite.getUses() - 1) != inv.getUses()) continue;
+            invitesCache.load(invite);
             User user = invite.getInviter();
             if (user != null) {
                 InviteConfig wchodzacy = inviteDao.get(e.getMember());
@@ -61,6 +62,8 @@ public class JoinListener {
     @Subscribe
     public void onMemberJoin(GuildMemberRemoveEvent e) {
         InviteConfig ic = inviteDao.get(e.getUser().getId(), e.getGuild().getId());
+        ic.setDolaczylZJegoZaproszenia(null);
+        inviteDao.save(ic);
         if (ic.getDolaczylZJegoZaproszenia() == null) return;
         InviteConfig zarazMuOdjebieZapro = inviteDao.get(ic.getDolaczylZJegoZaproszenia(), e.getGuild().getId());
         zarazMuOdjebieZapro.setLeaveInvites(zarazMuOdjebieZapro.getLeaveInvites() + 1);

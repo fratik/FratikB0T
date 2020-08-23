@@ -45,11 +45,15 @@ public class InvitesCache {
         for (Guild guild : api.getGuilds()) {
             try {
                 List<Invite> invites = guild.retrieveInvites().complete();
-                for (Invite invite : invites) {
-                    inviteCache.put(guild.getId() + "." + invite.getCode(), new FakeInvite(invite));
-                }
+                invites.forEach(this::load);
             } catch (InsufficientPermissionException ignored) { }
         }
+    }
+
+    public synchronized void load(Invite invite) {
+        String code = invite.getGuild().getId() + "." + invite.getCode();
+        inviteCache.invalidate(code);
+        inviteCache.put(code, new FakeInvite(invite));
     }
 
     @Subscribe
