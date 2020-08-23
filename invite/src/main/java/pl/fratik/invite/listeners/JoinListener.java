@@ -69,7 +69,7 @@ public class JoinListener {
         }
         ic.setDolaczylZJegoZaproszenia(null);
         inviteDao.save(ic);
-        
+
     }
 
 }

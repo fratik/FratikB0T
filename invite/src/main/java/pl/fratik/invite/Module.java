@@ -25,8 +25,9 @@ import pl.fratik.core.command.Command;
 import pl.fratik.core.manager.ManagerBazyDanych;
 import pl.fratik.core.manager.ManagerKomend;
 import pl.fratik.core.moduly.Modul;
+import pl.fratik.core.util.EventWaiter;
 import pl.fratik.invite.cache.InvitesCache;
-import pl.fratik.invite.commands.InvitesCommand;
+import pl.fratik.invite.commands.*;
 import pl.fratik.invite.entity.InviteDao;
 import pl.fratik.invite.listeners.JoinListener;
 
@@ -36,6 +37,7 @@ public class Module implements Modul {
     @Inject private ManagerKomend managerKomend;
     @Inject private ManagerBazyDanych managerBazyDanych;
     @Inject private EventBus eventBus;
+    @Inject private EventWaiter eventWaiter;
     @Inject private RedisCacheManager redisCacheManager;
     @Inject private ShardManager shardManager;
 
@@ -56,6 +58,7 @@ public class Module implements Modul {
 
         commands = new ArrayList<>();
         commands.add(new InvitesCommand(inviteDao));
+        commands.add(new TopInvitesCommnad(inviteDao, eventWaiter, eventBus));
 
         commands.forEach(managerKomend::registerCommand);
         return true;

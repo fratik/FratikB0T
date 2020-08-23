@@ -58,11 +58,11 @@ public class InvitesCache {
 
     @Subscribe
     public void createInvite(GuildInviteCreateEvent e) {
-        inviteCache.put(e.getGuild().getId() + "." + e.getCode(), new FakeInvite(e.getInvite()));
+        load(e.getInvite());
     }
 
     @Subscribe
-    public void createInvite(GuildInviteDeleteEvent e) {
+    public void deleteInvite(GuildInviteDeleteEvent e) {
         inviteCache.invalidate(e.getGuild().getId() + "." + e.getCode());
     }
 
