@@ -52,21 +52,21 @@ public class TopInvitesCommnad extends Command {
     @Override
     public boolean execute(CommandContext context) {
         Task<List<Member>> task = context.getGuild().loadMembers();
-
-        Message msg = context.send(context.getTranslated("generic.loading"));
-
-        while (!task.isStarted()) {
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException ignored) { }
-        }
-
         List<Member> members = new ArrayList<>();
         task.onSuccess(members::addAll);
 
-        if (members.isEmpty()) {
-            context.send(context.getTranslated("topinvites.error"));
-            return false;
+        Message msg = context.send(context.getTranslated("generic.loading"));
+
+        int sec = 0;
+        while (!members.isEmpty()) {
+            try {
+                sec++;
+                Thread.sleep(1000);
+                if (sec == 10) {
+                    msg.editMessage(context.getTranslated("topinvites.error")).queue();
+                    return false;
+                }
+            } catch (InterruptedException ignored) { }
         }
 
         EmbedBuilder eb = new EmbedBuilder();
