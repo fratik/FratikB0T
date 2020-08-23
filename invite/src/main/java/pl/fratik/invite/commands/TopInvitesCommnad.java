@@ -20,6 +20,7 @@ package pl.fratik.invite.commands;
 import com.google.common.eventbus.EventBus;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.utils.concurrent.Task;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandCategory;
@@ -51,6 +52,15 @@ public class TopInvitesCommnad extends Command {
     @Override
     public boolean execute(CommandContext context) {
         Task<List<Member>> task = context.getGuild().loadMembers();
+
+        Message msg = context.send(context.getTranslated("generic.loading"));
+
+        while (!task.isStarted()) {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException ignored) { }
+        }
+
         List<Member> members = new ArrayList<>();
         task.onSuccess(members::addAll);
 
@@ -97,7 +107,7 @@ public class TopInvitesCommnad extends Command {
         }
 
         new ClassicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(), context.getTlumaczenia(), eventBus)
-            .create(context.getChannel());
+            .create(msg);
 
         return true;
     }
