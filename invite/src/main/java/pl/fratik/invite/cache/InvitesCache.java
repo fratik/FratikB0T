@@ -22,6 +22,7 @@ import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Invite;
 import net.dv8tion.jda.api.events.guild.invite.GuildInviteCreateEvent;
 import net.dv8tion.jda.api.events.guild.invite.GuildInviteDeleteEvent;
+import net.dv8tion.jda.api.exceptions.InsufficientPermissionException;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import pl.fratik.core.cache.Cache;
 import pl.fratik.core.cache.RedisCacheManager;
@@ -42,10 +43,12 @@ public class InvitesCache {
 
     public synchronized void load() {
         for (Guild guild : api.getGuilds()) {
-            List<Invite> invites = guild.retrieveInvites().complete();
-            for (Invite invite : invites) {
-                inviteCache.put(guild.getId() + "." + invite.getCode(), new FakeInvite(invite));
-            }
+            try {
+                List<Invite> invites = guild.retrieveInvites().complete();
+                for (Invite invite : invites) {
+                    inviteCache.put(guild.getId() + "." + invite.getCode(), new FakeInvite(invite));
+                }
+            } catch (InsufficientPermissionException ignored) { }
         }
     }
 

@@ -22,6 +22,7 @@ import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.User;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandContext;
+import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.util.UserUtil;
 import pl.fratik.invite.entity.InviteConfig;
 import pl.fratik.invite.entity.InviteDao;
@@ -34,7 +35,7 @@ public class InvitesCommand extends Command {
         name = "invites";
         aliases = new String[] {"zaproszenia"};
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
-
+        uzycie = new Uzycie("osoba", "user");
         this.inviteDao = inviteDao;
     }
 
@@ -50,6 +51,10 @@ public class InvitesCommand extends Command {
         eb.setColor(UserUtil.getPrimColor(osoba));
         eb.setThumbnail(UserUtil.getAvatarUrl(osoba));
         eb.setTitle(UserUtil.formatDiscrim(osoba));
+
+        if (!context.getGuild().getSelfMember().hasPermission(Permission.MANAGE_SERVER)) {
+            eb.setDescription("**!!UWAGA!!**\nZaproszenia mogą nie działać, ponieważ bot nie ma permisji `MANAGE_SERVER`");
+        }
 
         eb.addField("Liczba zaproszeń", dao.getTotalInvites() - dao.getLeaveInvites() + "", false);
         eb.addField("Liczba wyjść", dao.getLeaveInvites() + "", false);
