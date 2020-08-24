@@ -24,7 +24,6 @@ import net.dv8tion.jda.api.entities.User;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
-import pl.fratik.core.command.SubCommand;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Uzycie;
@@ -36,6 +35,7 @@ import pl.fratik.invite.entity.InviteDao;
 
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 
 public class InvitesCommand extends Command {
 
@@ -48,7 +48,10 @@ public class InvitesCommand extends Command {
         category = CommandCategory.INVITES;
         aliases = new String[] {"zaproszenia"};
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
-        uzycie = new Uzycie("osoba", "user", false);
+        LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
+        hmap.put("role", "string");
+        hmap.put("[...]", "string");
+        uzycie = new Uzycie(hmap, new boolean[] {false, false});
         cooldown = 5;
         this.inviteDao = inviteDao;
         this.guildDao = guildDao;
@@ -57,8 +60,32 @@ public class InvitesCommand extends Command {
 
     @Override
     public boolean execute(CommandContext context) {
+        if (context.getRawArgs().length != 0 && context.getRawArgs()[0].equals("set")) {
+            try {
+                int zaprszenie = Integer.parseInt(context.getRawArgs()[1]);
+                Role rola = (Role) managerArgumentow.getArguments().get("role")
+                        .execute(context.getRawArgs()[2], context.getTlumaczenia(), context.getLanguage(), context.getGuild());
+                if (rola == null || zaprszenie <= 0) throw new NumberFormatException();
+                GuildConfig gc = guildDao.get(context.getGuild());
+                if (gc.getRoleZaZaproszenia() == null) gc.setRoleZaZaproszenia(new HashMap<>());
+
+                if (!rola.canInteract(context.getGuild().getSelfMember().getRoles().get(0))) {
+                    context.send(context.getTranslated("topinvites.badrole"));
+                    return false;
+                }
+
+                gc.getRoleZaZaproszenia().put(zaprszenie, rola.getId());
+                guildDao.save(gc);
+                context.send(context.getTranslated("topinvites.set.succes"));
+
+            } catch (IndexOutOfBoundsException | NumberFormatException e) {
+                CommonErrors.usage(context);
+            }
+            return false;
+        }
         User osoba = null;
-        if (context.getArgs().length != 0) osoba = (User) context.getArgs()[0];
+        if (context.getArgs().length != 0) osoba = (User) managerArgumentow.getArguments().get("user")
+                .execute(context.getRawArgs()[0], context.getTlumaczenia(), context.getLanguage(), context.getGuild());
         if (osoba == null) osoba = context.getSender();
 
         InviteConfig dao = inviteDao.get(osoba.getId(), context.getGuild().getId());
@@ -83,32 +110,5 @@ public class InvitesCommand extends Command {
 
         return true;
     }
-
-    @SubCommand(name="set")
-    public boolean set(CommandContext context) {
-        try {
-            int zaprszenie = Integer.parseInt(context.getRawArgs()[0]);
-            Role rola = (Role) managerArgumentow.getArguments().get("role")
-                    .execute(context.getRawArgs()[1], context.getTlumaczenia(), context.getLanguage(), context.getGuild());
-            if (rola == null || zaprszenie <= 0) throw new NumberFormatException();
-            GuildConfig gc = guildDao.get(context.getGuild());
-            if (gc.getRoleZaZaproszenia() == null) gc.setRoleZaZaproszenia(new HashMap<>());
-
-            if (!rola.canInteract(context.getGuild().getSelfMember().getRoles().get(0))) {
-                context.send(context.getTranslated("topinvites.badrole"));
-                return false;
-            }
-
-            gc.getRoleZaZaproszenia().put(zaprszenie, rola.getId());
-            guildDao.save(gc);
-            context.send(context.getTranslated("topinvites.set.succes"));
-
-        } catch (IndexOutOfBoundsException | NumberFormatException e) {
-            CommonErrors.usage(context);
-            return false;
-        }
-        return false;
-    }
-
 
 }
