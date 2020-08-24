@@ -51,8 +51,8 @@ public class InvitesCommand extends Command {
         aliases = new String[] {"zaproszenia"};
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
-        hmap.put("role", "string");
-        hmap.put("[...]", "string");
+        hmap.put("user|integer", "string");
+        hmap.put("rola", "role");
         uzycie = new Uzycie(hmap, new boolean[] {false, false});
         cooldown = 5;
         this.inviteDao = inviteDao;
@@ -99,8 +99,7 @@ public class InvitesCommand extends Command {
     public boolean set(@NotNull CommandContext context) {
         try {
             int zaprszenie = Integer.parseInt(context.getRawArgs()[0]);
-            Role rola = (Role) managerArgumentow.getArguments().get("role")
-                    .execute(context.getRawArgs()[1], context.getTlumaczenia(), context.getLanguage(), context.getGuild());
+            Role rola = (Role) context.getArgs()[1];
             if (rola == null || zaprszenie <= 0) throw new NumberFormatException();
             GuildConfig gc = guildDao.get(context.getGuild());
             if (gc.getRoleZaZaproszenia() == null) gc.setRoleZaZaproszenia(new HashMap<>());
