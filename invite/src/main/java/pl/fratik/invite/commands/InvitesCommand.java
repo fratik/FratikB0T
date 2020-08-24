@@ -54,6 +54,7 @@ public class InvitesCommand extends Command {
         hmap.put("user|integer", "string");
         hmap.put("rola", "role");
         uzycie = new Uzycie(hmap, new boolean[] {false, false});
+        uzycieDelim = " ";
         cooldown = 5;
         this.inviteDao = inviteDao;
         this.guildDao = guildDao;
@@ -62,7 +63,7 @@ public class InvitesCommand extends Command {
     }
 
     @Override
-    public boolean execute(CommandContext context) {
+    public boolean execute(@NotNull CommandContext context) {
         CommonErrors.usage(context);
         return false;
     }

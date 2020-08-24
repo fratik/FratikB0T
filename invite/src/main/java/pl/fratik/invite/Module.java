@@ -72,6 +72,7 @@ public class Module implements Modul {
     public boolean shutDown() {
         invitesCache.inviteCache.invalidateAll();
         eventBus.unregister(joinListener);
+        commands.forEach(managerKomend::unregisterCommand);
         return true;
     }
 
