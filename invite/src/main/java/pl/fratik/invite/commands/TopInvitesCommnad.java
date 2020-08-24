@@ -32,6 +32,7 @@ import pl.fratik.invite.entity.InviteConfig;
 import pl.fratik.invite.entity.InviteDao;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class TopInvitesCommnad extends Command {
 
@@ -51,65 +52,55 @@ public class TopInvitesCommnad extends Command {
 
     @Override
     public boolean execute(CommandContext context) {
-        Task<List<Member>> task = context.getGuild().loadMembers();
-        List<Member> members = new ArrayList<>();
-        task.onSuccess(members::addAll);
-
         Message msg = context.send(context.getTranslated("generic.loading"));
+        AtomicBoolean success = new AtomicBoolean(true);
+        Task<List<Member>> task = context.getGuild().loadMembers();
+        task.onSuccess(members -> {
+            EmbedBuilder eb = new EmbedBuilder();
+            StringBuilder sb = new StringBuilder();
+            List<EmbedBuilder> pages = new ArrayList<>();
+            HashMap<Member, Integer> zaproszenia = new HashMap<>();
 
-        int sec = 0;
-        while (!members.isEmpty()) {
-            try {
-                sec++;
-                Thread.sleep(1000);
-                if (sec == 10) {
-                    msg.editMessage(context.getTranslated("topinvites.error")).queue();
-                    return false;
+            for (Member member : members) {
+                InviteConfig ic = inviteDao.get(member);
+                int invites = ic.getTotalInvites() - ic.getLeaveInvites();
+                if (invites <= 0) continue;
+                zaproszenia.put(member, invites);
+            }
+
+            int rank = 1;
+            int tempRank = 1;
+            for (Map.Entry<Member, Integer> sorted : sortByValue(zaproszenia).entrySet()) {
+                sb.append("**#").append(rank).append("** ");
+                sb.append(sorted.getKey().getAsMention());
+                sb.append(" [`").append(UserUtil.formatDiscrim(sorted.getKey())).append("`] ");
+                sb.append(context.getTranslated("topinvites.invtes", sorted.getValue())).append("\n");
+                rank++;
+                tempRank++;
+                if (tempRank > 10) {
+                    eb.setColor(UserUtil.getPrimColor(context.getSender()));
+                    eb.setDescription(sb.toString());
+                    pages.add(eb);
+                    sb = new StringBuilder();
+                    eb = new EmbedBuilder();
+                    tempRank = 0;
                 }
-            } catch (InterruptedException ignored) { }
-        }
-
-        EmbedBuilder eb = new EmbedBuilder();
-        StringBuilder sb = new StringBuilder();
-        List<EmbedBuilder> pages = new ArrayList<>();
-        HashMap<Member, Integer> zaproszenia = new HashMap<>();
-
-        for (Member member : members) {
-            InviteConfig ic = inviteDao.get(member);
-            int invites = ic.getTotalInvites() - ic.getLeaveInvites();
-            if (invites <= 0) continue;
-            zaproszenia.put(member, invites);
-        }
-
-        int rank = 1;
-        int tempRank = 1;
-        for (Map.Entry<Member, Integer> sorted : sortByValue(zaproszenia).entrySet()) {
-            sb.append("**#").append(rank).append("** ");
-            sb.append(sorted.getKey().getAsMention());
-            sb.append(" [`").append(UserUtil.formatDiscrim(sorted.getKey())).append("`] ");
-            sb.append(context.getTranslated("topinvites.invtes", sorted.getValue())).append("\n");
-            rank++;
-            tempRank++;
-            if (tempRank > 10) {
-                eb.setColor(UserUtil.getPrimColor(context.getSender()));
+                if (pages.size() >= 5) break;
+            }
+            if (rank <= 10) {
+                eb.setColor(UserUtil.getPrimColor(context.getMember().getUser()));
                 eb.setDescription(sb.toString());
                 pages.add(eb);
-                sb = new StringBuilder();
-                eb = new EmbedBuilder();
-                tempRank = 0;
             }
-            if (pages.size() >= 5) break;
-        }
-        if (rank <= 10) {
-            eb.setColor(UserUtil.getPrimColor(context.getMember().getUser()));
-            eb.setDescription(sb.toString());
-            pages.add(eb);
-        }
 
-        new ClassicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(), context.getTlumaczenia(), eventBus)
-            .create(msg);
-
-        return true;
+            new ClassicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(), context.getTlumaczenia(), eventBus)
+                    .create(msg);
+        });
+        task.onError(m -> {
+            msg.editMessage(context.getTranslated("topinvites.error")).queue();
+            success.set(false);
+        });
+        return success.get();
     }
 
     public static HashMap<Member, Integer> sortByValue(HashMap<Member, Integer> hm) {
