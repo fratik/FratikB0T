@@ -48,6 +48,7 @@ public class TopInvitesCommnad extends Command {
         this.inviteDao = inviteDao;
         this.eventWaiter = eventWaiter;
         this.eventBus = eventBus;
+        allowPermLevelChange = true;
     }
 
     @Override
