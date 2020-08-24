@@ -19,29 +19,40 @@ package pl.fratik.invite.commands;
 
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.User;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
+import pl.fratik.core.command.SubCommand;
+import pl.fratik.core.entity.GuildConfig;
+import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Uzycie;
+import pl.fratik.core.manager.ManagerArgumentow;
+import pl.fratik.core.util.CommonErrors;
 import pl.fratik.core.util.UserUtil;
 import pl.fratik.invite.entity.InviteConfig;
 import pl.fratik.invite.entity.InviteDao;
 
 import java.time.Instant;
+import java.util.HashMap;
 
 public class InvitesCommand extends Command {
 
-    private InviteDao inviteDao;
+    private final InviteDao inviteDao;
+    private final GuildDao guildDao;
+    private final ManagerArgumentow managerArgumentow;
 
-    public InvitesCommand(InviteDao inviteDao) {
+    public InvitesCommand(InviteDao inviteDao, GuildDao guildDao, ManagerArgumentow managerArgumentow) {
         name = "invites";
         category = CommandCategory.INVITES;
         aliases = new String[] {"zaproszenia"};
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
-        uzycie = new Uzycie("osoba", "user");
+        uzycie = new Uzycie("osoba", "user", false);
         cooldown = 5;
         this.inviteDao = inviteDao;
+        this.guildDao = guildDao;
+        this.managerArgumentow = managerArgumentow;
     }
 
     @Override
@@ -72,5 +83,32 @@ public class InvitesCommand extends Command {
 
         return true;
     }
+
+    @SubCommand(name="set")
+    public boolean set(CommandContext context) {
+        try {
+            int zaprszenie = Integer.parseInt(context.getRawArgs()[0]);
+            Role rola = (Role) managerArgumentow.getArguments().get("role")
+                    .execute(context.getRawArgs()[1], context.getTlumaczenia(), context.getLanguage(), context.getGuild());
+            if (rola == null || zaprszenie <= 0) throw new NumberFormatException();
+            GuildConfig gc = guildDao.get(context.getGuild());
+            if (gc.getRoleZaZaproszenia() == null) gc.setRoleZaZaproszenia(new HashMap<>());
+
+            if (!rola.canInteract(context.getGuild().getSelfMember().getRoles().get(0))) {
+                context.send(context.getTranslated("topinvites.badrole"));
+                return false;
+            }
+
+            gc.getRoleZaZaproszenia().put(zaprszenie, rola.getId());
+            guildDao.save(gc);
+            context.send(context.getTranslated("topinvites.set.succes"));
+
+        } catch (IndexOutOfBoundsException | NumberFormatException e) {
+            CommonErrors.usage(context);
+            return false;
+        }
+        return false;
+    }
+    
 
 }

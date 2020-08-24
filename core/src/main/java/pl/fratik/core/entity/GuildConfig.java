@@ -122,6 +122,8 @@ public class GuildConfig implements DatabaseEntity {
     private String lvlUpMessage;
     private Boolean resetujOstrzezeniaPrzyBanie = true;
     private Map<String, PermLevel> cmdPermLevelOverrides = new HashMap<>();
+    @ConfigField(dontDisplayInSettings = true)
+    private Map<Integer, String> roleZaZaproszenia = new HashMap<>();
 
     // TODO: 09/04/2020 można to zrobić dla każdego Boolean'a, ale to już kwestia kosmetyki kodu chyba
     public boolean isResetujOstrzezeniaPrzyBanie() {

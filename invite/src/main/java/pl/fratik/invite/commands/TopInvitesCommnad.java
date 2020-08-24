@@ -68,6 +68,12 @@ public class TopInvitesCommnad extends Command {
                 zaproszenia.put(member, invites);
             }
 
+            if (zaproszenia.isEmpty()) {
+                context.send(context.getTranslated("topinvites.empty"));
+                success.set(false);
+                return;
+            }
+
             int rank = 1;
             int tempRank = 1;
             for (Map.Entry<Member, Integer> sorted : sortByValue(zaproszenia).entrySet()) {
