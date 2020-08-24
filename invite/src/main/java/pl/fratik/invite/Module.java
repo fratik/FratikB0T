@@ -22,6 +22,8 @@ import com.google.inject.Inject;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.command.Command;
+import pl.fratik.core.entity.GuildDao;
+import pl.fratik.core.manager.ManagerArgumentow;
 import pl.fratik.core.manager.ManagerBazyDanych;
 import pl.fratik.core.manager.ManagerKomend;
 import pl.fratik.core.moduly.Modul;
@@ -40,6 +42,8 @@ public class Module implements Modul {
     @Inject private EventWaiter eventWaiter;
     @Inject private RedisCacheManager redisCacheManager;
     @Inject private ShardManager shardManager;
+    @Inject private GuildDao guildDao;
+    @Inject private ManagerArgumentow managerArgumentow;
 
     private ArrayList<Command> commands;
     private JoinListener joinListener;
@@ -57,7 +61,7 @@ public class Module implements Modul {
         eventBus.register(joinListener);
 
         commands = new ArrayList<>();
-        commands.add(new InvitesCommand(inviteDao));
+        commands.add(new InvitesCommand(inviteDao, guildDao, managerArgumentow));
         commands.add(new TopInvitesCommnad(inviteDao, eventWaiter, eventBus));
 
         commands.forEach(managerKomend::registerCommand);

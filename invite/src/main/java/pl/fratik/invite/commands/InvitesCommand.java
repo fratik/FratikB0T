@@ -109,6 +109,6 @@ public class InvitesCommand extends Command {
         }
         return false;
     }
-    
+
 
 }
