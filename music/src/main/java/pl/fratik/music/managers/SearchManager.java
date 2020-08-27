@@ -43,7 +43,6 @@ public class SearchManager {
     private final Logger logger = LoggerFactory.getLogger(SearchManager.class);
     private final String ytApiUrl;
     private final String ytApiUrlThumbnails;
-    private final String ytApiUrlDuration;
     private final String ytApiUrlThumbnailsAndDuration;
     private final NowyManagerMuzyki managerMuzyki;
     private final Cache<SearchResult> youtubeResults;
@@ -52,15 +51,10 @@ public class SearchManager {
     public SearchManager(String ytApiKey, String ytApiKeyThumbnails, NowyManagerMuzyki managerMuzyki, RedisCacheManager redisCacheManager) {
         ytApiUrl = "https://www.googleapis.com/youtube/v3/search?part=snippet&key=" + ytApiKey + "&maxResults=20&q=";
         ytApiUrlThumbnails = "https://www.googleapis.com/youtube/v3/videos?part=snippet&key=" + ytApiKeyThumbnails + "&id=";
-        ytApiUrlDuration = "https://www.googleapis.com/youtube/v3/videos?part=contentDetails&key=" + ytApiKeyThumbnails + "&id=";
         ytApiUrlThumbnailsAndDuration = "https://www.googleapis.com/youtube/v3/videos?part=snippet%2CcontentDetails&key=" + ytApiKeyThumbnails + "&id=";
         this.managerMuzyki = managerMuzyki;
         youtubeResults = redisCacheManager.new CacheRetriever<SearchResult>(){}.getCache((int) TimeUnit.MINUTES.toSeconds(30));
         entryCache = redisCacheManager.new CacheRetriever<SearchResult.SearchEntry>(){}.getCache((int) TimeUnit.HOURS.toSeconds(1));
-    }
-
-    public SearchResult searchYouTube(String query) {
-        return searchYouTube(query, true);
     }
 
     @SuppressWarnings("squid:S1192")
@@ -223,27 +217,6 @@ public class SearchManager {
                             .get(0).getAsJsonObject().get("contentDetails").getAsJsonObject().get("duration")
                             .getAsString()).get(ChronoUnit.SECONDS), TimeUnit.SECONDS),
                     maxResThumbnail.getAsJsonObject().get("url").getAsString());
-            SearchResult.SearchEntry odp = obj.entries.get(0);
-            entryCache.put(videoId, odp);
-            return odp;
-        } catch (Exception ignored) {
-            /*lul*/
-        }
-        return null;
-    }
-
-    public SearchResult.SearchEntry getDuration(String videoId) {
-        SearchResult.SearchEntry kupa = entryCache.getIfPresent(videoId);
-        if (kupa != null && kupa.hasDuration() && kupa.getThumbnailURL() != null) return kupa;
-        try {
-            String data = new String(NetworkUtil.download(ytApiUrlDuration + videoId), Charsets.UTF_8);
-            JsonObject element2 = GsonUtil.GSON.fromJson(data, JsonObject.class);
-            SearchResult obj = new SearchResult();
-            obj.addEntry(null, "https://youtube.com/watch?v=" + videoId,
-                    TimeUnit.MILLISECONDS.convert(Duration.parse(element2.get("items").getAsJsonArray()
-                            .get(0).getAsJsonObject().get("contentDetails").getAsJsonObject().get("duration")
-                            .getAsString()).get(ChronoUnit.SECONDS), TimeUnit.SECONDS),
-                    null);
             SearchResult.SearchEntry odp = obj.entries.get(0);
             entryCache.put(videoId, odp);
             return odp;
