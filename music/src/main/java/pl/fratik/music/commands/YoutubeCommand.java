@@ -78,7 +78,7 @@ public class YoutubeCommand extends MusicCommand {
             context.send(context.getTranslated("play.no.permissions"));
             return false;
         }
-        SearchManager.SearchResult result = searchManager.searchYouTube((String) context.getArgs()[0], false);
+        SearchManager.SearchResult result = searchManager.searchYouTube((String) context.getArgs()[0]);
         Wiadomosc odp = generateResultMessage(result.getEntries(), context.getTranslated("youtube.message.header", (String) context.getArgs()[0]), false);
         int liczba = odp.liczba;
         Message m = context.getChannel().sendMessage(odp.tresc).complete();

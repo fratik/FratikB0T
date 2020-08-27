@@ -85,7 +85,7 @@ public class PlayCommand extends MusicCommand {
             return false;
         }
         if (!URLPATTERN.matcher((String) context.getArgs()[0]).matches()) {
-            SearchManager.SearchResult wynik = searchManager.searchYouTube((String) context.getArgs()[0], false);
+            SearchManager.SearchResult wynik = searchManager.searchYouTube((String) context.getArgs()[0]);
             if (wynik == null || wynik.getEntries().isEmpty()) {
                 context.send(context.getTranslated("play.no.results"));
                 return false;

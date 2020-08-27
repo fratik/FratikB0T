@@ -34,8 +34,6 @@ import java.net.URLEncoder;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -58,7 +56,7 @@ public class SearchManager {
     }
 
     @SuppressWarnings("squid:S1192")
-    public SearchResult searchYouTube(String query, boolean thumbnailAndDuration) {
+    public SearchResult searchYouTube(String query) {
         final String origQuery = query;
         SearchResult result = youtubeResults.getIfPresent(origQuery.toLowerCase());
         if (result != null) return result;
@@ -78,41 +76,7 @@ public class SearchManager {
                         String videoId = o.get("id").getAsJsonObject().get("videoId").getAsString();
                         String title = o.get("snippet").getAsJsonObject().get("title").getAsString();
                         long duration = 0;
-                        String thumbnailURL = null;
-                        if (thumbnailAndDuration) {
-                            try {
-                                SearchResult.SearchEntry e = entryCache.getIfPresent(videoId);
-                                if (e != null) {
-                                    duration = e.getDurationAsInt();
-                                    thumbnailURL = e.getThumbnailURL();
-                                } else {
-                                    String data2 = new String(NetworkUtil.download(ytApiUrlThumbnailsAndDuration + videoId), Charsets.UTF_8);
-                                    JsonObject element2 = GsonUtil.GSON.fromJson(data2, JsonObject.class);
-
-                                    JsonObject thumbnails = element2.get("items").getAsJsonArray().get(0).getAsJsonObject()
-                                            .get("snippet").getAsJsonObject().get("thumbnails").getAsJsonObject();
-                                    JsonObject maxResThumbnail = null;
-                                    for (String key : thumbnails.keySet()) {
-                                        if (maxResThumbnail == null) {
-                                            maxResThumbnail = thumbnails.get(key).getAsJsonObject();
-                                            continue;
-                                        }
-                                        if (thumbnails.get(key).getAsJsonObject().get("height").getAsInt() > maxResThumbnail.get("height").getAsInt())
-                                            maxResThumbnail = thumbnails.get(key).getAsJsonObject();
-                                    }
-                                    if (maxResThumbnail == null) throw new IllegalStateException("brak miniatur");
-                                    thumbnailURL = maxResThumbnail.get("url").getAsString();
-                                    duration = TimeUnit.MILLISECONDS.convert(Duration.parse(element2.get("items").getAsJsonArray().get(0).getAsJsonObject()
-                                            .get("contentDetails").getAsJsonObject().get("duration").getAsString()).get(ChronoUnit.SECONDS), TimeUnit.SECONDS);
-                                    SearchResult searchResult = new SearchResult();
-                                    searchResult.addEntry(title, "https://youtube.com/watch?v=" + videoId, duration, thumbnailURL);
-                                    entryCache.put(videoId, searchResult.entries.get(0));
-                                }
-                            } catch (Exception ignored) {
-                                /*lul*/
-                            }
-                        }
-                        resultObj.addEntry(title, "https://youtube.com/watch?v=" + videoId, duration, thumbnailURL);
+                        resultObj.addEntry(title, "https://youtube.com/watch?v=" + videoId, duration, null);
                     }
                 });
 
@@ -127,21 +91,7 @@ public class SearchManager {
                 List<AudioTrack> audioTracks = managerMuzyki.getAudioTracks("ytsearch:" + NetworkUtil.decodeURIComponent(query));
                 SearchResult resultObj = new SearchResult();
                 for (AudioTrack track : audioTracks) {
-                    String thumbnailURL = null;
-                    try { //NOSONAR
-                        String data2 = new String(NetworkUtil.download(ytApiUrlThumbnails + extractIdFromUri(track.getInfo().uri)), Charsets.UTF_8);
-                        JsonObject element2 = GsonUtil.GSON.fromJson(data2, JsonObject.class);
-
-                        JsonObject thumbnails = element2.get("items").getAsJsonArray().get(0).getAsJsonObject()
-                                .get("snippet").getAsJsonObject().get("thumbnails").getAsJsonObject();
-                        LinkedList<String> list = new LinkedList<>(thumbnails.keySet());
-                        list.sort(Comparator.reverseOrder());
-                        thumbnailURL = thumbnails.get(list.get(0)).getAsJsonObject().get("url").getAsString();
-                        SearchResult searchResult = new SearchResult();
-                        searchResult.addEntry(track.getInfo().title, track.getInfo().uri, track.getDuration(), thumbnailURL);
-                        entryCache.put(extractIdFromUri(track.getInfo().uri), searchResult.entries.get(0));
-                    } catch (Exception ignored) {/*lul*/}
-                    resultObj.addEntry(track.getInfo().title, track.getInfo().uri, track.getDuration(), thumbnailURL);
+                    resultObj.addEntry(track.getInfo().title, track.getInfo().uri, track.getDuration(), null);
                 }
                 youtubeResults.put(origQuery.toLowerCase(), resultObj);
                 return resultObj;
