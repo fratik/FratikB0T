@@ -21,6 +21,7 @@ import lavalink.client.io.Link;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.GuildVoiceState;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.VoiceChannel;
 import net.dv8tion.jda.api.exceptions.GuildUnavailableException;
@@ -41,7 +42,7 @@ public class JdaLink extends Link {
         this.lavalink = lavalink;
     }
 
-    public void connect(VoiceChannel voiceChannel) {
+    public void connect(@Nonnull VoiceChannel voiceChannel) {
         connect(voiceChannel, true);
     }
 
@@ -51,11 +52,11 @@ public class JdaLink extends Link {
      * @param channel Channel to connect to
      */
     @SuppressWarnings("WeakerAccess")
-    void connect(VoiceChannel channel, boolean checkChannel) {
+    void connect(@Nonnull VoiceChannel channel, boolean checkChannel) {
         if (!channel.getGuild().equals(getJda().getGuildById(guild)))
             throw new IllegalArgumentException("The provided VoiceChannel is not a part of the Guild that this AudioManager handles." +
                     "Please provide a VoiceChannel from the proper Guild");
-        if (!channel.getGuild().isAvailable())
+        if (channel.getJDA().isUnavailable(channel.getGuild().getIdLong()))
             throw new GuildUnavailableException("Cannot open an Audio Connection with an unavailable guild. " +
                     "Please wait until this Guild is available to open a connection.");
         final Member self = channel.getGuild().getSelfMember();
@@ -63,10 +64,13 @@ public class JdaLink extends Link {
             throw new InsufficientPermissionException(channel, Permission.VOICE_CONNECT);
 
         //If we are already connected to this VoiceChannel, then do nothing.
-        if (checkChannel && channel.equals(channel.getGuild().getSelfMember().getVoiceState().getChannel()))
+        GuildVoiceState voiceState = channel.getGuild().getSelfMember().getVoiceState();
+        if (voiceState == null) return;
+
+        if (checkChannel && channel.equals(voiceState.getChannel()))
             return;
 
-        if (channel.getGuild().getSelfMember().getVoiceState().inVoiceChannel()) {
+        if (voiceState.inVoiceChannel()) {
             final int userLimit = channel.getUserLimit(); // userLimit is 0 if no limit is set!
             if (!self.isOwner() && !self.hasPermission(Permission.ADMINISTRATOR)) {
                 if (userLimit > 0                                                      // If there is a userlimit

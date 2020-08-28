@@ -57,7 +57,7 @@ public class NowplayingCommand extends MusicCommand {
         EmbedBuilder eb = new EmbedBuilder();
         eb.setAuthor(context.getTranslated("nowplaying.embed.header"), info.uri);
         eb.setTitle(info.title, piosenka.getAudioTrack().getInfo().uri);
-        if (piosenka.getThumbnailURL() == null) piosenka.fillThumbnailURL(searchManager);
+        piosenka.fillThumbnailURL(searchManager);
         eb.setImage(piosenka.getThumbnailURL());
         eb.addField(context.getTranslated("nowplaying.embed.added.by"), piosenka.getRequester(), true);
         eb.addField(context.getTranslated("nowplaying.embed.length"), info.isStream ?
