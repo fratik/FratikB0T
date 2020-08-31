@@ -114,11 +114,8 @@ public class QueueCommand extends MusicCommand {
         EmbedBuilder eb = new EmbedBuilder();
         eb.setAuthor(context.getTranslated("queue.embed.header"), info.uri);
         eb.setTitle(info.title, piosenka.getAudioTrack().getInfo().uri);
-        if (piosenka.getThumbnailURL() != null) eb.setImage(piosenka.getThumbnailURL());
-        else {
-            piosenka.fillThumbnailURL(searchManager);
-            eb.setImage(piosenka.getThumbnailURL());
-        }
+        piosenka.fillThumbnailURL(searchManager);
+        eb.setImage(piosenka.getThumbnailURL());
         eb.addField(context.getTranslated("queue.embed.added.by"), piosenka.getRequester(), true);
         eb.addField(context.getTranslated("queue.embed.length"), info.isStream ?
                 context.getTranslated(QUEMLI) : TimeUtil.getStringFromMillis(info.length), true);

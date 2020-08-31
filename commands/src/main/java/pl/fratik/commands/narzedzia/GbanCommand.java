@@ -61,7 +61,7 @@ public class GbanCommand extends Command {
     public boolean execute(@NotNull CommandContext context) {
         String guild;
         String reason = Arrays.stream(Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length))
-                .map(Object::toString).collect(Collectors.joining(uzycieDelim));
+                .map(o -> o == null ? "" : o.toString()).collect(Collectors.joining(uzycieDelim));
         guild = (String) context.getArgs()[0];
         User user = (User) managerArgumentow.getArguments().get("user").execute((String) context.getArgs()[0],
                 context.getTlumaczenia(), context.getLanguage());

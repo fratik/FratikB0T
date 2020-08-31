@@ -382,17 +382,17 @@ public class ManagerKomendImpl implements ManagerKomend {
             Emoji reakcja = getReakcja(context.getSender(), success);
             if (reakcja.isUnicode()) context.getMessage().addReaction(reakcja.getName()).queue();
             else if (shardManager.getEmoteById(reakcja.getId()) != null)
-                context.getMessage().addReaction(reakcja).queue();
+                context.getMessage().addReaction(reakcja).queue(null, a -> {});
             else {
                 Emote zielonyPtak = shardManager.getEmoteById(Ustawienia.instance.emotki.greenTick);
-                if (zielonyPtak != null) context.getMessage().addReaction(zielonyPtak).queue();
+                if (zielonyPtak != null) context.getMessage().addReaction(zielonyPtak).queue(null, a -> {});
             }
         } catch (Exception ignored) {
             try {
                 Emote zielonyPtak = shardManager.getEmoteById(Ustawienia.instance.emotki.greenTick);
-                if (zielonyPtak != null) context.getMessage().addReaction(zielonyPtak).queue();
+                if (zielonyPtak != null) context.getMessage().addReaction(zielonyPtak).queue(null, a -> {});
             } catch (Exception ignored1) {
-                //teraz to juz nic
+                //teraz to juz nic
             }
         }
     }

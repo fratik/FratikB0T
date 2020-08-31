@@ -21,6 +21,7 @@ import lombok.Getter;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageHistory;
+import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.utils.TimeUtil;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.CommandCategory;
@@ -88,10 +89,24 @@ public class PurgeCommand extends ModerationCommand { //TODO: 1000 wiadomosci dl
                 wiadomosciWszystkie.get(0).delete().queue();
                 return true;
             }
-        } else message.editMessage(context.getTranslated("purge.deleting", ilosc)).complete();
+        } else {
+            try {
+                message.editMessage(context.getTranslated("purge.deleting", ilosc)).complete();
+            } catch (ErrorResponseException e) {
+                try {
+                    message.getChannel().sendMessage(context.getTranslated("purge.deleting", ilosc)).complete();
+                } catch (ErrorResponseException ignored) {}
+            }
+        }
         znanePurge.put(context.getGuild().getId(), context.getSender().getId());
         if (wiadomosciWszystkie.isEmpty()) {
-            message.editMessage(context.getTranslated("purge.deleting.empty")).complete();
+            try {
+                message.editMessage(context.getTranslated("purge.deleting.empty")).complete();
+            } catch (ErrorResponseException e) {
+                try {
+                    message.getChannel().sendMessage(context.getTranslated("purge.deleting.empty")).complete();
+                } catch (ErrorResponseException ignored) {}
+            }
             return false;
         }
         if (wiadomosciWszystkie.size() == 1) {
@@ -100,7 +115,7 @@ public class PurgeCommand extends ModerationCommand { //TODO: 1000 wiadomosci dl
         }
         context.getChannel().deleteMessages(wiadomosciWszystkie).queue();
         logListener.getZnaneAkcje().add(message.getId());
-        message.delete().queueAfter(5, TimeUnit.SECONDS);
+        message.delete().queueAfter(5, TimeUnit.SECONDS, null, i -> {});
         return true;
     }
 }

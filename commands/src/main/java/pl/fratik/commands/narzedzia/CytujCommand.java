@@ -113,7 +113,7 @@ public class CytujCommand extends Command {
         }
         String tresc = context.getArgs().length > 1 ?
                 Arrays.stream(Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length))
-                        .map(Object::toString).collect(Collectors.joining(uzycieDelim)) : null;
+                        .map(o -> o == null ? "" : o.toString()).collect(Collectors.joining(uzycieDelim)) : null;
         EmbedBuilder eb = new EmbedBuilder();
         eb.setAuthor(UserUtil.formatDiscrim(msg.getAuthor()), null, msg.getAuthor().getEffectiveAvatarUrl().replace(".webp", ".png"));
         eb.setColor(UserUtil.getPrimColor(msg.getAuthor()));
@@ -124,6 +124,8 @@ public class CytujCommand extends Command {
             eb.setDescription(msg.getContentRaw());
         }
         eb.setTimestamp(msg.getTimeCreated());
+        eb.addField(context.getTranslated("cytuj.jump"), String.format("[\\[%s\\]](%s)",
+                context.getTranslated("cytuj.jump.to"), msg.getJumpUrl()), false);
         if (!msg.getAttachments().isEmpty()) eb.setImage(msg.getAttachments().get(0).getUrl());
         if (tresc == null || tresc.isEmpty()) {
             context.send(eb.build());

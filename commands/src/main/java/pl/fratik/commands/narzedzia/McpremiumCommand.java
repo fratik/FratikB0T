@@ -98,40 +98,9 @@ public class McpremiumCommand extends Command {
         return true;
     }
 
-    private String formatUuid(String uuid) {
-        int chars = 0;
-        int pass = 0;
-        StringBuilder sb = new StringBuilder();
-        for (char c : uuid.toCharArray()) {
-            chars++;
-            sb.append(c);
-            if (pass == 0 && chars == 8) {
-                sb.append('-');
-                pass++;
-                chars = 0;
-            }
-            if (pass == 1 && chars == 4) {
-                sb.append('-');
-                pass++;
-                chars = 0;
-            }
-            if (pass == 2 && chars == 4) {
-                sb.append('-');
-                pass++;
-                chars = 0;
-            }
-            if (pass == 3 && chars == 4) {
-                sb.append('-');
-                pass++;
-                chars = 0;
-            }
-            if (pass == 4 && chars == 12) {
-                sb.append('-');
-                pass++;
-                chars = 0;
-            }
-        }
-        return UUID.fromString(sb.toString()).toString();
+    private static String formatUuid(String uuid) {
+        String regex = "(\\p{XDigit}{8})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}+)";
+        return UUID.fromString(uuid.replaceFirst(regex, "$1-$2-$3-$4-$5")).toString();
     }
 
 }

@@ -65,7 +65,7 @@ public class UstawPozegnanieCommand extends Command {
         }
         if (context.getArgs().length > 1 && context.getArgs()[1] != null)
             tekst = Arrays.stream(Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length))
-                    .map(Object::toString).collect(Collectors.joining(uzycieDelim));
+                    .map(o -> o == null ? "" : o.toString()).collect(Collectors.joining(uzycieDelim));
         else {
             CommonErrors.usage(context);
             return false;

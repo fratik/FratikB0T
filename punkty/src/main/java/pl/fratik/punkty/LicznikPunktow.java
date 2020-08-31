@@ -17,6 +17,7 @@
 
 package pl.fratik.punkty;
 
+import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import io.sentry.Sentry;
@@ -74,6 +75,7 @@ public class LicznikPunktow {
     private final Random random = new Random();
     private static Cache<ConcurrentHashMap<String, Integer>> cache;
     private final Cache<GuildConfig> gcCache;
+    private final Cache<UserConfig> ucCache;
     LicznikPunktow(GuildDao guildDao, UserDao userDao, PunktyDao punktyDao, ManagerKomend managerKomend, EventBus eventBus, Tlumaczenia tlumaczenia, ShardManager shardManager, RedisCacheManager redisCacheManager) {
         this.guildDao = guildDao;
         this.userDao = userDao;
@@ -87,6 +89,7 @@ public class LicznikPunktow {
         threadPool.scheduleWithFixedDelay(this::emptyCache, 5, 5, TimeUnit.MINUTES);
         cache = redisCacheManager.new CacheRetriever<ConcurrentHashMap<String, Integer>>(){}.getCache(-1);
         gcCache = redisCacheManager.new CacheRetriever<GuildConfig>(){}.getCache();
+        ucCache = redisCacheManager.new CacheRetriever<UserConfig>(){}.getCache();
     }
 
     public static int getPunkty(Member member) {
@@ -163,7 +166,8 @@ public class LicznikPunktow {
             return;
         }
         if (event.getAuthor().isBot() || UserUtil.isGbanned(event.getAuthor()) || getCooldown(event.getMember()) ||
-                !punktyWlaczone(event.getGuild())) {
+                !punktyWlaczone(event.getGuild()) || getNoLvlChannelChange(event.getGuild())
+                .contains(event.getChannel().getId())) {
             if (UserUtil.isGbanned(event.getAuthor())) log.debug("{} jest zgbanowany, nie liczę punktu",
                     event.getAuthor());
             else if (event.getAuthor().isBot()) log.debug("{} jest botem, nie liczę punktu", event.getAuthor());
@@ -171,9 +175,9 @@ public class LicznikPunktow {
                 log.debug("{} ({}) jest na cooldownie!", event.getAuthor(), event.getGuild());
             else if (!punktyWlaczone(event.getGuild()))
                 log.debug("Punkty na serwerze {} są wyłączone", event.getGuild());
-            else if (guildDao.get(event.getGuild()).getNolvlchannelchange().contains(event.getChannel().getId())) {
-                log.debug("Naliczanie punktow na kanale {} na serwerze {} jest wylaczone", event.getChannel().getId(),
-                        event.getGuild().getId());
+            else if (getNoLvlChannelChange(event.getGuild()).contains(event.getChannel().getId())) {
+                log.debug("Naliczanie punktow na kanale {} ({}) jest wylaczone", event.getChannel(),
+                        event.getGuild());
             }
             return;
         }
@@ -242,6 +246,12 @@ public class LicznikPunktow {
         return chuj;
     }
 
+    private List<String> getNoLvlChannelChange(Guild guild) {
+        List<String> list = guildDao.get(guild).getNolvlchannelchange();
+        if (list == null) return Collections.emptyList();
+        return list;
+    }
+
     private int getPktFromFileSize(double sizeInBytes) {
         int[] pkt = new int[0];
         int sizeInMB = (int) Math.floor(sizeInBytes / 1024 / 1024);
@@ -258,11 +268,12 @@ public class LicznikPunktow {
     }
 
     @Subscribe
+    @AllowConcurrentEvents
     public void handleLvlup(LvlupEvent event) {
         log.debug("{} na serwerze {} osiągnął poziom {}!",
                 event.getMember().getUser(), event.getMember().getGuild(), event.getLevel());
-        GuildConfig gc = guildDao.get(event.getMember().getGuild());
-        UserConfig uc = userDao.get(event.getMember().getUser());
+        GuildConfig gc = gcCache.get(event.getMember().getGuild().getId(), guildDao::get);
+        UserConfig uc = ucCache.get(event.getMember().getUser().getId(), userDao::get);
         List<String> prefixesRaw = managerKomend.getPrefixes(event.getMember().getGuild());
         String prefix;
         if (!prefixesRaw.isEmpty()) prefix = prefixesRaw.get(0);
@@ -279,7 +290,7 @@ public class LicznikPunktow {
                     MessageChannel ch = null;
                     if (channelId != null && !channelId.isEmpty()) ch = shardManager.getTextChannelById(channelId);
                     if (ch == null) ch = event.getChannel();
-                    if (event.getChannel().equals(ch) && !uc.isLvlupMessages()) return;
+                    if (!uc.isLvlupMessages() || !gc.isLvlUpNotify()) return;
                     if (gc.getLvlUpMessage() != null && !gc.getLvlUpMessage().isEmpty())  {
                         ch.sendMessage(gc.getLvlUpMessage()
                                 .replaceAll("\\{\\{mention}}", event.getMember().getUser().getAsMention())
@@ -295,14 +306,14 @@ public class LicznikPunktow {
                 } catch (Exception e) {
                     /*lul*/
                 }
-                return;
-            }
-            try {
-                event.getMember().getUser().openPrivateChannel().queue(e -> e.sendMessage(tlumaczenia.get(l,
-                        "generic.lvlup.dm", event.getLevel(), event.getMember().getGuild().getName(), prefix)
-                ).complete());
-            } catch (Exception e) {
-                // lol
+            } else if (uc.isLvlupMessages() && gc.isLvlUpNotify()) {
+                try {
+                    event.getMember().getUser().openPrivateChannel().queue(e -> e.sendMessage(tlumaczenia.get(l,
+                            "generic.lvlup.dm", event.getLevel(), event.getMember().getGuild().getName(), prefix)
+                    ).complete());
+                } catch (Exception e) {
+                    // lol
+                }
             }
             return;
         }
@@ -311,18 +322,18 @@ public class LicznikPunktow {
                     .addRoleToMember(event.getMember(), rola)
                     .queue(ignored -> {
                         Language l = tlumaczenia.getLanguage(event.getMember());
-                        if (uc.isLvlupMessages()) event.getChannel().sendMessage(tlumaczenia.get(l,
+                        event.getChannel().sendMessage(tlumaczenia.get(l,
                                 "generic.lvlup.withrole", event.getMember().getUser().getName(),
                                 rola.getName(), event.getLevel())).queue();
                     }, throwable -> {
                         Language l = tlumaczenia.getLanguage(event.getMember());
-                        if (uc.isLvlupMessages()) event.getChannel().sendMessage(tlumaczenia.get(l,
+                        event.getChannel().sendMessage(tlumaczenia.get(l,
                                 "generic.lvlup.withrole.failed", event.getMember().getUser().getName(),
                                 rola.getName(), event.getLevel())).queue();
                     });
         } catch (Exception e) {
             Language l = tlumaczenia.getLanguage(event.getMember());
-            if (uc.isLvlupMessages()) event.getChannel().sendMessage(tlumaczenia.get(l,
+            event.getChannel().sendMessage(tlumaczenia.get(l,
                     "generic.lvlup.withrole.failed", event.getMember().getUser().getName(),
                     rola.getName(), event.getLevel())).queue();
         }

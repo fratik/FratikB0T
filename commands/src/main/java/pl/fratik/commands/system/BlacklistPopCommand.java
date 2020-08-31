@@ -60,7 +60,7 @@ public class BlacklistPopCommand extends Command {
     public boolean execute(@NotNull CommandContext context) {
         String id = (String) context.getArgs()[0];
         String powod = Arrays.stream(Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length))
-                .map(Object::toString).collect(Collectors.joining(uzycieDelim));
+                .map(o -> o == null ? "" : o.toString()).collect(Collectors.joining(uzycieDelim));
         User user = null;
         Guild server = null;
         try {
