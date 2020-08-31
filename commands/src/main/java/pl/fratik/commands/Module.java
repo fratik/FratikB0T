@@ -95,7 +95,7 @@ public class Module implements Modul {
             commands.add(new BigemojiCommand());
             commands.add(new ChainCommand());
         }
-        commands.add(new OgloszenieCommand(shardManager, guildDao, eventBus, tlumaczenia, managerKomend));
+        commands.add(new OgloszenieCommand(shardManager, guildDao, eventBus, tlumaczenia, managerKomend, redisCacheManager));
         commands.add(new ServerinfoCommand(userDao, eventBus));
         commands.add(new UserinfoCommand(userDao, shardManager, eventBus));
         commands.add(new KolorCommand());
