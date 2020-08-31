@@ -124,7 +124,7 @@ public class CytujCommand extends Command {
             eb.setDescription(msg.getContentRaw());
         }
         eb.setTimestamp(msg.getTimeCreated());
-        eb.addField(context.getTranslated("cytuj.jump"), String.format("[%s](%s)",
+        eb.addField(context.getTranslated("cytuj.jump"), String.format("[\\[%s\\]](%s)",
                 context.getTranslated("cytuj.jump.to"), msg.getJumpUrl()), false);
         if (!msg.getAttachments().isEmpty()) eb.setImage(msg.getAttachments().get(0).getUrl());
         if (tresc == null || tresc.isEmpty()) {

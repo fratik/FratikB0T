@@ -253,7 +253,8 @@ public class StarboardListener {
         if (content.length() != 0) eb.addField(tlumaczenia.get(l, "starboard.embed.message"), content, true);
         String link = CommonUtil.getImageUrl(message);
         if (link != null) eb.setImage(link);
-        eb.addField(tlumaczenia.get(l, "starboard.embed.jump"), "[\\[link\\]](" + message.getJumpUrl() + ")", false);
+        eb.addField(tlumaczenia.get(l, "starboard.embed.jump"), String.format("[\\[%s\\]](%s)",
+                tlumaczenia.get(l, "starboard.embed.jump.to"), message.getJumpUrl()), false);
         eb.setTimestamp(message.getTimeCreated());
         return eb.build();
     }
