@@ -17,12 +17,12 @@
 
 package pl.fratik.moderation.commands;
 
-import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.sharding.ShardManager;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;

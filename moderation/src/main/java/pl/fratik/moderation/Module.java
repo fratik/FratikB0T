@@ -112,7 +112,7 @@ public class Module implements Modul {
         commands = new ArrayList<>();
 
         commands.add(new PurgeCommand(logListener));
-        commands.add(new BanCommand());
+        commands.add(new BanCommand(guildDao));
         commands.add(new UnbanCommand());
         commands.add(new KickCommand());
         commands.add(new WarnCommand(guildDao, casesDao, shardManager, managerKomend));
@@ -145,6 +145,7 @@ public class Module implements Modul {
             LoggerFactory.getLogger(Module.class).debug("Zmieniam long uprawnień: {} -> {}", Globals.permissions, Permission.getRaw(permList));
             Globals.permissions = Permission.getRaw(permList);
         }
+        if (modLogListener != null) modLogListener.cleanup();
         commands.forEach(managerKomend::unregisterCommand);
         antiRaidListener.shutdown();
         try {
