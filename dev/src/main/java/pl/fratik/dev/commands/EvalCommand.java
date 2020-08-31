@@ -128,7 +128,7 @@ public class EvalCommand extends Command {
             }
             else e = Undefined.isUndefined(o) || o == null ? "undefined" : (String) Context.jsToJava(o, String.class);
 //            if (babelEnabled && e.equals("use strict")) e = "null";
-            if (e.length() > 1000) e = e.substring(1000);
+            if (e.length() > 1000) e = e.substring(0, 1000);
             if (context.checkSensitive(e)) {
                 logger.info("Output evala:");
                 logger.info(e);
