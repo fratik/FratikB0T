@@ -141,18 +141,8 @@ public class Module implements Modul {
                     }
                     if (member == null || !member.hasPermission(Permission.MANAGE_SERVER)) continue;
                 }
-                Member owner;
-                try {
-                    owner = guild.retrieveOwner().complete();
-                } catch (ErrorResponseException e) {
-                    if (e.getErrorResponse() == ErrorResponse.UNKNOWN_MEMBER) owner = null;
-                    else throw e;
-                }
                 guilds.add(new pl.fratik.api.entity.Guild(guild.getName(), guild.getId(),
-                        guild.getIconId(), owner == null ? null :
-                        new pl.fratik.api.entity.User(owner.getUser().getName(),
-                                owner.getUser().getDiscriminator(), null, guild.getOwnerId(),
-                        null, null),
+                        guild.getIconId(),
                         !guild.getSelfMember().getRoles().isEmpty() ?
                                 new pl.fratik.api.entity.Role(guild.getSelfMember().getRoles().get(0).getName(),
                                         guild.getSelfMember().getRoles().get(0).getId(),
@@ -344,6 +334,33 @@ public class Module implements Modul {
                         c instanceof TextChannel && ((TextChannel) c).canTalk()));
             }
             Exchange.body().sendJson(ex, channels);
+        });
+        routes.get("/api/{guildId}/owner", ex -> {
+            String guildId = Exchange.pathParams().pathParam(ex, "guildId").orElse(null);
+            if (guildId == null || guildId.isEmpty()) {
+                Exchange.body().sendJson(ex, new Exceptions.NoGuildParam(), 400);
+                return;
+            }
+            Guild guild = null;
+            try {
+                guild = shardManager.getGuildById(guildId);
+            } catch (Exception ignored) {/*lul*/}
+            if (guild == null) {
+                Exchange.body().sendJson(ex, new Exceptions.NoGuild(), 400);
+                return;
+            }
+            Member owner;
+            try {
+                owner = guild.retrieveOwner().complete();
+            } catch (ErrorResponseException e) {
+                if (e.getErrorResponse() == ErrorResponse.UNKNOWN_MEMBER) owner = null;
+                else throw e;
+            }
+            if (owner == null) {
+                Exchange.body().sendJson(ex, new Exceptions.NoUser(), 400);
+                return;
+            }
+            Exchange.body().sendJson(ex, new pl.fratik.api.entity.User(owner.getUser(), shardManager));
         });
         routes.get("/api/server", ex -> {
             String accessToken = Exchange.queryParams().queryParam(ex, "accessToken").orElse(null);

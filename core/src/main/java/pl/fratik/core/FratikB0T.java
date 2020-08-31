@@ -199,7 +199,12 @@ class FratikB0T {
                 builder.setEnableShutdownHook(false);
                 builder.setAudioSendFactory(new NativeAudioSendFactory());
                 builder.setAutoReconnect(true);
-                builder.setChunkingFilter(ChunkingFilter.NONE);
+                try {
+                    builder.setChunkingFilter(ChunkingFilter.include(Long.parseLong(Ustawienia.instance.botGuild)));
+                } catch (NumberFormatException e) {
+                    logger.error("Nieprawidłowe ID serwera bota!");
+                    System.exit(1);
+                }
                 builder.setMemberCachePolicy(MemberCachePolicy.ALL);
                 builder.setStatus(OnlineStatus.DO_NOT_DISTURB);
                 builder.setActivity(Activity.playing(String.format("Ładowanie... (%s shard(ów))", count)));
