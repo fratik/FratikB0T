@@ -145,6 +145,7 @@ public class Module implements Modul {
             LoggerFactory.getLogger(Module.class).debug("Zmieniam long uprawnień: {} -> {}", Globals.permissions, Permission.getRaw(permList));
             Globals.permissions = Permission.getRaw(permList);
         }
+        if (modLogListener != null) modLogListener.cleanup();
         commands.forEach(managerKomend::unregisterCommand);
         antiRaidListener.shutdown();
         try {

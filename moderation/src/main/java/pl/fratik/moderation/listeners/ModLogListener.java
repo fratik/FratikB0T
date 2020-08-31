@@ -17,6 +17,7 @@
 
 package pl.fratik.moderation.listeners;
 
+import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.Subscribe;
 import lombok.Getter;
 import lombok.Setter;
@@ -47,7 +48,13 @@ import pl.fratik.moderation.utils.ModLogBuilder;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.temporal.TemporalAccessor;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class ModLogListener {
@@ -58,22 +65,41 @@ public class ModLogListener {
     @Setter private static Tlumaczenia tlumaczenia;
     @Setter private static ManagerKomend managerKomend;
 
-    @Getter private static final HashMap<Guild, List<Case>> knownCases = new HashMap<>();
+    @Getter private static final ConcurrentHashMap<Guild, List<Case>> knownCases = new ConcurrentHashMap<>();
     @Getter private final List<String> ignoredMutes = new ArrayList<>();
     private static final IllegalStateException NOCASEEXC = new IllegalStateException("Nie ma case'a");
+    private final List<String> recentlyLeft = new ArrayList<>();
+    private final ScheduledExecutorService executor;
 
     public ModLogListener(GuildDao guildDao, ShardManager shardManager, CasesDao casesDao) {
         this.guildDao = guildDao;
         this.shardManager = shardManager;
         this.casesDao = casesDao;
+        executor = Executors.newSingleThreadScheduledExecutor();
+    }
+
+    public void cleanup() {
+        recentlyLeft.clear();
+        executor.shutdown();
     }
 
     @Subscribe
+    @AllowConcurrentEvents
     public void onGuildBan(GuildBanEvent guildBanEvent) {
+        User user = guildBanEvent.getUser();
         Guild guild = guildBanEvent.getGuild();
+        boolean send = recentlyLeft.remove(user.getId() + "-" + guild.getId());
+        if (!send) {
+            try {
+                Thread.sleep(3000);
+            } catch (InterruptedException e) {
+                return;
+            }
+        }
+        send = recentlyLeft.remove(user.getId() + "-" + guild.getId());
         if (knownCases.get(guild) == null ||
                 knownCases.get(guild).stream()
-                        .noneMatch(c -> c.getUserId().equals(guildBanEvent.getUser().getId()) && c.getType() == Kara.BAN)) {
+                        .noneMatch(c -> c.getUserId().equals(user.getId()) && c.getType() == Kara.BAN)) {
             GuildConfig guildConfig = guildDao.get(guild);
             CaseRow caseRow = casesDao.get(guild);
             ModeResolver modeResolver = new ModeResolver(guildConfig).invoke();
@@ -81,7 +107,7 @@ public class ModLogListener {
             TextChannel mlogchan = modeResolver.getMlogchan();
             int caseId = Case.getNextCaseId(caseRow);
             TemporalAccessor timestamp = Instant.now();
-            Case aCase = new CaseBuilder().setUser(guildBanEvent.getUser()).setGuild(guild)
+            Case aCase = new CaseBuilder().setUser(user).setGuild(guild)
                     .setCaseId(caseId).setTimestamp(timestamp).setMessageId(null).setKara(Kara.BAN).createCase();
             User odpowiedzialny = null;
             String powod = null;
@@ -89,7 +115,7 @@ public class ModLogListener {
                 List<AuditLogEntry> entries = guild.retrieveAuditLogs().type(ActionType.BAN).complete();
                 for (AuditLogEntry e : entries) {
                     if (e.getTimeCreated().isAfter(OffsetDateTime.now().minusSeconds(15)) &&
-                            e.getTargetIdLong() == guildBanEvent.getUser().getIdLong()) {
+                            e.getTargetIdLong() == user.getIdLong()) {
                         odpowiedzialny = e.getUser();
                         powod = e.getReason();
                         break;
@@ -98,10 +124,10 @@ public class ModLogListener {
             } catch (Exception e) {
                 // nie mamy permów i guess
             }
-            setAndSend(guildConfig, caseRow, mode, mlogchan, aCase, odpowiedzialny, powod, guild, true);
+            setAndSend(guildConfig, caseRow, mode, mlogchan, aCase, odpowiedzialny, powod, guild, send);
         } else {
             Optional<Case> oCase = knownCases.get(guild).stream()
-                    .filter(c -> c.getUserId().equals(guildBanEvent.getUser().getId()) && c.getType() == Kara.BAN)
+                    .filter(c -> c.getUserId().equals(user.getId()) && c.getType() == Kara.BAN)
                     .findFirst();
             if (!oCase.isPresent()) throw NOCASEEXC;
             Case aCase = oCase.get();
@@ -110,7 +136,7 @@ public class ModLogListener {
             ModeResolver modeResolver = new ModeResolver(guildConfig).invoke();
             ModLogMode mode = modeResolver.getMode();
             TextChannel mlogchan = modeResolver.getMlogchan();
-            checkSendActionAndSave(guild, aCase, guildConfig, caseRow, mode, mlogchan, true);
+            checkSendActionAndSave(guild, aCase, guildConfig, caseRow, mode, mlogchan, send);
             List<Case> zabijciemnie = knownCases.get(guild);
             zabijciemnie.remove(aCase);
             knownCases.put(guild, zabijciemnie);
@@ -118,6 +144,7 @@ public class ModLogListener {
     }
 
     @Subscribe
+    @AllowConcurrentEvents
     public void onGuildUnban(GuildUnbanEvent guildUnbanEvent) {
         Guild guild = guildUnbanEvent.getGuild();
         if (knownCases.get(guild) == null ||
@@ -188,7 +215,10 @@ public class ModLogListener {
     }
 
     @Subscribe
+    @AllowConcurrentEvents
     public void onMemberRemove(GuildMemberRemoveEvent e) {
+        recentlyLeft.add(e.getUser().getId() + "-" + e.getGuild().getId());
+        executor.schedule(() -> recentlyLeft.remove(e.getUser().getId() + "-" + e.getGuild().getId()), 15, TimeUnit.SECONDS);
         OffsetDateTime now = OffsetDateTime.now();
         Guild guild = e.getGuild();
         User user = e.getUser();
@@ -229,6 +259,7 @@ public class ModLogListener {
     }
 
     @Subscribe
+    @AllowConcurrentEvents
     public void onMemberRoleAdd(GuildMemberRoleAddEvent guildMemberRoleAddEvent) {
         if (ignoredMutes.contains(guildMemberRoleAddEvent.getUser().getId() + guildMemberRoleAddEvent.getGuild().getId())) {
             ignoredMutes.remove(guildMemberRoleAddEvent.getUser().getId() + guildMemberRoleAddEvent.getGuild().getId());
@@ -271,6 +302,7 @@ public class ModLogListener {
     }
 
     @Subscribe
+    @AllowConcurrentEvents
     public void onMemberRoleRemove(GuildMemberRoleRemoveEvent guildMemberRoleRemoveEvent) {
         Guild guild = guildMemberRoleRemoveEvent.getGuild();
         GuildConfig guildConfig = guildDao.get(guild);
@@ -317,6 +349,7 @@ public class ModLogListener {
     }
 
     @Subscribe
+    @AllowConcurrentEvents
     public void onRoleDelete(RoleDeleteEvent roleDeleteEvent) {
         Guild guild = roleDeleteEvent.getGuild();
         GuildConfig gc = guildDao.get(guild);
@@ -367,6 +400,7 @@ public class ModLogListener {
     }
 
     @Subscribe
+    @AllowConcurrentEvents
     public void onChannelCreate(TextChannelCreateEvent textChannelCreateEvent) {
         if (!textChannelCreateEvent.getGuild().getSelfMember().hasPermission(textChannelCreateEvent.getChannel(),
                 Permission.MANAGE_PERMISSIONS)) return;
@@ -381,6 +415,7 @@ public class ModLogListener {
     }
 
     @Subscribe
+    @AllowConcurrentEvents
     public void onScheduleEvent(ScheduleEvent e) {
         if (!(e.getContent() instanceof AutoAkcja)) return;
         AutoAkcja akcja = (AutoAkcja) e.getContent();
