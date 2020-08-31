@@ -113,7 +113,7 @@ public class EvalCommand extends Command {
                 else if (nja.unwrap() instanceof boolean[]) e = Arrays.toString((boolean[]) nja.unwrap());
                 else if (nja.unwrap() instanceof float[]) e = Arrays.toString((float[]) nja.unwrap());
                 else if (nja.unwrap() instanceof double[]) e = Arrays.toString((double[]) nja.unwrap());
-                else e = Arrays.toString((Object[]) nja.unwrap());
+                else e = toString((Object[]) nja.unwrap());
             }
             else if (o != null && o.getClass().isArray()) {
                 if (o instanceof long[]) e = Arrays.toString((long[]) o);
@@ -124,9 +124,9 @@ public class EvalCommand extends Command {
                 else if (o instanceof boolean[]) e = Arrays.toString((boolean[]) o);
                 else if (o instanceof float[]) e = Arrays.toString((float[]) o);
                 else if (o instanceof double[]) e = Arrays.toString((double[]) o);
-                else e = Arrays.toString((Object[]) o);
+                else e = toString((Object[]) o);
             }
-            else e = Undefined.isUndefined(o) || o == null ? "undefined" : o.toString();
+            else e = Undefined.isUndefined(o) || o == null ? "undefined" : (String) Context.jsToJava(o, String.class);
 //            if (babelEnabled && e.equals("use strict")) e = "null";
             if (e.length() > 1000) e = e.substring(1000);
             if (context.checkSensitive(e)) {
@@ -154,6 +154,12 @@ public class EvalCommand extends Command {
             message.editMessage(eb.build()).override(true).queue();
         }
         return true;
+    }
+
+    private String toString(Object[] arr) {
+        Object[] arr2 = new Object[arr.length];
+        for (int i = 0; i < arr.length; i++) arr2[i] = Context.jsToJava(arr[i], String.class);
+        return Arrays.toString(arr2);
     }
 
     private String codeBlock(String text) {
