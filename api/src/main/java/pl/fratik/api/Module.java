@@ -197,7 +197,7 @@ public class Module implements Modul {
             }
             List<Komenda> komendy = new ArrayList<>();
             for (Command cmd : managerKomend.getRegistered()) {
-                komendy.add(new Komenda(cmd.getName(), cmd.getAliases(),
+                komendy.add(new Komenda(cmd.getName(), cmd.getAliases(tlumaczenia),
                         tlumaczenia.get(lang, cmd.getName() + ".help.description"),
                         tlumaczenia.get(lang, cmd.getName() + ".help.uzycie"),
                         tlumaczenia.get(lang, cmd.getName() + ".help.extended"), cmd.getPermLevel().getNum(),

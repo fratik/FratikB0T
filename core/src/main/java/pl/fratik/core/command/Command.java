@@ -28,6 +28,8 @@ import org.slf4j.LoggerFactory;
 import pl.fratik.core.entity.ArgsMissingException;
 import pl.fratik.core.entity.SilentExecutionFail;
 import pl.fratik.core.entity.Uzycie;
+import pl.fratik.core.tlumaczenia.Language;
+import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.CommonErrors;
 import pl.fratik.core.util.UserUtil;
 
@@ -126,5 +128,15 @@ public abstract class Command {
         }
 
         return execute(context);
+    }
+
+    public String[] getAliases(Tlumaczenia tlumaczenia) {
+        List<String> aliases = new ArrayList<>(Arrays.asList(getAliases()));;
+        for (Language lang : Language.values()) {
+            String dodatkowe = tlumaczenia.get(lang, getName() + ".help.name").toLowerCase();
+            if (!dodatkowe.isEmpty()) Arrays.stream(dodatkowe.split("\\|")).skip(1).forEach(aliases::add);
+        }
+        aliases.sort(String::compareToIgnoreCase);
+        return aliases.toArray(new String[0]);
     }
 }

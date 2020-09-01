@@ -143,11 +143,30 @@ public class ManagerKomendImpl implements ManagerKomend {
 
         for (Language lang : Language.values()) {
             if (lang == Language.DEFAULT) continue;
-            if (!tlumaczenia.getLanguages().get(lang).containsKey(command.getName() + ".help.description")) {
+            Properties props = tlumaczenia.getLanguages().get(lang);
+            if (!props.containsKey(command.getName() + ".help.description")) {
                 logger.warn("Komenda {} nie zawiera opisu w helpie w języku {}!", command.getName(), lang.getLocalized());
             }
-            if (!tlumaczenia.getLanguages().get(lang).containsKey(command.getName() + ".help.uzycie")) {
+            if (!props.containsKey(command.getName() + ".help.uzycie")) {
                 logger.warn("Komenda {} nie zawiera użycia w helpie w języku {}!", command.getName(), lang.getLocalized());
+            }
+            String langAliases = tlumaczenia.get(lang, command.getName() + ".help.name");
+            if (!langAliases.isEmpty()) {
+                for (String alias : langAliases.split("\\|")) {
+                    if (alias.isEmpty()) continue;
+                    alias = alias.toLowerCase();
+                    if (!alias.matches("^[^ \\u200b ]+$")) {
+                        logger.warn("Alias {} ({}) nie może zostać zarejestrowany dla {}: alias zawiera spacje",
+                                alias, lang.getLocalized(), command.getName());
+                        continue;
+                    }
+                    if (commands.containsKey(alias)) {
+                        logger.warn("Alias {} ({}) nie może zostać zarejestrowany dla {}: komenda/alias już zarejestrowane",
+                                alias, lang.getLocalized(), command.getName());
+                        continue;
+                    }
+                    commands.put(alias, command);
+                }
             }
         }
 

@@ -80,15 +80,18 @@ public class CommonErrors {
 
     public static void usage(EmbedBuilder baseEmbed, Tlumaczenia tlumaczenia, Language language, String prefix,
                              Command command, MessageChannel channel, PermLevel customPermLevel) {
-        baseEmbed.setDescription(tlumaczenia.get(language, "generic.usage") + "\n" + prefix + command.getName() +
-                " " + tlumaczenia.get(language,command.getName().toLowerCase() + ".help.uzycie") + "");
+        baseEmbed.setDescription(tlumaczenia.get(language, "generic.usage") + "\n" + prefix +
+                CommonUtil.resolveName(command, tlumaczenia, language) + " " +
+                tlumaczenia.get(language,command.getName().toLowerCase() + ".help.uzycie") + "");
         baseEmbed.addField(tlumaczenia.get(language, "generic.command.desc"),
                 tlumaczenia.get(language,command.getName().toLowerCase() + ".help.description"), false);
+        String[] aliases = command.getAliases(tlumaczenia);
+        if (aliases.length != 0) baseEmbed.addField(tlumaczenia.get(language, "generic.command.aliases"),
+                String.join(", ", aliases).toLowerCase(), false);
         
         String eldo = tlumaczenia.get(language,command.getName().toLowerCase() + ".help.extended");
-        if (!eldo.isEmpty() && !eldo.equals("!<pusto>!")) {
+        if (!eldo.isEmpty())
             baseEmbed.addField(tlumaczenia.get(language, "generic.command.extended"), eldo, false);
-        }
         PermLevel plvl = customPermLevel == null ? command.getPermLevel() : customPermLevel;
         String plvlval;
         if (customPermLevel == null) plvlval = tlumaczenia.get(language, "generic.command.permlevel.value",
