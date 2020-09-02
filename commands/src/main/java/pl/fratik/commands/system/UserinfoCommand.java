@@ -23,6 +23,7 @@ import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.Command;
@@ -62,7 +63,11 @@ public class UserinfoCommand extends Command {
         Member member;
         if (context.getArgs().length != 0) osoba = (User) context.getArgs()[0];
         if (osoba == null) osoba = context.getSender();
-        member = context.getGuild().retrieveMember(osoba).complete();
+        try {
+            member = context.getGuild().retrieveMember(osoba).complete();
+        } catch (ErrorResponseException e) {
+            member = null;
+        }
         EmbedBuilder eb = new EmbedBuilder();
         eb.setTitle(context.getTranslated("userinfo.name", UserUtil.formatDiscrim(osoba)));
         eb.addField(context.getTranslated("userinfo.id"), osoba.getId(), true);
