@@ -104,7 +104,9 @@ public class StarboardListener {
                             .queue(m -> m.delete().queueAfter(15, TimeUnit.SECONDS));
                     return;
                 }
-                if (stdCache.get(message.getGuild().getId(), starDataDao::get).getBlacklista().contains(event.getUser().getId())) {
+                StarsData std = stdCache.get(message.getGuild().getId(), starDataDao::get);
+                if (std.getBlacklista() == null) std.setBlacklista(new ArrayList<>());
+                if (std.getBlacklista().contains(event.getUser().getId())) {
                     Language l = tlumaczenia.getLanguage(message.getMember());
                     toIgnore.add(event.getMessageId());
                     event.getReaction().removeReaction(event.getUser()).queue(null, throwableConsumer);
@@ -140,7 +142,8 @@ public class StarboardListener {
                             .queue(m -> m.delete().queueAfter(5, TimeUnit.SECONDS));
                     return;
                 }
-                if (stdCache.get(msg.getGuild().getId(), starDataDao::get).getBlacklista().contains(event.getUser().getId())) {
+                if (starsData.getBlacklista() == null) starsData.setBlacklista(new ArrayList<>());
+                if (starsData.getBlacklista().contains(event.getUser().getId())) {
                     Language l = tlumaczenia.getLanguage(msg.getMember());
                     toIgnore.add(event.getMessageId());
                     event.getReaction().removeReaction(event.getUser()).queue(null, throwableConsumer);
