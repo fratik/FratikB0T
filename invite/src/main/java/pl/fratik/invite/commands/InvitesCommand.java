@@ -56,11 +56,6 @@ public class InvitesCommand extends Command {
         hmap.put("user|integer", "string");
         hmap.put("rola", "role");
         uzycie = new Uzycie(hmap, new boolean[] {false, false});
-<<<<<<< HEAD
-=======
-        uzycieDelim = " ";
-        cooldown = 5;
->>>>>>> cc72ba8c838e3b55df420536942de244ebe73bd0
         this.inviteDao = inviteDao;
         this.guildDao = guildDao;
         this.managerArgumentow = managerArgumentow;
