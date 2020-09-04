@@ -56,6 +56,7 @@ public class InvitesCommand extends Command {
         hmap.put("user|integer", "string");
         hmap.put("rola", "role");
         uzycie = new Uzycie(hmap, new boolean[] {false, false});
+        uzycieDelim = " ";
         this.inviteDao = inviteDao;
         this.guildDao = guildDao;
         this.managerArgumentow = managerArgumentow;

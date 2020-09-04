@@ -81,7 +81,7 @@ public class CommonErrors {
     public static void usage(EmbedBuilder baseEmbed, Tlumaczenia tlumaczenia, Language language, String prefix,
                              Command command, MessageChannel channel, PermLevel customPermLevel) {
         baseEmbed.setDescription(tlumaczenia.get(language, "generic.usage") + "\n" + prefix + command.getName() +
-                " " + tlumaczenia.get(language,command.getName().toLowerCase() + ".help.uzycie") + "");
+                " " + (tlumaczenia.get(language,command.getName().toLowerCase() + ".help.uzycie")).replaceAll("%PREFIX%", prefix) + "");
         baseEmbed.addField(tlumaczenia.get(language, "generic.command.desc"),
                 tlumaczenia.get(language,command.getName().toLowerCase() + ".help.description"), false);
         
