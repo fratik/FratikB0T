@@ -48,17 +48,17 @@ public class InvitesCommand extends Command {
     public InvitesCommand(InviteDao inviteDao, GuildDao guildDao, ManagerArgumentow managerArgumentow) {
         name = "invites";
         category = CommandCategory.INVITES;
+        allowPermLevelChange = true;
+        cooldown = 5;
         aliases = new String[] {"zaproszenia"};
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
         hmap.put("user|integer", "string");
         hmap.put("rola", "role");
         uzycie = new Uzycie(hmap, new boolean[] {false, false});
-        cooldown = 5;
         this.inviteDao = inviteDao;
         this.guildDao = guildDao;
         this.managerArgumentow = managerArgumentow;
-        allowPermLevelChange = true;
     }
 
     @Override
@@ -70,7 +70,7 @@ public class InvitesCommand extends Command {
     @SubCommand(name = "info")
     public boolean info(@NotNull CommandContext context) {
         User osoba = null;
-        if (context.getArgs().length != 0) osoba = (User) managerArgumentow.getArguments().get("user")
+        if (context.getRawArgs().length != 0) osoba = (User) managerArgumentow.getArguments().get("user")
                 .execute(context.getRawArgs()[0], context.getTlumaczenia(), context.getLanguage(), context.getGuild());
         if (osoba == null) osoba = context.getSender();
 
