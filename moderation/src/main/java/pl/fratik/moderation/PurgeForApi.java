@@ -68,7 +68,7 @@ class PurgeForApi {
                         Exchange.body().sendJson(ex, new Exceptions.NoGuild(), 400);
                         return;
                     }
-                    member = g.getMember(shardManager.retrieveUserById(requester).complete());
+                    member = g.retrieveMember(shardManager.retrieveUserById(requester).complete()).complete();
                 } catch (Exception e) {
                     Exchange.body().sendJson(ex, new Exceptions.NoUser(), 400);
                     return;
@@ -116,7 +116,7 @@ class PurgeForApi {
                     Exchange.body().sendJson(ex, new Exceptions.NoGuild(), 400);
                     return;
                 }
-                member = g.getMember(shardManager.retrieveUserById(requester).complete());
+                member = g.retrieveMember(shardManager.retrieveUserById(requester).complete()).complete();
             } catch (Exception e) {
                 Exchange.body().sendJson(ex, new Exceptions.NoUser(), 400);
                 return;
@@ -185,7 +185,7 @@ class PurgeForApi {
                     Exchange.body().sendJson(ex, new Exceptions.NoGuild(), 400);
                     return;
                 }
-                member = g.getMember(shardManager.retrieveUserById(requester).complete());
+                member = g.retrieveMember(shardManager.retrieveUserById(requester).complete()).complete();
             } catch (Exception e) {
                 Exchange.body().sendJson(ex, new Exceptions.NoUser(), 400);
                 return;
