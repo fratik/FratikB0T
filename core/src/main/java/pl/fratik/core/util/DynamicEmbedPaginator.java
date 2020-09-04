@@ -87,19 +87,8 @@ public class DynamicEmbedPaginator implements EmbedPaginator {
         if (this.preload) {
             mainExecutor.submit(() -> {
                 LOGGER.debug("Zaczynam pobieranie stron...");
-                ExecutorService executor = Executors.newFixedThreadPool(2, r -> {
-                    SecurityManager s = System.getSecurityManager();
-                    ThreadGroup group = (s != null) ? s.getThreadGroup() :
-                            Thread.currentThread().getThreadGroup();
-                    Thread t = new Thread(group, r,
-                            "PageLoader-" + userId + "-" + messageId + "-" + pages.size() + "-pages",
-                            0);
-                    if (t.isDaemon())
-                        t.setDaemon(false);
-                    if (t.getPriority() != Thread.NORM_PRIORITY)
-                        t.setPriority(Thread.NORM_PRIORITY);
-                    return t;
-                });
+                ExecutorService executor = Executors.newFixedThreadPool(2, new NamedThreadFactory("PageLoader-" +
+                        userId + "-" + messageId + "-" + pages.size() + "-pages"));
                 pages.forEach(executor::execute);
                 while (!pages.stream().allMatch(FutureTask::isDone)) {
                     try {

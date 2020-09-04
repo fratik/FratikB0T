@@ -17,6 +17,7 @@
 
 package pl.fratik.commands.narzedzia;
 
+import club.minnced.discord.webhook.send.*;
 import com.google.common.eventbus.EventBus;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
@@ -33,10 +34,11 @@ import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.event.PluginMessageEvent;
 import pl.fratik.core.util.UserUtil;
+import pl.fratik.core.webhook.WebhookManager;
 
-import java.util.Arrays;
-import java.util.EnumSet;
-import java.util.LinkedHashMap;
+import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -45,12 +47,16 @@ public class CytujCommand extends Command {
 
     private final ShardManager shardManager;
     private final EventBus eventBus;
+    private final WebhookManager webhookManager;
+
+    private final ExecutorService executor;
 
     private static final String STRINGARGTYPE = "string";
 
-    public CytujCommand(ShardManager shardManager, EventBus eventBus) {
+    public CytujCommand(ShardManager shardManager, EventBus eventBus, WebhookManager webhookManager) {
         this.shardManager = shardManager;
         this.eventBus = eventBus;
+        this.webhookManager = webhookManager;
         name = "cytuj";
         category = CommandCategory.UTILITY;
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
@@ -61,8 +67,14 @@ public class CytujCommand extends Command {
         hmap.put("tekst", STRINGARGTYPE);
         hmap.put("[...]", STRINGARGTYPE);
         uzycie = new Uzycie(hmap, new boolean[] {true, false, false});
-        aliases = new String[] {"zacytuj", "cytat", "ktośkiedyśnapisał..."};
+        aliases = new String[] {"zacytuj", "cytat"};
         allowPermLevelChange = false;
+        executor = Executors.newSingleThreadExecutor();
+    }
+
+    @Override
+    public void onUnregister() {
+        executor.shutdown();
     }
 
     @Override
@@ -150,6 +162,39 @@ public class CytujCommand extends Command {
             eventBus.post(new PluginMessageEvent("commands", "moderation", "znaneAkcje-add:" + context.getMessage().getId()));
             context.getMessage().delete().queue();
         } catch (Exception ignored) {/*lul*/}
+        if (webhookManager.hasWebhook(context.getChannel())) {
+            List<WebhookEmbed> embeds = new ArrayList<>();
+            embeds.add(WebhookEmbedBuilder.fromJDA(eb.build()).build());
+            if (!msg.getEmbeds().isEmpty()) {
+                for (int i = 0; i < msg.getEmbeds().size(); i++) {
+                    embeds.add(WebhookEmbedBuilder.fromJDA(msg.getEmbeds().get(i)).build());
+                    if (embeds.size() >= 3) break;
+                }
+            }
+            AllowedMentions allments = AllowedMentions.none();
+            for (Message.MentionType alment : alments) {
+                switch (alment) {
+                    case ROLE:
+                        allments.withParseRoles(true);
+                        break;
+                    case USER:
+                        allments.withParseUsers(true);
+                        break;
+                    case EVERYONE:
+                    case HERE:
+                        allments.withParseEveryone(true);
+                        break;
+                }
+            }
+            webhookManager.send(new WebhookMessageBuilder().setAvatarUrl(context.getSender().getEffectiveAvatarUrl())
+                    .setUsername(context.getSender().getName()).setContent(tresc).setAllowedMentions(allments)
+                    .addEmbeds(embeds).build(), context.getChannel());
+            return true;
+        } else {
+            executor.submit(() -> {
+                webhookManager.getWebhook(context.getChannel()); //tworzenie webhooka, na przyszłość - póki co wyślij normalnie
+            });
+        }
         context.getChannel().sendMessage(eb.build()).allowedMentions(alments)
                 .content("**" + UserUtil.formatDiscrim(context.getSender()) + "**: " + tresc).queue();
         if (!msg.getEmbeds().isEmpty()) {
