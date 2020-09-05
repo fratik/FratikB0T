@@ -18,10 +18,16 @@
 package pl.fratik.invite.listeners;
 
 import com.google.common.eventbus.Subscribe;
-import net.dv8tion.jda.api.entities.Invite;
-import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberRemoveEvent;
+import pl.fratik.core.cache.Cache;
+import pl.fratik.core.cache.RedisCacheManager;
+import pl.fratik.core.entity.GuildConfig;
+import pl.fratik.core.entity.GuildDao;
+import pl.fratik.core.event.DatabaseUpdateEvent;
+import pl.fratik.core.tlumaczenia.Tlumaczenia;
+import pl.fratik.core.util.UserUtil;
 import pl.fratik.invite.cache.FakeInvite;
 import pl.fratik.invite.cache.InvitesCache;
 import pl.fratik.invite.entity.InviteConfig;
@@ -31,12 +37,21 @@ import java.util.List;
 
 public class JoinListener {
 
-    private final InviteDao inviteDao;
     private final InvitesCache invitesCache;
+    private final GuildDao guildDao;
+    private final InviteDao inviteDao;
+    private final Tlumaczenia tlumaczenia;
 
-    public JoinListener(InviteDao inviteDao, InvitesCache invitesCache) {
+    private final Cache<InviteConfig> invCache;
+    private final Cache<GuildConfig> gcCache;
+
+    public JoinListener(InviteDao inviteDao, InvitesCache invitesCache, GuildDao guildDao, RedisCacheManager rcm, Tlumaczenia tlumaczenia) {
         this.inviteDao = inviteDao;
         this.invitesCache = invitesCache;
+        this.guildDao = guildDao;
+        this.tlumaczenia = tlumaczenia;
+        gcCache = rcm.new CacheRetriever<GuildConfig>(){}.getCache();
+        invCache = rcm.new CacheRetriever<InviteConfig>(){}.getCache();
     }
 
     @Subscribe
@@ -48,28 +63,66 @@ public class JoinListener {
             invitesCache.load(invite);
             User user = invite.getInviter();
             if (user != null) {
-                InviteConfig wchodzacy = inviteDao.get(e.getMember());
-                InviteConfig zapraszajacy = inviteDao.get(user.getId(), e.getGuild().getId());
+                InviteConfig wchodzacy = getInviteConfig(e.getMember().getId(), e.getGuild().getId());
+                InviteConfig zapraszajacy = getInviteConfig(user.getId(), e.getGuild().getId());
                 wchodzacy.setDolaczylZJegoZaproszenia(user.getId());
                 zapraszajacy.setTotalInvites(zapraszajacy.getTotalInvites() + 1);
+                addRole(e.getGuild(), zapraszajacy.getTotalInvites(), user);
                 inviteDao.save(wchodzacy, zapraszajacy);
             }
-
         }
+    }
 
+    private void addRole(Guild guild, int invites, User zapraszajacy) {
+        GuildConfig gc = getGuildConfig(guild);
+        if (gc.getRoleZaZaproszenia() != null && !gc.getRoleZaZaproszenia().isEmpty()) {
+            String roleId = gc.getRoleZaZaproszenia().get(invites);
+            if (roleId == null) return;
+            Role r = guild.getRoleById(roleId);
+            if (r == null) return;
+            try {
+                Member mem = guild.retrieveMember(zapraszajacy).complete();
+                if (mem == null) return;
+                guild.addRoleToMember(mem, r).complete();
+            } catch (Exception ex) {
+                if (gc.getFullLogs() == null || gc.getFullLogs().isEmpty()) return;
+                TextChannel kanal = guild.getTextChannelById(gc.getFullLogs());
+                if (kanal == null) return;
+                String tarns = tlumaczenia.get(gc.getLanguage(), "invites.addroleerror", r.getName(),  UserUtil.formatDiscrim(zapraszajacy));
+                kanal.sendMessage(tarns).queue();
+            }
+        }
     }
 
     @Subscribe
-    public void onMemberJoin(GuildMemberRemoveEvent e) {
+    public void onMemberLeave(GuildMemberRemoveEvent e) {
         InviteConfig ic = inviteDao.get(e.getUser().getId(), e.getGuild().getId());
         if (ic.getDolaczylZJegoZaproszenia() != null) {
-            InviteConfig zarazMuOdjebieZapro = inviteDao.get(ic.getDolaczylZJegoZaproszenia(), e.getGuild().getId());
+            InviteConfig zarazMuOdjebieZapro = getInviteConfig(ic.getDolaczylZJegoZaproszenia(), e.getGuild().getId());
             zarazMuOdjebieZapro.setLeaveInvites(zarazMuOdjebieZapro.getLeaveInvites() + 1);
             inviteDao.save(zarazMuOdjebieZapro);
         }
         ic.setDolaczylZJegoZaproszenia(null);
         inviteDao.save(ic);
 
+    }
+
+    private GuildConfig getGuildConfig(Guild guild) {
+        return gcCache.get(guild.getId(), guildDao::get);
+    }
+
+    private InviteConfig getInviteConfig(String user, String guild) {
+        String encode = user + "." + guild;
+        return invCache.get(encode, inviteDao::get);
+    }
+
+    @Subscribe
+    public void onDatabaseUpdateEvent(DatabaseUpdateEvent e) {
+        if (e.getEntity() instanceof GuildConfig) {
+            gcCache.put(((GuildConfig) e.getEntity()).getGuildId(), (GuildConfig) e.getEntity());
+        } else if (e.getEntity() instanceof InviteConfig) {
+            invCache.put(((InviteConfig) e.getEntity()).getGuildId(), (InviteConfig) e.getEntity());
+        }
     }
 
 }

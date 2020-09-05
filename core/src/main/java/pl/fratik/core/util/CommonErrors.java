@@ -81,13 +81,13 @@ public class CommonErrors {
     public static void usage(EmbedBuilder baseEmbed, Tlumaczenia tlumaczenia, Language language, String prefix,
                              Command command, MessageChannel channel, PermLevel customPermLevel) {
         baseEmbed.setDescription(tlumaczenia.get(language, "generic.usage") + "\n" + prefix + command.getName() +
-                " " + (tlumaczenia.get(language,command.getName().toLowerCase() + ".help.uzycie")).replaceAll("%PREFIX%", prefix) + "");
+                " " + tlumaczenia.get(language,command.getName().toLowerCase() + ".help.uzycie") + "");
         baseEmbed.addField(tlumaczenia.get(language, "generic.command.desc"),
                 tlumaczenia.get(language,command.getName().toLowerCase() + ".help.description"), false);
         
         String eldo = tlumaczenia.get(language,command.getName().toLowerCase() + ".help.extended");
         if (!eldo.isEmpty() && !eldo.equals("!<pusto>!")) {
-            baseEmbed.addField(tlumaczenia.get(language, "generic.command.extended"), eldo, false);
+            baseEmbed.addField(tlumaczenia.get(language, "generic.command.extended").replaceAll("%PREFIX%", prefix), eldo, false);
         }
         PermLevel plvl = customPermLevel == null ? command.getPermLevel() : customPermLevel;
         String plvlval;

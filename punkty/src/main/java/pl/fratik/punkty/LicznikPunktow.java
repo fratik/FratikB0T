@@ -308,9 +308,7 @@ public class LicznikPunktow {
                 event.getMember().getUser().openPrivateChannel().queue(e -> e.sendMessage(tlumaczenia.get(l,
                         "generic.lvlup.dm", event.getLevel(), event.getMember().getGuild().getName(), prefix)
                 ).complete());
-            } catch (Exception e) {
-                // lol
-            }
+            } catch (Exception e) { /* lol */ }
             return;
         }
         try {

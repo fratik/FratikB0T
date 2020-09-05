@@ -27,6 +27,7 @@ import pl.fratik.core.manager.ManagerArgumentow;
 import pl.fratik.core.manager.ManagerBazyDanych;
 import pl.fratik.core.manager.ManagerKomend;
 import pl.fratik.core.moduly.Modul;
+import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.EventWaiter;
 import pl.fratik.invite.cache.InvitesCache;
 import pl.fratik.invite.commands.*;
@@ -44,6 +45,7 @@ public class Module implements Modul {
     @Inject private ShardManager shardManager;
     @Inject private GuildDao guildDao;
     @Inject private ManagerArgumentow managerArgumentow;
+    @Inject private Tlumaczenia tlumaczenia;
 
     private ArrayList<Command> commands;
     private JoinListener joinListener;
@@ -54,7 +56,7 @@ public class Module implements Modul {
         InviteDao inviteDao = new InviteDao(managerBazyDanych, eventBus);
 
         this.invitesCache = new InvitesCache(redisCacheManager, shardManager);
-        this.joinListener = new JoinListener(inviteDao, invitesCache);
+        this.joinListener = new JoinListener(inviteDao, invitesCache, guildDao, redisCacheManager, tlumaczenia);
         invitesCache.load();
 
         eventBus.register(invitesCache);

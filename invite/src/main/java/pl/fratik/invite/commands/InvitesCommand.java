@@ -49,7 +49,7 @@ public class InvitesCommand extends Command {
     public InvitesCommand(InviteDao inviteDao, GuildDao guildDao, ManagerArgumentow managerArgumentow) {
         name = "invites";
         category = CommandCategory.INVITES;
-        allowPermLevelChange = true;
+        allowPermLevelChange = false;
         cooldown = 5;
         aliases = new String[] {"zaproszenia"};
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
@@ -87,11 +87,9 @@ public class InvitesCommand extends Command {
             eb.setDescription(context.getTranslated("invites.maybie.doesnt.work"));
         }
         eb.addField(context.getTranslated("invites.stats"),
-                context.getTranslated("invites.fieldvalue", 2137,
-                        dao.getTotalInvites() - dao.getLeaveInvites(),
+                context.getTranslated("invites.fieldvalue", dao.getTotalInvites() - dao.getLeaveInvites(),
                         dao.getLeaveInvites(), dao.getTotalInvites()
                 ), false);
-
 
         context.send(eb.build());
         return true;
@@ -113,7 +111,7 @@ public class InvitesCommand extends Command {
 
             gc.getRoleZaZaproszenia().put(zaprszenie, rola.getId());
             guildDao.save(gc);
-            context.send(context.getTranslated("topinvites.set.succes"));
+            context.send(context.getTranslated("topinvites.set.success"));
             return true;
         } catch (IndexOutOfBoundsException | NumberFormatException e) {
             CommonErrors.usage(context);
@@ -128,7 +126,7 @@ public class InvitesCommand extends Command {
             context.send(context.getTranslated("invites.emptyroleforinvites"));
             return false;
         }
-        StringBuilder stringB = new StringBuilder("```");
+        StringBuilder stringB = new StringBuilder();
         EmbedBuilder eb = new EmbedBuilder();
         HashMap<Object, Integer> sorted = new HashMap<>();
 
@@ -139,17 +137,38 @@ public class InvitesCommand extends Command {
         }
         for (Map.Entry<Object, Integer> entry : TopInvitesCommnad.sortByValue(sorted).entrySet()) {
             Role r = (Role) entry.getKey();
-            stringB.append(r.getName()).append(" - ").append(entry.getValue()).append(" lvl");
+            stringB.append(r.getAsMention()).append(" - ").append(entry.getValue()).append(" lvl\n");
         }
-        if (stringB.toString().equals("```")) {
+        if (stringB.toString().isEmpty()) {
             context.send(context.getTranslated("invites.emptyroleforinvites"));
             return false;
         }
         eb.setColor(UserUtil.getPrimColor(context.getSender()));
-        eb.setDescription(stringB.append("\n```").toString());
+        eb.setDescription(stringB.toString());
         context.send(eb.build());
+        return true;
+    }
 
-        return false;
+    @SubCommand(name = "remove")
+    public boolean remove(@NotNull CommandContext context) {
+        if (context.getArgs().length == 0) {
+            CommonErrors.usage(context);
+            return false;
+        }
+        Role rola = (Role) managerArgumentow.getArguments().get("role").execute((String) context.getArgs()[0], context.getTlumaczenia(), context.getLanguage(), context.getGuild());
+        if (rola == null) {
+            context.send(context.getTranslated("sklep.sprzedaj.invalidrole"));
+            return false;
+        }
+        GuildConfig gc = guildDao.get(context.getGuild().getId());
+        if (gc.getRoleZaZaproszenia() == null || gc.getRoleZaZaproszenia().isEmpty() || !gc.getRoleZaZaproszenia().containsValue(rola.getId())) {
+            context.send(context.getTranslated("invites.cannotdeleterole"));
+            return false;
+        }
+        gc.getRoleZaZaproszenia().entrySet().removeIf(a -> a.getValue().equals(rola.getId()));
+        guildDao.save(gc);
+        context.send(context.getTranslated("invites.successdelete"));
+        return true;
     }
 
 }
