@@ -99,12 +99,12 @@ public class InvitesCommand extends Command {
     public boolean set(@NotNull CommandContext context) {
         try {
             int zaprszenie = Integer.parseInt(context.getRawArgs()[0]);
-            if (zaprszenie > 1000) {
-                context.send(context.getTranslated("lvlup.integer.toobig"));
+            if (zaprszenie > 1000 || zaprszenie <= 0) {
+                context.send(context.getTranslated("topinvites.badnumber"));
                 return false;
             }
             Role rola = (Role) context.getArgs()[1];
-            if (rola == null || zaprszenie <= 0) throw new NumberFormatException();
+            if (rola == null) throw new NumberFormatException();
             GuildConfig gc = guildDao.get(context.getGuild());
             if (gc.getRoleZaZaproszenia() == null) gc.setRoleZaZaproszenia(new HashMap<>());
 
