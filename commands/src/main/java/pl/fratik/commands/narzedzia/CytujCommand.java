@@ -17,11 +17,16 @@
 
 package pl.fratik.commands.narzedzia;
 
-import club.minnced.discord.webhook.send.*;
+import club.minnced.discord.webhook.send.AllowedMentions;
+import club.minnced.discord.webhook.send.WebhookEmbed;
+import club.minnced.discord.webhook.send.WebhookEmbedBuilder;
+import club.minnced.discord.webhook.send.WebhookMessageBuilder;
 import com.google.common.eventbus.EventBus;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.EmbedType;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.exceptions.PermissionException;
@@ -31,8 +36,11 @@ import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
+import pl.fratik.core.command.PermLevel;
+import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.event.PluginMessageEvent;
+import pl.fratik.core.util.CommonUtil;
 import pl.fratik.core.util.UserUtil;
 import pl.fratik.core.webhook.WebhookManager;
 
@@ -43,20 +51,27 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static pl.fratik.core.util.CommonUtil.ID_REGEX;
+
 public class CytujCommand extends Command {
 
     private final ShardManager shardManager;
     private final EventBus eventBus;
     private final WebhookManager webhookManager;
+    private final GuildDao guildDao;
 
     private final ExecutorService executor;
 
     private static final String STRINGARGTYPE = "string";
+    private static final Pattern MESSAGE_LINK_PATTERN =
+            Pattern.compile(String.format("^https?://((ptb|canary)?\\.?(discordapp|discord)\\.com)" +
+                    "/channels/(%s)/(%s)/(%s)/?$", ID_REGEX, ID_REGEX, ID_REGEX));
 
-    public CytujCommand(ShardManager shardManager, EventBus eventBus, WebhookManager webhookManager) {
+    public CytujCommand(ShardManager shardManager, EventBus eventBus, WebhookManager webhookManager, GuildDao guildDao) {
         this.shardManager = shardManager;
         this.eventBus = eventBus;
         this.webhookManager = webhookManager;
+        this.guildDao = guildDao;
         name = "cytuj";
         category = CommandCategory.UTILITY;
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
@@ -81,11 +96,16 @@ public class CytujCommand extends Command {
     public boolean execute(@NotNull CommandContext context) {
         TextChannel kanal = null;
         Message msg;
-        String[] splitted = ((String) context.getArgs()[0]).split("-");
-        if (splitted.length == 1) {
+        String msgID = (String) context.getArgs()[0];
+        Matcher matcher = MESSAGE_LINK_PATTERN.matcher(msgID);
+        if (matcher.find()) {
             try {
-                kanal = context.getChannel();
-                msg = kanal.retrieveMessageById(splitted[0]).complete();
+                kanal = shardManager.getTextChannelById(matcher.group(5));
+                if (kanal == null) {
+                    context.send(context.getTranslated("cytuj.nochannel"));
+                    return false;
+                }
+                msg = kanal.retrieveMessageById(matcher.group(6)).complete();
             } catch (IllegalArgumentException e) {
                 context.send(context.getTranslated("cytuj.invalid.id"));
                 return false;
@@ -96,27 +116,48 @@ public class CytujCommand extends Command {
                 context.send(context.getTranslated("cytuj.invalid.message"));
                 return false;
             }
-        }
-        else {
-            try {
-                TextChannel tc = shardManager.getTextChannelById(splitted[0]);
-                if (tc != null && tc.getGuild().getOwnerId().equals(context.getSender().getId())) {
-                    kanal = tc;
-                }
-                if (kanal == null) {
-                    context.send(context.getTranslated("cytuj.nochannel"));
+        } else {
+            String[] splitted = msgID.split("-");
+            if (splitted.length == 1) {
+                try {
+                    kanal = context.getChannel();
+                    msg = kanal.retrieveMessageById(splitted[0]).complete();
+                } catch (IllegalArgumentException e) {
+                    context.send(context.getTranslated("cytuj.invalid.id"));
+                    return false;
+                } catch (PermissionException e) {
+                    context.send(context.getTranslated("cytuj.target.noperms"));
+                    return false;
+                } catch (ErrorResponseException e) {
+                    context.send(context.getTranslated("cytuj.invalid.message"));
                     return false;
                 }
-                msg = kanal.retrieveMessageById(splitted[1]).complete();
-            } catch (IllegalArgumentException e) {
-                context.send(context.getTranslated("cytuj.invalid.id"));
-                return false;
-            } catch (PermissionException e) {
-                context.send(context.getTranslated("cytuj.target.noperms"));
-                return false;
-            } catch (ErrorResponseException e) {
-                context.send(context.getTranslated("cytuj.invalid.message"));
-                return false;
+            } else {
+                try {
+                    TextChannel tc = shardManager.getTextChannelById(splitted[0]);
+                    if (tc != null && (tc.equals(context.getChannel()) || (
+                            (tc.getGuild().equals(context.getGuild()) &&
+                                    UserUtil.getPermlevel(context.getMember(), guildDao, shardManager, PermLevel.OWNER)
+                                            .getNum() >= PermLevel.ADMIN.getNum()) || // min. admin na serwerze
+                                    (!tc.getGuild().equals(context.getGuild()) &&
+                                            tc.getGuild().getOwnerId().equals(context.getSender().getId()))))) { // właściciel, jeśli poza serwerem
+                        kanal = tc;
+                    }
+                    if (kanal == null) {
+                        context.send(context.getTranslated("cytuj.nochannel"));
+                        return false;
+                    }
+                    msg = kanal.retrieveMessageById(splitted[1]).complete();
+                } catch (IllegalArgumentException e) {
+                    context.send(context.getTranslated("cytuj.invalid.id"));
+                    return false;
+                } catch (PermissionException e) {
+                    context.send(context.getTranslated("cytuj.target.noperms"));
+                    return false;
+                } catch (ErrorResponseException e) {
+                    context.send(context.getTranslated("cytuj.invalid.message"));
+                    return false;
+                }
             }
         }
         if (msg == null) {
@@ -129,8 +170,9 @@ public class CytujCommand extends Command {
         EmbedBuilder eb = new EmbedBuilder();
         eb.setAuthor(UserUtil.formatDiscrim(msg.getAuthor()), null, msg.getAuthor().getEffectiveAvatarUrl().replace(".webp", ".png"));
         eb.setColor(UserUtil.getPrimColor(msg.getAuthor()));
-        if (msg.getContentRaw().isEmpty()) {
-            if (msg.getEmbeds().isEmpty()) eb.setDescription(context.getTranslated("cytuj.empty.message"));
+        if (msg.getContentRaw().isEmpty() && !msg.getAttachments().isEmpty()) {
+            if (msg.getEmbeds().stream().noneMatch(e -> e.getType() == EmbedType.RICH))
+                eb.setDescription(context.getTranslated("cytuj.empty.message"));
             else eb.setDescription(context.getTranslated("cytuj.empty.message.embed"));
         } else {
             eb.setDescription(msg.getContentRaw());
@@ -139,6 +181,10 @@ public class CytujCommand extends Command {
         eb.addField(context.getTranslated("cytuj.jump"), String.format("[\\[%s\\]](%s)",
                 context.getTranslated("cytuj.jump.to"), msg.getJumpUrl()), false);
         if (!msg.getAttachments().isEmpty()) eb.setImage(msg.getAttachments().get(0).getUrl());
+        else {
+            String link = CommonUtil.getImageUrl(msg);
+            if (link != null) eb.setImage(link);
+        }
         if (tresc == null || tresc.isEmpty()) {
             context.send(eb.build());
             if (!msg.getEmbeds().isEmpty()) {
@@ -150,9 +196,8 @@ public class CytujCommand extends Command {
             }
             return true;
         }
-        Matcher matcher = Pattern.compile("[(http(s)?)://(www\\.)?a-zA-Z0-9@:%._\\+~#=]{2,256}\\.[a-z]{2,6" +
-                "}\\b([-a-zA-Z0-9@:%_\\+.~#?&//=]*)", Pattern.CASE_INSENSITIVE | Pattern.DOTALL).matcher(tresc);
-        tresc = matcher.replaceAll("[URL]");
+        tresc = Pattern.compile("[(http(s)?)://(www\\.)?a-zA-Z0-9@:%._\\+~#=]{2,256}\\.[a-z]{2,6}\\b([-a-zA-Z0-9" +
+                "@:%_\\+.~#?&//=]*)", Pattern.CASE_INSENSITIVE | Pattern.DOTALL).matcher(tresc).replaceAll("[URL]");
         EnumSet<Message.MentionType> alments = MessageAction.getDefaultMentions();
         if (context.getMember().hasPermission(context.getChannel(), Permission.MESSAGE_MENTION_EVERYONE)) {
             alments.add(Message.MentionType.EVERYONE);
@@ -167,7 +212,9 @@ public class CytujCommand extends Command {
             embeds.add(WebhookEmbedBuilder.fromJDA(eb.build()).build());
             if (!msg.getEmbeds().isEmpty()) {
                 for (int i = 0; i < msg.getEmbeds().size(); i++) {
-                    embeds.add(WebhookEmbedBuilder.fromJDA(msg.getEmbeds().get(i)).build());
+                    MessageEmbed embed = msg.getEmbeds().get(i);
+                    if (embed.getType() != EmbedType.RICH) continue;
+                    embeds.add(WebhookEmbedBuilder.fromJDA(embed).build());
                     if (embeds.size() >= 3) break;
                 }
             }
@@ -187,7 +234,7 @@ public class CytujCommand extends Command {
                 }
             }
             webhookManager.send(new WebhookMessageBuilder().setAvatarUrl(context.getSender().getEffectiveAvatarUrl())
-                    .setUsername(context.getSender().getName()).setContent(tresc).setAllowedMentions(allments)
+                    .setUsername(context.getMember().getEffectiveName()).setContent(tresc).setAllowedMentions(allments)
                     .addEmbeds(embeds).build(), context.getChannel());
             return true;
         } else {

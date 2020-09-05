@@ -26,22 +26,18 @@ import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.command.PermLevel;
-import pl.fratik.core.entity.UserDao;
 import pl.fratik.core.entity.Uzycie;
+import pl.fratik.core.util.CommonUtil;
 
 import java.util.Arrays;
 import java.util.LinkedHashMap;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class BlacklistPopCommand extends Command {
-    private static final Pattern ID_REGEX = Pattern.compile("\\d{17,18}");
 
-    private final UserDao userDao;
     private final BlacklistDao blacklistDao;
 
-    public BlacklistPopCommand(UserDao userDao, BlacklistDao blacklistDao) {
-        this.userDao = userDao;
+    public BlacklistPopCommand(BlacklistDao blacklistDao) {
         this.blacklistDao = blacklistDao;
         name = "blacklistpop";
         category = CommandCategory.UTILITY;
@@ -70,7 +66,7 @@ public class BlacklistPopCommand extends Command {
             server = context.getShardManager().getGuildById(id);
         }
         if (user == null && server == null) {
-            if (!ID_REGEX.matcher(id).matches()) {
+            if (!CommonUtil.ID_REGEX.matcher(id).matches()) {
                 context.send(context.getTranslated("blacklistpop.invalid.id"));
                 return false;
             }

@@ -102,7 +102,7 @@ public class Module implements Modul {
         commands.add(new UserinfoCommand(userDao, shardManager, eventBus));
         commands.add(new KolorCommand());
         commands.add(new DegradCommand(shardManager));
-        commands.add(new CytujCommand(shardManager, eventBus, webhookManager));
+        commands.add(new CytujCommand(shardManager, eventBus, webhookManager, guildDao));
         commands.add(new PogodaCommand(userDao));
         commands.add(new McpremiumCommand());
         commands.add(new InviteCommand());
@@ -146,7 +146,7 @@ public class Module implements Modul {
         commands.add(new CoronastatsCommand());
         commands.add(new UstawPoziomCommand(guildDao, managerKomend));
         commands.add(new PermLevelCommand());
-        commands.add(new BlacklistPopCommand(userDao, blacklistDao));
+        commands.add(new BlacklistPopCommand(blacklistDao));
 
         listener = new MemberListener(guildDao, redisCacheManager);
         eventBus.register(listener);

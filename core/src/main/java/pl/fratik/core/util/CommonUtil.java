@@ -51,6 +51,8 @@ public class CommonUtil {
 
     private CommonUtil() {}
 
+    public static final Pattern ID_REGEX = Pattern.compile("\\d{17,18}");
+
     public static boolean checkCooldown(Map<Guild, Long> cooldowns, CommandContext context, long time) {
         if (cooldowns != null) {
             Message message = context.getEvent().getMessage();
@@ -179,8 +181,8 @@ public class CommonUtil {
     }
 
     public static String getImageUrl(Message msg) {
-        Matcher matcher = Pattern.compile("[(http(s)?)://(www\\.)?a-zA-Z0-9@:%._\\+~#=]{2,256}\\.[a-z]{2,6" +
-                "}\\b([-a-zA-Z0-9@:%_\\+.~#?&//=]*)", Pattern.CASE_INSENSITIVE | Pattern.DOTALL).matcher(msg.getContentRaw());
+        Matcher matcher = Pattern.compile("(http(s)?):\\/\\/(www\\.)?[?a-zA-Z0-9@:%._\\+~#=]{2,256}\\.[a-z]{2,6}" +
+                "\\b([-a-zA-Z0-9@:%_\\+.~#?&//=]*.png)", Pattern.CASE_INSENSITIVE | Pattern.DOTALL).matcher(msg.getContentRaw());
         if (matcher.matches()) return matcher.group();
         if (!msg.getAttachments().isEmpty()) return msg.getAttachments().get(0).getUrl();
         return null;
