@@ -27,11 +27,14 @@ import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.util.ClassicEmbedPaginator;
 import pl.fratik.core.util.EventWaiter;
+import pl.fratik.core.util.MapUtil;
 import pl.fratik.core.util.UserUtil;
-import pl.fratik.invite.entity.InviteConfig;
 import pl.fratik.invite.entity.InviteDao;
+import pl.fratik.invite.entity.InviteData;
 
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class TopInvitesCommnad extends Command {
@@ -54,16 +57,17 @@ public class TopInvitesCommnad extends Command {
     @Override
     public boolean execute(CommandContext context) {
         Message msg = context.send(context.getTranslated("generic.loading"));
+        CountDownLatch latch = new CountDownLatch(1);
         AtomicBoolean success = new AtomicBoolean(true);
         Task<List<Member>> task = context.getGuild().loadMembers();
         task.onSuccess(members -> {
             EmbedBuilder eb = new EmbedBuilder();
             StringBuilder sb = new StringBuilder();
             List<EmbedBuilder> pages = new ArrayList<>();
-            HashMap<Object, Integer> zaproszenia = new HashMap<>();
+            HashMap<Member, Integer> zaproszenia = new HashMap<>();
 
             for (Member member : members) {
-                InviteConfig ic = inviteDao.get(member);
+                InviteData ic = inviteDao.get(member);
                 int invites = ic.getTotalInvites() - ic.getLeaveInvites();
                 if (invites <= 0) continue;
                 zaproszenia.put(member, invites);
@@ -72,13 +76,14 @@ public class TopInvitesCommnad extends Command {
             if (zaproszenia.isEmpty()) {
                 context.send(context.getTranslated("topinvites.empty"));
                 success.set(false);
+                latch.countDown();
                 return;
             }
 
             int rank = 1;
             int tempRank = 1;
-            for (Map.Entry<Object, Integer> sorted : sortByValue(zaproszenia).entrySet()) {
-                Member mem = (Member) sorted.getKey();
+            for (Map.Entry<Member, Integer> sorted : MapUtil.sortByValue(zaproszenia).entrySet()) {
+                Member mem = sorted.getKey();
                 sb.append("**#").append(rank).append("** ");
                 sb.append(mem.getAsMention());
                 sb.append(" [`").append(UserUtil.formatDiscrim(mem)).append("`] ");
@@ -103,22 +108,17 @@ public class TopInvitesCommnad extends Command {
 
             new ClassicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(), context.getTlumaczenia(), eventBus)
                     .create(msg);
+            latch.countDown();
         });
         task.onError(m -> {
             msg.editMessage(context.getTranslated("topinvites.error")).queue();
             success.set(false);
+            latch.countDown();
         });
+        try {
+            latch.await(10, TimeUnit.SECONDS);
+        } catch (InterruptedException ignored) {}
         return success.get();
-    }
-
-    public static HashMap<Object, Integer> sortByValue(HashMap<Object, Integer> hm) {
-        List<Map.Entry<Object, Integer> > list =
-                new LinkedList<>(hm.entrySet());
-        list.sort(Map.Entry.comparingByValue());
-        Collections.reverse(list);
-        HashMap<Object, Integer> temp = new LinkedHashMap<>();
-        for (Map.Entry<?, Integer> aa : list) { temp.put(aa.getKey(), aa.getValue()); }
-        return temp;
     }
 
 }

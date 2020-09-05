@@ -146,7 +146,7 @@ public class Module implements Modul {
         commands.add(new PermLevelCommand());
         commands.add(new BlacklistPopCommand(userDao, blacklistDao));
 
-        listener = new MemberListener(guildDao, redisCacheManager);
+        listener = new MemberListener(guildDao, eventBus, redisCacheManager);
         eventBus.register(listener);
 
         commands.forEach(managerKomend::registerCommand);

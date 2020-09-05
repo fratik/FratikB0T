@@ -22,11 +22,9 @@ import net.dv8tion.jda.api.entities.Invite;
 
 @Data
 public class FakeInvite {
-
-    private int uses = 0;
+    private int uses;
 
     public FakeInvite(Invite invite) {
         this.uses = invite.getUses();
     }
-
 }

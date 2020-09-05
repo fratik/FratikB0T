@@ -17,51 +17,54 @@
 
 package pl.fratik.invite.cache;
 
+import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.Subscribe;
+import lombok.Getter;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Invite;
-import net.dv8tion.jda.api.events.guild.GuildJoinEvent;
 import net.dv8tion.jda.api.events.guild.invite.GuildInviteCreateEvent;
 import net.dv8tion.jda.api.events.guild.invite.GuildInviteDeleteEvent;
 import net.dv8tion.jda.api.exceptions.InsufficientPermissionException;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import pl.fratik.core.cache.Cache;
 import pl.fratik.core.cache.RedisCacheManager;
-
-import java.util.List;
+import pl.fratik.core.entity.GuildConfig;
+import pl.fratik.core.entity.GuildDao;
 
 public class InvitesCache {
 
     private final ShardManager api;
-    public Cache<FakeInvite> inviteCache;
+    private final GuildDao guildDao;
+    private final Cache<GuildConfig> gcCache;
+    @Getter private final Cache<FakeInvite> inviteCache;
+    @Getter private boolean loading = false;
+    @Getter private boolean loaded = false;
 
-    public InvitesCache(RedisCacheManager rcm, ShardManager api) {
+    public InvitesCache(RedisCacheManager rcm, GuildDao guildDao, ShardManager api) {
         this.api = api;
+        this.guildDao = guildDao;
+        this.gcCache = rcm.new CacheRetriever<GuildConfig>(){}.getCache();
         this.inviteCache = rcm.new CacheRetriever<FakeInvite>(){}.getCache(-1);
     }
 
-    @Subscribe
-    public void onBotJoinGuild(GuildJoinEvent event) {
-        load(event.getGuild());
-    }
-
     public synchronized void load() {
-        for (Guild guild : api.getGuilds()) {
-            load(guild);
-        }
+        loading = true;
+        for (Guild guild : api.getGuilds()) if (gcCache.get(guild.getId(), guildDao::get).isTrackInvites()) load(guild);
+        loading = false;
+        loaded = false;
     }
 
     public synchronized void load(Guild guild) {
         try {
-            List<Invite> inv = guild.retrieveInvites().complete();
-            inv.forEach(this::load);
+            guild.retrieveInvites().complete().forEach(this::load);
         } catch (InsufficientPermissionException ignored) { }
     }
 
     public synchronized void load(Invite invite) {
-        String code = invite.getGuild().getId() + "." + invite.getCode();
-        inviteCache.invalidate(code);
-        inviteCache.put(code, new FakeInvite(invite));
+        @SuppressWarnings("ConstantConditions") // guild nie może być null
+        String id = invite.getGuild().getId() + "." + invite.getCode();
+        inviteCache.invalidate(id);
+        inviteCache.put(id, new FakeInvite(invite));
     }
 
     @Subscribe
@@ -70,6 +73,7 @@ public class InvitesCache {
     }
 
     @Subscribe
+    @AllowConcurrentEvents
     public void deleteInvite(GuildInviteDeleteEvent e) {
         inviteCache.invalidate(e.getGuild().getId() + "." + e.getCode());
     }

@@ -29,11 +29,11 @@ import pl.fratik.core.entity.DatabaseEntity;
 @GIndex({"id", "guildId", "userId"})
 @Data
 @AllArgsConstructor
-public class InviteConfig implements DatabaseEntity {
+public class InviteData implements DatabaseEntity {
 
-    public InviteConfig() { }
+    public InviteData() { }
 
-    public InviteConfig(String userId, String guildId) {
+    public InviteData(String userId, String guildId) {
         this.id = userId + "." + guildId;
         this.userId = userId;
         this.guildId = guildId;

@@ -17,6 +17,7 @@
 
 package pl.fratik.invite.listeners;
 
+import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.Subscribe;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
@@ -29,7 +30,7 @@ import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.UserUtil;
 import pl.fratik.invite.cache.FakeInvite;
 import pl.fratik.invite.cache.InvitesCache;
-import pl.fratik.invite.entity.InviteConfig;
+import pl.fratik.invite.entity.InviteData;
 import pl.fratik.invite.entity.InviteDao;
 
 import java.util.List;
@@ -41,7 +42,7 @@ public class JoinListener {
     private final InviteDao inviteDao;
     private final Tlumaczenia tlumaczenia;
 
-    private final Cache<InviteConfig> invCache;
+    private final Cache<InviteData> invCache;
     private final Cache<GuildConfig> gcCache;
 
     public JoinListener(InviteDao inviteDao, InvitesCache invitesCache, GuildDao guildDao, RedisCacheManager rcm, Tlumaczenia tlumaczenia) {
@@ -50,20 +51,22 @@ public class JoinListener {
         this.guildDao = guildDao;
         this.tlumaczenia = tlumaczenia;
         gcCache = rcm.new CacheRetriever<GuildConfig>(){}.getCache();
-        invCache = rcm.new CacheRetriever<InviteConfig>(){}.getCache();
+        invCache = rcm.new CacheRetriever<InviteData>(){}.getCache();
     }
 
     @Subscribe
+    @AllowConcurrentEvents
     public void onMemberJoin(GuildMemberJoinEvent e) {
+        if (!invitesCache.isLoaded()) return;
         List<Invite> zaproszenia = e.getGuild().retrieveInvites().complete();
         for (Invite invite : zaproszenia) {
-            FakeInvite inv = invitesCache.inviteCache.getIfPresent(e.getGuild().getId() + "." + invite.getCode());
+            FakeInvite inv = invitesCache.getInviteCache().getIfPresent(e.getGuild().getId() + "." + invite.getCode());
             if (inv == null || (invite.getUses() - 1) != inv.getUses()) continue;
             invitesCache.load(invite);
             User user = invite.getInviter();
             if (user != null) {
-                InviteConfig wchodzacy = getInviteConfig(e.getMember().getId(), e.getGuild().getId());
-                InviteConfig zapraszajacy = getInviteConfig(user.getId(), e.getGuild().getId());
+                InviteData wchodzacy = getInviteData(e.getMember().getId(), e.getGuild().getId());
+                InviteData zapraszajacy = getInviteData(user.getId(), e.getGuild().getId());
                 wchodzacy.setDolaczylZJegoZaproszenia(user.getId());
                 zapraszajacy.setTotalInvites(zapraszajacy.getTotalInvites() + 1);
                 addRole(e.getGuild(), zapraszajacy.getTotalInvites() - zapraszajacy.getLeaveInvites(), user);
@@ -96,10 +99,12 @@ public class JoinListener {
     }
 
     @Subscribe
+    @AllowConcurrentEvents
     public void onMemberLeave(GuildMemberRemoveEvent e) {
-        InviteConfig ic = inviteDao.get(e.getUser().getId(), e.getGuild().getId());
+        if (!invitesCache.isLoaded()) return;
+        InviteData ic = inviteDao.get(e.getUser().getId(), e.getGuild().getId());
         if (ic.getDolaczylZJegoZaproszenia() != null) {
-            InviteConfig zarazMuOdjebieZapro = getInviteConfig(ic.getDolaczylZJegoZaproszenia(), e.getGuild().getId());
+            InviteData zarazMuOdjebieZapro = getInviteData(ic.getDolaczylZJegoZaproszenia(), e.getGuild().getId());
             zarazMuOdjebieZapro.setLeaveInvites(zarazMuOdjebieZapro.getLeaveInvites() + 1);
             inviteDao.save(zarazMuOdjebieZapro);
         }
@@ -112,7 +117,7 @@ public class JoinListener {
         return gcCache.get(guild.getId(), guildDao::get);
     }
 
-    private InviteConfig getInviteConfig(String user, String guild) {
+    private InviteData getInviteData(String user, String guild) {
         String encode = user + "." + guild;
         return invCache.get(encode, inviteDao::get);
     }

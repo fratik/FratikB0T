@@ -125,6 +125,7 @@ public class GuildConfig implements DatabaseEntity {
     @ConfigField(dontDisplayInSettings = true)
     private Map<Integer, String> roleZaZaproszenia = new HashMap<>();
     private Boolean lvlUpNotify = true;
+    private Boolean trackInvites = false;
 
     // TODO: 09/04/2020 można to zrobić dla każdego Boolean'a, ale to już kwestia kosmetyki kodu chyba
     public boolean isResetujOstrzezeniaPrzyBanie() {
@@ -133,6 +134,10 @@ public class GuildConfig implements DatabaseEntity {
 
     public boolean isLvlUpNotify() {
         return lvlUpNotify == null || lvlUpNotify;
+    }
+
+    public boolean isTrackInvites() {
+        return trackInvites == null || trackInvites;
     }
 
     @Transient

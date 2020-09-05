@@ -18,11 +18,9 @@
 package pl.fratik.commands;
 
 import com.google.common.eventbus.AllowConcurrentEvents;
+import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
-import net.dv8tion.jda.api.entities.ChannelType;
-import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Role;
-import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberRemoveEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
@@ -32,6 +30,7 @@ import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.event.DatabaseUpdateEvent;
+import pl.fratik.core.event.PluginMessageEvent;
 import pl.fratik.core.util.CommonUtil;
 
 import java.util.ArrayList;
@@ -39,13 +38,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 class MemberListener {
     private final GuildDao guildDao;
+    private final EventBus eventBus;
     private final Cache<GuildConfig> gcCache;
 
-    MemberListener(GuildDao guildDao, RedisCacheManager redisCacheManager) {
+    private static final Pattern INVITE_TAG_REGEX = Pattern.compile("<invite>(.*)</invite>", Pattern.MULTILINE | Pattern.DOTALL);
+
+    MemberListener(GuildDao guildDao, EventBus eventBus, RedisCacheManager redisCacheManager) {
         this.guildDao = guildDao;
+        this.eventBus = eventBus;
         gcCache = redisCacheManager.new CacheRetriever<GuildConfig>(){}.getCache();
     }
 
@@ -88,10 +93,40 @@ class MemberListener {
             TextChannel cha = e.getGuild().getTextChannelById(ch.getKey());
             if (cha == null || !cha.canTalk()) continue;
             boolean hasMentions = ch.getValue().contains("{{mention}}");
-            MessageAction ma = cha.sendMessage(ch.getValue()
-                    .replaceAll("\\{\\{user}}", e.getMember().getUser().getAsTag())
-                    .replaceAll("\\{\\{mention}}", e.getMember().getAsMention())
-                    .replaceAll("\\{\\{server}}", e.getGuild().getName()));
+            String cnt = ch.getValue()
+                    .replace("{{{user}}", e.getMember().getUser().getAsTag())
+                    .replace("{{mention}}", e.getMember().getAsMention())
+                    .replace("{{server}}", e.getGuild().getName());
+            Matcher matcher = INVITE_TAG_REGEX.matcher(cnt);
+            if (matcher.find()) {
+                String tagCnt = matcher.group(1);
+                StringBuffer buf = new StringBuffer();
+                PluginMessageEvent event = new PluginMessageEvent("commands", "invite", "Module-getInviteData:" +
+                        e.getUser().getId() + "." + e.getGuild().getId());
+                eventBus.post(event);
+                awaitPluginResponse(event);
+                if (event.getResponse() != null) {
+                    pl.fratik.invite.entity.InviteData inv = (pl.fratik.invite.entity.InviteData) event.getResponse();
+                    User invitedBy;
+                    try {
+                        invitedBy = e.getJDA().retrieveUserById(inv.getDolaczylZJegoZaproszenia()).complete();
+                    } catch (Exception err) {
+                        invitedBy = null;
+                    }
+                    if (invitedBy != null) {
+                        tagCnt = tagCnt.replaceAll("(\\{\\{invitedBy}})|(\\{\\{invitedBy-user}})", invitedBy.getAsTag())
+                                .replace("{{invitedBy-mention}}", invitedBy.getAsMention());
+                    } else {
+                        tagCnt = "";
+                    }
+                    matcher.appendReplacement(buf, tagCnt);
+                    matcher.appendTail(buf);
+                }
+                matcher.appendReplacement(buf, "");
+                matcher.appendTail(buf);
+                cnt = buf.toString();
+            }
+            MessageAction ma = cha.sendMessage(cnt);
             if (hasMentions) ma.mention(e.getMember()).queue();
             else ma.queue();
         }
@@ -126,5 +161,18 @@ class MemberListener {
     public void onDatabaseUpdateEvent(DatabaseUpdateEvent e) {
         if (e.getEntity() instanceof GuildConfig)
             gcCache.put(((GuildConfig) e.getEntity()).getGuildId(), (GuildConfig) e.getEntity());
+    }
+
+    private void awaitPluginResponse(PluginMessageEvent event) {
+        int waited = 0;
+        while (event.getResponse() == null) {
+            try {
+                Thread.sleep(100);
+                waited += 100;
+                if (waited >= 3000) break;
+            } catch (InterruptedException e) {
+                break;
+            }
+        }
     }
 }

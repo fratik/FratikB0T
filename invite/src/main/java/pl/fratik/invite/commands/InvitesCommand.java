@@ -31,8 +31,9 @@ import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.manager.ManagerArgumentow;
 import pl.fratik.core.util.CommonErrors;
+import pl.fratik.core.util.MapUtil;
 import pl.fratik.core.util.UserUtil;
-import pl.fratik.invite.entity.InviteConfig;
+import pl.fratik.invite.entity.InviteData;
 import pl.fratik.invite.entity.InviteDao;
 
 import java.time.Instant;
@@ -76,7 +77,7 @@ public class InvitesCommand extends Command {
                 .execute(context.getRawArgs()[0], context.getTlumaczenia(), context.getLanguage());
         if (osoba == null) osoba = context.getSender();
 
-        InviteConfig dao = inviteDao.get(osoba.getId(), context.getGuild().getId());
+        InviteData dao = inviteDao.get(osoba.getId(), context.getGuild().getId());
 
         EmbedBuilder eb = new EmbedBuilder();
         eb.setColor(UserUtil.getPrimColor(osoba));
@@ -84,7 +85,7 @@ public class InvitesCommand extends Command {
         eb.setTitle(UserUtil.formatDiscrim(osoba));
         eb.setTimestamp(Instant.now());
         if (!context.getGuild().getSelfMember().hasPermission(Permission.MANAGE_SERVER)) {
-            eb.setDescription(context.getTranslated("invites.maybie.doesnt.work"));
+            eb.setDescription(context.getTranslated("invites.maybe.doesnt.work"));
         }
         eb.addField(context.getTranslated("invites.stats"),
                 context.getTranslated("invites.fieldvalue", dao.getTotalInvites() - dao.getLeaveInvites(),
@@ -127,29 +128,28 @@ public class InvitesCommand extends Command {
     public boolean list(@NotNull CommandContext context) {
         GuildConfig gc = guildDao.get(context.getGuild());
         if (gc.getRoleZaZaproszenia() == null || gc.getRoleZaZaproszenia().isEmpty()) {
-            context.send(context.getTranslated("invites.emptyroleforinvites"));
+            context.send(context.getTranslated("invites.list.empty"));
             return false;
         }
-        StringBuilder stringB = new StringBuilder();
+        StringBuilder sb = new StringBuilder();
         EmbedBuilder eb = new EmbedBuilder();
-        HashMap<Object, Integer> sorted = new HashMap<>();
+        Map<Role, Integer> sorted = new HashMap<>();
 
         for (Map.Entry<Integer, String> entry : gc.getRoleZaZaproszenia().entrySet()) {
             Role r = context.getGuild().getRoleById(entry.getValue());
             if (r == null) continue;
             sorted.put(r, entry.getKey());
         }
-        for (Map.Entry<Object, Integer> entry : TopInvitesCommnad.sortByValue(sorted).entrySet()) {
-            Role r = (Role) entry.getKey();
-            stringB.append(r.getAsMention()).append(" - ").append(entry.getValue()).append(" lvl\n");
+        for (Map.Entry<Role, Integer> entry : MapUtil.sortByValue(sorted).entrySet()) {
+            sb.append(context.getTranslated("invites.list.entry", entry.getKey().getAsMention(), entry.getValue()));
         }
-        if (stringB.toString().isEmpty()) {
-            context.send(context.getTranslated("invites.emptyroleforinvites"));
+        if (sb.toString().isEmpty()) {
+            context.send(context.getTranslated("invites.list.empty"));
             return false;
         }
         eb.setAuthor(context.getTranslated("invites.roles", sorted.size()));
         eb.setColor(UserUtil.getPrimColor(context.getSender()));
-        eb.setDescription(stringB.toString());
+        eb.setDescription(sb.toString());
         eb.setTimestamp(Instant.now());
         context.send(eb.build());
         return true;

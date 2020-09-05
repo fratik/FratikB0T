@@ -28,38 +28,37 @@ import pl.fratik.core.manager.ManagerBazyDanych;
 
 import java.util.List;
 
-public class InviteDao implements Dao<InviteConfig> {
+public class InviteDao implements Dao<InviteData> {
 
     private final EventBus eventBus;
-    private final PgMapper<InviteConfig> mapper;
+    private final PgMapper<InviteData> mapper;
 
     public InviteDao(ManagerBazyDanych managerBazyDanych, EventBus eventBus) {
         if (managerBazyDanych == null) throw new IllegalStateException("managerBazyDanych == null");
-        mapper = managerBazyDanych.getPgStore().mapSync(InviteConfig.class);
+        mapper = managerBazyDanych.getPgStore().mapSync(InviteData.class);
         this.eventBus = eventBus;
     }
 
     @Override
-    public InviteConfig get(String primKey) {
+    public InviteData get(String primKey) {
         return mapper.load(primKey).orElseGet(() -> newObject(primKey));
     }
 
-    public InviteConfig get(Member member) {
+    public InviteData get(Member member) {
         return get(member.getUser().getId() + "." + member.getGuild().getId());
     }
 
-    public InviteConfig get(String userId, String guildId) {
+    public InviteData get(String userId, String guildId) {
         return get(userId + "." + guildId);
     }
 
     @Override
-    public List<InviteConfig> getAll() {
+    public List<InviteData> getAll() {
         return mapper.loadAll();
     }
 
-    @SuppressWarnings("DuplicatedCode")
     @Override
-    public void save(InviteConfig toCos) {
+    public void save(InviteData toCos) {
         ObjectMapper objMapper = new ObjectMapper();
         String jsoned;
         try { jsoned = objMapper.writeValueAsString(toCos); } catch (Exception ignored) { jsoned = toCos.toString(); }
@@ -69,14 +68,14 @@ public class InviteDao implements Dao<InviteConfig> {
         eventBus.post(new DatabaseUpdateEvent(toCos));
     }
 
-    public void save(InviteConfig... toCos) {
-        for (InviteConfig tak : toCos) {
+    public void save(InviteData... toCos) {
+        for (InviteData tak : toCos) {
             save(tak);
         }
     }
 
-    private InviteConfig newObject(String id) {
-        return new InviteConfig(id.split("\\.")[0], id.split("\\.")[1]);
+    private InviteData newObject(String id) {
+        return new InviteData(id.split("\\.")[0], id.split("\\.")[1]);
     }
 
 }
