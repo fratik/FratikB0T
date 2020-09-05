@@ -40,7 +40,7 @@ public class LanguageCommand extends Command {
         uzycie = new Uzycie("język", "language");
         category = CommandCategory.BASIC;
         permLevel = PermLevel.EVERYONE;
-        aliases = new String[] {"jezyk"};
+        aliases = new String[] {"jezyk", "lang"};
         this.userDao = userDao;
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         allowPermLevelChange = false;

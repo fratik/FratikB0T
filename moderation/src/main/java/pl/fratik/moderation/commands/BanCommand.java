@@ -26,6 +26,7 @@ import net.dv8tion.jda.api.requests.ErrorResponse;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
+import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Kara;
 import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.util.DurationUtil;
@@ -41,7 +42,9 @@ import java.util.stream.Collectors;
 
 public class BanCommand extends ModerationCommand {
 
-    public BanCommand() {
+    private final GuildDao guildDao;
+
+    public BanCommand(GuildDao guildDao) {
         name = "ban";
         category = CommandCategory.MODERATION;
         uzycieDelim = " ";
@@ -52,6 +55,7 @@ public class BanCommand extends ModerationCommand {
         hmap.put("[...]", "string");
         uzycie = new Uzycie(hmap, new boolean[] {true, false, false});
         aliases = new String[] {"b", "dzban", "BiletWJednąStronę", "syberia", "banujetypa", "zbanuj", "del", "delett", "b&"};
+        this.guildDao = guildDao;
     }
 
     @Override

@@ -17,6 +17,7 @@
 
 package pl.fratik.starboard;
 
+import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.Subscribe;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
@@ -65,6 +66,7 @@ public class StarboardListener {
     }
 
     @Subscribe
+    @AllowConcurrentEvents
     public void starAddEvent(MessageReactionAddEvent event) {
         executor.submit(() -> {
             if (!event.isFromGuild()) return;
@@ -102,6 +104,16 @@ public class StarboardListener {
                             .queue(m -> m.delete().queueAfter(15, TimeUnit.SECONDS));
                     return;
                 }
+                StarsData std = stdCache.get(message.getGuild().getId(), starDataDao::get);
+                if (std.getBlacklista() == null) std.setBlacklista(new ArrayList<>());
+                if (std.getBlacklista().contains(event.getUser().getId())) {
+                    Language l = tlumaczenia.getLanguage(message.getMember());
+                    toIgnore.add(event.getMessageId());
+                    event.getReaction().removeReaction(event.getUser()).queue(null, throwableConsumer);
+                    event.getChannel().sendMessage(tlumaczenia.get(l, "starboard.blacklisted", event.getUser().getAsMention()))
+                            .queue(m -> m.delete().queueAfter(15, TimeUnit.SECONDS));
+                    return;
+                }
                 try {
                     starManager.addStar(message, event.getUser(), starDataDao.get(event.getGuild()));
                 } catch (IllegalStateException e) {
@@ -127,6 +139,15 @@ public class StarboardListener {
                     toIgnore.add(event.getMessageId());
                     event.getReaction().removeReaction(event.getUser()).queue(null, throwableConsumer);
                     event.getChannel().sendMessage(tlumaczenia.get(l, "starboard.cant.star.yourself", event.getUser().getAsMention()))
+                            .queue(m -> m.delete().queueAfter(5, TimeUnit.SECONDS));
+                    return;
+                }
+                if (starsData.getBlacklista() == null) starsData.setBlacklista(new ArrayList<>());
+                if (starsData.getBlacklista().contains(event.getUser().getId())) {
+                    Language l = tlumaczenia.getLanguage(msg.getMember());
+                    toIgnore.add(event.getMessageId());
+                    event.getReaction().removeReaction(event.getUser()).queue(null, throwableConsumer);
+                    event.getChannel().sendMessage(tlumaczenia.get(l, "starboard.blacklisted", event.getUser().getAsMention()))
                             .queue(m -> m.delete().queueAfter(5, TimeUnit.SECONDS));
                     return;
                 }
@@ -253,7 +274,8 @@ public class StarboardListener {
         if (content.length() != 0) eb.addField(tlumaczenia.get(l, "starboard.embed.message"), content, true);
         String link = CommonUtil.getImageUrl(message);
         if (link != null) eb.setImage(link);
-        eb.addField(tlumaczenia.get(l, "starboard.embed.jump"), "[\\[link\\]](" + message.getJumpUrl() + ")", false);
+        eb.addField(tlumaczenia.get(l, "starboard.embed.jump"), String.format("[\\[%s\\]](%s)",
+                tlumaczenia.get(l, "starboard.embed.jump.to"), message.getJumpUrl()), false);
         eb.setTimestamp(message.getTimeCreated());
         return eb.build();
     }

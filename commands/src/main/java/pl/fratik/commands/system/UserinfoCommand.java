@@ -21,7 +21,9 @@ import com.google.common.eventbus.EventBus;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.Command;
@@ -35,6 +37,7 @@ import pl.fratik.core.util.UserUtil;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 public class UserinfoCommand extends Command {
 
@@ -55,11 +58,16 @@ public class UserinfoCommand extends Command {
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
+        CompletableFuture<Message> f = context.getChannel().sendMessage(context.getTranslated("generic.loading")).submit();
         User osoba = null;
         Member member;
         if (context.getArgs().length != 0) osoba = (User) context.getArgs()[0];
         if (osoba == null) osoba = context.getSender();
-        member = context.getGuild().getMember(osoba);
+        try {
+            member = context.getGuild().retrieveMember(osoba).complete();
+        } catch (ErrorResponseException e) {
+            member = null;
+        }
         EmbedBuilder eb = new EmbedBuilder();
         eb.setTitle(context.getTranslated("userinfo.name", UserUtil.formatDiscrim(osoba)));
         eb.addField(context.getTranslated("userinfo.id"), osoba.getId(), true);
@@ -99,7 +107,14 @@ public class UserinfoCommand extends Command {
         else eb.addField(context.getTranslated("userinfo.place"), "???", true);
         eb.setThumbnail(osoba.getEffectiveAvatarUrl().replace(".webp", ".png") + "?size=2048");
         eb.setColor(UserUtil.getPrimColor(osoba));
-        context.send(eb.build());
+        Message m;
+        try {
+            m = f.join();
+        } catch (Exception e) {
+            m = null;
+        }
+        if (m != null) m.editMessage(eb.build()).override(true).complete();
+        else context.send(eb.build());
         return true;
     }
 

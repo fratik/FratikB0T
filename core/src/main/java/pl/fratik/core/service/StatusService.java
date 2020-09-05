@@ -28,7 +28,9 @@ import pl.fratik.core.Statyczne;
 import pl.fratik.core.Ustawienia;
 
 import java.text.SimpleDateFormat;
+import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -36,7 +38,8 @@ public class StatusService extends AbstractScheduledService {
 
     private static ShardManager shardManager;
     private int last = 0;
-    private static Activity customGame;
+    private static int customLast = 0;
+    private static Activity[] customGames;
     private static OnlineStatus customStatus;
 
     @SuppressWarnings("squid:S3010")
@@ -47,7 +50,11 @@ public class StatusService extends AbstractScheduledService {
     @Override
     protected void runOneIteration() {
         Ustawienia ustawienia = Ustawienia.instance;
-        if (customGame != null && customStatus != null) shardManager.setPresence(customStatus, customGame);
+        if ((customGames != null && customGames.length != 0) && customStatus != null) {
+            if (customLast >= customGames.length) customLast = 0;
+            shardManager.setPresence(customStatus, customGames[customLast]);
+            customLast++;
+        }
         else if (!checkDates()) setPresence(ustawienia);
     }
 
@@ -107,10 +114,29 @@ public class StatusService extends AbstractScheduledService {
         setCustomPresence(OnlineStatus.ONLINE, customGame);
     }
 
+    public static void setCustomGames(List<Activity> customGame) {
+        setCustomPresences(OnlineStatus.ONLINE, customGame);
+    }
+
+    public static void setCustomGames(Activity... customGame) {
+        setCustomPresences(OnlineStatus.ONLINE, customGame);
+    }
+
     public static void setCustomPresence(OnlineStatus status, Activity customGame) {
+        setCustomPresences(status, customGame == null ? null : Collections.singletonList(customGame));
+    }
+
+    public static void setCustomPresences(OnlineStatus status, List<Activity> customGame) {
+        setCustomPresences(status, customGame == null ? null : customGame.toArray(new Activity[0]));
+    }
+
+    public static void setCustomPresences(OnlineStatus status, Activity... customGames) {
+        if (customGames == null) customGames = new Activity[0];
         StatusService.customStatus = status;
-        StatusService.customGame = customGame;
-        shardManager.setPresence(status == null ? OnlineStatus.ONLINE : status, customGame);
+        StatusService.customGames = customGames.length == 0 || (customGames.length == 1 && customGames[0] == null) ? null : customGames;
+        customLast = 0;
+        shardManager.setPresence(status == null ? OnlineStatus.ONLINE : status, customGames.length > 0 ? customGames[0] : null);
+        customLast++;
     }
 
     @Override

@@ -24,7 +24,10 @@ import net.dv8tion.jda.internal.entities.AbstractMessage;
 import org.json.JSONObject;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.Ustawienia;
+import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandContext;
+import pl.fratik.core.tlumaczenia.Language;
+import pl.fratik.core.tlumaczenia.Tlumaczenia;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -187,5 +190,15 @@ public class CommonUtil {
         BigDecimal bd = BigDecimal.valueOf(value);
         bd = bd.setScale(scale, mode);
         return bd.doubleValue();
+    }
+
+    public static String resolveName(Command cmd, Tlumaczenia t, Language l) {
+        String raw = t.get(l, cmd.getName() + ".help.name");
+        if (raw.isEmpty()) return cmd.getName();
+        else {
+            String[] aliasy = raw.toLowerCase().split("\\|");
+            if (aliasy[0].isEmpty()) return cmd.getName();
+            else return aliasy[0].trim();
+        }
     }
 }

@@ -34,6 +34,7 @@ import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.manager.ManagerKomend;
 import pl.fratik.core.manager.implementation.ManagerKomendImpl;
+import pl.fratik.core.util.CommonUtil;
 import pl.fratik.core.util.UserUtil;
 
 import java.util.ArrayList;
@@ -70,11 +71,11 @@ public class HelpCommand extends Command {
         EmbedBuilder eb = context.getBaseEmbed();
         TreeMap<CommandCategory, List<String>> kategorieRaw = Arrays.stream(CommandCategory.values())
                 .collect(Collectors.toMap(c -> c, c -> new ArrayList<>(), (a, b) -> b, TreeMap::new));
-        TreeMap<CommandCategory, List<String>> kategorie = new TreeMap<>();
+        TreeMap<CommandCategory, List<Command>> kategorie = new TreeMap<>();
         managerKomend.getRegistered().stream().filter(command -> command.getCategory() != null)
                 .forEach(command -> kategorieRaw.get(command.getCategory()).add(command.getName()));
         kategorieRaw.forEach((cc, listRaw) -> {
-            List<String> list = new ArrayList<>();
+            List<Command> list = new ArrayList<>();
             for (String cmd : listRaw) {
                 Command command = managerKomend.getCommands().get(cmd);
                 PermLevel plvl = ManagerKomendImpl.getPermLevelOverride(command, gcCache.get(context.getGuild().getId(), guildDao::get));
@@ -82,7 +83,7 @@ public class HelpCommand extends Command {
                 if ((plvl.getNum() > UserUtil.getPermlevel(context.getMember(), guildDao, shardManager).getNum()) ||
                         (!managerKomend.getCommands().get(cmd).isAllowInDMs() &&
                                 context.getChannel().getType() == ChannelType.PRIVATE)) continue;
-                list.add(cmd);
+                list.add(command);
             }
             kategorie.put(cc, list);
         });
@@ -108,15 +109,16 @@ public class HelpCommand extends Command {
         }
         ArrayList<String> opis = new ArrayList<>();
         CommandCategory kategoria = (CommandCategory) context.getArgs()[0];
-        List<String> komendy = kategorie.get(kategoria);
+        List<Command> komendy = kategorie.get(kategoria);
         eb.setAuthor(context.getTranslated("help.listcat.embed.author",
                 context.getTranslated("help.category." +
                         ((CommandCategory) context.getArgs()[0]).name().toLowerCase()), komendy.size()), null,
                 context.getEvent().getJDA().getSelfUser().getEffectiveAvatarUrl()
                         .replace(".webp", ".png"));
-        komendy.sort(String::compareToIgnoreCase);
+        komendy.sort((a, b) -> a.getName().compareToIgnoreCase(b.getName()));
         komendy.forEach(command -> opis
-                .add("**" + command + "**: " + context.getTranslated(command + ".help.description",
+                .add("**" + resolveName(command, context) + "**: " +
+                        context.getTranslated(command.getName() + ".help.description",
                         context.getPrefix().replace("*", "\\*")
                                 .replace("|", "\\|")
                                 .replace("_", "\\_")
@@ -124,6 +126,10 @@ public class HelpCommand extends Command {
         eb.setDescription(String.join("\n", opis));
         context.send(eb.build());
         return true;
+    }
+
+    private String resolveName(Command cmd, CommandContext context) {
+        return CommonUtil.resolveName(cmd, context.getTlumaczenia(), context.getLanguage());
     }
 
 }

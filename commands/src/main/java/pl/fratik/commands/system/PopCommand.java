@@ -286,18 +286,24 @@ public class PopCommand extends Command {
                 //wiadomosci nie ma
                 return;
             }
-            if (e.getUser().isBot()) return;
+            User user;
+            try {
+                user = e.retrieveUser().complete();
+            } catch (Exception er) {
+                user = null;
+            }
+            if (user == null || user.isBot()) return;
             if (!msg.getAuthor().equals(e.getJDA().getSelfUser())) return;
             //noinspection ConstantConditions
             String id = msg.getEmbeds().get(0).getFooter().getText().split(" \\| ")[1];
             Guild g = shardManager.getGuildById(id);
-            if (g == null) return;
             try {
                 msg.delete().complete();
                 logi.sendMessage((String.format("%s(%s) zamknął" + " prośbę o pomoc serwera %s[%s]",
-                        UserUtil.formatDiscrim(e.getUser()), e.getUser().getId(), g.getName(), g.getId()))).queue();
-
+                        UserUtil.formatDiscrim(user), user.getId(),
+                        g != null ? g.getName() : "[bot nie na serwerze]", id))).queue();
             } catch (Exception ignored) {/*lul*/}
+            if (g == null) return;
             Role rola = null;
             for (Language lang : Language.values()) {
                 if (g.getRoles().stream().map(Role::getName).collect(Collectors.toList())
