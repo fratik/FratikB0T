@@ -99,6 +99,10 @@ public class InvitesCommand extends Command {
     public boolean set(@NotNull CommandContext context) {
         try {
             int zaprszenie = Integer.parseInt(context.getRawArgs()[0]);
+            if (zaprszenie > 1000) {
+                context.send(context.getTranslated("lvlup.integer.toobig"));
+                return false;
+            }
             Role rola = (Role) context.getArgs()[1];
             if (rola == null || zaprszenie <= 0) throw new NumberFormatException();
             GuildConfig gc = guildDao.get(context.getGuild());
@@ -143,8 +147,10 @@ public class InvitesCommand extends Command {
             context.send(context.getTranslated("invites.emptyroleforinvites"));
             return false;
         }
+        eb.setAuthor(sorted.size() + " " + context.getTranslated("invites.roles"));
         eb.setColor(UserUtil.getPrimColor(context.getSender()));
         eb.setDescription(stringB.toString());
+        eb.setTimestamp(Instant.now());
         context.send(eb.build());
         return true;
     }

@@ -25,7 +25,6 @@ import pl.fratik.core.cache.Cache;
 import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
-import pl.fratik.core.event.DatabaseUpdateEvent;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.UserUtil;
 import pl.fratik.invite.cache.FakeInvite;
@@ -67,7 +66,7 @@ public class JoinListener {
                 InviteConfig zapraszajacy = getInviteConfig(user.getId(), e.getGuild().getId());
                 wchodzacy.setDolaczylZJegoZaproszenia(user.getId());
                 zapraszajacy.setTotalInvites(zapraszajacy.getTotalInvites() + 1);
-                addRole(e.getGuild(), zapraszajacy.getTotalInvites(), user);
+                addRole(e.getGuild(), zapraszajacy.getTotalInvites() - zapraszajacy.getLeaveInvites(), user);
                 inviteDao.save(wchodzacy, zapraszajacy);
             }
         }
@@ -76,20 +75,22 @@ public class JoinListener {
     private void addRole(Guild guild, int invites, User zapraszajacy) {
         GuildConfig gc = getGuildConfig(guild);
         if (gc.getRoleZaZaproszenia() != null && !gc.getRoleZaZaproszenia().isEmpty()) {
-            String roleId = gc.getRoleZaZaproszenia().get(invites);
-            if (roleId == null) return;
-            Role r = guild.getRoleById(roleId);
-            if (r == null) return;
-            try {
-                Member mem = guild.retrieveMember(zapraszajacy).complete();
-                if (mem == null) return;
-                guild.addRoleToMember(mem, r).complete();
-            } catch (Exception ex) {
-                if (gc.getFullLogs() == null || gc.getFullLogs().isEmpty()) return;
-                TextChannel kanal = guild.getTextChannelById(gc.getFullLogs());
-                if (kanal == null) return;
-                String tarns = tlumaczenia.get(gc.getLanguage(), "invites.addroleerror", r.getName(),  UserUtil.formatDiscrim(zapraszajacy));
-                kanal.sendMessage(tarns).queue();
+            for (int i = 0; i < invites; i++) {
+                String roleId = gc.getRoleZaZaproszenia().get(i);
+                if (roleId == null) return;
+                Role r = guild.getRoleById(roleId);
+                if (r == null) return;
+                try {
+                    Member mem = guild.retrieveMember(zapraszajacy).complete();
+                    if (mem == null) return;
+                    guild.addRoleToMember(mem, r).complete();
+                } catch (Exception ex) {
+                    if (gc.getFullLogs() == null || gc.getFullLogs().isEmpty()) return;
+                    TextChannel kanal = guild.getTextChannelById(gc.getFullLogs());
+                    if (kanal == null) return;
+                    String tarns = tlumaczenia.get(gc.getLanguage(), "invites.addroleerror", r.getName(),  UserUtil.formatDiscrim(zapraszajacy));
+                    kanal.sendMessage(tarns).queue();
+                }
             }
         }
     }
@@ -114,15 +115,6 @@ public class JoinListener {
     private InviteConfig getInviteConfig(String user, String guild) {
         String encode = user + "." + guild;
         return invCache.get(encode, inviteDao::get);
-    }
-
-    @Subscribe
-    public void onDatabaseUpdateEvent(DatabaseUpdateEvent e) {
-        if (e.getEntity() instanceof GuildConfig) {
-            gcCache.put(((GuildConfig) e.getEntity()).getGuildId(), (GuildConfig) e.getEntity());
-        } else if (e.getEntity() instanceof InviteConfig) {
-            invCache.put(((InviteConfig) e.getEntity()).getGuildId(), (InviteConfig) e.getEntity());
-        }
     }
 
 }

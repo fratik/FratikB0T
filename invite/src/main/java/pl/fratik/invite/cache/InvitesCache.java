@@ -20,6 +20,7 @@ package pl.fratik.invite.cache;
 import com.google.common.eventbus.Subscribe;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Invite;
+import net.dv8tion.jda.api.events.guild.GuildJoinEvent;
 import net.dv8tion.jda.api.events.guild.invite.GuildInviteCreateEvent;
 import net.dv8tion.jda.api.events.guild.invite.GuildInviteDeleteEvent;
 import net.dv8tion.jda.api.exceptions.InsufficientPermissionException;
@@ -41,13 +42,22 @@ public class InvitesCache {
         this.inviteCache = rcm.new CacheRetriever<FakeInvite>(){}.getCache(-1);
     }
 
+    @Subscribe
+    public void onBotJoinGuild(GuildJoinEvent event) {
+        load(event.getGuild());
+    }
+
     public synchronized void load() {
         for (Guild guild : api.getGuilds()) {
-            try {
-                List<Invite> invites = guild.retrieveInvites().complete();
-                invites.forEach(this::load);
-            } catch (InsufficientPermissionException ignored) { }
+            load(guild);
         }
+    }
+
+    public synchronized void load(Guild guild) {
+        try {
+            List<Invite> inv = guild.retrieveInvites().complete();
+            inv.forEach(this::load);
+        } catch (InsufficientPermissionException ignored) { }
     }
 
     public synchronized void load(Invite invite) {
