@@ -192,7 +192,7 @@ class FratikB0T {
                 logger.info("Oczekiwanie na shard'y...");
                 DefaultShardManagerBuilder builder = DefaultShardManagerBuilder.create(token,
                         GatewayIntent.GUILD_MEMBERS, GatewayIntent.GUILD_BANS, GatewayIntent.GUILD_VOICE_STATES,
-                        GatewayIntent.GUILD_MESSAGES, GatewayIntent.GUILD_MESSAGE_REACTIONS,
+                        GatewayIntent.GUILD_MESSAGES, GatewayIntent.GUILD_MESSAGE_REACTIONS, GatewayIntent.GUILD_INVITES,
                         GatewayIntent.DIRECT_MESSAGES, GatewayIntent.DIRECT_MESSAGE_REACTIONS, GatewayIntent.GUILD_EMOJIS);
                 builder.setShardsTotal(count);
                 builder.setShards(min, max);
