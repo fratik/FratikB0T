@@ -60,7 +60,7 @@ public class TopInvitesCommnad extends Command {
             EmbedBuilder eb = new EmbedBuilder();
             StringBuilder sb = new StringBuilder();
             List<EmbedBuilder> pages = new ArrayList<>();
-            HashMap<Member, Integer> zaproszenia = new HashMap<>();
+            HashMap<Object, Integer> zaproszenia = new HashMap<>();
 
             for (Member member : members) {
                 InviteConfig ic = inviteDao.get(member);
@@ -77,10 +77,11 @@ public class TopInvitesCommnad extends Command {
 
             int rank = 1;
             int tempRank = 1;
-            for (Map.Entry<Member, Integer> sorted : sortByValue(zaproszenia).entrySet()) {
+            for (Map.Entry<Object, Integer> sorted : sortByValue(zaproszenia).entrySet()) {
+                Member mem = (Member) sorted.getKey();
                 sb.append("**#").append(rank).append("** ");
-                sb.append(sorted.getKey().getAsMention());
-                sb.append(" [`").append(UserUtil.formatDiscrim(sorted.getKey())).append("`] ");
+                sb.append(mem.getAsMention());
+                sb.append(" [`").append(UserUtil.formatDiscrim(mem)).append("`] ");
                 sb.append(context.getTranslated("topinvites.invtes", sorted.getValue())).append("\n");
                 rank++;
                 tempRank++;
@@ -110,13 +111,13 @@ public class TopInvitesCommnad extends Command {
         return success.get();
     }
 
-    public static HashMap<Member, Integer> sortByValue(HashMap<Member, Integer> hm) {
-        List<Map.Entry<Member, Integer> > list =
+    public static HashMap<Object, Integer> sortByValue(HashMap<Object, Integer> hm) {
+        List<Map.Entry<Object, Integer> > list =
                 new LinkedList<>(hm.entrySet());
         list.sort(Map.Entry.comparingByValue());
         Collections.reverse(list);
-        HashMap<Member, Integer> temp = new LinkedHashMap<>();
-        for (Map.Entry<Member, Integer> aa : list) { temp.put(aa.getKey(), aa.getValue()); }
+        HashMap<Object, Integer> temp = new LinkedHashMap<>();
+        for (Map.Entry<?, Integer> aa : list) { temp.put(aa.getKey(), aa.getValue()); }
         return temp;
     }
 

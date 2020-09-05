@@ -38,6 +38,7 @@ import pl.fratik.invite.entity.InviteDao;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.Map;
 
 public class InvitesCommand extends Command {
 
@@ -72,7 +73,7 @@ public class InvitesCommand extends Command {
     public boolean info(@NotNull CommandContext context) {
         User osoba = null;
         if (context.getRawArgs().length != 0) osoba = (User) managerArgumentow.getArguments().get("user")
-                .execute(context.getRawArgs()[0], context.getTlumaczenia(), context.getLanguage(), context.getGuild());
+                .execute(context.getRawArgs()[0], context.getTlumaczenia(), context.getLanguage());
         if (osoba == null) osoba = context.getSender();
 
         InviteConfig dao = inviteDao.get(osoba.getId(), context.getGuild().getId());
@@ -105,7 +106,7 @@ public class InvitesCommand extends Command {
             GuildConfig gc = guildDao.get(context.getGuild());
             if (gc.getRoleZaZaproszenia() == null) gc.setRoleZaZaproszenia(new HashMap<>());
 
-            if (!rola.canInteract(context.getGuild().getSelfMember().getRoles().get(0))) {
+            if (!context.getGuild().getSelfMember().getRoles().get(0).canInteract(rola)) {
                 context.send(context.getTranslated("topinvites.badrole"));
                 return false;
             }
@@ -117,6 +118,37 @@ public class InvitesCommand extends Command {
         } catch (IndexOutOfBoundsException | NumberFormatException e) {
             CommonErrors.usage(context);
         }
+        return false;
+    }
+
+    @SubCommand(name = "list")
+    public boolean list(@NotNull CommandContext context) {
+        GuildConfig gc = guildDao.get(context.getGuild());
+        if (gc.getRoleZaZaproszenia() == null || gc.getRoleZaZaproszenia().isEmpty()) {
+            context.send(context.getTranslated("invites.emptyroleforinvites"));
+            return false;
+        }
+        StringBuilder stringB = new StringBuilder("```");
+        EmbedBuilder eb = new EmbedBuilder();
+        HashMap<Object, Integer> sorted = new HashMap<>();
+
+        for (Map.Entry<Integer, String> entry : gc.getRoleZaZaproszenia().entrySet()) {
+            Role r = context.getGuild().getRoleById(entry.getValue());
+            if (r == null) continue;
+            sorted.put(r, entry.getKey());
+        }
+        for (Map.Entry<Object, Integer> entry : TopInvitesCommnad.sortByValue(sorted).entrySet()) {
+            Role r = (Role) entry.getKey();
+            stringB.append(r.getName()).append(" - ").append(entry.getValue()).append(" lvl");
+        }
+        if (stringB.toString().equals("```")) {
+            context.send(context.getTranslated("invites.emptyroleforinvites"));
+            return false;
+        }
+        eb.setColor(UserUtil.getPrimColor(context.getSender()));
+        eb.setDescription(stringB.append("\n```").toString());
+        context.send(eb.build());
+
         return false;
     }
 
