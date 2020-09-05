@@ -123,18 +123,19 @@ public class StatusService extends AbstractScheduledService {
     }
 
     public static void setCustomPresence(OnlineStatus status, Activity customGame) {
-        setCustomPresences(status, Collections.singletonList(customGame));
+        setCustomPresences(status, customGame == null ? null : Collections.singletonList(customGame));
     }
 
     public static void setCustomPresences(OnlineStatus status, List<Activity> customGame) {
-        setCustomPresences(status, customGame.toArray(new Activity[0]));
+        setCustomPresences(status, customGame == null ? null : customGame.toArray(new Activity[0]));
     }
 
     public static void setCustomPresences(OnlineStatus status, Activity... customGames) {
+        if (customGames == null) customGames = new Activity[0];
         StatusService.customStatus = status;
-        StatusService.customGames = customGames;
+        StatusService.customGames = customGames.length == 0 || (customGames.length == 1 && customGames[0] == null) ? null : customGames;
         customLast = 0;
-        shardManager.setPresence(status == null ? OnlineStatus.ONLINE : status, customGames[0]);
+        shardManager.setPresence(status == null ? OnlineStatus.ONLINE : status, customGames.length > 0 ? customGames[0] : null);
         customLast++;
     }
 
