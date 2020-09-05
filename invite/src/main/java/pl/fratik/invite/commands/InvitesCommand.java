@@ -147,7 +147,7 @@ public class InvitesCommand extends Command {
             context.send(context.getTranslated("invites.emptyroleforinvites"));
             return false;
         }
-        eb.setAuthor(sorted.size() + " " + context.getTranslated("invites.roles"));
+        eb.setAuthor(context.getTranslated("invites.roles", sorted.size()));
         eb.setColor(UserUtil.getPrimColor(context.getSender()));
         eb.setDescription(stringB.toString());
         eb.setTimestamp(Instant.now());

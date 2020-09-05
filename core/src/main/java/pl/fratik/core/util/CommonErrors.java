@@ -87,7 +87,7 @@ public class CommonErrors {
         
         String eldo = tlumaczenia.get(language,command.getName().toLowerCase() + ".help.extended");
         if (!eldo.isEmpty() && !eldo.equals("!<pusto>!")) {
-            baseEmbed.addField(tlumaczenia.get(language, "generic.command.extended"), eldo.replaceAll("%PREFIX%", prefix), false);
+            baseEmbed.addField(tlumaczenia.get(language, "generic.command.extended"), eldo.replaceAll("\\{\\{PREFIX}}", prefix), false);
         }
         PermLevel plvl = customPermLevel == null ? command.getPermLevel() : customPermLevel;
         String plvlval;
