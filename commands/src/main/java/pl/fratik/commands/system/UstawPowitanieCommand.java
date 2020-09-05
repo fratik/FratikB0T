@@ -46,7 +46,6 @@ public class UstawPowitanieCommand extends Command {
         hmap.put("[...]", "string");
         uzycie = new Uzycie(hmap, new boolean[] {true, false, false});
         uzycieDelim = " ";
-        aliases = new String[] {"ustawpowitanie"};
     }
 
     @Override

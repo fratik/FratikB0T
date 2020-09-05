@@ -41,7 +41,7 @@ public class RolaCommand extends ModerationCommand {
         name = "rola";
         category = CommandCategory.MODERATION;
         uzycie = new Uzycie("rola", "role");
-        aliases = new String[] {"ranga", "rola", "dodajrange", "usunrange", "dodajrole", "usunrole", "dajrole", "wezrole", "dajrange", "wezrange", "proszerole"};
+        aliases = new String[] {"ranga"};
         permissions.add(Permission.MANAGE_ROLES);
         allowPermLevelChange = false;
     }
