@@ -32,12 +32,10 @@ import java.util.List;
 
 public class InvitesCache {
 
-    private final RedisCacheManager redisCacheManager;
     private final ShardManager api;
     public Cache<FakeInvite> inviteCache;
 
     public InvitesCache(RedisCacheManager rcm, ShardManager api) {
-        this.redisCacheManager = rcm;
         this.api = api;
         this.inviteCache = rcm.new CacheRetriever<FakeInvite>(){}.getCache(-1);
     }

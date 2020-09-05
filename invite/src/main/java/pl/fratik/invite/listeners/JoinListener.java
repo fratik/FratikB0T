@@ -75,19 +75,19 @@ public class JoinListener {
     private void addRole(Guild guild, int invites, User zapraszajacy) {
         GuildConfig gc = getGuildConfig(guild);
         if (gc.getRoleZaZaproszenia() != null && !gc.getRoleZaZaproszenia().isEmpty()) {
-            for (int i = 0; i < invites; i++) {
+            for (int i = 1; i < invites; i++) {
                 String roleId = gc.getRoleZaZaproszenia().get(i);
-                if (roleId == null) return;
+                if (roleId == null) continue;
                 Role r = guild.getRoleById(roleId);
-                if (r == null) return;
+                if (r == null) continue;
                 try {
                     Member mem = guild.retrieveMember(zapraszajacy).complete();
-                    if (mem == null) return;
+                    if (mem == null) continue;
                     guild.addRoleToMember(mem, r).complete();
                 } catch (Exception ex) {
-                    if (gc.getFullLogs() == null || gc.getFullLogs().isEmpty()) return;
+                    if (gc.getFullLogs() == null || gc.getFullLogs().isEmpty()) continue;
                     TextChannel kanal = guild.getTextChannelById(gc.getFullLogs());
-                    if (kanal == null) return;
+                    if (kanal == null) continue;
                     String tarns = tlumaczenia.get(gc.getLanguage(), "invites.addroleerror", r.getName(),  UserUtil.formatDiscrim(zapraszajacy));
                     kanal.sendMessage(tarns).queue();
                 }
