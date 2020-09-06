@@ -134,6 +134,10 @@ public class GuildConfig implements DatabaseEntity {
         return lvlUpNotify == null || lvlUpNotify;
     }
 
+    public boolean isDeleteSwearMessage() {
+        return deleteSwearMessage != null && deleteSwearMessage;
+    }
+
     @Transient
     @JsonIgnore
     @Override
