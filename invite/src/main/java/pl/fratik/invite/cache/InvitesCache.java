@@ -30,6 +30,7 @@ import pl.fratik.core.cache.Cache;
 import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
+import pl.fratik.core.event.DatabaseUpdateEvent;
 
 public class InvitesCache {
 
@@ -76,6 +77,16 @@ public class InvitesCache {
     @AllowConcurrentEvents
     public void deleteInvite(GuildInviteDeleteEvent e) {
         inviteCache.invalidate(e.getGuild().getId() + "." + e.getCode());
+    }
+
+    @Subscribe
+    public void onDatabaseUpdate(DatabaseUpdateEvent e) {
+        if (e.getEntity() instanceof GuildConfig) {
+            if (((GuildConfig) e.getEntity()).isLvlUpNotify()) {
+                Guild g = api.getGuildById(((GuildConfig) e.getEntity()).getGuildId());
+                if (g != null) load(g);
+            }
+        }
     }
 
     public boolean tracksInvites(Guild g) {
