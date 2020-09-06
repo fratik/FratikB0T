@@ -28,10 +28,11 @@ import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.manager.ManagerArgumentow;
-import pl.fratik.core.util.CommonErrors;
 import pl.fratik.core.util.UserUtil;
 
 import java.awt.*;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Random;
@@ -86,8 +87,9 @@ public class ShipCommand extends Command {
         if (context.getArgs().length > 1) { // shipujemy rzecz1 i rzecz2
             return ship(arg0, (String) context.getArgs()[1], context);
         }
-        CommonErrors.usage(context);
-        return false;
+        // shipujemy sendera i rzecz1
+        return ship(UserUtil.formatDiscrim(context.getSender()), (String) context.getArgs()[0], context,
+                context.getSender().getAsMention(), "");
     }
 
     private boolean ship(String rzecz1, String rzecz2, CommandContext context) {
@@ -107,26 +109,43 @@ public class ShipCommand extends Command {
 
         int procent = calc(rzecz1, 10);
         procent = calc(rzecz2, procent);
+        if (procent > 100) procent = 100;
+        else if (procent < 0) procent = 0;
+
+        int niebieskie = round((double) procent);
+        int biale = 10;
+        if (niebieskie != 10) {
+            biale -= niebieskie;
+        } else biale = 0;
 
         desc.append(shipFormat);
 
         String loadingScreen = "[%s](%s)%s %s%%";
         desc.append(String.format(loadingScreen,
-                append(BLOCK, 5),
+                append(niebieskie),
                 Ustawienia.instance.botUrl,
-                append(BLOCK, 5), procent));
+                append(biale),
+                procent));
         eb.setDescription(desc);
         context.send(eb.build());
-        return false;
+        return true;
     }
 
-    private String append(String s, int iloraz) {
-        for (int i = 1; i < iloraz+1; i++) { s += s; }
-        return s;
+    private String append(int ii) {
+        if (ii == 0) return "";
+        StringBuilder s2 = new StringBuilder();
+        for (int i = 1; i < ii; i++) { s2.append(ShipCommand.BLOCK); }
+        return ShipCommand.BLOCK + s2;
+    }
+
+    private int round(double d) {
+        BigDecimal bd = BigDecimal.valueOf(d);
+        bd = bd.setScale(-1, RoundingMode.HALF_UP);
+        return (int) bd.doubleValue() / 10;
     }
 
     private int calc(String s, int c) {
-        for (char ch : s.toCharArray()) {
+        for (char ch : s.toLowerCase().toCharArray()) {
             Builder b = getZnaki().get(ch);
             if (b == null) continue;
             if (b.getDodawanie()) c += b.getProcenty();
@@ -136,11 +155,12 @@ public class ShipCommand extends Command {
     }
 
     private void loadZnaki() {
-        String znaki = "qwertyuiopasdfghjklzxcvbnm1234567890-=~!@#$%^&*()_+[];',./{}:?";
+        String znaki = "qwertyuiopasdfghjklzxcvbnmąśćżłźóę1234567890-=~!@#$%^&*()_+[];',./{}:?";
         for (char c : znaki.toCharArray()) {
+            Random rand = new Random();
             Builder build = new Builder();
-            int random = new Random().nextInt(100);
-            build.setProcenty(new Random().nextInt(20));
+            int random = rand.nextInt(100);
+            build.setProcenty(rand.nextInt(20));
             if (random < 40) build.setDodawanie(false);
             getZnaki().put(c, build);
         }
@@ -149,7 +169,6 @@ public class ShipCommand extends Command {
     @Data
     private static class Builder {
         public Builder() { }
-
         private Boolean dodawanie = true;
         private Integer procenty = 0;
     }

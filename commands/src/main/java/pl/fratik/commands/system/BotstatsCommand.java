@@ -46,7 +46,7 @@ public class BotstatsCommand extends Command {
         category = CommandCategory.SYSTEM;
         permLevel = PermLevel.EVERYONE;
         this.shardManager = shardManager;
-        aliases = new String[] {"statyfratikb0ta"};
+        aliases = new String[] {"statyfratikb0ta", "botinfo"};
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         allowPermLevelChange = false;
     }
