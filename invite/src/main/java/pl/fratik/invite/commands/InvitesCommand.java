@@ -195,8 +195,8 @@ public class InvitesCommand extends AbstractInvitesCommand {
     }
 
     private boolean checkAdmin(@NotNull CommandContext context) {
-        if (UserUtil.getPermlevel(context.getMember(), guildDao, context.getShardManager()).getNum() >= PermLevel.ADMIN.getNum()) {
-            context.send(context.getTranslated("invites.no.perms", PermLevel.ADMIN, context.getTranslated(PermLevel.ADMIN.getLanguageKey())));
+        if (UserUtil.getPermlevel(context.getMember(), guildDao, context.getShardManager()).getNum() < PermLevel.ADMIN.getNum()) {
+            context.send(context.getTranslated("invites.no.perms", PermLevel.ADMIN.getNum(), context.getTranslated(PermLevel.ADMIN.getLanguageKey())));
             return false;
         }
         return true;
