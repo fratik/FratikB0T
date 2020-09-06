@@ -137,7 +137,7 @@ public class GuildConfig implements DatabaseEntity {
     }
 
     public boolean isTrackInvites() {
-        return trackInvites == null || trackInvites;
+        return trackInvites != null && trackInvites;
     }
 
     @Transient
