@@ -28,6 +28,8 @@ import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.manager.ManagerArgumentow;
+import pl.fratik.core.tlumaczenia.Language;
+import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.UserUtil;
 
 import java.awt.*;
@@ -68,7 +70,7 @@ public class ShipCommand extends Command {
         if (user != null) {
             if (context.getArgs().length == 1) { // shipujemy arg0 i sendera
                 if (user.getId().equals(context.getMember().getId())) {
-                    context.send("Nie możesz shipować samego siebie!");
+                    context.send(context.getTranslated("ship.urself"));
                     return false;
                 }
                 return ship(UserUtil.formatDiscrim(context.getSender()), UserUtil.formatDiscrim(user), context,
@@ -101,10 +103,16 @@ public class ShipCommand extends Command {
         eb.setTitle("Ship");
         eb.setColor(Color.pink);
         StringBuilder desc = new StringBuilder();
-        String shipFormat = HEART1 + " %s x %s " + HEART2 + "\n";
+        String shipFormat = HEART1 + " %s %s %s " + HEART1 + "\n";
+
+        if (rzecz1.equalsIgnoreCase(rzecz2)) {
+            context.send(context.getTranslated("ship.same"));
+            return false;
+        }
 
         shipFormat = String.format(shipFormat,
                 MarkdownSanitizer.escape(wyswietlana1.isEmpty() ? rzecz1 : wyswietlana1),
+                HEART2,
                 MarkdownSanitizer.escape(wyswietlana2.isEmpty() ? rzecz2 : wyswietlana2));
 
         int procent = calc(rzecz1, 10);
@@ -118,14 +126,17 @@ public class ShipCommand extends Command {
             biale -= niebieskie;
         } else biale = 0;
 
+        String text = getText(niebieskie, context.getTlumaczenia(), context.getLanguage());
+        if (procent == 69) text = context.getTranslated("ship.percent.69");
+
         desc.append(shipFormat);
 
-        String loadingScreen = "[%s](%s)%s %s%%";
+        String loadingScreen = "[%s](%s)%s %s%% %s";
         desc.append(String.format(loadingScreen,
                 append(niebieskie),
                 Ustawienia.instance.botUrl,
                 append(biale),
-                procent));
+                procent, text));
         eb.setDescription(desc);
         context.send(eb.build());
         return true;
@@ -142,6 +153,13 @@ public class ShipCommand extends Command {
         BigDecimal bd = BigDecimal.valueOf(d);
         bd = bd.setScale(-1, RoundingMode.HALF_UP);
         return (int) bd.doubleValue() / 10;
+    }
+
+    private String getText(int procent, Tlumaczenia tlumaczenia, Language lang) {
+        if (procent >= 0 && procent <= 10) { // zabezpieczenie przeciwko `<key> nie jest przetłumaczone`
+            return tlumaczenia.get(lang, "ship.percent." + procent);
+        }
+        return "???";
     }
 
     private int calc(String s, int c) {
