@@ -123,6 +123,7 @@ public class GuildConfig implements DatabaseEntity {
     private Boolean resetujOstrzezeniaPrzyBanie = true;
     private Map<String, PermLevel> cmdPermLevelOverrides = new HashMap<>();
     private Boolean lvlUpNotify = true;
+    private Boolean deleteSwearMessage = true;
 
     // TODO: 09/04/2020 można to zrobić dla każdego Boolean'a, ale to już kwestia kosmetyki kodu chyba
     public boolean isResetujOstrzezeniaPrzyBanie() {

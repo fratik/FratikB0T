@@ -117,6 +117,12 @@ public class PrzeklenstwaListener {
                     casesDao.save(cr);
                     WarnUtil.takeAction(guildDao, casesDao, e.getMember(), e.getChannel(),
                             tlumaczenia.getLanguage(e.getGuild()), tlumaczenia, managerKomend);
+                    Boolean delmsg = gcCache.get(e.getGuild().getId(), guildDao::get).getDeleteSwearMessage();
+                    if (delmsg == null || delmsg) {
+                        try {
+                            e.getMessage().delete().complete();
+                        } catch (Exception ignored) { }
+                    }
                 }
                 return;
             }
