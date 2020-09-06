@@ -22,6 +22,7 @@ import com.google.common.eventbus.Subscribe;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberRemoveEvent;
+import org.jetbrains.annotations.Nullable;
 import pl.fratik.core.cache.Cache;
 import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.entity.GuildConfig;
@@ -58,6 +59,7 @@ public class JoinListener {
     @AllowConcurrentEvents
     public void onMemberJoin(GuildMemberJoinEvent e) {
         if (!invitesCache.isLoaded()) return;
+        if (!gcCache.get(e.getGuild().getId(), guildDao::get).isTrackInvites()) return;
         List<Invite> zaproszenia = e.getGuild().retrieveInvites().complete();
         for (Invite invite : zaproszenia) {
             FakeInvite inv = invitesCache.getInviteCache().getIfPresent(e.getGuild().getId() + "." + invite.getCode());
@@ -71,6 +73,14 @@ public class JoinListener {
                 zapraszajacy.setTotalInvites(zapraszajacy.getTotalInvites() + 1);
                 addRole(e.getGuild(), zapraszajacy.getTotalInvites() - zapraszajacy.getLeaveInvites(), user);
                 inviteDao.save(wchodzacy, zapraszajacy);
+                TextChannel kanal = getFullLogs(e.getGuild());
+                try {
+                    if (kanal != null) {
+                        kanal.sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(e.getGuild()), "invites.joined",
+                                e.getUser().getAsTag(), e.getUser().getId(), user.getAsTag(), user.getId(),
+                                invite.getUses())).queue();
+                    }
+                } catch (Exception ignored) {}
             }
         }
     }
@@ -88,13 +98,28 @@ public class JoinListener {
                     if (mem == null) continue;
                     guild.addRoleToMember(mem, r).complete();
                 } catch (Exception ex) {
-                    if (gc.getFullLogs() == null || gc.getFullLogs().isEmpty()) continue;
-                    TextChannel kanal = guild.getTextChannelById(gc.getFullLogs());
+                    TextChannel kanal = getFullLogs(guild, gc);
                     if (kanal == null) continue;
-                    String tarns = tlumaczenia.get(gc.getLanguage(), "invites.addroleerror", r.getName(),  UserUtil.formatDiscrim(zapraszajacy));
+                    String tarns = tlumaczenia.get(tlumaczenia.getLanguage(guild), "invites.addroleerror",
+                            r.getName(), UserUtil.formatDiscrim(zapraszajacy));
                     kanal.sendMessage(tarns).queue();
                 }
             }
+        }
+    }
+
+    @Nullable
+    private TextChannel getFullLogs(Guild guild) {
+        return getFullLogs(guild, gcCache.get(guild.getId(), guildDao::get));
+    }
+
+    @Nullable
+    private TextChannel getFullLogs(Guild guild, GuildConfig gc) {
+        try {
+            if (gc.getFullLogs() == null || gc.getFullLogs().isEmpty()) return null;
+            return guild.getTextChannelById(gc.getFullLogs());
+        } catch (Exception e) { //nieprawidłowy kanał
+            return null;
         }
     }
 
@@ -102,6 +127,7 @@ public class JoinListener {
     @AllowConcurrentEvents
     public void onMemberLeave(GuildMemberRemoveEvent e) {
         if (!invitesCache.isLoaded()) return;
+        if (!gcCache.get(e.getGuild().getId(), guildDao::get).isTrackInvites()) return;
         InviteData ic = inviteDao.get(e.getUser().getId(), e.getGuild().getId());
         if (ic.getDolaczylZJegoZaproszenia() != null) {
             InviteData zarazMuOdjebieZapro = getInviteData(ic.getDolaczylZJegoZaproszenia(), e.getGuild().getId());

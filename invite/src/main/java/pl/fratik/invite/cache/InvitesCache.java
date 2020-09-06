@@ -49,7 +49,7 @@ public class InvitesCache {
 
     public synchronized void load() {
         loading = true;
-        for (Guild guild : api.getGuilds()) if (gcCache.get(guild.getId(), guildDao::get).isTrackInvites()) load(guild);
+        for (Guild guild : api.getGuilds()) if (tracksInvites(guild)) load(guild);
         loading = false;
         loaded = false;
     }
@@ -76,6 +76,10 @@ public class InvitesCache {
     @AllowConcurrentEvents
     public void deleteInvite(GuildInviteDeleteEvent e) {
         inviteCache.invalidate(e.getGuild().getId() + "." + e.getCode());
+    }
+
+    public boolean tracksInvites(Guild g) {
+        return gcCache.get(g.getId(), guildDao::get).isTrackInvites();
     }
 
 }

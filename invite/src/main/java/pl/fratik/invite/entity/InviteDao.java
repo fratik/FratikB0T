@@ -20,6 +20,7 @@ package pl.fratik.invite.entity;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.eventbus.EventBus;
 import gg.amy.pgorm.PgMapper;
+import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.entity.Dao;
@@ -50,6 +51,14 @@ public class InviteDao implements Dao<InviteData> {
 
     public InviteData get(String userId, String guildId) {
         return get(userId + "." + guildId);
+    }
+
+    public List<InviteData> getByGuild(Guild guild) {
+        return getByGuild(guild.getId());
+    }
+
+    public List<InviteData> getByGuild(String id) {
+        return mapper.loadManyBySubkey("data->>'guildId'", id);
     }
 
     @Override

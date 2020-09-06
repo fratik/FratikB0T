@@ -78,8 +78,8 @@ public class Module implements Modul {
         eventBus.register(joinListener);
 
         commands = new ArrayList<>();
-        commands.add(new InvitesCommand(inviteDao, guildDao, managerArgumentow));
-        commands.add(new TopInvitesCommnad(inviteDao, eventWaiter, eventBus));
+        commands.add(new InvitesCommand(inviteDao, invitesCache, guildDao, managerArgumentow, eventWaiter, eventBus));
+        commands.add(new TopInvitesCommand(inviteDao, invitesCache, eventWaiter, eventBus));
 
         commands.forEach(managerKomend::registerCommand);
 

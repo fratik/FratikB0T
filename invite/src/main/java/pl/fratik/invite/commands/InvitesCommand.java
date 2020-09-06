@@ -17,37 +17,39 @@
 
 package pl.fratik.invite.commands;
 
+import com.google.common.eventbus.EventBus;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.User;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
+import pl.fratik.core.command.PermLevel;
 import pl.fratik.core.command.SubCommand;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.manager.ManagerArgumentow;
-import pl.fratik.core.util.CommonErrors;
-import pl.fratik.core.util.MapUtil;
-import pl.fratik.core.util.UserUtil;
-import pl.fratik.invite.entity.InviteData;
+import pl.fratik.core.util.*;
+import pl.fratik.invite.cache.InvitesCache;
 import pl.fratik.invite.entity.InviteDao;
+import pl.fratik.invite.entity.InviteData;
 
 import java.time.Instant;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 
-public class InvitesCommand extends Command {
+public class InvitesCommand extends AbstractInvitesCommand {
 
-    private final InviteDao inviteDao;
     private final GuildDao guildDao;
     private final ManagerArgumentow managerArgumentow;
+    private final EventWaiter eventWaiter;
+    private final EventBus eventBus;
 
-    public InvitesCommand(InviteDao inviteDao, GuildDao guildDao, ManagerArgumentow managerArgumentow) {
+    public InvitesCommand(InviteDao inviteDao, InvitesCache invitesCache, GuildDao guildDao, ManagerArgumentow managerArgumentow, EventWaiter eventWaiter, EventBus eventBus) {
+        super(inviteDao, invitesCache);
+        this.eventWaiter = eventWaiter;
+        this.eventBus = eventBus;
         name = "invites";
         category = CommandCategory.INVITES;
         allowPermLevelChange = false;
@@ -59,19 +61,20 @@ public class InvitesCommand extends Command {
         hmap.put("rola", "role");
         uzycie = new Uzycie(hmap, new boolean[] {false, false});
         uzycieDelim = " ";
-        this.inviteDao = inviteDao;
         this.guildDao = guildDao;
         this.managerArgumentow = managerArgumentow;
     }
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
+        if (!checkEnabled(context)) return false;
         CommonErrors.usage(context);
         return false;
     }
 
     @SubCommand(name = "info")
     public boolean info(@NotNull CommandContext context) {
+        if (!checkEnabled(context)) return false;
         User osoba = null;
         if (context.getRawArgs().length != 0) osoba = (User) managerArgumentow.getArguments().get("user")
                 .execute(context.getRawArgs()[0], context.getTlumaczenia(), context.getLanguage());
@@ -98,10 +101,12 @@ public class InvitesCommand extends Command {
 
     @SubCommand(name = "set")
     public boolean set(@NotNull CommandContext context) {
+        if (!checkAdmin(context)) return false;
+        if (!checkEnabled(context)) return false;
         try {
             int zaprszenie = Integer.parseInt(context.getRawArgs()[0]);
             if (zaprszenie > 1000 || zaprszenie <= 0) {
-                context.send(context.getTranslated("topinvites.badnumber"));
+                context.send(context.getTranslated("invites.badnumber"));
                 return false;
             }
             Role rola = (Role) context.getArgs()[1];
@@ -110,13 +115,13 @@ public class InvitesCommand extends Command {
             if (gc.getRoleZaZaproszenia() == null) gc.setRoleZaZaproszenia(new HashMap<>());
 
             if (!context.getGuild().getSelfMember().getRoles().get(0).canInteract(rola)) {
-                context.send(context.getTranslated("topinvites.badrole"));
+                context.send(context.getTranslated("invites.badrole"));
                 return false;
             }
 
             gc.getRoleZaZaproszenia().put(zaprszenie, rola.getId());
             guildDao.save(gc);
-            context.send(context.getTranslated("topinvites.set.success"));
+            context.send(context.getTranslated("invites.set.success"));
             return true;
         } catch (IndexOutOfBoundsException | NumberFormatException e) {
             CommonErrors.usage(context);
@@ -126,13 +131,15 @@ public class InvitesCommand extends Command {
 
     @SubCommand(name = "list")
     public boolean list(@NotNull CommandContext context) {
+        if (!checkAdmin(context)) return false;
+        if (!checkEnabled(context)) return false;
         GuildConfig gc = guildDao.get(context.getGuild());
         if (gc.getRoleZaZaproszenia() == null || gc.getRoleZaZaproszenia().isEmpty()) {
             context.send(context.getTranslated("invites.list.empty"));
             return false;
         }
         StringBuilder sb = new StringBuilder();
-        EmbedBuilder eb = new EmbedBuilder();
+        List<EmbedBuilder> pages = new ArrayList<>();
         Map<Role, Integer> sorted = new HashMap<>();
 
         for (Map.Entry<Integer, String> entry : gc.getRoleZaZaproszenia().entrySet()) {
@@ -140,28 +147,38 @@ public class InvitesCommand extends Command {
             if (r == null) continue;
             sorted.put(r, entry.getKey());
         }
+        int i = 0;
+        Instant now = Instant.now();
         for (Map.Entry<Role, Integer> entry : MapUtil.sortByValue(sorted).entrySet()) {
-            sb.append(context.getTranslated("invites.list.entry", entry.getKey().getAsMention(), entry.getValue()));
+            sb.append(context.getTranslated("invites.list.entry", entry.getKey().getAsMention(), entry.getValue())).append("\n");
+            if (i != 0 && (i + 1) % 10 == 0) {
+                pages.add(new EmbedBuilder()
+                        .setAuthor(context.getTranslated("invites.roles", sorted.size()))
+                        .setColor(UserUtil.getPrimColor(context.getSender()))
+                        .setDescription(sb.toString())
+                        .setTimestamp(now));
+            }
+            i++;
         }
-        if (sb.toString().isEmpty()) {
+        if (pages.isEmpty()) {
             context.send(context.getTranslated("invites.list.empty"));
             return false;
         }
-        eb.setAuthor(context.getTranslated("invites.roles", sorted.size()));
-        eb.setColor(UserUtil.getPrimColor(context.getSender()));
-        eb.setDescription(sb.toString());
-        eb.setTimestamp(Instant.now());
-        context.send(eb.build());
+        if (pages.size() == 1) context.send(pages.get(0).build());
+        else new ClassicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(), context.getTlumaczenia(), eventBus).create(context.getChannel());
         return true;
     }
 
     @SubCommand(name = "remove")
     public boolean remove(@NotNull CommandContext context) {
+        if (!checkAdmin(context)) return false;
+        if (!checkEnabled(context)) return false;
         if (context.getArgs().length == 0) {
             CommonErrors.usage(context);
             return false;
         }
-        Role rola = (Role) managerArgumentow.getArguments().get("role").execute((String) context.getArgs()[0], context.getTlumaczenia(), context.getLanguage(), context.getGuild());
+        Role rola = (Role) managerArgumentow.getArguments().get("role").execute((String) context.getArgs()[0],
+                context.getTlumaczenia(), context.getLanguage(), context.getGuild());
         if (rola == null) {
             context.send(context.getTranslated("sklep.sprzedaj.invalidrole"));
             return false;
@@ -174,6 +191,14 @@ public class InvitesCommand extends Command {
         gc.getRoleZaZaproszenia().entrySet().removeIf(a -> a.getValue().equals(rola.getId()));
         guildDao.save(gc);
         context.send(context.getTranslated("invites.successdelete"));
+        return true;
+    }
+
+    private boolean checkAdmin(@NotNull CommandContext context) {
+        if (UserUtil.getPermlevel(context.getMember(), guildDao, context.getShardManager()).getNum() >= PermLevel.ADMIN.getNum()) {
+            context.send(context.getTranslated("invites.no.perms", PermLevel.ADMIN, context.getTranslated(PermLevel.ADMIN.getLanguageKey())));
+            return false;
+        }
         return true;
     }
 
