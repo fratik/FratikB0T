@@ -152,14 +152,11 @@ public class InvitesCommand extends AbstractInvitesCommand {
         for (Map.Entry<Role, Integer> entry : MapUtil.sortByValue(sorted).entrySet()) {
             sb.append(context.getTranslated("invites.list.entry", entry.getKey().getAsMention(), entry.getValue())).append("\n");
             if (i != 0 && (i + 1) % 10 == 0) {
-                pages.add(new EmbedBuilder()
-                        .setAuthor(context.getTranslated("invites.roles", sorted.size()))
-                        .setColor(UserUtil.getPrimColor(context.getSender()))
-                        .setDescription(sb.toString())
-                        .setTimestamp(now));
+                pages.add(renderEmbed(context, sb, sorted, now));
             }
             i++;
         }
+        if (sb.length() != 0) pages.add(renderEmbed(context, sb, sorted, now));
         if (pages.isEmpty()) {
             context.send(context.getTranslated("invites.list.empty"));
             return false;
@@ -167,6 +164,15 @@ public class InvitesCommand extends AbstractInvitesCommand {
         if (pages.size() == 1) context.send(pages.get(0).build());
         else new ClassicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(), context.getTlumaczenia(), eventBus).create(context.getChannel());
         return true;
+    }
+
+    @NotNull
+    private EmbedBuilder renderEmbed(@NotNull CommandContext context, StringBuilder sb, Map<Role, Integer> sorted, Instant now) {
+        return new EmbedBuilder()
+                .setAuthor(context.getTranslated("invites.roles", sorted.size()))
+                .setColor(UserUtil.getPrimColor(context.getSender()))
+                .setDescription(sb.toString())
+                .setTimestamp(now);
     }
 
     @SubCommand(name = "remove")
