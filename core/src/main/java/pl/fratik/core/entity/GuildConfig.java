@@ -139,6 +139,7 @@ public class GuildConfig implements DatabaseEntity {
 
     public boolean isTrackInvites() {
         return trackInvites != null && trackInvites;
+    }
 
     public boolean isDeleteSwearMessage() {
         return deleteSwearMessage != null && deleteSwearMessage;
