@@ -51,7 +51,6 @@ public class TekstCommand extends MusicCommand {
         this.eventBus = eventBus;
         this.managerMuzyki = managerMuzyki;
         name = "tekst";
-        aliases = new String[] {"lyrics"};
         requireConnection = false;
         uzycie = new Uzycie("tytul", "string", false);
         allowPermLevelChange = false;

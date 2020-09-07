@@ -44,7 +44,7 @@ public class KolorCommand extends Command {
         name = "kolor";
         category = CommandCategory.UTILITY;
         uzycie = new Uzycie("kolor", "string", true);
-        aliases = new String[] {"color", "paleta", "colors"};
+        aliases = new String[] {"paleta"};
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         permissions.add(Permission.MESSAGE_ATTACH_FILES);
         allowPermLevelChange = false;
