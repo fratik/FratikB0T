@@ -78,7 +78,13 @@ public class UserArgument extends Argument {
             }
             Matcher matcher = MENTION_REGEX.matcher(argument);
             if (matcher.matches()) {
-                return shardManager.retrieveUserById(matcher.group()).complete();
+                return shardManager.retrieveUserById(matcher.group(1)).complete();
+            }
+            Matcher matcher1 = TAG_REGEX.matcher(argument);
+            if (matcher1.matches()) {
+                List<User> ul = shardManager.getUsers().stream().filter(u -> u.getAsTag().equals(matcher1.group(1)))
+                        .collect(Collectors.toList());
+                if (ul.size() == 1) return ul.get(0);
             }
         } catch (Exception ignored) {
             /*lul*/
