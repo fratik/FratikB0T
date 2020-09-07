@@ -67,7 +67,6 @@ public class ZglosPrivCommand extends Command {
         hmap.put("powod", "string"); //NOSONAR
         hmap.put("[...]", "string"); //NOSONAR
         uzycie = new Uzycie(hmap, new boolean[] {true, true, false});
-        aliases = new String[] {"reportpriv", "reportdm", "reportmsg", "reportpv", "reportprivee"};
         uzycieDelim = " ";
         allowPermLevelChange = false;
     }
