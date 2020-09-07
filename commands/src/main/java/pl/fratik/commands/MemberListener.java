@@ -121,9 +121,10 @@ class MemberListener {
                     }
                     matcher.appendReplacement(buf, tagCnt);
                     matcher.appendTail(buf);
+                } else {
+                    matcher.appendReplacement(buf, "");
+                    matcher.appendTail(buf);
                 }
-                matcher.appendReplacement(buf, "");
-                matcher.appendTail(buf);
                 cnt = buf.toString();
             }
             MessageAction ma = cha.sendMessage(cnt);
