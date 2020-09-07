@@ -111,7 +111,6 @@ public class Module implements Modul {
         commands.add(new MemeCommand());
         commands.add(new DashboardCommand());
         commands.add(new DonateCommand());
-        commands.add(new OpuscCommand());
 //        commands.add(new BoomCommand(eventWaiter, userDao, redisCacheManager));
         commands.add(new PomocCommand());
         commands.add(new PopCommand(shardManager, guildDao, eventWaiter, eventBus, tlumaczenia, blacklistDao, redisCacheManager));
