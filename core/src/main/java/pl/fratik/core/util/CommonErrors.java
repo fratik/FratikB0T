@@ -90,8 +90,8 @@ public class CommonErrors {
                 String.join(", ", aliases).toLowerCase(), false);
         
         String eldo = tlumaczenia.get(language,command.getName().toLowerCase() + ".help.extended");
-        if (!eldo.isEmpty())
-            baseEmbed.addField(tlumaczenia.get(language, "generic.command.extended"), eldo, false);
+        if (!eldo.isEmpty() && !eldo.equals("!<pusto>!"))
+            baseEmbed.addField(tlumaczenia.get(language, "generic.command.extended"), eldo.replaceAll("\\{\\{PREFIX}}", prefix), false);
         PermLevel plvl = customPermLevel == null ? command.getPermLevel() : customPermLevel;
         String plvlval;
         if (customPermLevel == null) plvlval = tlumaczenia.get(language, "generic.command.permlevel.value",
