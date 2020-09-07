@@ -88,7 +88,7 @@ public class JoinListener {
     private void addRole(Guild guild, int invites, User zapraszajacy) {
         GuildConfig gc = getGuildConfig(guild);
         if (gc.getRoleZaZaproszenia() != null && !gc.getRoleZaZaproszenia().isEmpty()) {
-            for (int i = 1; i < invites; i++) {
+            for (int i = 1; i <= invites; i++) {
                 String roleId = gc.getRoleZaZaproszenia().get(i);
                 if (roleId == null) continue;
                 Role r = guild.getRoleById(roleId);
