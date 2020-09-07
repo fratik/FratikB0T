@@ -52,7 +52,7 @@ public class InvitesCache {
         loading = true;
         for (Guild guild : api.getGuilds()) if (tracksInvites(guild)) load(guild);
         loading = false;
-        loaded = false;
+        loaded = true;
     }
 
     public synchronized void load(Guild guild) {
