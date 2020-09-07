@@ -103,6 +103,11 @@ class MemberListener {
                 StringBuffer buf = new StringBuffer();
                 PluginMessageEvent event = new PluginMessageEvent("commands", "invite", "Module-getInviteData:" +
                         e.getUser().getId() + "." + e.getGuild().getId());
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException err) {
+                    return;
+                }
                 eventBus.post(event);
                 awaitPluginResponse(event);
                 if (event.getResponse() != null) {
@@ -120,11 +125,10 @@ class MemberListener {
                         tagCnt = "";
                     }
                     matcher.appendReplacement(buf, tagCnt);
-                    matcher.appendTail(buf);
                 } else {
                     matcher.appendReplacement(buf, "");
-                    matcher.appendTail(buf);
                 }
+                matcher.appendTail(buf);
                 cnt = buf.toString();
             }
             MessageAction ma = cha.sendMessage(cnt);

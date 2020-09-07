@@ -31,8 +31,8 @@ import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.UserUtil;
 import pl.fratik.invite.cache.FakeInvite;
 import pl.fratik.invite.cache.InvitesCache;
-import pl.fratik.invite.entity.InviteData;
 import pl.fratik.invite.entity.InviteDao;
+import pl.fratik.invite.entity.InviteData;
 
 import java.util.List;
 
@@ -93,16 +93,19 @@ public class JoinListener {
                 if (roleId == null) continue;
                 Role r = guild.getRoleById(roleId);
                 if (r == null) continue;
-                try {
-                    Member mem = guild.retrieveMember(zapraszajacy).complete();
-                    if (mem == null) continue;
-                    guild.addRoleToMember(mem, r).complete();
-                } catch (Exception ex) {
+                Runnable error = () -> {
                     TextChannel kanal = getFullLogs(guild, gc);
-                    if (kanal == null) continue;
+                    if (kanal == null) return;
                     String tarns = tlumaczenia.get(tlumaczenia.getLanguage(guild), "invites.addroleerror",
                             r.getName(), UserUtil.formatDiscrim(zapraszajacy));
                     kanal.sendMessage(tarns).queue();
+                };
+                try {
+                    Member mem = guild.retrieveMember(zapraszajacy).complete();
+                    if (mem == null) continue;
+                    guild.addRoleToMember(mem, r).queue(null, t -> error.run());
+                } catch (Exception ex) {
+                    error.run();
                 }
             }
         }
