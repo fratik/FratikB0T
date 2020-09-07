@@ -149,10 +149,11 @@ public class InvitesCommand extends AbstractInvitesCommand {
         }
         int i = 0;
         Instant now = Instant.now();
-        for (Map.Entry<Role, Integer> entry : MapUtil.sortByValue(sorted).entrySet()) {
+        for (Map.Entry<Role, Integer> entry : MapUtil.sortByValueDesc(sorted).entrySet()) {
             sb.append(context.getTranslated("invites.list.entry", entry.getKey().getAsMention(), entry.getValue())).append("\n");
             if (i != 0 && (i + 1) % 10 == 0) {
                 pages.add(renderEmbed(context, sb, sorted, now));
+                sb.setLength(0);
             }
             i++;
         }

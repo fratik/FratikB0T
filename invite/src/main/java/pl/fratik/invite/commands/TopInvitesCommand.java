@@ -75,7 +75,7 @@ public class TopInvitesCommand extends AbstractInvitesCommand {
 
         int rank = 1;
         int tempRank = 1;
-        for (Map.Entry<User, Integer> sorted : MapUtil.sortByValue(zaproszenia).entrySet()) {
+        for (Map.Entry<User, Integer> sorted : MapUtil.sortByValueAsc(zaproszenia).entrySet()) {
             User mem = sorted.getKey();
             sb.append("**#").append(rank).append("** ");
             sb.append(mem.getAsMention());
