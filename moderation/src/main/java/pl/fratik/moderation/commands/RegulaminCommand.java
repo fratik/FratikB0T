@@ -37,7 +37,7 @@ public class RegulaminCommand extends ModerationCommand {
         name = "regulamin";
         category = CommandCategory.MODERATION;
         uzycie = new Uzycie("zasada", "integer", true);
-        aliases = new String[] {"zasady", "reg", "zasada", "rules"};
+        aliases = new String[] {"zasady", "reg", "zasada"};
         allowPermLevelChange = false;
     }
 

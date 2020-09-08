@@ -36,7 +36,7 @@ import java.time.Instant;
 public class CoronastatsCommand extends Command {
     public CoronastatsCommand() {
         name = "coronastats";
-        aliases = new String[] {"coronavirus", "koronawirus"};
+        aliases = new String[] {"coronavirus", "koronawirus", "covid"};
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         cooldown = 5;
         category = CommandCategory.UTILITY;

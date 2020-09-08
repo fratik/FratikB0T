@@ -48,7 +48,7 @@ public class UsunFcCommand extends Command {
         hmap.put("hajs", "integer");
         uzycie = new Uzycie(hmap, new boolean[] {true, true});
         uzycieDelim = " ";
-        aliases = new String[] {"usunfratikcoiny", "deletefc", "deletecoin", "deletefratikcoins", "deletecoins"};
+        aliases = new String[] {"usunfratikcoiny"};
     }
 
     @Override

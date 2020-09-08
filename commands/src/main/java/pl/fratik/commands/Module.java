@@ -111,7 +111,6 @@ public class Module implements Modul {
         commands.add(new MemeCommand());
         commands.add(new DashboardCommand());
         commands.add(new DonateCommand());
-        commands.add(new OpuscCommand());
 //        commands.add(new BoomCommand(eventWaiter, userDao, redisCacheManager));
         commands.add(new PomocCommand());
         commands.add(new PopCommand(shardManager, guildDao, eventWaiter, eventBus, tlumaczenia, blacklistDao, redisCacheManager));
@@ -143,11 +142,11 @@ public class Module implements Modul {
         commands.add(new Rule34Command(eventWaiter, eventBus, managerArgumentow));
         commands.add(new CoronastatsCommand());
         commands.add(new UstawPoziomCommand(guildDao, managerKomend));
-        commands.add(new PermLevelCommand());
+        commands.add(new PoziomyUprawnienCommand());
         commands.add(new BlacklistPopCommand(userDao, blacklistDao));
         commands.add(new ShipCommand(managerArgumentow));
 
-        listener = new MemberListener(guildDao, redisCacheManager);
+        listener = new MemberListener(guildDao, eventBus, redisCacheManager);
         eventBus.register(listener);
 
         commands.forEach(managerKomend::registerCommand);

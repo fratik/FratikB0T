@@ -24,10 +24,10 @@ import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.command.PermLevel;
 
-public class PermLevelCommand extends Command {
+public class PoziomyUprawnienCommand extends Command {
 
-    public PermLevelCommand() {
-        name = "permlevel";
+    public PoziomyUprawnienCommand() {
+        name = "poziomyuprawnien";
         category = CommandCategory.BASIC;
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         allowPermLevelChange = false;

@@ -93,6 +93,8 @@ public class StarRankingCommand extends Command {
                     eb.setDescription(sMsg.getContentRaw());
                     eb.setFooter(String.format("%d %s | %s | %%s/%%s", sd.getStarredBy().size(),
                             StarboardListener.getStarEmoji(sd.getStarredBy().size()), sMsg.getId()), null);
+                    eb.addField(context.getTranslated("starboard.embed.jump"), String.format("[\\[%s\\]](%s)",
+                            context.getTranslated("starboard.embed.jump.to"), sMsg.getJumpUrl()), false);
                 } catch (Exception e) {
                     eb.setDescription(context.getTranslated("starranking.missing.message"));
                     eb.setFooter(String.format("%d %s | %s | %%s/%%s", sd.getStarredBy().size(),
