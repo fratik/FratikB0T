@@ -42,6 +42,7 @@ import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.entity.Uzycie;
+import pl.fratik.core.util.NamedThreadFactory;
 import pl.fratik.core.util.UserUtil;
 
 import javax.annotation.Nonnull;
@@ -143,18 +144,7 @@ public class McstatusCommand extends Command {
                     return null;
                 }
             }));
-            SecurityManager s = System.getSecurityManager();
-            ThreadGroup group = (s != null) ? s.getThreadGroup() : //NOSONAR
-                    Thread.currentThread().getThreadGroup();
-            executor = Executors.newFixedThreadPool(2, r -> {
-                Thread t = new Thread(group, r, "McStatus-" + context.getSender().getId(),
-                        0);
-                if (t.isDaemon())
-                    t.setDaemon(false);
-                if (t.getPriority() != Thread.NORM_PRIORITY)
-                    t.setPriority(Thread.NORM_PRIORITY);
-                return t;
-            });
+            executor = Executors.newFixedThreadPool(2, new NamedThreadFactory("McStatus-" + context.getSender().getId()));
             futures.forEach(executor::submit);
             MesydzAkszyn ma = check(futures);
             if (ma == null) throw new IllegalStateException("serwer offline");

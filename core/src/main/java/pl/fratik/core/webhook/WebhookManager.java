@@ -20,6 +20,7 @@ package pl.fratik.core.webhook;
 import club.minnced.discord.webhook.WebhookClient;
 import club.minnced.discord.webhook.WebhookClientBuilder;
 import club.minnced.discord.webhook.exception.HttpException;
+import club.minnced.discord.webhook.receive.ReadonlyMessage;
 import club.minnced.discord.webhook.send.WebhookMessage;
 import club.minnced.discord.webhook.send.WebhookMessageBuilder;
 import com.github.benmanes.caffeine.cache.Cache;
@@ -53,20 +54,22 @@ public class WebhookManager {
                 .setUsername(su.getName()).build(), channel);
     }
 
-    public void send(WebhookMessage m, TextChannel channel) {
+    public ReadonlyMessage send(WebhookMessage m, TextChannel channel) {
         GuildConfig.Webhook whc = getWebhook(channel);
-        try (WebhookClient wh = new WebhookClientBuilder(Long.parseLong(whc.getId()), whc.getToken()).build()) {
-            wh.send(m).get();
-            Thread.sleep(1000);
+        try (WebhookClient wh = new WebhookClientBuilder(Long.parseLong(whc.getId()), whc.getToken()).setWait(true).build()) {
+            ReadonlyMessage msg = wh.send(m).get();
+//            Thread.sleep(1000);
+            return msg;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            return null;
         } catch (ExecutionException e) {
             if (e.getCause() instanceof HttpException) {
                 if (((HttpException) e.getCause()).getCode() == 404) {
                     try {
                         createWebhook(channel, true);
                         send(m, channel);
-                        return;
+                        return null;
                     } catch (Exception ignored) {}
                 }
             }
@@ -91,6 +94,16 @@ public class WebhookManager {
             }
             return tak;
         });
+    }
+
+    public boolean hasWebhook(TextChannel channel) {
+        GuildConfig.Webhook wh = whCache.getIfPresent(channel.getId());
+        if (wh == null) {
+            Map<String, GuildConfig.Webhook> whki = guildDao.get(channel.getGuild()).getWebhooki();
+            if (whki != null) return whki.containsKey(channel.getId());
+            else return false;
+        }
+        return true;
     }
 
     private GuildConfig.Webhook createWebhook(TextChannel channel, boolean clearCache) {

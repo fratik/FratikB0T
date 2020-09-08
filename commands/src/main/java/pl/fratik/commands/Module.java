@@ -36,6 +36,7 @@ import pl.fratik.core.manager.ManagerModulow;
 import pl.fratik.core.moduly.Modul;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.EventWaiter;
+import pl.fratik.core.webhook.WebhookManager;
 
 import java.util.ArrayList;
 
@@ -55,6 +56,7 @@ public class Module implements Modul {
     @Inject private ManagerModulow managerModulow;
     @Inject private EventBus eventBus;
     @Inject private RedisCacheManager redisCacheManager;
+    @Inject private WebhookManager webhookManager;
     private ArrayList<Command> commands;
 
     private MemberListener listener;
@@ -100,7 +102,7 @@ public class Module implements Modul {
         commands.add(new UserinfoCommand(userDao, shardManager, eventBus));
         commands.add(new KolorCommand());
         commands.add(new DegradCommand(shardManager));
-        commands.add(new CytujCommand(shardManager, eventBus));
+        commands.add(new CytujCommand(shardManager, eventBus, webhookManager, guildDao));
         commands.add(new PogodaCommand(userDao));
         commands.add(new McpremiumCommand());
         commands.add(new InviteCommand());
@@ -143,7 +145,7 @@ public class Module implements Modul {
         commands.add(new CoronastatsCommand());
         commands.add(new UstawPoziomCommand(guildDao, managerKomend));
         commands.add(new PoziomyUprawnienCommand());
-        commands.add(new BlacklistPopCommand(userDao, blacklistDao));
+        commands.add(new BlacklistPopCommand(blacklistDao));
         commands.add(new ShipCommand(managerArgumentow));
 
         listener = new MemberListener(guildDao, eventBus, redisCacheManager);
