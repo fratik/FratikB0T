@@ -41,9 +41,9 @@ public class ShipCommand extends Command {
 
     private final ManagerArgumentow managerArgumentow;
 
-    private static final String HEART1 = "❤️️";
-    private static final String HEART2 = "\uD83D\uDC9F️";
-    private static final String BLOCK = "▉️";
+    private static final String HEART1 = "\u2764\uFE0F";
+    private static final String HEART2 = "\uD83D\uDC9F\uFE0F";
+    private static final String BLOCK = "\u2589\uFE0F";
 
     private static final long SEED_DATE = Instant.now().toEpochMilli();
 
