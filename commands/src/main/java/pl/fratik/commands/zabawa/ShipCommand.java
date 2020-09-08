@@ -17,8 +17,6 @@
 
 package pl.fratik.commands.zabawa;
 
-import lombok.Data;
-import lombok.Getter;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.utils.MarkdownSanitizer;
@@ -35,19 +33,19 @@ import pl.fratik.core.util.UserUtil;
 import java.awt.*;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.HashMap;
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Random;
 
 public class ShipCommand extends Command {
 
-    @Getter private static HashMap<Character, Builder> znaki = new HashMap<>();
+    private final ManagerArgumentow managerArgumentow;
 
     private static final String HEART1 = "❤️️";
     private static final String HEART2 = "\uD83D\uDC9F️";
     private static final String BLOCK = "▉️";
 
-    private ManagerArgumentow managerArgumentow;
+    private static final long SEED_DATE = Instant.now().toEpochMilli();
 
     public ShipCommand(ManagerArgumentow managerArgumentow) {
         name = "ship";
@@ -62,7 +60,6 @@ public class ShipCommand extends Command {
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
-        if (getZnaki().isEmpty()) loadZnaki();
         String arg0 = (String) context.getArgs()[0];
 
         // sprawdzamy czy arg0 jest userem
@@ -76,7 +73,8 @@ public class ShipCommand extends Command {
                 return ship(UserUtil.formatDiscrim(context.getSender()), UserUtil.formatDiscrim(user), context,
                         context.getSender().getAsMention(), user.getAsMention());
             } else { // sprawdzamy czy mamy shipowac user1 i user2
-                User user2 = (User) managerArgumentow.getArguments().get("user").execute((String) context.getArgs()[1], context.getTlumaczenia(), context.getLanguage());
+                User user2 = (User) managerArgumentow.getArguments().get("user").execute((String) context.getArgs()[1],
+                        context.getTlumaczenia(), context.getLanguage());
                 if (user2 != null) { // shipujemy user1 i user2
                     return ship(UserUtil.formatDiscrim(user), UserUtil.formatDiscrim(user2), context,
                             user.getAsMention(), user2.getAsMention());
@@ -98,8 +96,8 @@ public class ShipCommand extends Command {
         return ship(rzecz1, rzecz2, context, "", "");
     }
 
-    private boolean ship(String rzecz1, String rzecz2, CommandContext context, String wyswietlana1, String wyswietlana2) {
-        EmbedBuilder eb = context.getBaseEmbed();
+    private boolean ship(String rzecz1, String rzecz2, CommandContext context, @NotNull String wyswietlana1, @NotNull String wyswietlana2) {
+        EmbedBuilder eb = context.getBaseEmbed(null, null);
         eb.setTitle("Ship");
         eb.setColor(Color.pink);
         StringBuilder desc = new StringBuilder();
@@ -115,12 +113,9 @@ public class ShipCommand extends Command {
                 HEART2,
                 MarkdownSanitizer.escape(wyswietlana2.isEmpty() ? rzecz2 : wyswietlana2));
 
-        int procent = calc(rzecz1, 10);
-        procent = calc(rzecz2, procent);
-        if (procent > 100) procent = 100;
-        else if (procent < 0) procent = 0;
+        int procent = calc(rzecz1 + "x" + rzecz2);
 
-        int niebieskie = round((double) procent);
+        int niebieskie = round(procent);
         int biale = 10;
         if (niebieskie != 10) {
             biale -= niebieskie;
@@ -131,7 +126,7 @@ public class ShipCommand extends Command {
 
         desc.append(shipFormat);
 
-        String loadingScreen = "[%s](%s)%s %s%% %s";
+        String loadingScreen = "[%s](%s)%s %s%%\n%s";
         desc.append(String.format(loadingScreen,
                 append(niebieskie),
                 Ustawienia.instance.botUrl,
@@ -162,33 +157,9 @@ public class ShipCommand extends Command {
         return "???";
     }
 
-    private int calc(String s, int c) {
-        for (char ch : s.toLowerCase().toCharArray()) {
-            Builder b = getZnaki().get(ch);
-            if (b == null) continue;
-            if (b.getDodawanie()) c += b.getProcenty();
-            else c -= b.getProcenty();
-        }
-        return c;
-    }
-
-    private void loadZnaki() {
-        String znaki = "qwertyuiopasdfghjklzxcvbnmąśćżłźóę1234567890-=~!@#$%^&*()_+[];',./{}:?";
-        for (char c : znaki.toCharArray()) {
-            Random rand = new Random();
-            Builder build = new Builder();
-            int random = rand.nextInt(100);
-            build.setProcenty(rand.nextInt(20));
-            if (random < 40) build.setDodawanie(false);
-            getZnaki().put(c, build);
-        }
-    }
-
-    @Data
-    private static class Builder {
-        public Builder() { }
-        private Boolean dodawanie = true;
-        private Integer procenty = 0;
+    private int calc(String s) {
+        Random rand = new Random((s.toUpperCase().trim().hashCode()) + SEED_DATE);
+        return rand.nextInt(101);
     }
     
 }
