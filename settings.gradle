@@ -35,4 +35,5 @@ include 'logs'
 include 'fdevstats'
 include 'dev'
 include 'liczek'
+include 'invite'
 

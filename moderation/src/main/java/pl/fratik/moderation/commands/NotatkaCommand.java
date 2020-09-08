@@ -66,7 +66,7 @@ public class NotatkaCommand extends ModerationCommand {
         hmap.put("notatka", "string");
         hmap.put("[...]", "string");
         uzycie = new Uzycie(hmap, new boolean[] {true, true, false});
-        aliases = new String[] {"notka", "note"};
+        aliases = new String[] {"notka"};
     }
 
     @Override

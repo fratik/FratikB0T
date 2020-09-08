@@ -1,0 +1,8 @@
+{
+  "name": "invite",
+  "main": "pl.fratik.invite.Module",
+  "dependencies": [
+    "arguments"
+  ],
+  "coreVersion": "@core.version@"
+}

@@ -69,7 +69,7 @@ public class OgloszenieCommand extends Command {
         name = "ogloszenie";
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         category = CommandCategory.SYSTEM;
-        aliases = new String[] {"news", "broadcast"};
+        aliases = new String[] {"broadcast"};
         allowPermLevelChange = false;
         gcCache = rcm.new CacheRetriever<GuildConfig>(){}.getCache();
     }

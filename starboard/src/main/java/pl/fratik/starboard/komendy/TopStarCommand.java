@@ -73,7 +73,7 @@ public class TopStarCommand extends Command {
                 stars.put(sd.getAuthor(), stars.getOrDefault(sd.getAuthor(), 0) + sd.getStarredBy().size());
             }
         }
-        stars = MapUtil.sortByValue(stars);
+        stars = MapUtil.sortByValueAsc(stars);
         Message msg;
         try {
             msg = msgFuture.get();

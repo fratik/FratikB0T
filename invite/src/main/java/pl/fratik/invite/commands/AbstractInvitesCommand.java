@@ -15,31 +15,27 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package pl.fratik.commands.system;
+package pl.fratik.invite.commands;
 
-import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.Ustawienia;
 import pl.fratik.core.command.Command;
-import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
-import pl.fratik.core.command.PermLevel;
+import pl.fratik.invite.cache.InvitesCache;
+import pl.fratik.invite.entity.InviteDao;
 
-public class OpuscCommand extends Command {
-    public OpuscCommand() {
-        name = "opusc";
-        permLevel = PermLevel.ADMIN;
-        category = CommandCategory.SYSTEM;
-        aliases = new String[] {"koniec"};
-        allowPermLevelEveryone = false;
+public abstract class AbstractInvitesCommand extends Command {
+    protected final InviteDao inviteDao;
+    protected final InvitesCache invitesCache;
+
+    protected AbstractInvitesCommand(InviteDao inviteDao, InvitesCache invitesCache) {
+        this.inviteDao = inviteDao;
+        this.invitesCache = invitesCache;
     }
 
-    @Override
-    public boolean execute(@NotNull CommandContext context) {
-        if (context.getGuild().getId().equals(Ustawienia.instance.botGuild)) {
-            context.send(context.getTranslated("opusc.cantleave"));
+    protected boolean checkEnabled(CommandContext context) {
+        if (!invitesCache.tracksInvites(context.getGuild())) {
+            context.send(context.getTranslated("invites.disabled"));
             return false;
         }
-        context.send(context.getTranslated("opusc.leaving"), m -> context.getGuild().leave().queue());
         return true;
     }
 }

@@ -138,7 +138,7 @@ public class LicznikPunktow {
     }
 
     public static Map<String, Integer> getAllUserPunkty() {
-        Map<String, Integer> dbDane = MapUtil.sortByValue(LicznikPunktow.instance.punktyDao.getAllUserPunkty());
+        Map<String, Integer> dbDane = MapUtil.sortByValueAsc(LicznikPunktow.instance.punktyDao.getAllUserPunkty());
         Map<String, Integer> fajnal = new HashMap<>();
         dbDane.forEach((id, pkt) -> {
             if (fajnal.size() != 10) fajnal.put(id, pkt);
@@ -147,7 +147,7 @@ public class LicznikPunktow {
     }
 
     public static Map<String, Integer> getAllGuildPunkty() {
-        Map<String, Integer> dbDane = MapUtil.sortByValue(LicznikPunktow.instance.punktyDao.getAllGuildPunkty());
+        Map<String, Integer> dbDane = MapUtil.sortByValueAsc(LicznikPunktow.instance.punktyDao.getAllGuildPunkty());
         Map<String, Integer> fajnal = new HashMap<>();
         dbDane.forEach((id, pkt) -> {
             if (fajnal.size() != 10) fajnal.put(id, pkt);

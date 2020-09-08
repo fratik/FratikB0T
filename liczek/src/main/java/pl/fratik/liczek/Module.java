@@ -53,10 +53,6 @@ public class Module implements Modul {
     private ArrayList<Command> commands;
     private LiczekListener listener;
 
-    public Module() {
-        commands = new ArrayList<>();
-    }
-
     @Override
     public boolean startUp() {
         commands = new ArrayList<>();
