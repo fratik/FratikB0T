@@ -38,8 +38,9 @@ public class NetworkUtil {
     @Getter private static final OkHttpClient client = new OkHttpClient();
 
     public static byte[] download(String url, String authorization) throws IOException {
-        Response res = downloadResponse(url, authorization);
-        return res.body() == null ? new byte[0] : res.body().bytes();
+        try (Response res = downloadResponse(url, authorization)) {
+            return res.body() == null ? new byte[0] : res.body().bytes();
+        }
     }
 
     public static Response downloadResponse(String url, String authorization) throws IOException {
@@ -75,8 +76,9 @@ public class NetworkUtil {
                 .header(UA, USER_AGENT)
                 .url(url)
                 .build();
-        Response res = client.newCall(req).execute();
-        return res.body() == null ? null : new JSONResponse(res.body().string(), res.code());
+        try (Response res = client.newCall(req).execute()) {
+            return res.body() == null ? null : new JSONResponse(res.body().string(), res.code());
+        }
     }
 
     public static JSONArray getJsonArray(String url) throws IOException {
@@ -84,8 +86,9 @@ public class NetworkUtil {
                 .header(UA, USER_AGENT)
                 .url(url)
                 .build();
-        Response res = client.newCall(req).execute();
-        return res.body() == null ? null : new JSONArray(res.body().string());
+        try (Response res = client.newCall(req).execute()) {
+            return res.body() == null ? null : new JSONArray(res.body().string());
+        }
     }
 
     public static JSONObject getJson(String url, String authorization) throws IOException {
@@ -107,8 +110,9 @@ public class NetworkUtil {
     }
 
     public static byte[] download(String url) throws IOException {
-        Response res = downloadResponse(url);
-        return res.body() == null ? new byte[0] : res.body().bytes();
+        try (Response res = downloadResponse(url)) {
+            return res.body() == null ? new byte[0] : res.body().bytes();
+        }
     }
 
     public static byte[] getBytesFromBufferArray(int[] bufferArray) {

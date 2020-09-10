@@ -272,8 +272,13 @@ public class OldSettingsRenderer implements SettingsRenderer {
             waiter.setTimeoutHandler(() -> onTimeout(message));
             waiter.setMessageHandler(event -> {
                 message.delete().queue();
-                Emoji emotka = (Emoji) managerArgumentow.getArguments().get("emote")
-                        .execute(event.getMessage().getContentRaw().split(" ")[0], tlumaczenia, ctx.getLanguage());
+                Emoji emotka;
+                try {
+                    emotka = (Emoji) managerArgumentow.getArguments().get("emote")
+                            .execute(event.getMessage().getContentRaw().split(" ")[0], tlumaczenia, ctx.getLanguage());
+                } catch (Exception e) {
+                    emotka = null;
+                }
                 if (emotka == null) {
                     ctx.send(ctx.getTranslated("ustawienia.user.set.reakcja.invalid"));
                     if (!koniecZara) {
@@ -296,8 +301,13 @@ public class OldSettingsRenderer implements SettingsRenderer {
             waiter.setTimeoutHandler(() -> onTimeout(message));
             waiter.setMessageHandler(event -> {
                 message.delete().queue();
-                Emoji emotka = (Emoji) managerArgumentow.getArguments().get("emote")
-                        .execute(event.getMessage().getContentRaw().split(" ")[0], tlumaczenia, ctx.getLanguage());
+                Emoji emotka;
+                try {
+                    emotka = (Emoji) managerArgumentow.getArguments().get("emote")
+                            .execute(event.getMessage().getContentRaw().split(" ")[0], tlumaczenia, ctx.getLanguage());
+                } catch (Exception e) {
+                    emotka = null;
+                }
                 if (emotka == null) {
                     ctx.send(ctx.getTranslated("ustawienia.user.set.reakcjablad.invalid"));
                     if (!koniecZara) {

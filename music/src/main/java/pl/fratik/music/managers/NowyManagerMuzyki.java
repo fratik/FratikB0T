@@ -161,9 +161,8 @@ public class NowyManagerMuzyki {
 
     public List<AudioTrack> getAudioTracks(String url) {
         Ustawienia.Lavalink.LavalinkNode nod = Ustawienia.instance.lavalink.nodes.get(0);
-        try {
-            Response resp = NetworkUtil.downloadResponse("http://" + nod.address + ":" + nod.restPort +
-                    "/loadtracks?identifier=" + URLEncoder.encode(url, "UTF-8"), nod.password);
+        try (Response resp = NetworkUtil.downloadResponse("http://" + nod.address + ":" + nod.restPort +
+                "/loadtracks?identifier=" + URLEncoder.encode(url, "UTF-8"), nod.password)) {
             if (resp.body() == null) throw new NullPointerException("body() null");
             JSONObject td = new JSONObject(resp.body().string());
             List<AudioTrack> list = new ArrayList<>();

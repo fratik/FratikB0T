@@ -119,9 +119,8 @@ public class StringUtil {
     }
 
     public static String haste(String tresc) {
-        try {
-            Response res = NetworkUtil.postRequest("https://hastebin.com/documents",
-                    MediaType.get("text/plain; charset=utf-8"), tresc, null);
+        try (Response res = NetworkUtil.postRequest("https://hastebin.com/documents",
+                MediaType.get("text/plain; charset=utf-8"), tresc, null)) {
             return new JSONObject(Objects.requireNonNull(res.body() != null ? res.body().string() : null)).getString("key");
         } catch (Exception e) {
             return null;

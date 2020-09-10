@@ -43,11 +43,10 @@ public class SelfieCommand extends Command {
     public boolean pc(CommandContext context) {
         String ipUrlPc = Ustawienia.instance.apiUrls.get("networkIpPc");
         if (ipUrlPc == null) throw new SilentExecutionFail();
-        try {
-            HashMap<String, String> xd = new HashMap<>();
-            xd.put("Requester", context.getSender().getAsTag());
-            Response res = NetworkUtil.downloadResponse(ipUrlPc,
-                    Ustawienia.instance.apiKeys.get("networkIpPc"), xd);
+        HashMap<String, String> xd = new HashMap<>();
+        xd.put("Requester", context.getSender().getAsTag());
+        try (Response res = NetworkUtil.downloadResponse(ipUrlPc,
+                Ustawienia.instance.apiKeys.get("networkIpPc"), xd)) {
             if (res.code() == 401) {
                 context.send(context.getTranslated("selfie.invalidpass"));
                 return false;
@@ -69,11 +68,10 @@ public class SelfieCommand extends Command {
     public boolean mb(CommandContext context) {
         String ipUrlMb = Ustawienia.instance.apiUrls.get("networkIpMb");
         if (ipUrlMb == null) throw new SilentExecutionFail();
-        try {
-            HashMap<String, String> xd = new HashMap<>();
-            xd.put("Requester", context.getSender().getAsTag());
-            Response res = NetworkUtil.downloadResponse(ipUrlMb,
-                    Ustawienia.instance.apiKeys.get("networkIpMb"), xd);
+        HashMap<String, String> xd = new HashMap<>();
+        xd.put("Requester", context.getSender().getAsTag());
+        try (Response res = NetworkUtil.downloadResponse(ipUrlMb,
+                Ustawienia.instance.apiKeys.get("networkIpMb"), xd)) {
             if (res.code() == 401) {
                 context.send(context.getTranslated("selfie.invalidpass"));
                 return false;

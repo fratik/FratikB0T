@@ -169,6 +169,7 @@ public class RedisCacheManager {
         List<String> str = new ArrayList<>();
         for (Object dbkey : dbKeys)
             str.add(dbkey.toString());
+        if (str.isEmpty()) return;
         try (Jedis jedis = jedisPool.getResource()) {
             jedis.del(str.toArray(new String[]{}));
         }

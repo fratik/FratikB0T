@@ -24,6 +24,7 @@ import io.sentry.Sentry;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.sharding.ShardManager;
+import okhttp3.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.Ustawienia;
@@ -212,7 +213,13 @@ public class LicznikPunktow {
             String url = matcher.group();
             try {
                 String rawHeader;
-                if (url.startsWith("http")) rawHeader = NetworkUtil.headRequest(url).header("Content-Length");
+                if (url.startsWith("http")) {
+                    try (Response resp = NetworkUtil.headRequest(url)) {
+                        rawHeader = resp.header("Content-Length");
+                    } catch (RuntimeException e) {
+                        throw new IOException(e); // by nie udało się połączyć złapało
+                    }
+                }
                 else {
                     log.debug("{} ({}): znaleziono url {}, ignoruje przez brak protokołu", event.getAuthor(), event.getGuild(), url);
                     rawHeader = null;
