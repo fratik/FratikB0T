@@ -29,6 +29,8 @@ public class Statyczne {
 
     public static final String WERSJA;
 
+    public static final String WERSJA_BEZ_BUILDA;
+
     public static final String CORE_VERSION;
 
     public static final String DBOTS = "https://discordbots.org/bot/338359366891732993";
@@ -51,6 +53,9 @@ public class Statyczne {
             WERSJA = version;
 
         CORE_VERSION = WERSJA;
+
+        if (WERSJA.split("_").length == 2) WERSJA_BEZ_BUILDA = WERSJA.split("_")[0];
+        else WERSJA_BEZ_BUILDA = WERSJA;
 
         startDate = new Date();
     }

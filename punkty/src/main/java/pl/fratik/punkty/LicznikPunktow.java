@@ -157,6 +157,7 @@ public class LicznikPunktow {
     }
 
     @Subscribe
+    @AllowConcurrentEvents
     public void onMessage(MessageReceivedEvent event) {
         if (event.getChannel().getType() != ChannelType.TEXT || !event.isFromGuild()) {
             log.debug("Kanał gdzie {} napisał nie jest kanałem tekstowym, nie liczę punktu", event.getAuthor());
@@ -182,68 +183,69 @@ public class LicznikPunktow {
             }
             return;
         }
-        ConcurrentHashMap<String, Integer> mapa = cache.getIfPresent(event.getGuild().getId());
-        if (mapa == null) {
-            log.debug("Nie znaleziono HashMapy dla {} w cache, biorę z DB", event.getAuthor());
-            PunktyRow pkt = punktyDao.get(event.getMember());
-            int punkty = pkt.getPunkty();
-            ConcurrentHashMap<String, Integer> hmap = new ConcurrentHashMap<>();
-            hmap.put(event.getAuthor().getId(), punkty);
-            log.debug("Wstawiam do cache: {} -> {} -> {}", event.getGuild(), event.getAuthor(), punkty);
-            cache.put(event.getGuild().getId(), hmap);
-            mapa = hmap;
-        }
-        Integer punktyRaw = mapa.get(event.getAuthor().getId());
-        int punkty = 0;
-        if (punktyRaw == null) {
-            log.debug("Nie znaleziono w hashmapie danych dla {}, biorę z DB", event.getAuthor());
-            PunktyRow pkt = punktyDao.get(event.getMember());
-            punkty = pkt.getPunkty();
-            mapa.put(event.getAuthor().getId(), punkty);
-            log.debug("Wstawiam do cache: {} -> {} -> {}", event.getGuild(), event.getAuthor(), punkty);
-            cache.put(event.getGuild().getId(), mapa);
-        }
-        if (punktyRaw != null) punkty = punktyRaw;
-        int lvlOld = calculateLvl(punkty, 0);
-        int przyrost = 1;
-        if (!event.getMessage().getAttachments().isEmpty())
-            przyrost = getPktFromFileSize(event.getMessage().getAttachments().get(0).getSize());
-        Matcher matcher = URLPATTERN.matcher(event.getMessage().getContentRaw());
-        if (matcher.find()) {
-            String url = matcher.group();
-            try {
-                String rawHeader;
-                if (url.startsWith("http")) {
-                    try (Response resp = NetworkUtil.headRequest(url)) {
-                        rawHeader = resp.header("Content-Length");
-                    } catch (RuntimeException e) {
-                        throw new IOException(e); // by nie udało się połączyć złapało
-                    }
-                }
-                else {
-                    log.debug("{} ({}): znaleziono url {}, ignoruje przez brak protokołu", event.getAuthor(), event.getGuild(), url);
-                    rawHeader = null;
-                }
-                if (rawHeader == null) {
-                    log.debug("{} ({}): znaleziono url {}, content-length nieznany", event.getAuthor(), event.getGuild(), url);
-                } else {
-                    log.debug("{} ({}): znaleziono url {}, content-length: {}", event.getAuthor(), event.getGuild(), url, rawHeader);
-                    int byteLength = Integer.parseInt(rawHeader);
-                    przyrost = getPktFromFileSize(byteLength);
-                }
-            } catch (IOException e) {
-                log.debug("{} ({}): znaleziono url {}, nie udało się połączyć", event.getAuthor(), event.getGuild(), url);
+        synchronized (this) {
+            ConcurrentHashMap<String, Integer> mapa = cache.getIfPresent(event.getGuild().getId());
+            if (mapa == null) {
+                log.debug("Nie znaleziono HashMapy dla {} w cache, biorę z DB", event.getAuthor());
+                PunktyRow pkt = punktyDao.get(event.getMember());
+                int punkty = pkt.getPunkty();
+                ConcurrentHashMap<String, Integer> hmap = new ConcurrentHashMap<>();
+                hmap.put(event.getAuthor().getId(), punkty);
+                log.debug("Wstawiam do cache: {} -> {} -> {}", event.getGuild(), event.getAuthor(), punkty);
+                cache.put(event.getGuild().getId(), hmap);
+                mapa = hmap;
             }
+            Integer punktyRaw = mapa.get(event.getAuthor().getId());
+            int punkty = 0;
+            if (punktyRaw == null) {
+                log.debug("Nie znaleziono w hashmapie danych dla {}, biorę z DB", event.getAuthor());
+                PunktyRow pkt = punktyDao.get(event.getMember());
+                punkty = pkt.getPunkty();
+                mapa.put(event.getAuthor().getId(), punkty);
+                log.debug("Wstawiam do cache: {} -> {} -> {}", event.getGuild(), event.getAuthor(), punkty);
+                cache.put(event.getGuild().getId(), mapa);
+            }
+            if (punktyRaw != null) punkty = punktyRaw;
+            int lvlOld = calculateLvl(punkty, 0);
+            int przyrost = 1;
+            if (!event.getMessage().getAttachments().isEmpty())
+                przyrost = getPktFromFileSize(event.getMessage().getAttachments().get(0).getSize());
+            Matcher matcher = URLPATTERN.matcher(event.getMessage().getContentRaw());
+            if (matcher.find()) {
+                String url = matcher.group();
+                try {
+                    String rawHeader;
+                    if (url.startsWith("http")) {
+                        try (Response resp = NetworkUtil.headRequest(url)) {
+                            rawHeader = resp.header("Content-Length");
+                        } catch (RuntimeException e) {
+                            throw new IOException(e); // by nie udało się połączyć złapało
+                        }
+                    } else {
+                        log.debug("{} ({}): znaleziono url {}, ignoruje przez brak protokołu", event.getAuthor(), event.getGuild(), url);
+                        rawHeader = null;
+                    }
+                    if (rawHeader == null) {
+                        log.debug("{} ({}): znaleziono url {}, content-length nieznany", event.getAuthor(), event.getGuild(), url);
+                    } else {
+                        log.debug("{} ({}): znaleziono url {}, content-length: {}", event.getAuthor(), event.getGuild(), url, rawHeader);
+                        int byteLength = Integer.parseInt(rawHeader);
+                        przyrost = getPktFromFileSize(byteLength);
+                    }
+                } catch (IOException e) {
+                    log.debug("{} ({}): znaleziono url {}, nie udało się połączyć", event.getAuthor(), event.getGuild(), url);
+                }
+            }
+            log.debug("{} na serwerze {} ma {} + {} punktów (lvl {}), zapisuje do cache",
+                    event.getAuthor(), event.getGuild(), punkty, przyrost, calculateLvl(punkty, przyrost));
+            mapa.put(event.getAuthor().getId(), punkty + przyrost);
+            cache.put(event.getGuild().getId(), mapa);
+            if (lvlOld != calculateLvl(punkty, przyrost))
+                eventBus.post(new LvlupEvent(event.getMember(), punkty + przyrost, lvlOld, calculateLvl(punkty, przyrost),
+                        event.getChannel()));
+            setCooldown(event.getMember(), true);
+            threadPool.schedule(() -> setCooldown(event.getMember(), false), 5, TimeUnit.SECONDS);
         }
-        log.debug("{} na serwerze {} ma {} + {} punktów (lvl {}), zapisuje do cache",
-                event.getAuthor(), event.getGuild(), punkty, przyrost, calculateLvl(punkty, przyrost));
-        mapa.put(event.getAuthor().getId(), punkty + przyrost);
-        cache.put(event.getGuild().getId(), mapa);
-        if (lvlOld != calculateLvl(punkty, przyrost))
-            eventBus.post(new LvlupEvent(event.getMember(), punkty + przyrost, lvlOld, calculateLvl(punkty, przyrost),
-                    event.getChannel()));
-        setCooldown(event.getMember(), true);
-        threadPool.schedule(() -> setCooldown(event.getMember(), false), 5, TimeUnit.SECONDS);
     }
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")

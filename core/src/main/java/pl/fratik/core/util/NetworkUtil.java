@@ -21,6 +21,7 @@ import lombok.Getter;
 import okhttp3.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import pl.fratik.core.Statyczne;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -32,7 +33,7 @@ import java.util.Map;
 public class NetworkUtil {
     private NetworkUtil() {}
 
-    private static final String USER_AGENT = "FratikB0T/3.0.0 (https://fratikbot.pl)";
+    private static final String USER_AGENT = "FratikB0T/" + Statyczne.WERSJA_BEZ_BUILDA + " (https://fratikbot.pl)";
     private static final String UA = "User-Agent";
     private static final String AUTH = "Authorization";
     @Getter private static final OkHttpClient client = new OkHttpClient();
