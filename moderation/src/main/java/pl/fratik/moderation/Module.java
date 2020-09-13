@@ -99,7 +99,7 @@ public class Module implements Modul {
         przeklenstwaListener = new PrzeklenstwaListener(guildDao, tlumaczenia, managerKomend, shardManager, casesDao, redisCacheManager);
         autobanListener = new AutobanListener(guildDao, tlumaczenia);
         antiInviteListener = new AntiInviteListener(guildDao, tlumaczenia, managerKomend, shardManager, casesDao, redisCacheManager);
-        antiRaidListener = new AntiRaidListener(guildDao, shardManager, eventBus, tlumaczenia, redisCacheManager);
+        antiRaidListener = new AntiRaidListener(guildDao, shardManager, eventBus, tlumaczenia, redisCacheManager, managerKomend);
 
         eventBus.register(this);
         eventBus.register(modLogListener);
