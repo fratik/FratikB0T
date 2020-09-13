@@ -20,7 +20,7 @@ package pl.fratik.logs;
 import lombok.Data;
 
 @Data
-class GenericLogEvent {
+public class GenericLogEvent {
     private final String channel;
     private final String message;
 }
