@@ -246,9 +246,9 @@ public class AntiRaidListener {
     private boolean antiRaidDisabled(Guild guild) {
         GuildConfig gc = gcCache.get(guild.getId(), guildDao::get);
         if (gc == null) //czyli nigdy
-            return false;
-        if (gc.getAntiRaid() == null) return false;
-        return gc.getAntiRaid();
+            return true;
+        if (gc.getAntiRaid() == null) return true;
+        return !gc.getAntiRaid();
     }
 
     private boolean antiRaidExtreme(Guild guild) {
