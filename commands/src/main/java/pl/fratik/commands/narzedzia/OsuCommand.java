@@ -193,34 +193,39 @@ public class OsuCommand extends Command {
         // Inspirowane https://github.com/AznStevy/owo/blob/develop/cogs/osu.py
         Koohii.Map map = null;
         if (isPass(w)) {
+            boolean failure = false;
             Double pp = null;
             if (w.getPp() == 0) {
-                map = new Koohii.Parser()
-                        .map(new BufferedReader(new InputStreamReader(new ByteArrayInputStream(NetworkUtil
-                                .download("https://osu.ppy.sh/osu/" + w.getBeatmapID())))));
-                Koohii.PPv2Parameters p = new Koohii.PPv2Parameters();
-                p.mods = Math.toIntExact(GameMod.getBit(w.getEnabledMods()));
-                Koohii.DiffCalc dc = new Koohii.DiffCalc().calc(map, p.mods);
-                p.aim_stars = dc.aim;
-                p.speed_stars = dc.speed;
-                p.max_combo = m.getMaxCombo();
-                p.nsliders = map.nsliders;
-                p.ncircles = map.ncircles;
-                p.nobjects = map.objects.size();
-                p.base_ar = map.ar;
-                p.base_od = map.od;
-                p.mode = map.mode;
-                p.combo = w.getMaxCombo();
-                p.n300 = w.getHit300();
-                p.n100 = w.getHit100();
-                p.n50 = w.getHit50();
-                p.nmiss = w.getMisses();
-                p.score_version = 1;
-                p.beatmap = map;
-                pp = new Koohii.PPv2(p).total;
+                try {
+                    map = new Koohii.Parser()
+                            .map(new BufferedReader(new InputStreamReader(new ByteArrayInputStream(NetworkUtil
+                                    .download("https://osu.ppy.sh/osu/" + w.getBeatmapID())))));
+                    Koohii.PPv2Parameters p = new Koohii.PPv2Parameters();
+                    p.mods = Math.toIntExact(GameMod.getBit(w.getEnabledMods()));
+                    Koohii.DiffCalc dc = new Koohii.DiffCalc().calc(map, p.mods);
+                    p.aim_stars = dc.aim;
+                    p.speed_stars = dc.speed;
+                    p.max_combo = m.getMaxCombo();
+                    p.nsliders = map.nsliders;
+                    p.ncircles = map.ncircles;
+                    p.nobjects = map.objects.size();
+                    p.base_ar = map.ar;
+                    p.base_od = map.od;
+                    p.mode = map.mode;
+                    p.combo = w.getMaxCombo();
+                    p.n300 = w.getHit300();
+                    p.n100 = w.getHit100();
+                    p.n50 = w.getHit50();
+                    p.nmiss = w.getMisses();
+                    p.score_version = 1;
+                    p.beatmap = map;
+                    pp = new Koohii.PPv2(p).total;
+                } catch (Exception e) { // prawdopodobnie błąd zewnętrznej libki
+                    failure = true;
+                }
             }
-            eb.addField(context.getTranslated("osu.score.pp"),
-                    nf.format(round(w.getPp() != 0 ? w.getPp() : pp, 2, RoundingMode.HALF_UP)), true);
+            eb.addField(context.getTranslated("osu.score.pp"), failure || pp == null ? context.getTranslated("osu.score.pp.fail") :
+                    (nf.format(round(w.getPp() != 0 ? w.getPp() : pp, 2, RoundingMode.HALF_UP))), true);
             if (pp != null) {
                 eb.setFooter(context.getTranslated("osu.score.pp.self.calc"));
             }

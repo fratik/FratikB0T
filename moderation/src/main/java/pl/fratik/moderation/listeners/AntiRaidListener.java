@@ -203,7 +203,7 @@ public class AntiRaidListener {
             if (success) logExtreme(e, lastC, "2 wiadomości o podobieństwie " + proc.stream().map(w -> w * 100 + "%")
                     .collect(Collectors.joining(", ")));
         }
-        if (lastC.stream().filter(c -> c != null && c.length() <= 3).count() >= 2) {
+        if (lastC.stream().filter(c -> c != null && c.length() <= 3).count() >= 3) {
             boolean success;
             try {
                 e.getGuild().ban(e.getAuthor(), 0, "Raid").complete();
@@ -278,6 +278,7 @@ public class AntiRaidListener {
                 e.getGuild().getName() + " (" + e.getGuild().getId() + "): " + powod + ".\nWiadomości:\n";
         List<String> lastCostatnie3 = new ArrayList<>();
         for (String el : lastC) {
+            if (el == null || el.isEmpty()) continue;
             lastCostatnie3.add(el);
             if (lastCostatnie3.size() == 3) break;
         }
@@ -300,6 +301,7 @@ public class AntiRaidListener {
                 e.getGuild().getName() + " (" + e.getGuild().getId() + "): " + powod + ".\nWiadomości:\n";
         List<String> lastCostatnie3 = new ArrayList<>();
         for (String el : lastC) {
+            if (el == null || el.isEmpty()) continue;
             lastCostatnie3.add(el);
             if (lastCostatnie3.size() == 3) break;
         }
