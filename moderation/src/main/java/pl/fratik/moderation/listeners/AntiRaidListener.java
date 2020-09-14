@@ -91,6 +91,7 @@ public class AntiRaidListener {
         if (antiRaidDisabled(e.getMessage().getGuild())) return;
         if (UserUtil.getPermlevel(e.getMember(), guildDao, shardManager, PermLevel.OWNER).getNum() >= 1) return;
         if (getAntiRaidChannels(e.getMessage().getGuild()).contains(e.getTextChannel().getId())) return;
+        if (!e.getTextChannel().canTalk()) return;
         if (antiRaidExtreme(e.getMessage().getGuild())) extreme(e.getMessage());
         normal(e.getMessage());
     }

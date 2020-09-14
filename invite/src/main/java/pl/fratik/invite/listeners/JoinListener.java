@@ -22,6 +22,7 @@ import com.google.common.eventbus.Subscribe;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberRemoveEvent;
+import net.dv8tion.jda.api.exceptions.InsufficientPermissionException;
 import org.jetbrains.annotations.Nullable;
 import pl.fratik.core.cache.Cache;
 import pl.fratik.core.cache.RedisCacheManager;
@@ -60,7 +61,12 @@ public class JoinListener {
     public void onMemberJoin(GuildMemberJoinEvent e) {
         if (!invitesCache.isLoaded()) return;
         if (!gcCache.get(e.getGuild().getId(), guildDao::get).isTrackInvites()) return;
-        List<Invite> zaproszenia = e.getGuild().retrieveInvites().complete();
+        List<Invite> zaproszenia;
+        try {
+            zaproszenia = e.getGuild().retrieveInvites().complete();
+        } catch (InsufficientPermissionException err) {
+            return;
+        }
         for (Invite invite : zaproszenia) {
             FakeInvite inv = invitesCache.getInviteCache().getIfPresent(e.getGuild().getId() + "." + invite.getCode());
             if (inv == null || (invite.getUses() - 1) != inv.getUses()) continue;

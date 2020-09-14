@@ -86,7 +86,7 @@ public class LogListener {
         if (!messageUpdateEvent.isFromGuild()) return;
         List<LogMessage> messages = cache.get(messageUpdateEvent.getTextChannel().getId(), c -> new ArrayList<>());
         if (messages == null) throw new IllegalStateException("messages == null mimo compute'owania");
-        Message m = findMessage(messageUpdateEvent.getTextChannel(), messageUpdateEvent.getMessageId(), false);
+        Message m = findMessage(messageUpdateEvent.getTextChannel(), messageUpdateEvent.getMessageId(), false, messages);
         if (m == null) {
             if (messages.size() > 100) messages.remove(0);
             messages.add(new LogMessage(messageUpdateEvent.getMessage()));
@@ -214,8 +214,12 @@ public class LogListener {
     }
 
     private LogMessage findMessage(TextChannel channel, String id, boolean delete) {
+        List<LogMessage> kesz = Objects.requireNonNull(cache.get(channel.getId(), c -> new ArrayList<>()));
+        return findMessage(channel, id, delete, kesz);
+    }
+
+    private LogMessage findMessage(TextChannel channel, String id, boolean delete, List<LogMessage> kesz) {
         try {
-            List<LogMessage> kesz = Objects.requireNonNull(cache.get(channel.getId(), c -> new ArrayList<>()));
             for (LogMessage m : kesz)
                 if (m.getId().equals(id)) {
                     if (!delete) return m;

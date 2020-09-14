@@ -496,7 +496,7 @@ public class OldSettingsRenderer implements SettingsRenderer {
     }
 
     private boolean checkReaction(MessageReactionAddEvent event) {
-        if (event.getMessageId().equals(paginatingMessage.getId()) && !event.getReactionEmote().isEmote()) {
+        if (paginatingMessage != null && event.getMessageId().equals(paginatingMessage.getId()) && !event.getReactionEmote().isEmote()) {
             switch (event.getReactionEmote().getName()) {
                 case LEFT_EMOJI:
                 case RIGHT_EMOJI:

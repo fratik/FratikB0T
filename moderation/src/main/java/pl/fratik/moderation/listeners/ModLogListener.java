@@ -422,6 +422,7 @@ public class ModLogListener {
         Guild guild = shardManager.getGuildById(akcja.getGuildId());
         if (guild == null) return;
         Kara adw = akcja.getAkcjaDoWykonania();
+        if (akcja.getCase() == null) return;
         Case aCase = new CaseBuilder().setUser(akcja.getCase().getUserId()).setGuild(akcja.getCase().getGuildId())
                 .setCaseId(Case.getNextCaseId(guild)).setTimestamp(Instant.now()).setMessageId(null).setKara(adw)
                 .createCase();

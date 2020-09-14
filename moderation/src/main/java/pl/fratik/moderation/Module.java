@@ -185,12 +185,14 @@ public class Module implements Modul {
                         .setKara(Kara.UNMUTE).createCase();
                 c.setIssuerId(String.valueOf(Globals.clientId));
                 c.setReason(tlumaczenia.get(tlumaczenia.getLanguage(e.getGuild()), "modlog.reason.twomutesoneuser"));
-                MessageEmbed em = ModLogBuilder.generate(c, e.getGuild(), shardManager,
-                        tlumaczenia.getLanguage(e.getGuild()), managerKomend, true);
-                TextChannel mlog = shardManager.getTextChannelById(gc.getModLog());
-                if (mlog != null && mlog.canTalk()) {
-                    mlog.sendMessage(em).complete();
-                    c.setMessageId(mlog.sendMessage(em).complete().getId());
+                if (gc.getModLog() != null && !gc.getModLog().isEmpty()) {
+                    MessageEmbed em = ModLogBuilder.generate(c, e.getGuild(), shardManager,
+                            tlumaczenia.getLanguage(e.getGuild()), managerKomend, true);
+                    TextChannel mlog = shardManager.getTextChannelById(gc.getModLog());
+                    if (mlog != null && mlog.canTalk()) {
+                        mlog.sendMessage(em).complete();
+                        c.setMessageId(mlog.sendMessage(em).complete().getId());
+                    }
                 }
                 cases.getCases().add(c);
                 casesDao.save(cases);

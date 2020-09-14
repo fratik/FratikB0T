@@ -282,15 +282,16 @@ public class ManagerKomendImpl implements ManagerKomend {
                     plvl = UserUtil.getPermlevel(event.getAuthor(), shardManager);
                 }
 
-                GuildConfig gc = gcCache.get(event.getGuild().getId(), guildDao::get);
-                PermLevel customPlvl = getPermLevelOverride(c, gc);
-
+                PermLevel customPlvl = null;
+                if (event.isFromGuild()) {
+                    GuildConfig gc = gcCache.get(event.getGuild().getId(), guildDao::get);
+                    customPlvl = getPermLevelOverride(c, gc);
+                }
                 final PermLevel permLevel = customPlvl == null ? c.getPermLevel() : customPlvl;
                 if (permLevel.getNum() > plvl.getNum()) {
-                    Language l = tlumaczenia.getLanguage(event.getMember());
+                    Language l = !direct ? tlumaczenia.getLanguage(event.getMember()) : tlumaczenia.getLanguage(event.getAuthor());
                     event.getChannel().sendMessage(tlumaczenia.get(l, "generic.permlevel.too.small",
-                            UserUtil.getPermlevel(event.getMember(), guildDao, shardManager).getNum(), permLevel.getNum()))
-                            .queue();
+                            plvl.getNum(), permLevel.getNum())).queue();
                     return;
                 }
 
@@ -338,7 +339,7 @@ public class ManagerKomendImpl implements ManagerKomend {
                     return;
                 }
 
-                if (GuildUtil.isGbanned(context.getGuild())) {
+                if (!direct && GuildUtil.isGbanned(context.getGuild())) {
                     GbanData gdata = GuildUtil.getGbanData(context.getGuild());
                     context.send(context.getTranslated("generic.gban.guild", gdata.getIssuer(), gdata.getReason()));
                     zareaguj(context, false);
@@ -350,8 +351,8 @@ public class ManagerKomendImpl implements ManagerKomend {
                     Thread.currentThread().setName(context.getCommand().getName() + "-" + context.getSender().getId() + "-" +
                             (context.getGuild() != null ? context.getGuild().getId() : "direct"));
                     logger.info("Użytkownik " + StringUtil.formatDiscrim(event.getAuthor()) + "(" +
-                            event.getAuthor().getId() + ") na serwerze " + event.getGuild().getName() + "(" +
-                            event.getGuild().getId() + ") wykonał komendę " + c.getName() +
+                            event.getAuthor().getId() + ") " + (direct ? "na serwerze " + event.getGuild().getName() + "(" +
+                            event.getGuild().getId() + ") " : "") + "wykonał komendę " + c.getName() +
                             " (" + String.join(" ", args) + ")");
                     long millis = System.currentTimeMillis();
                     try {
