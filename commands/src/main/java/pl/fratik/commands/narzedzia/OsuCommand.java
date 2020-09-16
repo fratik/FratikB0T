@@ -194,7 +194,7 @@ public class OsuCommand extends Command {
         Koohii.Map map = null;
         if (isPass(w)) {
             boolean failure = false;
-            Double pp = null;
+            Float pp = null;
             if (w.getPp() == 0) {
                 try {
                     map = new Koohii.Parser()
@@ -219,13 +219,13 @@ public class OsuCommand extends Command {
                     p.nmiss = w.getMisses();
                     p.score_version = 1;
                     p.beatmap = map;
-                    pp = new Koohii.PPv2(p).total;
+                    pp = (float) new Koohii.PPv2(p).total;
                 } catch (Exception e) { // prawdopodobnie błąd zewnętrznej libki
                     failure = true;
                 }
-            }
-            eb.addField(context.getTranslated("osu.score.pp"), failure || pp == null ? context.getTranslated("osu.score.pp.fail") :
-                    (nf.format(round(w.getPp() != 0 ? w.getPp() : pp, 2, RoundingMode.HALF_UP))), true);
+            } else pp = w.getPp();
+            eb.addField(context.getTranslated("osu.score.pp"), failure ? context.getTranslated("osu.score.pp.fail") :
+                    nf.format(round(w.getPp() != 0 ? w.getPp() : pp, 2, RoundingMode.HALF_UP)), true);
             if (pp != null) {
                 eb.setFooter(context.getTranslated("osu.score.pp.self.calc"));
             }
