@@ -184,7 +184,8 @@ public class CommonUtil {
         Matcher matcher = Pattern.compile("(http(s)?):\\/\\/(www\\.)?[?a-zA-Z0-9@:%._\\+~#=]{2,256}\\.[a-z]{2,6}" +
                 "\\b([-a-zA-Z0-9@:%_\\+.~#?&//=]*.png)", Pattern.CASE_INSENSITIVE | Pattern.DOTALL).matcher(msg.getContentRaw());
         if (matcher.matches()) return matcher.group();
-        if (!msg.getAttachments().isEmpty()) return msg.getAttachments().get(0).getUrl();
+        if (!msg.getAttachments().isEmpty() && msg.getAttachments().get(0).isImage())
+            return msg.getAttachments().get(0).getUrl();
         return null;
     }
 

@@ -100,7 +100,8 @@ public class CytujCommand extends Command {
         Matcher matcher = MESSAGE_LINK_PATTERN.matcher(msgID);
         if (matcher.find()) {
             try {
-                kanal = shardManager.getTextChannelById(matcher.group(5));
+                TextChannel tc = shardManager.getTextChannelById(matcher.group(5));
+                if (checkPerms(context, tc)) kanal = tc;
                 if (kanal == null) {
                     context.send(context.getTranslated("cytuj.nochannel"));
                     return false;
@@ -135,14 +136,7 @@ public class CytujCommand extends Command {
             } else {
                 try {
                     TextChannel tc = shardManager.getTextChannelById(splitted[0]);
-                    if (tc != null && (tc.equals(context.getChannel()) || (
-                            (tc.getGuild().equals(context.getGuild()) &&
-                                    UserUtil.getPermlevel(context.getMember(), guildDao, shardManager, PermLevel.OWNER)
-                                            .getNum() >= PermLevel.ADMIN.getNum()) || // min. admin na serwerze
-                                    (!tc.getGuild().equals(context.getGuild()) &&
-                                            tc.getGuild().getOwnerId().equals(context.getSender().getId()))))) { // właściciel, jeśli poza serwerem
-                        kanal = tc;
-                    }
+                    if (checkPerms(context, tc)) kanal = tc;
                     if (kanal == null) {
                         context.send(context.getTranslated("cytuj.nochannel"));
                         return false;
@@ -180,11 +174,8 @@ public class CytujCommand extends Command {
         eb.setTimestamp(msg.getTimeCreated());
         eb.addField(context.getTranslated("cytuj.jump"), String.format("[\\[%s\\]](%s)",
                 context.getTranslated("cytuj.jump.to"), msg.getJumpUrl()), false);
-        if (!msg.getAttachments().isEmpty()) eb.setImage(msg.getAttachments().get(0).getUrl());
-        else {
-            String link = CommonUtil.getImageUrl(msg);
-            if (link != null) eb.setImage(link);
-        }
+        String link = CommonUtil.getImageUrl(msg);
+        if (link != null) eb.setImage(link);
         if (tresc == null || tresc.isEmpty()) {
             context.send(eb.build());
             if (!msg.getEmbeds().isEmpty()) {
@@ -209,7 +200,13 @@ public class CytujCommand extends Command {
         } catch (Exception ignored) {/*lul*/}
         if (webhookManager.hasWebhook(context.getChannel())) {
             List<WebhookEmbed> embeds = new ArrayList<>();
-            embeds.add(WebhookEmbedBuilder.fromJDA(eb.build()).build());
+            //#region FIXME: wywalić jak https://github.com/MinnDevelopment/discord-webhooks/pull/14 zostanie wprowadzone
+            MessageEmbed emb = eb.build();
+            WebhookEmbedBuilder web = WebhookEmbedBuilder.fromJDA(eb.build());
+            if (emb.getImage() != null) web.setImageUrl(emb.getImage().getUrl());
+            embeds.add(web.build());
+            //#endregion
+            //skrócony kod: embeds.add(WebhookEmbedBuilder.fromJDA(eb.build()).build());
             if (!msg.getEmbeds().isEmpty()) {
                 for (int i = 0; i < msg.getEmbeds().size(); i++) {
                     MessageEmbed embed = msg.getEmbeds().get(i);
@@ -248,5 +245,14 @@ public class CytujCommand extends Command {
             context.send(msg.getEmbeds().get(0));
         }
         return true;
+    }
+
+    private boolean checkPerms(@NotNull CommandContext context, TextChannel tc) {
+        return tc != null && (tc.equals(context.getChannel()) || (
+                (tc.getGuild().equals(context.getGuild()) && // właściciel, jeśli poza serwerem
+                        UserUtil.getPermlevel(context.getMember(), guildDao, shardManager, PermLevel.OWNER)
+                                .getNum() >= PermLevel.ADMIN.getNum()) || // min. admin na serwerze
+                        (!tc.getGuild().equals(context.getGuild()) &&
+                                tc.getGuild().getOwnerId().equals(context.getSender().getId()))));
     }
 }
