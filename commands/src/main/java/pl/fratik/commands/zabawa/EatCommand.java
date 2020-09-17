@@ -50,6 +50,7 @@ public class EatCommand extends Command {
         permissions.add(Permission.MESSAGE_ATTACH_FILES);
         cooldown = 5;
         allowPermLevelChange = false;
+        allowInDMs = true;
     }
 
     @Override
@@ -70,7 +71,7 @@ public class EatCommand extends Command {
                 return false;
             }
             byte[] img = NetworkUtil.getBytesFromBufferArray(zdjecie.getJSONObject("image").getJSONArray("data"));
-            context.getChannel().sendFile(img, "eat.png").queue();
+            context.getMessageChannel().sendFile(img, "eat.png").queue();
         } catch (IOException | NullPointerException e) {
             context.send(context.getTranslated("image.server.fail"));
         }

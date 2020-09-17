@@ -48,6 +48,7 @@ public class KolorCommand extends Command {
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         permissions.add(Permission.MESSAGE_ATTACH_FILES);
         allowPermLevelChange = false;
+        allowInDMs = true;
     }
 
     @Override
@@ -107,7 +108,7 @@ public class KolorCommand extends Command {
             eb.addField("RGB", String.join(", ", rgb), true);
             eb.addField("Hex", "#" + asHex(color), true);
             if (getCssName(color) != null) eb.addField("CSS", getCssName(color), true);
-            context.getChannel().sendMessage(eb.build()).addFile(baos.toByteArray(), asHex(color) + ".png").queue();
+            context.getMessageChannel().sendMessage(eb.build()).addFile(baos.toByteArray(), asHex(color) + ".png").queue();
             baos.close();
         } catch (IOException e) {
             context.send(context.getTranslated("kolor.failed"));

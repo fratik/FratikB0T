@@ -68,7 +68,7 @@ public class NukepointsCommand extends Command {
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
-        Message msg = context.getChannel().sendMessage(context.getTranslated("nukepoints.warning")).complete();
+        Message msg = context.getTextChannel().sendMessage(context.getTranslated("nukepoints.warning")).complete();
         msg.addReaction(POTW).queue();
         msg.addReaction(ODRZ).queue();
         ReactionWaiter rw = new ReactionWaiter(eventWaiter, context) {

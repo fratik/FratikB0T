@@ -92,7 +92,7 @@ class LogManager {
                         e.getContext().getSender().getName(), e.getContext().getSender().getId()));
         });
         if (webhookGa == null) return;
-        if (UserUtil.isGadm(e.getContext().getMember(), shardManager)) {
+        if (UserUtil.isGadm(e.getContext().getSender(), shardManager)) {
             if (e.getContext().getGuild() == null) return;
             PermLevel pLevel = UserUtil.getPermlevel(e.getContext().getMember(), guildDao, shardManager,
                     PermLevel.OWNER);

@@ -117,7 +117,7 @@ public class WarnCommand extends ModerationCommand {
                     WarnUtil.countCases(caseRow, uzytkownik.getId())));
             if (!aCase.getFlagi().contains(Case.Flaga.SILENT)) context.send(context.getTranslated("warn.nomodlogs", context.getPrefix()));
             casesDao.save(caseRow);
-            WarnUtil.takeAction(guildDao, casesDao, uzytkownik, context.getChannel(), context.getLanguage(),
+            WarnUtil.takeAction(guildDao, casesDao, uzytkownik, context.getTextChannel(), context.getLanguage(),
                     context.getTlumaczenia(), managerKomend);
             return true;
         }
@@ -131,7 +131,7 @@ public class WarnCommand extends ModerationCommand {
         context.send(context.getTranslated("warn.success", UserUtil.formatDiscrim(uzytkownik),
                 WarnUtil.countCases(caseRow, uzytkownik.getId())));
         casesDao.save(caseRow);
-        WarnUtil.takeAction(guildDao, casesDao, uzytkownik, context.getChannel(), context.getLanguage(),
+        WarnUtil.takeAction(guildDao, casesDao, uzytkownik, context.getTextChannel(), context.getLanguage(),
                 context.getTlumaczenia(), managerKomend);
         return true;
     }

@@ -78,11 +78,16 @@ public class HelpCommand extends Command {
             List<Command> list = new ArrayList<>();
             for (String cmd : listRaw) {
                 Command command = managerKomend.getCommands().get(cmd);
-                PermLevel plvl = ManagerKomendImpl.getPermLevelOverride(command, gcCache.get(context.getGuild().getId(), guildDao::get));
-                if (plvl == null) plvl = command.getPermLevel();
-                if ((plvl.getNum() > UserUtil.getPermlevel(context.getMember(), guildDao, shardManager).getNum()) ||
+                PermLevel cmdPerm;
+                if (!context.isDirect()) cmdPerm = ManagerKomendImpl.getPermLevelOverride(command, gcCache.get(context.getGuild().getId(), guildDao::get));
+                else cmdPerm = null;
+                if (cmdPerm == null) cmdPerm = command.getPermLevel();
+                PermLevel userPerm;
+                if (!context.isDirect()) userPerm = UserUtil.getPermlevel(context.getMember(), guildDao, shardManager);
+                else userPerm = UserUtil.getPermlevel(context.getSender(), shardManager);
+                if ((cmdPerm.getNum() > userPerm.getNum()) ||
                         (!managerKomend.getCommands().get(cmd).isAllowInDMs() &&
-                                context.getChannel().getType() == ChannelType.PRIVATE)) continue;
+                                context.getMessageChannel().getType() == ChannelType.PRIVATE)) continue;
                 list.add(command);
             }
             kategorie.put(cc, list);

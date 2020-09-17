@@ -361,7 +361,7 @@ public class NowyManagerMuzykiSerwera implements ManagerMuzykiSerwera {
         public void onTrackStart(IPlayer player, AudioTrack track) {
             if (mms.repeatMode != RepeatMode.OFF) return;
             mms.announceChannel.sendMessage(new MessageBuilder(mms.tlumaczenia.get(mms.getAktualnaPiosenka().getRequesterLanguage(), "play.playing",
-                    mms.getAktualnaPiosenka().getAudioTrack().getInfo().title, mms.getAktualnaPiosenka().getRequester())).stripMentions(mms.guild).build()).queue();
+                    mms.getAktualnaPiosenka().getAudioTrack().getInfo().title, mms.getAktualnaPiosenka().getRequester())).build()).queue();
             try {
                 String muzycznyKanal = mms.guildDao.get(mms.guild).getKanalMuzyczny();
                 TextChannel ch = mms.guild.getTextChannelById(muzycznyKanal);

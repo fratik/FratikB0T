@@ -55,7 +55,7 @@ public class ServerinfoCommand extends Command {
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
-        CompletableFuture<Message> f = context.getChannel().sendMessage(context.getTranslated("generic.loading")).submit();
+        CompletableFuture<Message> f = context.getTextChannel().sendMessage(context.getTranslated("generic.loading")).submit();
         EmbedBuilder eb = new EmbedBuilder();
         eb.setTitle(context.getTranslated("serverinfo.name", context.getGuild().getName()));
         eb.addField(context.getTranslated("serverinfo.id"), context.getGuild().getId(), true);

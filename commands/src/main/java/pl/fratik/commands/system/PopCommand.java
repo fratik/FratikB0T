@@ -165,9 +165,9 @@ public class PopCommand extends Command {
             }
             Role role = context.getGuild().createRole().setColor(decode("#f11515"))
                     .setName(context.getTranslated("pop.role.name")).setMentionable(false).complete();
-            context.getChannel().createPermissionOverride(role)
+            context.getTextChannel().createPermissionOverride(role)
                     .setAllow(Permission.MESSAGE_WRITE, Permission.VIEW_CHANNEL).complete();
-            Invite invite = context.getChannel().createInvite().setMaxAge(86400).setMaxUses(5)
+            Invite invite = context.getTextChannel().createInvite().setMaxAge(86400).setMaxUses(5)
                     .reason(context.getTranslated("pop.invite.reason")).complete();
             //skonwertowane z js
             EmbedBuilder eb = new EmbedBuilder()

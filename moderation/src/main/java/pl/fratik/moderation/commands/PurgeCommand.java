@@ -63,8 +63,8 @@ public class PurgeCommand extends ModerationCommand { //TODO: 1000 wiadomosci dl
             context.send(context.getTranslated("purge.no.limit"));
             return false;
         }
-        Message message = context.getChannel().sendMessage(context.getTranslated("purge.retrieving")).complete();
-        CompletableFuture<MessageHistory> historia = context.getChannel().getHistoryBefore(context.getMessage(), ilosc).submit();
+        Message message = context.getTextChannel().sendMessage(context.getTranslated("purge.retrieving")).complete();
+        CompletableFuture<MessageHistory> historia = context.getTextChannel().getHistoryBefore(context.getMessage(), ilosc).submit();
         boolean staraWiadomosc = false;
         long dwaTygodnieTemu = (System.currentTimeMillis() - TimeUnit.DAYS.toMillis(14) - TimeUtil.DISCORD_EPOCH)
                 << TimeUtil.TIMESTAMP_OFFSET;
@@ -113,7 +113,7 @@ public class PurgeCommand extends ModerationCommand { //TODO: 1000 wiadomosci dl
             wiadomosciWszystkie.get(0).delete().queue();
             return true;
         }
-        context.getChannel().deleteMessages(wiadomosciWszystkie).queue();
+        context.getTextChannel().deleteMessages(wiadomosciWszystkie).queue();
         logListener.getZnaneAkcje().add(message.getId());
         message.delete().queueAfter(5, TimeUnit.SECONDS, null, i -> {});
         return true;

@@ -121,7 +121,7 @@ public class CytujCommand extends Command {
             String[] splitted = msgID.split("-");
             if (splitted.length == 1) {
                 try {
-                    kanal = context.getChannel();
+                    kanal = context.getTextChannel();
                     msg = kanal.retrieveMessageById(splitted[0]).complete();
                 } catch (IllegalArgumentException e) {
                     context.send(context.getTranslated("cytuj.invalid.id"));
@@ -190,7 +190,7 @@ public class CytujCommand extends Command {
         tresc = Pattern.compile("[(http(s)?)://(www\\.)?a-zA-Z0-9@:%._\\+~#=]{2,256}\\.[a-z]{2,6}\\b([-a-zA-Z0-9" +
                 "@:%_\\+.~#?&//=]*)", Pattern.CASE_INSENSITIVE | Pattern.DOTALL).matcher(tresc).replaceAll("[URL]");
         EnumSet<Message.MentionType> alments = MessageAction.getDefaultMentions();
-        if (context.getMember().hasPermission(context.getChannel(), Permission.MESSAGE_MENTION_EVERYONE)) {
+        if (context.getMember().hasPermission(context.getTextChannel(), Permission.MESSAGE_MENTION_EVERYONE)) {
             alments.add(Message.MentionType.EVERYONE);
             alments.add(Message.MentionType.HERE);
         }
@@ -198,7 +198,7 @@ public class CytujCommand extends Command {
             eventBus.post(new PluginMessageEvent("commands", "moderation", "znaneAkcje-add:" + context.getMessage().getId()));
             context.getMessage().delete().queue();
         } catch (Exception ignored) {/*lul*/}
-        if (webhookManager.hasWebhook(context.getChannel())) {
+        if (webhookManager.hasWebhook(context.getTextChannel())) {
             List<WebhookEmbed> embeds = new ArrayList<>();
             //#region FIXME: wywalić jak https://github.com/MinnDevelopment/discord-webhooks/pull/14 zostanie wprowadzone
             MessageEmbed emb = eb.build();
@@ -232,14 +232,14 @@ public class CytujCommand extends Command {
             }
             webhookManager.send(new WebhookMessageBuilder().setAvatarUrl(context.getSender().getEffectiveAvatarUrl())
                     .setUsername(context.getMember().getEffectiveName()).setContent(tresc).setAllowedMentions(allments)
-                    .addEmbeds(embeds).build(), context.getChannel());
+                    .addEmbeds(embeds).build(), context.getTextChannel());
             return true;
         } else {
             executor.submit(() -> {
-                webhookManager.getWebhook(context.getChannel()); //tworzenie webhooka, na przyszłość - póki co wyślij normalnie
+                webhookManager.getWebhook(context.getTextChannel()); //tworzenie webhooka, na przyszłość - póki co wyślij normalnie
             });
         }
-        context.getChannel().sendMessage(eb.build()).allowedMentions(alments)
+        context.getTextChannel().sendMessage(eb.build()).allowedMentions(alments)
                 .content("**" + UserUtil.formatDiscrim(context.getSender()) + "**: " + tresc).queue();
         if (!msg.getEmbeds().isEmpty()) {
             context.send(msg.getEmbeds().get(0));
@@ -248,7 +248,7 @@ public class CytujCommand extends Command {
     }
 
     private boolean checkPerms(@NotNull CommandContext context, TextChannel tc) {
-        return tc != null && (tc.equals(context.getChannel()) || (
+        return tc != null && (tc.equals(context.getTextChannel()) || (
                 (tc.getGuild().equals(context.getGuild()) && // właściciel, jeśli poza serwerem
                         UserUtil.getPermlevel(context.getMember(), guildDao, shardManager, PermLevel.OWNER)
                                 .getNum() >= PermLevel.ADMIN.getNum()) || // min. admin na serwerze

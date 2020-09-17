@@ -73,6 +73,7 @@ public class EvalCommand extends Command {
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         aliases = new String[] {"ev"};
         allowPermLevelChange = false;
+        allowInDMs = true;
     }
 
     @Override

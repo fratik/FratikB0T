@@ -51,17 +51,26 @@ public class CommandContext {
     @Getter private final String[] rawArgs;
     @Getter private final Object[] args;
     @Getter @Nullable private final PermLevel customPermLevel;
+    @Getter private final boolean direct;
 
     private static final Pattern URLPATTERN = Pattern.compile("(https?://(?:www\\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\\." +
             "[^\\s]{2,}|www\\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\\.[^\\s]{2,}|https?://(?:www\\.|(?!www))[a-zA-Z0-9]" +
             "\\.[^\\s]{2,}|www\\.[a-zA-Z0-9]\\.[^\\s]{2,})");
 
-    public CommandContext(ShardManager shardManager, Tlumaczenia tlumaczenia, Command command, MessageReceivedEvent event, String prefix, String label, @Nullable PermLevel customPermLevel) {
+    public CommandContext(ShardManager shardManager,
+                          Tlumaczenia tlumaczenia,
+                          Command command,
+                          MessageReceivedEvent event,
+                          String prefix,
+                          String label,
+                          @Nullable PermLevel customPermLevel,
+                          boolean direct) {
         this.shardManager = shardManager;
         this.tlumaczenia = tlumaczenia;
         this.command = command;
         this.prefix = prefix;
         this.customPermLevel = customPermLevel;
+        this.direct = direct;
         if (event.isFromGuild()) this.language = tlumaczenia.getLanguage(event.getMember());
         else this.language = tlumaczenia.getLanguage(event.getAuthor());
         this.event = event;
@@ -70,12 +79,21 @@ public class CommandContext {
         this.args = null;
     }
 
-    public CommandContext(ShardManager shardManager, Tlumaczenia tlumaczenia, Command command, MessageReceivedEvent event, String prefix, String label, String[] args, @Nullable PermLevel customPermLevel) throws ArgsMissingException {
+    public CommandContext(ShardManager shardManager,
+                          Tlumaczenia tlumaczenia,
+                          Command command,
+                          MessageReceivedEvent event,
+                          String prefix,
+                          String label,
+                          String[] args,
+                          @Nullable PermLevel customPermLevel,
+                          boolean direct) throws ArgsMissingException {
         this.shardManager = shardManager;
         this.tlumaczenia = tlumaczenia;
         this.command = command;
         this.prefix = prefix;
         this.customPermLevel = customPermLevel;
+        this.direct = direct;
         if (event.isFromGuild()) this.language = tlumaczenia.getLanguage(event.getMember());
         else this.language = tlumaczenia.getLanguage(event.getAuthor());
         this.event = event;
@@ -96,7 +114,16 @@ public class CommandContext {
         return event.getMember();
     }
 
+    @Deprecated
     public TextChannel getChannel() {
+        return getTextChannel();
+    }
+
+    public MessageChannel getMessageChannel() {
+        return event.getChannel();
+    }
+
+    public TextChannel getTextChannel() {
         return event.getTextChannel();
     }
 

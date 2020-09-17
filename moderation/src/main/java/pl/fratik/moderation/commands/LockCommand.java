@@ -59,10 +59,10 @@ public class LockCommand extends ModerationCommand {
             context.send(context.getTranslated("lock.no.adminrole", managerKomend.getPrefixes(context.getGuild()).get(0)));
             return false;
         }
-        PermissionOverrideAction overrides = context.getChannel().upsertPermissionOverride(context.getGuild().getPublicRole());
+        PermissionOverrideAction overrides = context.getTextChannel().upsertPermissionOverride(context.getGuild().getPublicRole());
         if (overrides.getDeniedPermissions().contains(Permission.MESSAGE_WRITE)) {
-            PermissionOverrideAction publicOverrides = context.getChannel().upsertPermissionOverride(context.getGuild().getPublicRole());
-            PermissionOverrideAction adminOverrides = context.getChannel().upsertPermissionOverride(adminRole);
+            PermissionOverrideAction publicOverrides = context.getTextChannel().upsertPermissionOverride(context.getGuild().getPublicRole());
+            PermissionOverrideAction adminOverrides = context.getTextChannel().upsertPermissionOverride(adminRole);
             List<Permission> publicDeny = Lists.newArrayList(publicOverrides.getDeniedPermissions());
             List<Permission> adminAllow = Lists.newArrayList(adminOverrides.getAllowedPermissions());
             publicDeny.remove(Permission.MESSAGE_WRITE);
@@ -77,8 +77,8 @@ public class LockCommand extends ModerationCommand {
                 context.send(context.getTranslated("lock.unlock.fail"));
             }
         } else {
-            PermissionOverrideAction publicOverrides = context.getChannel().putPermissionOverride(context.getGuild().getPublicRole());
-            PermissionOverrideAction adminOverrides = context.getChannel().putPermissionOverride(adminRole);
+            PermissionOverrideAction publicOverrides = context.getTextChannel().putPermissionOverride(context.getGuild().getPublicRole());
+            PermissionOverrideAction adminOverrides = context.getTextChannel().putPermissionOverride(adminRole);
             List<Permission> publicDeny = Lists.newArrayList(publicOverrides.getDeniedPermissions());
             List<Permission> adminAllow = Lists.newArrayList(adminOverrides.getAllowedPermissions());
             publicDeny.add(Permission.MESSAGE_WRITE);

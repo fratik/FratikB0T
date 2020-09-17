@@ -47,6 +47,7 @@ public class LoadCommand extends Command {
         uzycie = new Uzycie("modul", "string");
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         allowPermLevelChange = false;
+        allowInDMs = true;
     }
 
     @Override
@@ -58,7 +59,7 @@ public class LoadCommand extends Command {
         String pytajnik = "\u2753";
         eb.appendDescription(pytajnik + SPSC + "\n");
         eb.appendDescription(pytajnik + WCZ + "\n");
-        Message msg = context.getChannel().sendMessage(eb.build()).complete();
+        Message msg = context.getMessageChannel().sendMessage(eb.build()).complete();
         File path = new File((String) context.getArgs()[0]);
         if (!path.exists()) {
             eb.setDescription(eb.getDescriptionBuilder().toString().replace(pytajnik +  SPSC,

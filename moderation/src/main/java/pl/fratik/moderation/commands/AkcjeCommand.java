@@ -182,7 +182,7 @@ public class AkcjeCommand extends ModerationCommand {
             context.send(context.getTranslated("akcje.reset.perms"));
             return false;
         }
-        Message msg = context.getChannel().sendMessage(context.getTranslated("akcje.reset.confirmation")).complete();
+        Message msg = context.send(context.getTranslated("akcje.reset.confirmation"));
         msg.addReaction("\u2705").completeAfter(5, TimeUnit.SECONDS);
         msg.addReaction("\u274c").queue();
         ReactionWaiter waiter = new ReactionWaiter(eventWaiter, context) {

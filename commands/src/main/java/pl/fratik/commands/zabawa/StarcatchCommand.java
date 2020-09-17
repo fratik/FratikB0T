@@ -43,6 +43,7 @@ public class StarcatchCommand extends Command {
         cooldown = 5;
         aliases = new String[] {"photocatch"};
         allowPermLevelChange = false;
+        allowInDMs = true;
     }
 
     @Override
@@ -63,7 +64,7 @@ public class StarcatchCommand extends Command {
                 return false;
             }
             byte[] img = NetworkUtil.getBytesFromBufferArray(zdjecie.getJSONObject("image").getJSONArray("data"));
-            context.getChannel().sendFile(img, "starcatch.png").queue();
+            context.getMessageChannel().sendFile(img, "starcatch.png").queue();
         } catch (IOException | NullPointerException e) {
             context.send(context.getTranslated("image.server.fail"));
         }

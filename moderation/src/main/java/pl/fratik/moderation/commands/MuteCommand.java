@@ -133,7 +133,7 @@ public class MuteCommand extends ModerationCommand {
     }
 
     private Role createMuteRole(CommandContext context, GuildConfig gc) {
-        Message msg = context.getChannel().sendMessage(context.getTranslated("mute.no.mute.role")).complete();
+        Message msg = context.getTextChannel().sendMessage(context.getTranslated("mute.no.mute.role")).complete();
         try {
             Role rola = context.getGuild().createRole().setName("Wyciszony").complete();
             context.getGuild().modifyRolePositions(true).selectPosition(rola)

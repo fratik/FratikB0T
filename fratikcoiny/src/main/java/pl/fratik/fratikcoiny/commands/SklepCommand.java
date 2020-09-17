@@ -93,20 +93,20 @@ public class SklepCommand extends Command {
         if (context.getMember().getRoles().contains(rola)) {
             EmbedBuilder eb = generateEmbed(Typ.KUPOWANIE, rola, gc.getRoleDoKupieniaOpisy().get(rola.getId()),
                     kasa, mc.getFratikCoiny(), true, context.getTlumaczenia(), context.getLanguage());
-            context.getChannel().sendMessage(eb.build()).complete();
+            context.getTextChannel().sendMessage(eb.build()).complete();
             context.send(context.getTranslated("sklep.kup.hasrole"));
             return false;
         }
         if (mc.getFratikCoiny() < gc.getRoleDoKupienia().get(rola.getId())) {
             EmbedBuilder eb = generateEmbed(Typ.KUPOWANIE, rola, gc.getRoleDoKupieniaOpisy().get(rola.getId()),
                     kasa, mc.getFratikCoiny(), false, context.getTlumaczenia(), context.getLanguage());
-            context.getChannel().sendMessage(eb.build()).complete();
+            context.getTextChannel().sendMessage(eb.build()).complete();
             context.send(context.getTranslated("sklep.kup.brakhajsu"));
             return false;
         }
         EmbedBuilder eb = generateEmbed(Typ.KUPOWANIE, rola, gc.getRoleDoKupieniaOpisy().get(rola.getId()),
                 kasa, mc.getFratikCoiny(), false, context.getTlumaczenia(), context.getLanguage());
-        Message msgTmp = context.getChannel().sendMessage(eb.build()).complete();
+        Message msgTmp = context.getTextChannel().sendMessage(eb.build()).complete();
         msgTmp.addReaction(Objects.requireNonNull(shardManager.getEmoteById(Ustawienia.instance.emotki.greenTick))).complete();
         msgTmp.addReaction(Objects.requireNonNull(shardManager.getEmoteById(Ustawienia.instance.emotki.redTick))).complete();
         ReactionWaiter rw = new ReactionWaiter(eventWaiter, context);
@@ -161,13 +161,13 @@ public class SklepCommand extends Command {
         if (!context.getMember().getRoles().contains(rola)) {
             EmbedBuilder eb = generateEmbed(Typ.SPRZEDAZ, rola, gc.getRoleDoKupieniaOpisy().get(rola.getId()),
                     kasa, mc.getFratikCoiny(), false, context.getTlumaczenia(), context.getLanguage());
-            context.getChannel().sendMessage(eb.build()).complete();
+            context.getTextChannel().sendMessage(eb.build()).complete();
             context.send(context.getTranslated("sklep.sprzedaj.hasrole"));
             return false;
         }
         EmbedBuilder eb = generateEmbed(Typ.SPRZEDAZ, rola, gc.getRoleDoKupieniaOpisy().get(rola.getId()),
                 kasa, mc.getFratikCoiny(), true, context.getTlumaczenia(), context.getLanguage());
-        Message msgTmp = context.getChannel().sendMessage(eb.build()).complete();
+        Message msgTmp = context.getTextChannel().sendMessage(eb.build()).complete();
         msgTmp.addReaction(Objects.requireNonNull(shardManager.getEmoteById(Ustawienia.instance.emotki.greenTick))).complete();
         msgTmp.addReaction(Objects.requireNonNull(shardManager.getEmoteById(Ustawienia.instance.emotki.redTick))).complete();
         ReactionWaiter rw = new ReactionWaiter(eventWaiter, context);
@@ -201,7 +201,7 @@ public class SklepCommand extends Command {
 
     @SubCommand(name="lista",aliases={"list"})
     public boolean lista(CommandContext context) {
-        Message wiadomosc = context.getChannel().sendMessage(context.getTranslated("generic.loading")).complete();
+        Message wiadomosc = context.getTextChannel().sendMessage(context.getTranslated("generic.loading")).complete();
         GuildConfig gc = guildDao.get(context.getGuild());
         MemberConfig mc = memberDao.get(context.getMember());
         List<EmbedBuilder> strony = new ArrayList<>();
@@ -253,12 +253,12 @@ public class SklepCommand extends Command {
         if (!context.getMember().getRoles().get(0).canInteract(rola)) {
             EmbedBuilder eb = generateEmbed(Typ.DODAWANIE, rola, opis, kasa, 0, true,
                     context.getTlumaczenia(), context.getLanguage());
-            context.getChannel().sendMessage(eb.build()).complete();
+            context.getTextChannel().sendMessage(eb.build()).complete();
             context.send(context.getTranslated("sklep.ustaw.noperms"));
         }
         EmbedBuilder eb = generateEmbed(Typ.DODAWANIE, rola, opis, kasa, 0, false,
                 context.getTlumaczenia(), context.getLanguage());
-        Message msgTmp = context.getChannel().sendMessage(eb.build()).complete();
+        Message msgTmp = context.getTextChannel().sendMessage(eb.build()).complete();
         msgTmp.addReaction(Objects.requireNonNull(shardManager.getEmoteById(Ustawienia.instance.emotki.greenTick))).complete();
         msgTmp.addReaction(Objects.requireNonNull(shardManager.getEmoteById(Ustawienia.instance.emotki.redTick))).complete();
         ReactionWaiter rw = new ReactionWaiter(eventWaiter, context);
@@ -311,13 +311,13 @@ public class SklepCommand extends Command {
             EmbedBuilder eb = generateEmbed(Typ.USUWANIE, rola, gc.getRoleDoKupieniaOpisy().get(rola.getId()),
                     gc.getRoleDoKupienia().get(rola.getId()), 0, true,
                     context.getTlumaczenia(), context.getLanguage());
-            context.getChannel().sendMessage(eb.build()).complete();
+            context.getTextChannel().sendMessage(eb.build()).complete();
             context.send(context.getTranslated("sklep.usun.noperms"));
         }
         EmbedBuilder eb = generateEmbed(Typ.USUWANIE, rola, gc.getRoleDoKupieniaOpisy().get(rola.getId()),
                 gc.getRoleDoKupienia().get(rola.getId()), 0, false,
                 context.getTlumaczenia(), context.getLanguage());
-        Message msgTmp = context.getChannel().sendMessage(eb.build()).complete();
+        Message msgTmp = context.getTextChannel().sendMessage(eb.build()).complete();
         msgTmp.addReaction(Objects.requireNonNull(shardManager.getEmoteById(Ustawienia.instance.emotki.greenTick))).complete();
         msgTmp.addReaction(Objects.requireNonNull(shardManager.getEmoteById(Ustawienia.instance.emotki.redTick))).complete();
         ReactionWaiter rw = new ReactionWaiter(eventWaiter, context);

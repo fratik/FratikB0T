@@ -63,7 +63,7 @@ public class RolementionCommand extends ModerationCommand {
         }
         context.getMessage().delete().queue();
 
-        MessageAction msg = context.getChannel().sendMessage(rola.getAsMention()).mentionRoles(rola.getIdLong());
+        MessageAction msg = context.getTextChannel().sendMessage(rola.getAsMention()).mentionRoles(rola.getIdLong());
 
         if (tekst != null) {
             EmbedBuilder eb = new EmbedBuilder();

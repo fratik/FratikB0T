@@ -107,7 +107,7 @@ public class ZglosPrivCommand extends Command {
             context.send(context.getTranslated("zglospriv.reported.answered"));
             return false;
         }
-        Message msg = context.getChannel().sendMessage(context.getTranslated("zglospriv.confirmation")).complete();
+        Message msg = context.getMessageChannel().sendMessage(context.getTranslated("zglospriv.confirmation")).complete();
         msg.addReaction(POTW).queue();
         msg.addReaction(ODRZ).queue();
         ReactionWaiter waiter = new ReactionWaiter(eventWaiter, context) {

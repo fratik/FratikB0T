@@ -54,18 +54,19 @@ public class UserinfoCommand extends Command {
         uzycie = new Uzycie("osoba", "user");
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         allowPermLevelChange = false;
+        allowInDMs = true;
     }
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
-        CompletableFuture<Message> f = context.getChannel().sendMessage(context.getTranslated("generic.loading")).submit();
+        CompletableFuture<Message> f = context.getMessageChannel().sendMessage(context.getTranslated("generic.loading")).submit();
         User osoba = null;
         Member member;
         if (context.getArgs().length != 0) osoba = (User) context.getArgs()[0];
         if (osoba == null) osoba = context.getSender();
         try {
             member = context.getGuild().retrieveMember(osoba).complete();
-        } catch (ErrorResponseException e) {
+        } catch (NullPointerException | ErrorResponseException e) {
             member = null;
         }
         EmbedBuilder eb = new EmbedBuilder();
@@ -75,10 +76,12 @@ public class UserinfoCommand extends Command {
         sdf.setTimeZone(UserUtil.getTimeZone(context.getSender(), userDao));
         eb.addField(context.getTranslated("userinfo.created"),
                 sdf.format(new Date(osoba.getTimeCreated().toInstant().toEpochMilli())), true);
-        if (member != null) eb.addField(context.getTranslated("userinfo.joinedat"),
-                sdf.format(new Date(member.getTimeJoined().toInstant().toEpochMilli())), true);
-        else eb.addField(context.getTranslated("userinfo.joinedat"),
-                context.getTranslated("userinfo.joinedat.nodata"), true);
+        if (!context.isDirect()) {
+            if (member != null) eb.addField(context.getTranslated("userinfo.joinedat"),
+                    sdf.format(new Date(member.getTimeJoined().toInstant().toEpochMilli())), true);
+            else eb.addField(context.getTranslated("userinfo.joinedat"),
+                    context.getTranslated("userinfo.joinedat.nodata"), true);
+        }
         PluginMessageEvent event = new PluginMessageEvent("commands", "punkty", "punktyDao-getPunkty:"
                 + osoba.getId());
         PluginMessageEvent event2 = new PluginMessageEvent("commands", "punkty",

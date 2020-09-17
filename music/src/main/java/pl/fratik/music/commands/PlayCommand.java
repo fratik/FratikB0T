@@ -95,7 +95,7 @@ public class PlayCommand extends MusicCommand {
             identifier = (String) context.getArgs()[0];
         }
         if (!mms.isConnected()) {
-            mms.setAnnounceChannel(context.getChannel());
+            mms.setAnnounceChannel(context.getTextChannel());
             mms.connect(kanal);
         }
         if (!mms.isConnected()) return false;
@@ -114,7 +114,7 @@ public class PlayCommand extends MusicCommand {
                 context.send(context.getTranslated("play.queued.playlist", audioTrackList.size()));
             }
             if (!mms.isPlaying()) mms.play();
-            else context.getChannel().sendMessage(context.getTranslated("play.queued",
+            else context.getTextChannel().sendMessage(context.getTranslated("play.queued",
                     audioTrackList.get(0).getInfo().title)).queue();
         });
         return true;

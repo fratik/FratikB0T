@@ -82,7 +82,7 @@ public class DegradCommand extends Command {
             logger.warn("Zdjęcie z degradem nie znalezione!");
             zdjecie = null;
         }
-        MessageAction maction = context.getChannel()
+        MessageAction maction = context.getTextChannel()
                 .sendMessage(context.getTranslated("degrad.inprogress", UserUtil.formatDiscrim(czlonek)));
         if (zdjecie != null) maction = maction.addFile(zdjecie, "degrad.jpg");
         maction.queue(msg -> czlonek.getGuild()

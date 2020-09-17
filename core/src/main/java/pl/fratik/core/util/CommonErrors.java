@@ -75,7 +75,8 @@ public class CommonErrors {
     }
 
     public static void usage(CommandContext context) {
-        usage(context.getBaseEmbed(null), context.getTlumaczenia(), context.getLanguage(), context.getPrefix(), context.getCommand(), context.getChannel(), context.getCustomPermLevel());
+        usage(context.getBaseEmbed(null), context.getTlumaczenia(), context.getLanguage(), context.getPrefix(),
+                context.getCommand(), context.getMessageChannel(), context.getCustomPermLevel());
     }
 
     public static void usage(EmbedBuilder baseEmbed, Tlumaczenia tlumaczenia, Language language, String prefix,

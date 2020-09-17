@@ -262,10 +262,10 @@ public class ManagerKomendImpl implements ManagerKomend {
                     logger.debug("Serwer {} jest na ratelimicie!", event.getGuild());
                     return;
                 }
+                Language l = !direct ? tlumaczenia.getLanguage(event.getMember()) : tlumaczenia.getLanguage(event.getAuthor());
 
                 int cooldown = isOnCooldown(event.getAuthor(), c);
                 if (cooldown > 0) {
-                    Language l = tlumaczenia.getLanguage(event.getMember());
                     event.getChannel().sendMessage(tlumaczenia.get(l, "generic.cooldown", String.valueOf(cooldown)))
                             .queue();
                     return;
@@ -289,7 +289,6 @@ public class ManagerKomendImpl implements ManagerKomend {
                 }
                 final PermLevel permLevel = customPlvl == null ? c.getPermLevel() : customPlvl;
                 if (permLevel.getNum() > plvl.getNum()) {
-                    Language l = !direct ? tlumaczenia.getLanguage(event.getMember()) : tlumaczenia.getLanguage(event.getAuthor());
                     event.getChannel().sendMessage(tlumaczenia.get(l, "generic.permlevel.too.small",
                             plvl.getNum(), permLevel.getNum())).queue();
                     return;
@@ -303,14 +302,14 @@ public class ManagerKomendImpl implements ManagerKomend {
                         Collections.singletonList(String.join(" ", argsNotDelimed)).toArray(new String[]{});
                 CommandContext context;
                 try {
-                    context = new CommandContext(shardManager, tlumaczenia, c, event, prefix, parts[0], args, customPlvl);
+                    context = new CommandContext(shardManager, tlumaczenia, c, event, prefix, parts[0], args, customPlvl, direct);
                 } catch (ArgsMissingException e) {
                     EmbedBuilder eb = new EmbedBuilder()
                             .setColor(Color.decode("#bef7c3"))
                             .setFooter("© " + event.getJDA().getSelfUser().getName(),
                                     event.getJDA().getSelfUser().getEffectiveAvatarUrl()
                                             .replace(".webp", ".png"));
-                    CommonErrors.usage(eb, tlumaczenia, tlumaczenia.getLanguage(event.getMember()), prefix, c, event.getChannel(), customPlvl);
+                    CommonErrors.usage(eb, tlumaczenia, l, prefix, c, event.getChannel(), customPlvl);
                     return;
                 }
 
@@ -351,7 +350,7 @@ public class ManagerKomendImpl implements ManagerKomend {
                     Thread.currentThread().setName(context.getCommand().getName() + "-" + context.getSender().getId() + "-" +
                             (context.getGuild() != null ? context.getGuild().getId() : "direct"));
                     logger.info("Użytkownik " + StringUtil.formatDiscrim(event.getAuthor()) + "(" +
-                            event.getAuthor().getId() + ") " + (direct ? "na serwerze " + event.getGuild().getName() + "(" +
+                            event.getAuthor().getId() + ") " + (!direct ? "na serwerze " + event.getGuild().getName() + "(" +
                             event.getGuild().getId() + ") " : "") + "wykonał komendę " + c.getName() +
                             " (" + String.join(" ", args) + ")");
                     long millis = System.currentTimeMillis();

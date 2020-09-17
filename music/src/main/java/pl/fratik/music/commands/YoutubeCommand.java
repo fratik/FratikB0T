@@ -81,7 +81,7 @@ public class YoutubeCommand extends MusicCommand {
         SearchManager.SearchResult result = searchManager.searchYouTube((String) context.getArgs()[0]);
         Wiadomosc odp = generateResultMessage(result.getEntries(), context.getTranslated("youtube.message.header", (String) context.getArgs()[0]), false);
         int liczba = odp.liczba;
-        Message m = context.getChannel().sendMessage(odp.tresc).complete();
+        Message m = context.getTextChannel().sendMessage(odp.tresc).complete();
         MessageWaiter waiter = new MessageWaiter(eventWaiter, context);
         AtomicBoolean deleted = new AtomicBoolean(false);
         AtomicReference<Boolean> udaloSie = new AtomicReference<>();
@@ -121,7 +121,7 @@ public class YoutubeCommand extends MusicCommand {
                     return;
                 }
                 if (!mms.isConnected()) {
-                    mms.setAnnounceChannel(context.getChannel());
+                    mms.setAnnounceChannel(context.getTextChannel());
                     mms.connect(finalKanal);
                 }
                 if (!mms.isConnected()) {
@@ -135,10 +135,10 @@ public class YoutubeCommand extends MusicCommand {
                 }
                 if (added.size() == 1) {
                     if (!mms.isPlaying()) mms.play();
-                    else context.getChannel().sendMessage(context.getTranslated("play.queued",
+                    else context.getTextChannel().sendMessage(context.getTranslated("play.queued",
                             added.get(0).getInfo().title)).queue();
                 } else {
-                    context.getChannel().sendMessage(context.getTranslated("play.queued.multiple",
+                    context.getTextChannel().sendMessage(context.getTranslated("play.queued.multiple",
                             added.size())).queue();
                     if (!mms.isPlaying()) mms.play();
                 }

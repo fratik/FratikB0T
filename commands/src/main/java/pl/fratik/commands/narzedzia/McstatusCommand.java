@@ -27,7 +27,6 @@ import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.entities.MessageEmbed;
-import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.requests.restaction.MessageAction;
 import net.dv8tion.jda.api.utils.AttachmentOption;
 import net.dv8tion.jda.internal.requests.Route;
@@ -70,6 +69,7 @@ public class McstatusCommand extends Command {
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         cooldown = 13;
         allowPermLevelChange = false;
+        allowInDMs = true;
     }
 
     private static final Pattern DOMAIN_PATTERN = Pattern.compile("((?:www\\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]*" +
@@ -101,7 +101,7 @@ public class McstatusCommand extends Command {
                     }
                     eb.addField(context.getTranslated("mcstatus.embed.ip"), ip + ":" + port, false);
                     eb.setFooter(ms.getLatency() + " ms", null);
-                    TextChannel ch = context.getChannel();
+                    MessageChannel ch = context.getMessageChannel();
                     Route.CompiledRoute route = Route.Messages.SEND_MESSAGE.compile(ch.getId());
                     return new MesydzAkszyn("ten gorszy", ch.getJDA(), route, ch).embed(eb.build());
                 } catch (Exception e) {
@@ -134,7 +134,7 @@ public class McstatusCommand extends Command {
                     eb.addField(context.getTranslated("mcstatus.embed.motd"), formatMotd(resp.getDescription()), false);
                     eb.addField(context.getTranslated("mcstatus.embed.ip"), ip + ":" + port, false);
                     eb.setFooter(resp.getTime() + " ms", null);
-                    TextChannel ch = context.getChannel();
+                    MessageChannel ch = context.getMessageChannel();
                     Route.CompiledRoute route = Route.Messages.SEND_MESSAGE.compile(ch.getId());
                     MesydzAkszyn ma = new MesydzAkszyn("ten lepszy", ch.getJDA(), route, ch);
                     eb.setThumbnail("https://eu.mc-api.net/v3/server/favicon/" + ip + ":" + port);

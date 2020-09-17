@@ -38,7 +38,7 @@ public class ArgumentContext {
         this.event = event;
         this.arg = arg;
         this.tlumaczenia = tlumaczenia;
-        this.language = tlumaczenia.getLanguage(event.getMember());
+        this.language = !event.isFromGuild() ? tlumaczenia.getLanguage(event.getAuthor()) : tlumaczenia.getLanguage(event.getMember());
         this.guild = guild;
     }
 

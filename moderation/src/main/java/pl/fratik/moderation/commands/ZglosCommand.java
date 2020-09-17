@@ -96,11 +96,11 @@ public class ZglosCommand extends ModerationCommand {
                     UserUtil.formatDiscrim(uzytkownik), uzytkownik.getUser().getId(),
                     context.getPrefix(), uzytkownik.getUser().getId())).complete();
         } catch (Exception e) {
-            context.getChannel().sendMessage(context.getTranslated("zglos.failure"))
+            context.getTextChannel().sendMessage(context.getTranslated("zglos.failure"))
                     .queueAfter(5, TimeUnit.SECONDS);
             return false;
         }
-        context.getChannel().sendMessage(context.getTranslated("zglos.confirmation"))
+        context.getTextChannel().sendMessage(context.getTranslated("zglos.confirmation"))
                 .queueAfter(5, TimeUnit.SECONDS);
         return true;
     }

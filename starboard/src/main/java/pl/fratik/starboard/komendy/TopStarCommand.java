@@ -65,7 +65,7 @@ public class TopStarCommand extends Command {
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
-        Future<Message> msgFuture = context.getChannel().sendMessage(context.getTranslated("generic.loading")).submit();
+        Future<Message> msgFuture = context.getTextChannel().sendMessage(context.getTranslated("generic.loading")).submit();
         StarsData std = starDataDao.get(context.getGuild());
         Map<String, Integer> stars = new HashMap<>();
         for (StarData sd : std.getStarData().values()) {

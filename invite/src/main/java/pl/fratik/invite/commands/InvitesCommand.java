@@ -163,7 +163,7 @@ public class InvitesCommand extends AbstractInvitesCommand {
             return false;
         }
         if (pages.size() == 1) context.send(pages.get(0).build());
-        else new ClassicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(), context.getTlumaczenia(), eventBus).create(context.getChannel());
+        else new ClassicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(), context.getTlumaczenia(), eventBus).create(context.getTextChannel());
         return true;
     }
 

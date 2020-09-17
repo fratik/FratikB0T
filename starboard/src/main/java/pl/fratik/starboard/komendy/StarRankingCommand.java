@@ -61,7 +61,7 @@ public class StarRankingCommand extends Command {
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
-        Message msg = context.getChannel().sendMessage(context.getTranslated("generic.loading")).complete();
+        Message msg = context.getTextChannel().sendMessage(context.getTranslated("generic.loading")).complete();
         List<FutureTask<EmbedBuilder>> pages = new LinkedList<>();
         StarsData std = starDataDao.get(context.getGuild());
         if (std.getStarboardChannel() == null || std.getStarboardChannel().isEmpty()) {

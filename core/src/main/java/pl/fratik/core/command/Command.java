@@ -75,7 +75,7 @@ public abstract class Command {
     }
 
     public boolean preExecute(CommandContext context) {
-        if (!context.getGuild().getSelfMember().hasPermission(context.getChannel(), Permission.MESSAGE_WRITE))
+        if (!context.isDirect() && !context.getTextChannel().canTalk())
             return false;
 
         if (context.getRawArgs().length != 0) {
@@ -91,11 +91,12 @@ public abstract class Command {
                     if (m.getAnnotation(SubCommand.class).emptyUsage()) {
                         return (Boolean) m.invoke(this, new CommandContext(context.getShardManager(),
                                 context.getTlumaczenia(), this, context.getEvent(),
-                                context.getPrefix(), context.getLabel(), null));
+                                context.getPrefix(), context.getLabel(), null, context.isDirect()));
                     } else {
                         return (Boolean) m.invoke(this, new CommandContext(context.getShardManager(),
                                 context.getTlumaczenia(), this, context.getEvent(),
-                                context.getPrefix(), context.getLabel(), argsListTmp.toArray(new String[0]), null));
+                                context.getPrefix(), context.getLabel(), argsListTmp.toArray(new String[0]),
+                                null, context.isDirect()));
                     }
                 } catch (ArgsMissingException e) {
                     CommonErrors.usage(context);
@@ -122,7 +123,7 @@ public abstract class Command {
             }
         }
 
-        if (!context.getGuild().getSelfMember().hasPermission(context.getChannel(), permissions)) {
+        if (!context.isDirect() && !context.getGuild().getSelfMember().hasPermission(context.getTextChannel(), permissions)) {
             context.send(context.getTranslated("generic.no.botpermission", permissions.stream().map((Permission::getName)).collect(Collectors.joining(", "))));
             return false;
         }

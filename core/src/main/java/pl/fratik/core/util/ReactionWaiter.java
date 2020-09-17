@@ -44,7 +44,7 @@ public class ReactionWaiter {
     }
 
     protected boolean checkReaction(MessageReactionAddEvent event) {
-        return event.isFromType(ChannelType.TEXT) && event.getTextChannel().equals(context.getChannel())
+        return event.isFromType(ChannelType.TEXT) && event.getTextChannel().equals(context.getTextChannel())
                 && event.getUser().equals(context.getSender());
     }
 

@@ -37,6 +37,7 @@ public class SelfieCommand extends Command {
         aliases = new String[] {"ryjfratika"};
         permissions.add(Permission.MESSAGE_ATTACH_FILES);
         allowPermLevelChange = false;
+        allowInDMs = true;
     }
 
     @SubCommand(name="pc")
@@ -56,7 +57,7 @@ public class SelfieCommand extends Command {
                 return false;
             }
             if (res.body() == null) throw new IOException();
-            context.getChannel().sendFile(res.body().bytes(), "ryjfratika.jpg").queue();
+            context.getMessageChannel().sendFile(res.body().bytes(), "ryjfratika.jpg").queue();
             return true;
         } catch (IOException e) {
             context.send(context.getTranslated("image.server.fail"));
@@ -81,7 +82,7 @@ public class SelfieCommand extends Command {
                 return false;
             }
             if (res.body() == null) throw new IOException();
-            context.getChannel().sendFile(res.body().bytes(), "ryjfratika.jpg").queue();
+            context.getMessageChannel().sendFile(res.body().bytes(), "ryjfratika.jpg").queue();
             return true;
         } catch (IOException e) {
             context.send(context.getTranslated("image.server.fail"));

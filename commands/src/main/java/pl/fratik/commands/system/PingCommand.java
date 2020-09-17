@@ -33,11 +33,12 @@ public class PingCommand extends Command {
         category = CommandCategory.BASIC;
         permLevel = PermLevel.EVERYONE;
         allowPermLevelChange = false;
+        allowInDMs = true;
     }
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
-        Message message = context.getChannel().sendMessage(context.getTranslated("ping.pinging")).complete();
+        Message message = context.getMessageChannel().sendMessage(context.getTranslated("ping.pinging")).complete();
         long ping = context.getEvent().getMessage().getTimeCreated().until(message.getTimeCreated(), ChronoUnit.MILLIS);
         message.editMessage(context.getTranslated("ping.delay", ping, context.getMessage().getJDA().getGatewayPing())).complete();
         return true;

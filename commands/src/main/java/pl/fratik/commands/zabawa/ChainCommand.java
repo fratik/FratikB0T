@@ -47,6 +47,7 @@ public class ChainCommand extends Command {
         cooldown = 5;
         aliases = new String[] {"lozeczko"};
         allowPermLevelChange = false;
+        allowInDMs = true;
     }
 
     @Override
@@ -74,7 +75,7 @@ public class ChainCommand extends Command {
                 return false;
             }
             byte[] img = NetworkUtil.getBytesFromBufferArray(zdjecie.getJSONObject("image").getJSONArray("data"));
-            context.getChannel().sendFile(img, "chain.png").queue();
+            context.getMessageChannel().sendFile(img, "chain.png").queue();
         } catch (IOException | NullPointerException e) {
             context.send(context.getTranslated("image.server.fail"));
         }
