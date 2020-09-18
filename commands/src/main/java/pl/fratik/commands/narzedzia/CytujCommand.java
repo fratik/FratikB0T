@@ -77,7 +77,7 @@ public class CytujCommand extends Command {
             Pattern.compile(String.format("^https?://((ptb|canary)?\\.?(discordapp|discord)\\.com)" +
                     "/channels/(%s)/(%s)/(%s)/?$", ID_REGEX, ID_REGEX, ID_REGEX));
 
-    private static final Pattern CYTUJ_PATTERN_1 = Pattern.compile(String.format("Replying to( (<@!?%s>) from)? %s",
+    private static final Pattern CYTUJ_PATTERN_1 = Pattern.compile(String.format("^Replying to( (<@!?%s>) from)? %s",
             ID_REGEX, MESSAGE_LINK_PATTERN.toString().substring(1, MESSAGE_LINK_PATTERN.toString().length() - 1)));
     private static final Pattern CYTUJ_PATTERN_2 = Pattern.compile("^> (.*?)$", Pattern.MULTILINE);
 
@@ -116,9 +116,7 @@ public class CytujCommand extends Command {
         executor.shutdown();
         try {
             eventBus.unregister(this);
-        } catch (Exception e) {
-            // nic
-        }
+        } catch (IllegalArgumentException ignored) {}
     }
 
     @Subscribe
@@ -153,7 +151,7 @@ public class CytujCommand extends Command {
             if (lista == null) lista = Collections.emptyList();
             Collections.reverse(lista);
             for (LogMessage m : lista) {
-                if (m.getTimeCreated().isBefore(OffsetDateTime.now().minusMinutes(5))) continue;
+                if (m == null || m.getTimeCreated().isBefore(OffsetDateTime.now().minusMinutes(5))) continue;
                 if (m.getContentRaw().equals(msgCnt.toString())) {
                     try {
                         if (hits == 0) {
@@ -167,7 +165,7 @@ public class CytujCommand extends Command {
                 }
             }
         }
-        if (msg == null || cnt == null) return;
+        if (msg == null) return;
         try {
             sendCytujMessage(msg, tlumaczenia, tlumaczenia.getLanguage(e.getMember()), e.getTextChannel(), cnt,
                     Objects.requireNonNull(e.getMember()).hasPermission(e.getTextChannel(),
@@ -321,8 +319,10 @@ public class CytujCommand extends Command {
                         break;
                 }
             }
+            Member member = execMsg.getMember();
+            if (member == null) throw new NullPointerException("jak do tego doszło nie wiem");
             webhookManager.send(new WebhookMessageBuilder().setAvatarUrl(execMsg.getAuthor().getEffectiveAvatarUrl())
-                    .setUsername(execMsg.getMember().getEffectiveName()).setContent(trescCytatu).setAllowedMentions(allments)
+                    .setUsername(member.getEffectiveName()).setContent(trescCytatu).setAllowedMentions(allments)
                     .addEmbeds(embeds).build(), ch);
             return;
         } else {

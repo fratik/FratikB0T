@@ -67,7 +67,7 @@ public class LogListener {
     public LogListener(GuildDao guildDao, PurgeDao purgeDao, RedisCacheManager redisCacheManager) {
         this.guildDao = guildDao;
         this.purgeDao = purgeDao;
-        cache = redisCacheManager.new CacheRetriever<List<LogMessage>>(){}.getCache();
+        cache = redisCacheManager.new CacheRetriever<List<LogMessage>>(){}.getCache(900);
         gcCache = redisCacheManager.new CacheRetriever<GuildConfig>(){}.getCache();
     }
 
