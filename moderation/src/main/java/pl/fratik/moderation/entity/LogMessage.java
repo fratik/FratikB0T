@@ -39,6 +39,7 @@ public class LogMessage extends AbstractMessage {
     private final String authorAvatar; //tylko jesli webhook
     private final String authorName; //tylko jesli webhook
     private final long channelId;
+    private final OffsetDateTime createdTime;
     private final OffsetDateTime editedTime;
     private final boolean isWebhook;
 
@@ -47,6 +48,7 @@ public class LogMessage extends AbstractMessage {
         this.id = message.getIdLong();
         this.guildId = message.getGuild().getIdLong();
         this.channelId = message.getChannel().getIdLong();
+        this.createdTime = message.getTimeCreated();
         this.editedTime = message.isEdited() ? message.getTimeEdited() : null;
         this.isWebhook = message.isWebhookMessage();
         this.authorId = message.getAuthor().getIdLong();
@@ -114,6 +116,12 @@ public class LogMessage extends AbstractMessage {
 
     public long getAuthorId() {
         return authorId;
+    }
+
+    @NotNull
+    @Override
+    public OffsetDateTime getTimeCreated() {
+        return createdTime;
     }
 
     @Override

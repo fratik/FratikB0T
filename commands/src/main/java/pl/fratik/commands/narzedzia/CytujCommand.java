@@ -21,29 +21,36 @@ import club.minnced.discord.webhook.send.AllowedMentions;
 import club.minnced.discord.webhook.send.WebhookEmbed;
 import club.minnced.discord.webhook.send.WebhookEmbedBuilder;
 import club.minnced.discord.webhook.send.WebhookMessageBuilder;
+import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.EventBus;
+import com.google.common.eventbus.Subscribe;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.EmbedType;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.MessageEmbed;
-import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.exceptions.PermissionException;
 import net.dv8tion.jda.api.requests.restaction.MessageAction;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.cache.Cache;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.command.PermLevel;
+import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.event.PluginMessageEvent;
+import pl.fratik.core.tlumaczenia.Language;
+import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.CommonUtil;
 import pl.fratik.core.util.UserUtil;
 import pl.fratik.core.webhook.WebhookManager;
+import pl.fratik.moderation.entity.LogMessage;
 
+import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -59,19 +66,27 @@ public class CytujCommand extends Command {
     private final EventBus eventBus;
     private final WebhookManager webhookManager;
     private final GuildDao guildDao;
+    private final Tlumaczenia tlumaczenia;
 
     private final ExecutorService executor;
+    private final Cache<GuildConfig> gcCache;
+    private final Cache<List<LogMessage>> lmCache;
 
     private static final String STRINGARGTYPE = "string";
     private static final Pattern MESSAGE_LINK_PATTERN =
             Pattern.compile(String.format("^https?://((ptb|canary)?\\.?(discordapp|discord)\\.com)" +
                     "/channels/(%s)/(%s)/(%s)/?$", ID_REGEX, ID_REGEX, ID_REGEX));
 
-    public CytujCommand(ShardManager shardManager, EventBus eventBus, WebhookManager webhookManager, GuildDao guildDao) {
+    private static final Pattern CYTUJ_PATTERN_1 = Pattern.compile(String.format("Replying to( (<@!?%s>) from)? %s",
+            ID_REGEX, MESSAGE_LINK_PATTERN.toString().substring(1, MESSAGE_LINK_PATTERN.toString().length() - 1)));
+    private static final Pattern CYTUJ_PATTERN_2 = Pattern.compile("^> (.*?)$", Pattern.MULTILINE);
+
+    public CytujCommand(ShardManager shardManager, EventBus eventBus, WebhookManager webhookManager, GuildDao guildDao, Tlumaczenia tlumaczenia, RedisCacheManager rcm) {
         this.shardManager = shardManager;
         this.eventBus = eventBus;
         this.webhookManager = webhookManager;
         this.guildDao = guildDao;
+        this.tlumaczenia = tlumaczenia;
         name = "cytuj";
         category = CommandCategory.UTILITY;
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
@@ -85,11 +100,79 @@ public class CytujCommand extends Command {
         aliases = new String[] {"zacytuj", "cytat"};
         allowPermLevelChange = false;
         executor = Executors.newSingleThreadExecutor();
+        gcCache = rcm.new CacheRetriever<GuildConfig>(){}.getCache();
+        Cache<List<LogMessage>> logMessageCache;
+        try {
+            logMessageCache = rcm.new CacheRetriever<List<LogMessage>>(){}.getCache();
+        } catch (TypeNotPresentException | NoClassDefFoundError e) {
+            logMessageCache = null;
+        }
+        lmCache = logMessageCache;
+        eventBus.register(this);
     }
 
     @Override
     public void onUnregister() {
         executor.shutdown();
+        try {
+            eventBus.unregister(this);
+        } catch (Exception e) {
+            // nic
+        }
+    }
+
+    @Subscribe
+    @AllowConcurrentEvents
+    public void onMessage(MessageReceivedEvent e) {
+        if (lmCache == null) return;
+        if (!e.isFromGuild()) return;
+        if (!gcCache.get(e.getGuild().getId(), guildDao::get).isCytujFbot()) return;
+        Matcher m1 = CYTUJ_PATTERN_1.matcher(e.getMessage().getContentRaw());
+        Matcher m2 = CYTUJ_PATTERN_2.matcher(e.getMessage().getContentRaw());
+        Message msg = null;
+        String cnt = null;
+        int hits = 0;
+        if (m1.find()) {
+            try {
+                String cid = m1.group(7);
+                if (!cid.equals(e.getTextChannel().getId())) return;
+                msg = Objects.requireNonNull(shardManager.getTextChannelById(cid)).retrieveMessageById(m1.group(8)).complete();
+            } catch (Exception ignored) {}
+            String userment = m1.group(2);
+            if (userment != null) cnt = userment + " ";
+            else cnt = "";
+            cnt += m1.replaceFirst("").trim();
+        } else if (m2.find()) {
+            StringBuilder msgCnt = new StringBuilder();
+            do {
+                msgCnt.append(m2.group(1)).append("\n");
+            } while (m2.find());
+            msgCnt.setLength(msgCnt.length() - 1);
+            cnt = m2.replaceAll("").trim();
+            List<LogMessage> lista = lmCache.getIfPresent(e.getChannel().getId());
+            if (lista == null) lista = Collections.emptyList();
+            Collections.reverse(lista);
+            for (LogMessage m : lista) {
+                if (m.getTimeCreated().isBefore(OffsetDateTime.now().minusMinutes(5))) continue;
+                if (m.getContentRaw().equals(msgCnt.toString())) {
+                    try {
+                        if (hits == 0) {
+                            msg = e.getChannel().retrieveMessageById(m.getId()).complete();
+                            if (!msg.getContentRaw().equals(msgCnt.toString())) msg = null;
+                        }
+                        hits++;
+                    } catch (Exception er) {
+                        msg = null;
+                    }
+                }
+            }
+        }
+        if (msg == null || cnt == null) return;
+        try {
+            sendCytujMessage(msg, tlumaczenia, tlumaczenia.getLanguage(e.getMember()), e.getTextChannel(), cnt,
+                    Objects.requireNonNull(e.getMember()).hasPermission(e.getTextChannel(),
+                            Permission.MESSAGE_MENTION_EVERYONE), e.getMessage(), hits <= 1);
+        } catch (NullPointerException ignored) {}
     }
 
     @Override
@@ -161,44 +244,52 @@ public class CytujCommand extends Command {
         String tresc = context.getArgs().length > 1 ?
                 Arrays.stream(Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length))
                         .map(o -> o == null ? "" : o.toString()).collect(Collectors.joining(uzycieDelim)) : null;
+        sendCytujMessage(msg, context.getTlumaczenia(), context.getLanguage(), context.getTextChannel(), tresc,
+                context.getMember().hasPermission(context.getTextChannel(), Permission.MESSAGE_MENTION_EVERYONE),
+                context.getMessage(), true);
+        return true;
+    }
+
+    public void sendCytujMessage(Message msg, Tlumaczenia t, Language l, TextChannel ch, String trescCytatu, boolean mentionEveryone, Message execMsg, boolean jumpTo) {
         EmbedBuilder eb = new EmbedBuilder();
         eb.setAuthor(UserUtil.formatDiscrim(msg.getAuthor()), null, msg.getAuthor().getEffectiveAvatarUrl().replace(".webp", ".png"));
         eb.setColor(UserUtil.getPrimColor(msg.getAuthor()));
         if (msg.getContentRaw().isEmpty() && !msg.getAttachments().isEmpty()) {
             if (msg.getEmbeds().stream().noneMatch(e -> e.getType() == EmbedType.RICH))
-                eb.setDescription(context.getTranslated("cytuj.empty.message"));
-            else eb.setDescription(context.getTranslated("cytuj.empty.message.embed"));
+                eb.setDescription(t.get(l, "cytuj.empty.message"));
+            else eb.setDescription(t.get(l, "cytuj.empty.message.embed"));
         } else {
             eb.setDescription(msg.getContentRaw());
         }
         eb.setTimestamp(msg.getTimeCreated());
-        eb.addField(context.getTranslated("cytuj.jump"), String.format("[\\[%s\\]](%s)",
-                context.getTranslated("cytuj.jump.to"), msg.getJumpUrl()), false);
+        if (jumpTo) eb.addField(t.get(l, "cytuj.jump"), String.format("[\\[%s\\]](%s)",
+                t.get(l, "cytuj.jump.to"), msg.getJumpUrl()), false);
+        else eb.addField(t.get(l, "cytuj.auto"), t.get(l, "cytuj.auto.cnt"), false);
         String link = CommonUtil.getImageUrl(msg);
         if (link != null) eb.setImage(link);
-        if (tresc == null || tresc.isEmpty()) {
-            context.send(eb.build());
+        if (trescCytatu == null || trescCytatu.isEmpty()) {
+            ch.sendMessage(eb.build()).complete();
             if (!msg.getEmbeds().isEmpty()) {
                 try {
-                    context.send(msg.getEmbeds().get(0));
+                    ch.sendMessage(msg.getEmbeds().get(0)).complete();
                 } catch (IllegalArgumentException e) {
                     // nieprawidłowy embed
                 }
             }
-            return true;
+            return;
         }
-        tresc = Pattern.compile("[(http(s)?)://(www\\.)?a-zA-Z0-9@:%._\\+~#=]{2,256}\\.[a-z]{2,6}\\b([-a-zA-Z0-9" +
-                "@:%_\\+.~#?&//=]*)", Pattern.CASE_INSENSITIVE | Pattern.DOTALL).matcher(tresc).replaceAll("[URL]");
+        trescCytatu = Pattern.compile("[(http(s)?)://(www\\.)?a-zA-Z0-9@:%._\\+~#=]{2,256}\\.[a-z]{2,6}\\b([-a-zA-Z0-9" +
+                "@:%_\\+.~#?&//=]*)", Pattern.CASE_INSENSITIVE | Pattern.DOTALL).matcher(trescCytatu).replaceAll("[URL]");
         EnumSet<Message.MentionType> alments = MessageAction.getDefaultMentions();
-        if (context.getMember().hasPermission(context.getTextChannel(), Permission.MESSAGE_MENTION_EVERYONE)) {
+        if (mentionEveryone) {
             alments.add(Message.MentionType.EVERYONE);
             alments.add(Message.MentionType.HERE);
         }
         try {
-            eventBus.post(new PluginMessageEvent("commands", "moderation", "znaneAkcje-add:" + context.getMessage().getId()));
-            context.getMessage().delete().queue();
+            eventBus.post(new PluginMessageEvent("commands", "moderation", "znaneAkcje-add:" + execMsg.getId()));
+            execMsg.delete().queue();
         } catch (Exception ignored) {/*lul*/}
-        if (webhookManager.hasWebhook(context.getTextChannel())) {
+        if (webhookManager.hasWebhook(ch)) {
             List<WebhookEmbed> embeds = new ArrayList<>();
             //#region FIXME: wywalić jak https://github.com/MinnDevelopment/discord-webhooks/pull/14 zostanie wprowadzone
             MessageEmbed emb = eb.build();
@@ -230,29 +321,32 @@ public class CytujCommand extends Command {
                         break;
                 }
             }
-            webhookManager.send(new WebhookMessageBuilder().setAvatarUrl(context.getSender().getEffectiveAvatarUrl())
-                    .setUsername(context.getMember().getEffectiveName()).setContent(tresc).setAllowedMentions(allments)
-                    .addEmbeds(embeds).build(), context.getTextChannel());
-            return true;
+            webhookManager.send(new WebhookMessageBuilder().setAvatarUrl(execMsg.getAuthor().getEffectiveAvatarUrl())
+                    .setUsername(execMsg.getMember().getEffectiveName()).setContent(trescCytatu).setAllowedMentions(allments)
+                    .addEmbeds(embeds).build(), ch);
+            return;
         } else {
             executor.submit(() -> {
-                webhookManager.getWebhook(context.getTextChannel()); //tworzenie webhooka, na przyszłość - póki co wyślij normalnie
+                webhookManager.getWebhook(ch); //tworzenie webhooka, na przyszłość - póki co wyślij normalnie
             });
         }
-        context.getTextChannel().sendMessage(eb.build()).allowedMentions(alments)
-                .content("**" + UserUtil.formatDiscrim(context.getSender()) + "**: " + tresc).queue();
+        ch.sendMessage(eb.build()).allowedMentions(alments)
+                .content("**" + UserUtil.formatDiscrim(execMsg.getAuthor()) + "**: " + trescCytatu).queue();
         if (!msg.getEmbeds().isEmpty()) {
-            context.send(msg.getEmbeds().get(0));
+            ch.sendMessage(msg.getEmbeds().get(0)).complete();
         }
-        return true;
     }
 
     private boolean checkPerms(@NotNull CommandContext context, TextChannel tc) {
-        return tc != null && (tc.equals(context.getTextChannel()) || (
-                (tc.getGuild().equals(context.getGuild()) && // właściciel, jeśli poza serwerem
-                        UserUtil.getPermlevel(context.getMember(), guildDao, shardManager, PermLevel.OWNER)
+        return checkPerms(context.getTextChannel(), context.getGuild(), context.getMember(), tc);
+    }
+
+    private boolean checkPerms(TextChannel ctxTc, Guild guild, Member member, TextChannel tc) {
+        return tc != null && (tc.equals(ctxTc) || (
+                (tc.getGuild().equals(guild) && // właściciel, jeśli poza serwerem
+                        UserUtil.getPermlevel(member, guildDao, shardManager, PermLevel.OWNER)
                                 .getNum() >= PermLevel.ADMIN.getNum()) || // min. admin na serwerze
-                        (!tc.getGuild().equals(context.getGuild()) &&
-                                tc.getGuild().getOwnerId().equals(context.getSender().getId()))));
+                        (!tc.getGuild().equals(guild) &&
+                                tc.getGuild().getOwnerId().equals(member.getId()))));
     }
 }

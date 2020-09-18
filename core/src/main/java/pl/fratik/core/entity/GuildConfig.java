@@ -127,6 +127,7 @@ public class GuildConfig implements DatabaseEntity {
     private Boolean lvlUpNotify = true;
     private Boolean trackInvites = false;
     private Boolean deleteSwearMessage = false;
+    private Boolean cytujFbot = false;
 
     // TODO: 09/04/2020 można to zrobić dla każdego Boolean'a, ale to już kwestia kosmetyki kodu chyba
     public boolean isResetujOstrzezeniaPrzyBanie() {
@@ -143,6 +144,10 @@ public class GuildConfig implements DatabaseEntity {
 
     public boolean isDeleteSwearMessage() {
         return deleteSwearMessage != null && deleteSwearMessage;
+    }
+
+    public boolean isCytujFbot() {
+        return cytujFbot != null && cytujFbot;
     }
 
     @Transient
