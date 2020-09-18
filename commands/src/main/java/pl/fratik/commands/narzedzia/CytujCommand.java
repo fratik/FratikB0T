@@ -140,27 +140,48 @@ public class CytujCommand extends Command {
             if (userment != null) cnt = userment + " ";
             else cnt = "";
             cnt += m1.replaceFirst("").trim();
-        } else if (m2.find()) {
-            StringBuilder msgCnt = new StringBuilder();
-            do {
-                msgCnt.append(m2.group(1)).append("\n");
-            } while (m2.find());
-            msgCnt.setLength(msgCnt.length() - 1);
-            cnt = m2.replaceAll("").trim();
-            List<LogMessage> lista = lmCache.getIfPresent(e.getChannel().getId());
-            if (lista == null) lista = Collections.emptyList();
-            Collections.reverse(lista);
-            for (LogMessage m : lista) {
-                if (m == null || m.getTimeCreated().isBefore(OffsetDateTime.now().minusMinutes(5))) continue;
-                if (m.getContentRaw().equals(msgCnt.toString())) {
-                    try {
-                        if (hits == 0) {
-                            msg = e.getChannel().retrieveMessageById(m.getId()).complete();
-                            if (!msg.getContentRaw().equals(msgCnt.toString())) msg = null;
+        } else {
+            if (m2.find()) {
+                if (m2.start() != 0) return;
+                StringBuilder msgCnt = new StringBuilder();
+                String[] splat = e.getMessage().getContentRaw().split("\n");
+                int lastI = 0;
+                for (int i = 0; i < splat.length; i++) { // wykrywanie czy wszystkie spoilery jeden pod drugim
+                    if (splat[i].startsWith("> ")) {
+                        /*
+                        jeżeli wiadomość będzie w stylu:
+                        > cytat (i = 0)
+                        > cytat (i = 1)
+                        nie cytat (i = 2)
+                        > cytat (i = 3)
+                        wykonywanie zostanie przerwane - 1 (drugi cytat) + 1 == 3 zwróci false
+                        */
+                        if (!(lastI == 0 && i == 0)) {
+                            if (lastI + 1 == i) lastI = i;
+                            else return;
                         }
-                        hits++;
-                    } catch (Exception er) {
-                        msg = null;
+                    }
+                }
+                do {
+                    msgCnt.append(m2.group(1)).append("\n");
+                } while (m2.find());
+                msgCnt.setLength(msgCnt.length() - 1);
+                cnt = m2.replaceAll("").trim();
+                List<LogMessage> lista = lmCache.getIfPresent(e.getChannel().getId());
+                if (lista == null) lista = Collections.emptyList();
+                Collections.reverse(lista);
+                for (LogMessage m : lista) {
+                    if (m == null || m.getTimeCreated().isBefore(OffsetDateTime.now().minusMinutes(5))) continue;
+                    if (m.getContentRaw().equals(msgCnt.toString())) {
+                        try {
+                            if (hits == 0) {
+                                msg = e.getChannel().retrieveMessageById(m.getId()).complete();
+                                if (!msg.getContentRaw().equals(msgCnt.toString())) msg = null;
+                            }
+                            hits++;
+                        } catch (Exception er) {
+                            msg = null;
+                        }
                     }
                 }
             }
@@ -170,7 +191,7 @@ public class CytujCommand extends Command {
             sendCytujMessage(msg, tlumaczenia, tlumaczenia.getLanguage(e.getMember()), e.getTextChannel(), cnt,
                     Objects.requireNonNull(e.getMember()).hasPermission(e.getTextChannel(),
                             Permission.MESSAGE_MENTION_EVERYONE), e.getMessage(), hits <= 1);
-        } catch (NullPointerException ignored) {}
+        } catch (Exception ignored) {}
     }
 
     @Override
