@@ -171,8 +171,9 @@ public class OldSettingsRenderer implements SettingsRenderer {
         builder.append("6. ").append(ctx.getTranslated("ustawienia.user.lvlupmessages." +
                 (userConfig.isLvlupMessages() ? "enabled" : "disabled"))).append("\n");
         builder.append("7. ").append(ctx.getTranslated("ustawienia.user.lvlupondm." +
-                (userConfig.isLvlUpOnDM() ? "enabled" : "disabled")));
-        builder.append("\n");
+                (userConfig.isLvlUpOnDM() ? "enabled" : "disabled"))).append("\n");
+        builder.append("8. ").append(ctx.getTranslated("ustawienia.user.cytujfbot." +
+                (userConfig.isCytujFbot() ? "enabled" : "disabled"))).append("\n");
         builder.append("\n0. ").append(ctx.getTranslated("ustawienia.footer"));
         builder.append("```");
         ctx.send(builder.toString(), message -> {
@@ -227,6 +228,13 @@ public class OldSettingsRenderer implements SettingsRenderer {
                 userDao.save(userConfig);
                 ctx.send(ctx.getTranslated("ustawienia.user.lvlupondm.confirm." +
                         (userConfig.isLvlUpOnDM() ? "enabled" : "disabled")));
+                break;
+            case "8":
+                koniecZara = false;
+                userConfig.setCytujFbot(!userConfig.isCytujFbot());
+                userDao.save(userConfig);
+                ctx.send(ctx.getTranslated("ustawienia.user.cytujfbot.confirm." +
+                        (userConfig.isCytujFbot() ? "enabled" : "disabled")));
                 break;
             case "0":
             case "wyjdz":

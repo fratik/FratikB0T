@@ -39,9 +39,7 @@ import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.command.PermLevel;
-import pl.fratik.core.entity.GuildConfig;
-import pl.fratik.core.entity.GuildDao;
-import pl.fratik.core.entity.Uzycie;
+import pl.fratik.core.entity.*;
 import pl.fratik.core.event.PluginMessageEvent;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
@@ -66,10 +64,12 @@ public class CytujCommand extends Command {
     private final EventBus eventBus;
     private final WebhookManager webhookManager;
     private final GuildDao guildDao;
+    private final UserDao userDao;
     private final Tlumaczenia tlumaczenia;
 
     private final ExecutorService executor;
     private final Cache<GuildConfig> gcCache;
+    private final Cache<UserConfig> ucCache;
     private final Cache<List<LogMessage>> lmCache;
 
     private static final String STRINGARGTYPE = "string";
@@ -83,11 +83,12 @@ public class CytujCommand extends Command {
             ID_REGEX, MESSAGE_LINK_PATTERN.toString().substring(1, MESSAGE_LINK_PATTERN.toString().length() - 1)));
     private static final Pattern CYTUJ_PATTERN_2 = Pattern.compile("^> (.*?)$", Pattern.MULTILINE);
 
-    public CytujCommand(ShardManager shardManager, EventBus eventBus, WebhookManager webhookManager, GuildDao guildDao, Tlumaczenia tlumaczenia, RedisCacheManager rcm) {
+    public CytujCommand(ShardManager shardManager, EventBus eventBus, WebhookManager webhookManager, GuildDao guildDao, UserDao userDao, Tlumaczenia tlumaczenia, RedisCacheManager rcm) {
         this.shardManager = shardManager;
         this.eventBus = eventBus;
         this.webhookManager = webhookManager;
         this.guildDao = guildDao;
+        this.userDao = userDao;
         this.tlumaczenia = tlumaczenia;
         name = "cytuj";
         category = CommandCategory.UTILITY;
@@ -103,6 +104,7 @@ public class CytujCommand extends Command {
         allowPermLevelChange = false;
         executor = Executors.newSingleThreadExecutor();
         gcCache = rcm.new CacheRetriever<GuildConfig>(){}.getCache();
+        ucCache = rcm.new CacheRetriever<UserConfig>(){}.getCache();
         Cache<List<LogMessage>> logMessageCache;
         try {
             logMessageCache = rcm.new CacheRetriever<List<LogMessage>>(){}.getCache();
@@ -126,7 +128,8 @@ public class CytujCommand extends Command {
     public void onMessage(MessageReceivedEvent e) {
         if (lmCache == null) return;
         if (!e.isFromGuild()) return;
-        if (!gcCache.get(e.getGuild().getId(), guildDao::get).isCytujFbot()) return;
+        if (!(gcCache.get(e.getGuild().getId(), guildDao::get).isCytujFbot() ||
+                ucCache.get(e.getAuthor().getId(), userDao::get).isCytujFbot())) return;
         Matcher m1 = CYTUJ_PATTERN_1.matcher(e.getMessage().getContentRaw());
         Matcher m2 = CYTUJ_PATTERN_2.matcher(e.getMessage().getContentRaw());
         Message msg = null;
