@@ -224,38 +224,37 @@ public class ModLogListener {
         User user = e.getUser();
         if (!guild.getSelfMember().hasPermission(Permission.VIEW_AUDIT_LOGS)) return;
 
-        guild.retrieveAuditLogs().type(ActionType.KICK).delay(2, TimeUnit.SECONDS).queue(entries -> {
-            for (AuditLogEntry entry : entries) {
-                if (!entry.getTimeCreated().isAfter(now.minusSeconds(30))) continue;
-                if (entry.getTargetIdLong() == user.getIdLong()) {
-                    if (knownCases.get(guild) == null || knownCases.get(guild).stream()
-                            .noneMatch(c -> c.getUserId().equals(user.getId()) && c.getType() == Kara.KICK)) {
-                        GuildConfig guildConfig = guildDao.get(guild);
-                        CaseRow caseRow = casesDao.get(guild);
-                        ModeResolver modeResolver = new ModeResolver(guildConfig).invoke();
-                        ModLogMode mode = modeResolver.getMode();
-                        TextChannel mlogchan = modeResolver.getMlogchan();
-                        int caseId = Case.getNextCaseId(caseRow);
-                        TemporalAccessor timestamp = Instant.now();
-                        Case aCase = new CaseBuilder().setUser(user).setGuild(guild).setCaseId(caseId)
-                                .setTimestamp(timestamp).setMessageId(null).setKara(Kara.KICK).createCase();
-                        User odpowiedzialny = entry.getUser();
-                        String powod = entry.getReason();
-                        Member srember = guild.getMember(user);
-                        setAndSend(guildConfig, caseRow, mode, mlogchan, aCase, odpowiedzialny, powod, guild, true);
-                    } else {
-                        Optional<Case> oCase = knownCases.get(guild).stream()
-                                .filter(c -> c.getUserId().equals(user.getId()) && c.getType() == Kara.KICK)
-                                .findFirst();
-                        if (!oCase.isPresent()) throw NOCASEEXC;
-                        if (!oCase.get().getFlagi().contains(Case.Flaga.SILENT))
-                            sendAction(oCase.get(), guild, guildDao.get(guild));
-                        saveKnownCase(guild, oCase.get());
-                    }
-                    break;
+        List<AuditLogEntry> entries = guild.retrieveAuditLogs().type(ActionType.KICK).delay(2, TimeUnit.SECONDS).complete();
+        for (AuditLogEntry entry : entries) {
+            if (!entry.getTimeCreated().isAfter(now.minusSeconds(30))) continue;
+            if (entry.getTargetIdLong() == user.getIdLong()) {
+                if (knownCases.get(guild) == null || knownCases.get(guild).stream()
+                        .noneMatch(c -> c.getUserId().equals(user.getId()) && c.getType() == Kara.KICK)) {
+                    GuildConfig guildConfig = guildDao.get(guild);
+                    CaseRow caseRow = casesDao.get(guild);
+                    ModeResolver modeResolver = new ModeResolver(guildConfig).invoke();
+                    ModLogMode mode = modeResolver.getMode();
+                    TextChannel mlogchan = modeResolver.getMlogchan();
+                    int caseId = Case.getNextCaseId(caseRow);
+                    TemporalAccessor timestamp = Instant.now();
+                    Case aCase = new CaseBuilder().setUser(user).setGuild(guild).setCaseId(caseId)
+                            .setTimestamp(timestamp).setMessageId(null).setKara(Kara.KICK).createCase();
+                    User odpowiedzialny = entry.getUser();
+                    String powod = entry.getReason();
+                    Member srember = guild.getMember(user);
+                    setAndSend(guildConfig, caseRow, mode, mlogchan, aCase, odpowiedzialny, powod, guild, true);
+                } else {
+                    Optional<Case> oCase = knownCases.get(guild).stream()
+                            .filter(c -> c.getUserId().equals(user.getId()) && c.getType() == Kara.KICK)
+                            .findFirst();
+                    if (!oCase.isPresent()) throw NOCASEEXC;
+                    if (!oCase.get().getFlagi().contains(Case.Flaga.SILENT))
+                        sendAction(oCase.get(), guild, guildDao.get(guild));
+                    saveKnownCase(guild, oCase.get());
                 }
-            }}, err -> {}
-        );
+                break;
+            }
+        }
     }
 
     @Subscribe
