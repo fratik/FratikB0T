@@ -130,6 +130,7 @@ public class Module implements Modul {
         commands.add(new RolaCommand(guildDao));
         commands.add(new NotatkaCommand(guildDao, casesDao, shardManager, managerKomend));
         commands.add(new RolementionCommand());
+        commands.add(new DowodCommand(guildDao, casesDao, shardManager, managerKomend, eventWaiter, eventBus));
 
         commands.forEach(managerKomend::registerCommand);
 
