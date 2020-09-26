@@ -44,10 +44,12 @@ import pl.fratik.core.event.PluginMessageEvent;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.CommonUtil;
+import pl.fratik.core.util.NetworkUtil;
 import pl.fratik.core.util.UserUtil;
 import pl.fratik.core.webhook.WebhookManager;
 import pl.fratik.moderation.entity.LogMessage;
 
+import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -83,7 +85,13 @@ public class CytujCommand extends Command {
             ID_REGEX, MESSAGE_LINK_PATTERN.toString().substring(1, MESSAGE_LINK_PATTERN.toString().length() - 1)));
     private static final Pattern CYTUJ_PATTERN_2 = Pattern.compile("^> (.*?)$", Pattern.MULTILINE);
 
-    public CytujCommand(ShardManager shardManager, EventBus eventBus, WebhookManager webhookManager, GuildDao guildDao, UserDao userDao, Tlumaczenia tlumaczenia, RedisCacheManager rcm) {
+    public CytujCommand(ShardManager shardManager,
+                        EventBus eventBus,
+                        WebhookManager webhookManager,
+                        GuildDao guildDao,
+                        UserDao userDao,
+                        Tlumaczenia tlumaczenia,
+                        RedisCacheManager rcm) {
         this.shardManager = shardManager;
         this.eventBus = eventBus;
         this.webhookManager = webhookManager;
@@ -197,7 +205,8 @@ public class CytujCommand extends Command {
         try {
             sendCytujMessage(msg, tlumaczenia, tlumaczenia.getLanguage(e.getMember()), e.getTextChannel(), cnt,
                     Objects.requireNonNull(e.getMember()).hasPermission(e.getTextChannel(),
-                            Permission.MESSAGE_MENTION_EVERYONE), e.getMessage(), hits <= 1, URL_PATTERN.matcher(cnt).find());
+                            Permission.MESSAGE_MENTION_EVERYONE), e.getMessage(), hits <= 1,
+                    URL_PATTERN.matcher(cnt).find() || !msg.getAttachments().isEmpty(), msg.getAttachments());
         } catch (Exception ignored) {}
     }
 
@@ -272,11 +281,20 @@ public class CytujCommand extends Command {
                         .map(o -> o == null ? "" : o.toString()).collect(Collectors.joining(uzycieDelim)) : null;
         sendCytujMessage(msg, context.getTlumaczenia(), context.getLanguage(), context.getTextChannel(), tresc,
                 context.getMember().hasPermission(context.getTextChannel(), Permission.MESSAGE_MENTION_EVERYONE),
-                context.getMessage(), true, false);
+                context.getMessage(), true, false, null);
         return true;
     }
 
-    public void sendCytujMessage(Message msg, Tlumaczenia t, Language l, TextChannel ch, String trescCytatu, boolean mentionEveryone, Message execMsg, boolean jumpTo, boolean webhookOnly) {
+    public void sendCytujMessage(Message msg,
+                                 Tlumaczenia t,
+                                 Language l,
+                                 TextChannel ch,
+                                 String trescCytatu,
+                                 boolean mentionEveryone,
+                                 Message execMsg,
+                                 boolean jumpTo,
+                                 boolean webhookOnly,
+                                 List<Message.Attachment> attachments) {
         EmbedBuilder eb = new EmbedBuilder();
         eb.setAuthor(UserUtil.formatDiscrim(msg.getAuthor()), null, msg.getAuthor().getEffectiveAvatarUrl().replace(".webp", ".png"));
         eb.setColor(UserUtil.getPrimColor(msg.getAuthor()));
@@ -304,13 +322,7 @@ public class CytujCommand extends Command {
         }
         if (webhookManager.hasWebhook(ch)) {
             List<WebhookEmbed> embeds = new ArrayList<>();
-            //#region FIXME: wywalić jak https://github.com/MinnDevelopment/discord-webhooks/pull/14 zostanie wprowadzone
-            MessageEmbed emb = eb.build();
-            WebhookEmbedBuilder web = WebhookEmbedBuilder.fromJDA(eb.build());
-            if (emb.getImage() != null) web.setImageUrl(emb.getImage().getUrl());
-            embeds.add(web.build());
-            //#endregion
-            //skrócony kod: embeds.add(WebhookEmbedBuilder.fromJDA(eb.build()).build());
+            embeds.add(WebhookEmbedBuilder.fromJDA(eb.build()).build());
             if (!msg.getEmbeds().isEmpty()) {
                 for (int i = 0; i < msg.getEmbeds().size(); i++) {
                     MessageEmbed embed = msg.getEmbeds().get(i);
@@ -338,6 +350,15 @@ public class CytujCommand extends Command {
             if (member == null) throw new NullPointerException("jak do tego doszło nie wiem");
             WebhookMessageBuilder wmb = new WebhookMessageBuilder()
                     .setAvatarUrl(execMsg.getAuthor().getEffectiveAvatarUrl()).setUsername(member.getEffectiveName());
+            if (attachments != null && !attachments.isEmpty()) {
+                for (Message.Attachment attachment : attachments) {
+                    try {
+                        wmb.addFile(attachment.getFileName(), NetworkUtil.download(attachment.getUrl()));
+                    } catch (IOException e) {
+                        return; // w razie błędu, po prostu nie wysyłaj
+                    }
+                }
+            }
             if (trescCytatu != null && !trescCytatu.isEmpty()) wmb.setContent(trescCytatu);
             // wyślij webhookiem - w razie nie wysłania (brak permów), wyślij tradycyjną metodą
             if (webhookManager.send(wmb.setAllowedMentions(allments).addEmbeds(embeds).build(), ch) != null) {
