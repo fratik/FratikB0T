@@ -25,6 +25,7 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.User;
+import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.Ustawienia;
 import pl.fratik.moderation.entity.Case;
 import pl.fratik.core.entity.GuildConfig;
@@ -49,8 +50,15 @@ public class ModLogBuilder {
 
     @Setter private static Tlumaczenia tlumaczenia;
     @Setter private static GuildDao guildDao;
+    @Setter private static ManagerKomend managerKomend;
 
-    public static MessageEmbed generate(Case aCase, Guild guild, ShardManager sm, Language lang, ManagerKomend managerKomend, boolean modlog) {
+    @NotNull
+    public static MessageEmbed generate(@NotNull Case aCase,
+                                        Guild guild,
+                                        ShardManager sm,
+                                        Language lang,
+                                        ManagerKomend managerKomend,
+                                        boolean modlog) {
         String iId = aCase.getIssuerId();
         User iUser = null;
         if (iId != null && !iId.isEmpty()) {
@@ -74,12 +82,23 @@ public class ModLogBuilder {
         }
         return generate(aCase.getType(), sm.retrieveUserById(aCase.getUserId()).complete(), iId, reason,
                 aCase.getType().getKolor(), aCase.getCaseId(), aCase.isValid(), aCase.getValidTo(),
-                aCase.getTimestamp(), aCase.getIleRazy(), lang, guild);
+                aCase.getTimestamp(), aCase.getIleRazy(), lang, guild, modlog && !aCase.getDowody().isEmpty());
     }
 
-    public static MessageEmbed generate(Kara kara, User karany, String moderator, String reason, Color kolor,
-                                         int caseId, boolean valid, TemporalAccessor validTo,
-                                         TemporalAccessor timestamp, Integer ileRazy, Language lang, Guild guild) {
+    @NotNull
+    public static MessageEmbed generate(Kara kara,
+                                        User karany,
+                                        String moderator,
+                                        String reason,
+                                        Color kolor,
+                                        int caseId,
+                                        boolean valid,
+                                        TemporalAccessor validTo,
+                                        TemporalAccessor timestamp,
+                                        Integer ileRazy,
+                                        Language lang,
+                                        Guild guild,
+                                        boolean hasProof) {
         if (tlumaczenia == null) throw new IllegalStateException("Tlumaczenia nie ustawione!");
         EmbedBuilder eb = new EmbedBuilder()
                 .setColor(kolor);
@@ -114,9 +133,15 @@ public class ModLogBuilder {
                         sdf.format(Date.from(Instant.from(validTo))), false);
             }
         }
-        if ((kara == Kara.WARN || kara == Kara.UNWARN) && ileRazy != null) {
+        if ((kara == Kara.WARN || kara == Kara.UNWARN) && ileRazy != null && ileRazy > 0) {
             eb.addField(tlumaczenia.get(lang, "modlog.times.header"),
                     tlumaczenia.get(lang, "modlog.times.content." + kara.name().toLowerCase() + "s", ileRazy),
+                    false);
+        }
+        if (hasProof) {
+            if (managerKomend == null) throw new IllegalStateException("managerKomend nie ustawiony!");
+            eb.addField(tlumaczenia.get(lang, "modlog.proof.header"),
+                    tlumaczenia.get(lang, "modlog.proof.content", managerKomend.getPrefixes(guild).get(0), caseId),
                     false);
         }
         return eb.build();

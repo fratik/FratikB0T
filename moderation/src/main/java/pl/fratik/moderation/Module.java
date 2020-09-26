@@ -91,6 +91,7 @@ public class Module implements Modul {
         Case.setStaticVariables(casesDao, scheduleDao);
         ModLogBuilder.setTlumaczenia(tlumaczenia);
         ModLogBuilder.setGuildDao(guildDao);
+        ModLogBuilder.setManagerKomend(managerKomend);
         ModLogListener.setTlumaczenia(tlumaczenia);
         ModLogListener.setManagerKomend(managerKomend);
         LogListener.setTlumaczenia(tlumaczenia);

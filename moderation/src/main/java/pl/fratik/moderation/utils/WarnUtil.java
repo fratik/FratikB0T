@@ -148,7 +148,7 @@ public class WarnUtil {
                     MessageEmbed embed = ModLogBuilder.generate(ca.getType(), member.getUser(),
                             member.getJDA().getSelfUser().getAsTag(), ca.getReason(), ca.getType().getKolor(),
                             ca.getCaseId(), ca.isValid(), ca.getValidTo(), ca.getTimestamp(), ca.getIleRazy(),
-                            lang, member.getGuild());
+                            lang, member.getGuild(), false);
                     mlogchan.sendMessage(embed).queue(message -> {
                         ca.setMessageId(message.getId());
                         CaseRow caseRow = casesDao.get(member.getGuild());

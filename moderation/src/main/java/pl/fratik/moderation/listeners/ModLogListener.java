@@ -564,9 +564,10 @@ public class ModLogListener {
         if (u == null) return; // użytkownik nie znaleziony, można śmiało ignorować
         try {
             Language lang = tlumaczenia.getLanguage(u);
-            u.openPrivateChannel()
+            Message msg = u.openPrivateChannel()
                     .flatMap(c -> c.sendMessage(tlumaczenia.get(lang, "modlog.dm.msg", guild.getName()))
                             .embed(embed)).complete();
+            caze.setDmMsgId(msg.getId());
         } catch (Exception ignored) { }
     }
 

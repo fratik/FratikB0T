@@ -20,6 +20,7 @@ package pl.fratik.moderation.serializer;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 import net.dv8tion.jda.api.entities.User;
@@ -32,6 +33,7 @@ import java.time.Instant;
 import java.time.temporal.TemporalAccessor;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class CaseSerializer extends StdSerializer<List<Case>> {
 
@@ -56,6 +58,10 @@ public class CaseSerializer extends StdSerializer<List<Case>> {
             }
             pCase.setIleRazy(aCase.getIleRazy());
             pCase.setFlagi(Case.Flaga.getRaw(aCase.getFlagi()));
+            if (aCase.getDowody() != null && !aCase.getDowody().isEmpty()) {
+                pCase.setDowody(aCase.getDowody().stream().map(d -> new ParsedDowod(d.getAttachedBy(), d.getContent()))
+                        .collect(Collectors.toList()));
+            }
             parsedCaseList.add(pCase);
         }
         jsonGenerator.writeStartArray();
@@ -73,14 +79,20 @@ public class CaseSerializer extends StdSerializer<List<Case>> {
             jsonGenerator.writeNumberField("validTo", pCase.getValidTo());
             if (pCase.getIleRazy() != null) jsonGenerator.writeNumberField("ileRazy", pCase.getIleRazy());
             if (pCase.getFlagi() != 0) jsonGenerator.writeNumberField("flagi", pCase.getFlagi());
+            if (pCase.getDowody() != null) jsonGenerator.writeObjectField("dowody", pCase.getDowody());
             jsonGenerator.writeEndObject();
         }
         jsonGenerator.writeEndArray();
     }
 
     @Getter
+    @AllArgsConstructor
+    static class ParsedDowod {
+        private final String aBy;
+        private final String cnt;
+    }
+    @Getter
     static class ParsedCase {
-
         private final String userId;
         private final String guildId;
         private final Long timestamp;
@@ -90,11 +102,13 @@ public class CaseSerializer extends StdSerializer<List<Case>> {
         @Setter private long validTo;
         private final int type;
         @Setter private String messageId;
+        @Nullable @Setter private String dmMsgId;
         @Nullable
         @Setter private String issuerId;
         @Nullable @Setter private String reason;
         @Nullable @Setter private Integer ileRazy;
         @Setter private long flagi;
+        @Setter private List<ParsedDowod> dowody;
 
         ParsedCase(String userId, String guildId, int caseId, TemporalAccessor timestamp, String messageId, Kara type) {
             this.userId = userId;

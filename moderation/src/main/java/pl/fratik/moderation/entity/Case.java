@@ -50,6 +50,8 @@ public class Case {
     @Setter   private       boolean valid = true;
     @Nullable private       TemporalAccessor validTo;
     @Setter   private       String messageId;
+    @Setter
+    @Nullable private       String dmMsgId;
     @Nullable private       String issuerId;
     @Setter
     @Nullable private       String reason;
@@ -57,6 +59,8 @@ public class Case {
     @Nullable private       Integer ileRazy;
     @Setter
     @NotNull  private       EnumSet<Flaga> flagi = EnumSet.noneOf(Flaga.class);
+    @Setter
+    @NotNull  private       List<Dowod> dowody = new ArrayList<>();
 
     Case(@NotNull String userId, @NotNull String guildId, int caseId, @Nullable TemporalAccessor timestamp, String messageId, @NotNull Kara type) {
         this.userId = userId;
