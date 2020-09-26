@@ -206,7 +206,7 @@ public class CytujCommand extends Command {
             sendCytujMessage(msg, tlumaczenia, tlumaczenia.getLanguage(e.getMember()), e.getTextChannel(), cnt,
                     Objects.requireNonNull(e.getMember()).hasPermission(e.getTextChannel(),
                             Permission.MESSAGE_MENTION_EVERYONE), e.getMessage(), hits <= 1,
-                    URL_PATTERN.matcher(cnt).find() || !msg.getAttachments().isEmpty(), msg.getAttachments());
+                    URL_PATTERN.matcher(cnt).find() || !e.getMessage().getAttachments().isEmpty(), e.getMessage().getAttachments());
         } catch (Exception ignored) {}
     }
 
