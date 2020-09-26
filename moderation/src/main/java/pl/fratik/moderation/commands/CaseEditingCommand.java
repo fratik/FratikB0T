@@ -26,6 +26,7 @@ import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.manager.ManagerKomend;
 import pl.fratik.core.tlumaczenia.Language;
+import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.moderation.entity.Case;
 import pl.fratik.moderation.entity.CaseRow;
 import pl.fratik.moderation.entity.CasesDao;
@@ -57,16 +58,17 @@ public abstract class CaseEditingCommand extends ModerationCommand {
                 shardManager.retrieveUserById(aCase.getUserId()).flatMap(User::openPrivateChannel)
                         .flatMap(c -> c.retrieveMessageById(aCase.getDmMsgId()))
                         .flatMap(m -> {
-                            StringBuilder content = new StringBuilder(m.getContentRaw());
-                            Language lang = context.getTlumaczenia().getLanguage(m.getPrivateChannel().getUser());
+                            Tlumaczenia tlum = context.getTlumaczenia();
+                            Language lang = tlum.getLanguage(m.getPrivateChannel().getUser());
+                            StringBuilder content = new StringBuilder(tlum.get(lang, "modlog.dm.msg"));
                             if (!aCase.getDowody().isEmpty()) {
                                 content.append("\n\n");
-                                content.append(context.getTlumaczenia().get(lang, "modlog.dm.attached.proof" +
+                                content.append(tlum.get(lang, "modlog.dm.attached.proof" +
                                         (aCase.getDowody().size() > 1 ? ".multi" : "")));
                                 content.append("\n\n");
                                 for (int i = 0; i < aCase.getDowody().size(); i++) {
                                     if (content.length() >= 1499) {
-                                        content.append(context.getTlumaczenia().get(lang, "modlog.dm.proof.more",
+                                        content.append(tlum.get(lang, "modlog.dm.proof.more",
                                                 aCase.getDowody().size() - i));
                                     }
                                     content.append(aCase.getDowody().get(i).getContent());
@@ -76,14 +78,14 @@ public abstract class CaseEditingCommand extends ModerationCommand {
                             }
                             return m.editMessage(content.toString()).override(true)
                                     .embed(ModLogBuilder.generate(aCase, context.getGuild(), shardManager,
-                                            lang, managerKomend, false));
+                                            lang, managerKomend, false, false));
                         }).complete();
             } catch (Exception ignored) {}
         }
         if (aCase.getMessageId() == null) {
             aCase.setIssuerId(context.getSender().getId());
             if (!aCase.getFlagi().contains(Case.Flaga.SILENT)) {
-                MessageEmbed embed = ModLogBuilder.generate(aCase, context.getGuild(), shardManager, gc.getLanguage(), managerKomend, true);
+                MessageEmbed embed = ModLogBuilder.generate(aCase, context.getGuild(), shardManager, gc.getLanguage(), managerKomend, true, false);
                 modLogChannel.sendMessage(embed).queue(m -> {
                     context.send(successMessage, c -> {});
                     aCase.setMessageId(m.getId());
@@ -96,7 +98,7 @@ public abstract class CaseEditingCommand extends ModerationCommand {
         }
         modLogChannel.retrieveMessageById(aCase.getMessageId()).queue(msg -> {
             aCase.setIssuerId(context.getSender().getId());
-            msg.editMessage(ModLogBuilder.generate(aCase, context.getGuild(), shardManager, gc.getLanguage(), managerKomend, true))
+            msg.editMessage(ModLogBuilder.generate(aCase, context.getGuild(), shardManager, gc.getLanguage(), managerKomend, true, false))
                     .override(true).queue(m -> {
                 context.send(successMessage, c -> {});
                 casesDao.save(caseRow);
@@ -104,7 +106,7 @@ public abstract class CaseEditingCommand extends ModerationCommand {
         }, error -> {
             aCase.setIssuerId(context.getSender().getId());
             if (!aCase.getFlagi().contains(Case.Flaga.SILENT)) {
-                MessageEmbed embed = ModLogBuilder.generate(aCase, context.getGuild(), shardManager, gc.getLanguage(), managerKomend, true);
+                MessageEmbed embed = ModLogBuilder.generate(aCase, context.getGuild(), shardManager, gc.getLanguage(), managerKomend, true, false);
                 modLogChannel.sendMessage(embed).queue(m -> {
                     aCase.setMessageId(m.getId());
                     context.send(successMessage, c -> {});

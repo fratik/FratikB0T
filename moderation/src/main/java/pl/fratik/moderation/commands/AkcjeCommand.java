@@ -118,7 +118,7 @@ public class AkcjeCommand extends ModerationCommand {
                 .addField(context.getTranslated("akcje.embed.unmutes"), String.valueOf(unmutow), true)
                 .setDescription(context.getTranslated("akcje.embed.description")).setFooter("%s/%s", null));
         for (Case aCase : caseRow.getCases().stream().filter(c -> c.getUserId().equals(user.getId())).collect(Collectors.toList())) {
-            EmbedBuilder eb = new EmbedBuilder(ModLogBuilder.generate(aCase, context.getGuild(), shardManager, context.getLanguage(), managerKomend, false));
+            EmbedBuilder eb = new EmbedBuilder(ModLogBuilder.generate(aCase, context.getGuild(), shardManager, context.getLanguage(), managerKomend, false, true));
             eb.setFooter(Objects.requireNonNull(eb.build().getFooter()).getText() + " (%s/%s)", null);
             strony.add(eb);
         }
@@ -167,7 +167,7 @@ public class AkcjeCommand extends ModerationCommand {
                 .addField(context.getTranslated("akcje.admin.embed.unmutes"), String.valueOf(unmutow), true)
                 .setDescription(context.getTranslated("akcje.admin.embed.description")).setFooter("%s/%s", null));
         for (Case aCase : caseRow.getCases().stream().filter(c -> Objects.equals(c.getIssuerId(), user.getId())).collect(Collectors.toList())) {
-            EmbedBuilder eb = new EmbedBuilder(ModLogBuilder.generate(aCase, context.getGuild(), shardManager, context.getLanguage(), managerKomend, false));
+            EmbedBuilder eb = new EmbedBuilder(ModLogBuilder.generate(aCase, context.getGuild(), shardManager, context.getLanguage(), managerKomend, false, true));
             eb.setFooter(Objects.requireNonNull(eb.build().getFooter()).getText() + " (%s/%s)", null);
             strony.add(eb);
         }

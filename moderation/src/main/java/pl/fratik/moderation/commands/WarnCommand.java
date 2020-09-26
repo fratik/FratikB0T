@@ -123,7 +123,7 @@ public class WarnCommand extends ModerationCommand {
         }
         if (!aCase.getFlagi().contains(Case.Flaga.SILENT)) {
             MessageEmbed embed = ModLogBuilder.generate(aCase, context.getGuild(), shardManager,
-                    gc.getLanguage(), managerKomend, true);
+                    gc.getLanguage(), managerKomend, true, false);
             Message message = mlog.sendMessage(embed).complete();
             aCase.setMessageId(message.getId());
         }

@@ -74,6 +74,8 @@ public class DowodCommand extends CaseEditingCommand {
         permissions.add(Permission.MESSAGE_MANAGE);
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         permissions.add(Permission.MESSAGE_ADD_REACTION);
+        permLevel = PermLevel.MOD;
+        allowPermLevelEveryone = false;
         uzycie = new Uzycie(hmap, new boolean[] {true, false, false});
     }
 
@@ -179,6 +181,16 @@ public class DowodCommand extends CaseEditingCommand {
         if (!attachments.isEmpty()) {
             content += "\n";
             content += attachments.stream().map(Message.Attachment::getUrl).collect(Collectors.joining(" "));
+        }
+        content = content.replace("\u200b", ""); // nie dla zws
+        StringBuilder contentBld = new StringBuilder();
+        for (String splat : content.split(" ")) { // podwójne linie będą się gryźć z wyświetlaniem tego w DM - wymuszamy pojedyncze
+            if (!splat.trim().isEmpty()) contentBld.append(splat); // nie umiałem wpaść na lepszy sposób, \n+ nie wykrywa spacji
+        }
+        content = contentBld.toString();
+        if (content.length() > 500) {
+            context.send(context.getTranslated("dowod.char.limits"));
+            return false;
         }
         aCase.getDowody().add(new Dowod(Dowod.getNextId(aCase.getDowody()), context.getSender().getId(), content.trim()));
         @Nullable TextChannel modLogChannel = gc.getModLog() != null && !Objects.equals(gc.getModLog(), "") ?

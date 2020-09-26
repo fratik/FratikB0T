@@ -58,7 +58,8 @@ public class ModLogBuilder {
                                         ShardManager sm,
                                         Language lang,
                                         ManagerKomend managerKomend,
-                                        boolean modlog) {
+                                        boolean modlog,
+                                        boolean akcje) {
         String iId = aCase.getIssuerId();
         User iUser = null;
         if (iId != null && !iId.isEmpty()) {
@@ -82,7 +83,7 @@ public class ModLogBuilder {
         }
         return generate(aCase.getType(), sm.retrieveUserById(aCase.getUserId()).complete(), iId, reason,
                 aCase.getType().getKolor(), aCase.getCaseId(), aCase.isValid(), aCase.getValidTo(),
-                aCase.getTimestamp(), aCase.getIleRazy(), lang, guild, modlog && !aCase.getDowody().isEmpty());
+                aCase.getTimestamp(), aCase.getIleRazy(), lang, guild, (modlog || akcje) && !aCase.getDowody().isEmpty());
     }
 
     @NotNull
