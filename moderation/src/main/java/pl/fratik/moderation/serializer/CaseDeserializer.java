@@ -49,9 +49,9 @@ public class CaseDeserializer extends StdDeserializer<List<Case>> {
 
     @Override
     public List<Case> deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
-        LinkedHashMap<String, Object>[] caseMaybeArr = p.readValueAs(new TypeReference<LinkedHashMap<String, Object>>(){});
+        List<LinkedHashMap<String, Object>> cases = p.readValueAs(new TypeReference<List<LinkedHashMap<String, Object>>>(){});
         ArrayList<Case> caseList = new ArrayList<>();
-        for (LinkedHashMap<String, Object> elements : caseMaybeArr) {
+        for (LinkedHashMap<String, Object> elements : cases) {
             TemporalAccessor timestamp;
             try {
                 timestamp = Instant.ofEpochMilli(((Long) elements.get("timestamp")));
@@ -82,7 +82,9 @@ public class CaseDeserializer extends StdDeserializer<List<Case>> {
             }
             List<Dowod> dowody = new ArrayList<>();
             if (elements.containsKey("dowody")) {
-                for (LinkedHashMap<?, ?> dowod : (LinkedHashMap<?, ?>[]) elements.get("dowody")) {
+                for (Object dowodRaw : (List<?>) elements.get("dowody")) {
+                    if (dowodRaw == null) continue;
+                    LinkedHashMap<?, ?> dowod = (LinkedHashMap<?, ?>) dowodRaw;
                     long id;
                     Object idRaw = dowod.get("id");
                     if (idRaw instanceof Long) id = (Long) idRaw;
@@ -90,7 +92,7 @@ public class CaseDeserializer extends StdDeserializer<List<Case>> {
                     else if (idRaw.getClass().equals(Long.TYPE)) id = (long) idRaw;
                     else if (idRaw.getClass().equals(Integer.TYPE)) id = (long) ((int) idRaw);
                     else throw new IllegalStateException("Nieprawidłowa klasa ID: " + idRaw.getClass().getName());
-                    dowody.add(new Dowod(id, (String) dowod.get("aBy"), (String) dowod.get("cnt")));
+                    dowody.add(new Dowod(id, (String) dowod.get("aby"), (String) dowod.get("cnt")));
                 }
             }
             aCase.setDowody(dowody);

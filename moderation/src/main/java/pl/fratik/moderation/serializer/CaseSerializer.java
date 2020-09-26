@@ -59,7 +59,7 @@ public class CaseSerializer extends StdSerializer<List<Case>> {
             pCase.setIleRazy(aCase.getIleRazy());
             pCase.setFlagi(Case.Flaga.getRaw(aCase.getFlagi()));
             if (aCase.getDowody() != null && !aCase.getDowody().isEmpty()) {
-                pCase.setDowody(aCase.getDowody().stream().map(d -> new ParsedDowod(d.getAttachedBy(), d.getContent()))
+                pCase.setDowody(aCase.getDowody().stream().map(d -> new ParsedDowod(d.getId(), d.getAttachedBy(), d.getContent()))
                         .collect(Collectors.toList()));
             }
             parsedCaseList.add(pCase);
@@ -88,7 +88,8 @@ public class CaseSerializer extends StdSerializer<List<Case>> {
     @Getter
     @AllArgsConstructor
     static class ParsedDowod {
-        private final String aBy;
+        private final long id;
+        private final String aby;
         private final String cnt;
     }
     @Getter

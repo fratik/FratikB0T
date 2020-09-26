@@ -43,6 +43,11 @@ public class Dowod {
         return lastId + 1;
     }
 
+    public static Dowod getDowodById(int id, List<Dowod> dowody) {
+        for (Dowod dowod : dowody) if (dowod.getId() == id) return dowod;
+        return null;
+    }
+
     @CheckReturnValue
     public RestAction<User> retrieveAttachedBy(ShardManager sm) {
         return sm.retrieveUserById(attachedBy);
