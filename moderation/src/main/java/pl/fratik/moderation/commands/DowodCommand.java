@@ -87,7 +87,7 @@ public class DowodCommand extends CaseEditingCommand {
         else dowodCnt = "";
         GuildConfig gc = guildDao.get(context.getGuild());
         CaseRow caseRow = casesDao.get(context.getGuild());
-        if (dowodCnt.isEmpty()) {
+        if (dowodCnt.isEmpty() && context.getMessage().getAttachments().isEmpty()) {
             List<FutureTask<EmbedBuilder>> pages = new ArrayList<>();
             Case aCase;
             try {
@@ -101,10 +101,11 @@ public class DowodCommand extends CaseEditingCommand {
                 pages.add(new FutureTask<>(() -> {
                     User user = dowod.retrieveAttachedBy(shardManager).complete();
                     return new EmbedBuilder()
-                        .setImage(CommonUtil.getImageUrl(dowod.getContent()))
-                        .setAuthor(user.getAsTag(), null, user.getEffectiveAvatarUrl())
-                        .setColor(UserUtil.getPrimColor(context.getSender())).setDescription(dowod.getContent())
-                        .setFooter("ID: " + aCase.getCaseId() + "-" + dowod.getId() + " | %s/%s");
+                            .setImage(CommonUtil.getImageUrl(dowod.getContent()))
+                            .setAuthor(user.getAsTag(), null, user.getEffectiveAvatarUrl())
+                            .setColor(UserUtil.getPrimColor(context.getSender()))
+                            .setDescription(dowod.getContent())
+                            .setFooter("ID: " + aCase.getCaseId() + "-" + dowod.getId() + " | %s/%s");
                 }));
             }
             if (pages.isEmpty()) {
@@ -179,7 +180,7 @@ public class DowodCommand extends CaseEditingCommand {
         String content = dowodCnt;
         List<Message.Attachment> attachments = context.getMessage().getAttachments();
         if (!attachments.isEmpty()) {
-            content += "\n";
+            if (!content.isEmpty()) content += "\n";
             content += attachments.stream().map(Message.Attachment::getUrl).collect(Collectors.joining(" "));
         }
         content = content.replace("\u200b", ""); // nie dla zws
