@@ -80,6 +80,7 @@ public class CaseDeserializer extends StdDeserializer<List<Case>> {
                 if ((Integer) elements.get(VALIDTO) != 0)
                     aCase.setValidTo(Instant.ofEpochMilli(((Integer) elements.get(VALIDTO))), true);
             }
+            if (elements.containsKey("dmMsgId")) aCase.setDmMsgId((String) elements.get("dmMsgId"));
             List<Dowod> dowody = new ArrayList<>();
             if (elements.containsKey("dowody")) {
                 for (Object dowodRaw : (List<?>) elements.get("dowody")) {

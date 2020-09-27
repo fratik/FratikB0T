@@ -62,6 +62,7 @@ public class CaseSerializer extends StdSerializer<List<Case>> {
                 pCase.setDowody(aCase.getDowody().stream().map(d -> new ParsedDowod(d.getId(), d.getAttachedBy(), d.getContent()))
                         .collect(Collectors.toList()));
             }
+            pCase.setDmMsgId(aCase.getDmMsgId());
             parsedCaseList.add(pCase);
         }
         jsonGenerator.writeStartArray();
@@ -74,6 +75,7 @@ public class CaseSerializer extends StdSerializer<List<Case>> {
             jsonGenerator.writeNumberField("timestamp", pCase.getTimestamp());
             jsonGenerator.writeStringField("reason", pCase.getReason());
             jsonGenerator.writeStringField("messageId", pCase.getMessageId());
+            if (pCase.getDmMsgId() != null) jsonGenerator.writeStringField("dmMsgId", pCase.getDmMsgId());
             jsonGenerator.writeNumberField("kara", pCase.getType());
             jsonGenerator.writeBooleanField("valid", pCase.isValid());
             jsonGenerator.writeNumberField("validTo", pCase.getValidTo());
