@@ -185,8 +185,11 @@ public class DowodCommand extends CaseEditingCommand {
         }
         content = content.replace("\u200b", ""); // nie dla zws
         StringBuilder contentBld = new StringBuilder();
-        for (String splat : content.split(" ")) { // podwójne linie będą się gryźć z wyświetlaniem tego w DM - wymuszamy pojedyncze
-            if (!splat.trim().isEmpty()) contentBld.append(splat); // nie umiałem wpaść na lepszy sposób, \n+ nie wykrywa spacji
+        for (String splat : content.split("\n")) { // podwójne linie będą się gryźć z wyświetlaniem tego w DM - wymuszamy pojedyncze
+            if (!splat.trim().isEmpty()) { // nie umiałem wpaść na lepszy sposób, \n+ nie wykrywa spacji
+                contentBld.append(splat);
+                contentBld.append('\n');
+            }
         }
         content = contentBld.toString();
         if (content.length() > 500) {

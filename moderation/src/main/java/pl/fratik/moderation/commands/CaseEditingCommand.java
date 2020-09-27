@@ -60,16 +60,20 @@ public abstract class CaseEditingCommand extends ModerationCommand {
                         .flatMap(m -> {
                             Tlumaczenia tlum = context.getTlumaczenia();
                             Language lang = tlum.getLanguage(m.getPrivateChannel().getUser());
-                            StringBuilder content = new StringBuilder(tlum.get(lang, "modlog.dm.msg"));
+                            StringBuilder content = new StringBuilder(tlum.get(lang, "modlog.dm.msg",
+                                    context.getGuild().getName()));
                             if (!aCase.getDowody().isEmpty()) {
                                 content.append("\n\n");
                                 content.append(tlum.get(lang, "modlog.dm.attached.proof" +
                                         (aCase.getDowody().size() > 1 ? ".multi" : "")));
                                 content.append("\n\n");
                                 for (int i = 0; i < aCase.getDowody().size(); i++) {
-                                    if (content.length() >= 1499) {
-                                        content.append(tlum.get(lang, "modlog.dm.proof.more",
-                                                aCase.getDowody().size() - i));
+                                    String moreStr = tlum.get(lang, "modlog.dm.proof.more",
+                                            aCase.getDowody().size() - i);
+                                    if (content.length() + moreStr.length() >= 1499) {
+                                        content.append(moreStr);
+                                        content.append("\n"); // setLength -1 wywali tego \n
+                                        break;
                                     }
                                     content.append(aCase.getDowody().get(i).getContent());
                                     content.append("\n\n");
