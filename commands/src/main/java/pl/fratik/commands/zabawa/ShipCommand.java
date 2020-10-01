@@ -63,9 +63,11 @@ public class ShipCommand extends Command {
         String arg0 = (String) context.getArgs()[0];
 
         // sprawdzamy czy arg0 jest userem
-        User user = (User) managerArgumentow.getArguments().get("user").execute(arg0, context.getTlumaczenia(), context.getLanguage());
+        User user = (User) managerArgumentow.getArguments().get("user").execute(arg0,
+                context.getTlumaczenia(), context.getLanguage());
         if (user != null) {
-            if (context.getArgs().length == 1) { // shipujemy arg0 i sendera
+            if (context.getArgs().length == 1 || (context.getArgs().length > 1 && context.getArgs()[1] == null)) {
+                // shipujemy arg0 i sendera
                 if (user.getId().equals(context.getMember().getId())) {
                     context.send(context.getTranslated("ship.urself"));
                     return false;
@@ -96,7 +98,11 @@ public class ShipCommand extends Command {
         return ship(rzecz1, rzecz2, context, "", "");
     }
 
-    private boolean ship(String rzecz1, String rzecz2, CommandContext context, @NotNull String wyswietlana1, @NotNull String wyswietlana2) {
+    private boolean ship(String rzecz1,
+                         String rzecz2,
+                         CommandContext context,
+                         @NotNull String wyswietlana1,
+                         @NotNull String wyswietlana2) {
         EmbedBuilder eb = context.getBaseEmbed(null, null);
         eb.setTitle("Ship");
         eb.setColor(Color.pink);
