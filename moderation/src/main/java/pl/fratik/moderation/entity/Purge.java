@@ -56,9 +56,9 @@ public class Purge implements DatabaseEntity {
     @Getter
     @AllArgsConstructor
     public static class ResolvedWiadomosc implements Wiadomosc {
-        @NotNull private final String id;
-        @Setter @NotNull private User author;
-        @NotNull private final String content;
+        @Nullable private final String id;
+        @Setter @Nullable private User author;
+        @Nullable private final String content;
         private final long createdAt;
         @Nullable private final Long editedAt;
         private final boolean fake;
