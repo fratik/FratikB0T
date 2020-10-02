@@ -21,6 +21,8 @@ import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.exceptions.ErrorResponseException;
+import net.dv8tion.jda.api.requests.ErrorResponse;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.entity.GuildConfig;
@@ -52,7 +54,18 @@ public abstract class CaseEditingCommand extends ModerationCommand {
             casesDao.save(caseRow);
             return true;
         }
-        Consumer<Throwable> throwableConsumer = err -> context.send(failMessage);
+        Consumer<Throwable> throwableConsumer = err -> context.send(failMessage, c -> {});
+        User issuer = null;
+        if (aCase.getIssuerId() != null && !aCase.getIssuerId().isEmpty()) {
+            try {
+                issuer = shardManager.retrieveUserById(aCase.getIssuerId()).complete();
+            } catch (ErrorResponseException er) {
+                if (er.getErrorResponse() != ErrorResponse.UNKNOWN_USER) throw er;
+                // else ignore
+            }
+        }
+        User finalIssuer = issuer;
+        User user = shardManager.retrieveUserById(aCase.getUserId()).complete();
         if (aCase.getDmMsgId() != null) {
             try {
                 shardManager.retrieveUserById(aCase.getUserId()).flatMap(User::openPrivateChannel)
@@ -81,15 +94,16 @@ public abstract class CaseEditingCommand extends ModerationCommand {
                                 content.setLength(content.length() - 1);
                             }
                             return m.editMessage(content.toString()).override(true)
-                                    .embed(ModLogBuilder.generate(aCase, context.getGuild(), shardManager,
-                                            lang, managerKomend, false, false));
+                                    .embed(ModLogBuilder.generate(aCase, context.getGuild(), lang, managerKomend,
+                                            false, false, finalIssuer, user));
                         }).complete();
             } catch (Exception ignored) {}
         }
         if (aCase.getMessageId() == null) {
             aCase.setIssuerId(context.getSender().getId());
             if (!aCase.getFlagi().contains(Case.Flaga.SILENT)) {
-                MessageEmbed embed = ModLogBuilder.generate(aCase, context.getGuild(), shardManager, gc.getLanguage(), managerKomend, true, false);
+                MessageEmbed embed = ModLogBuilder.generate(aCase, context.getGuild(),
+                        gc.getLanguage(), managerKomend, true, false, finalIssuer, user);
                 modLogChannel.sendMessage(embed).queue(m -> {
                     context.send(successMessage, c -> {});
                     aCase.setMessageId(m.getId());
@@ -102,7 +116,8 @@ public abstract class CaseEditingCommand extends ModerationCommand {
         }
         modLogChannel.retrieveMessageById(aCase.getMessageId()).queue(msg -> {
             aCase.setIssuerId(context.getSender().getId());
-            msg.editMessage(ModLogBuilder.generate(aCase, context.getGuild(), shardManager, gc.getLanguage(), managerKomend, true, false))
+            msg.editMessage(ModLogBuilder.generate(aCase, context.getGuild(), gc.getLanguage(), managerKomend,
+                    true, false, finalIssuer, user))
                     .override(true).queue(m -> {
                 context.send(successMessage, c -> {});
                 casesDao.save(caseRow);
@@ -110,7 +125,8 @@ public abstract class CaseEditingCommand extends ModerationCommand {
         }, error -> {
             aCase.setIssuerId(context.getSender().getId());
             if (!aCase.getFlagi().contains(Case.Flaga.SILENT)) {
-                MessageEmbed embed = ModLogBuilder.generate(aCase, context.getGuild(), shardManager, gc.getLanguage(), managerKomend, true, false);
+                MessageEmbed embed = ModLogBuilder.generate(aCase, context.getGuild(), gc.getLanguage(), managerKomend,
+                        true, false, finalIssuer, user);
                 modLogChannel.sendMessage(embed).queue(m -> {
                     aCase.setMessageId(m.getId());
                     context.send(successMessage, c -> {});

@@ -18,16 +18,16 @@
 package pl.fratik.moderation.utils;
 
 import lombok.Setter;
-import net.dv8tion.jda.api.exceptions.ErrorResponseException;
-import net.dv8tion.jda.api.requests.ErrorResponse;
-import net.dv8tion.jda.api.sharding.ShardManager;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.exceptions.ErrorResponseException;
+import net.dv8tion.jda.api.requests.ErrorResponse;
+import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import pl.fratik.core.Ustawienia;
-import pl.fratik.moderation.entity.Case;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Kara;
@@ -36,6 +36,7 @@ import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.GuildUtil;
 import pl.fratik.core.util.UserUtil;
+import pl.fratik.moderation.entity.Case;
 
 import java.awt.*;
 import java.text.SimpleDateFormat;
@@ -53,11 +54,11 @@ public class ModLogBuilder {
     @Setter private static ManagerKomend managerKomend;
 
     @NotNull
-    public static MessageEmbed generate(@NotNull Case aCase,
-                                        Guild guild,
-                                        ShardManager sm,
-                                        Language lang,
-                                        ManagerKomend managerKomend,
+    public static MessageEmbed generate(@NotNull Case aCase, // UŻYWA COMPLETE!
+                                        @NotNull Guild guild,
+                                        @NotNull ShardManager sm,
+                                        @NotNull Language lang,
+                                        @Nullable ManagerKomend managerKomend,
                                         boolean modlog,
                                         boolean akcje) {
         String iId = aCase.getIssuerId();
@@ -70,18 +71,38 @@ public class ModLogBuilder {
                 // else ignore
             }
         }
+        return generate(aCase,
+                guild,
+                lang,
+                managerKomend,
+                modlog,
+                akcje,
+                iUser,
+                sm.retrieveUserById(aCase.getUserId()).complete());
+    }
+
+    @NotNull
+    public static MessageEmbed generate(@NotNull Case aCase,
+                                        @NotNull Guild guild,
+                                        @NotNull Language lang,
+                                        @Nullable ManagerKomend managerKomend,
+                                        boolean modlog,
+                                        boolean akcje,
+                                        @Nullable User issuer,
+                                        @NotNull User karany) {
+        String issuerStr;
         String reason = aCase.getReason();
         if (reason == null || reason.isEmpty()) reason = tlumaczenia.get(lang, "modlog.reason.unknown");
-        if (iUser == null) iId = tlumaczenia.get(lang, "modlog.mod.unknown",
+        if (issuer == null) issuerStr = tlumaczenia.get(lang, "modlog.mod.unknown",
                 managerKomend == null || managerKomend.getPrefixes(guild).isEmpty() ? Ustawienia.instance.prefix :
                         managerKomend.getPrefixes(guild).get(0), aCase.getCaseId());
-        else iId = UserUtil.formatDiscrim(iUser);
+        else issuerStr = UserUtil.formatDiscrim(issuer);
         if (modlog && aCase.getFlagi().contains(Case.Flaga.NOBODY)) {
-            iId = tlumaczenia.get(lang, "modlog.mod.hidden",
+            issuerStr = tlumaczenia.get(lang, "modlog.mod.hidden",
                     managerKomend == null || managerKomend.getPrefixes(guild).isEmpty() ? Ustawienia.instance.prefix :
                             managerKomend.getPrefixes(guild).get(0), aCase.getCaseId());
         }
-        return generate(aCase.getType(), sm.retrieveUserById(aCase.getUserId()).complete(), iId, reason,
+        return generate(aCase.getType(), karany, issuerStr, reason,
                 aCase.getType().getKolor(), aCase.getCaseId(), aCase.isValid(), aCase.getValidTo(),
                 aCase.getTimestamp(), aCase.getIleRazy(), lang, guild, (modlog || akcje) && !aCase.getDowody().isEmpty());
     }
