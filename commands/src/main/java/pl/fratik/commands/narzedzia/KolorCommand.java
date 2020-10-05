@@ -44,9 +44,11 @@ public class KolorCommand extends Command {
         name = "kolor";
         category = CommandCategory.UTILITY;
         uzycie = new Uzycie("kolor", "string", true);
-        aliases = new String[] {"color", "paleta", "colors"};
+        aliases = new String[] {"paleta"};
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         permissions.add(Permission.MESSAGE_ATTACH_FILES);
+        allowPermLevelChange = false;
+        allowInDMs = true;
     }
 
     @Override
@@ -106,7 +108,7 @@ public class KolorCommand extends Command {
             eb.addField("RGB", String.join(", ", rgb), true);
             eb.addField("Hex", "#" + asHex(color), true);
             if (getCssName(color) != null) eb.addField("CSS", getCssName(color), true);
-            context.getChannel().sendMessage(eb.build()).addFile(baos.toByteArray(), asHex(color) + ".png").queue();
+            context.getMessageChannel().sendMessage(eb.build()).addFile(baos.toByteArray(), asHex(color) + ".png").queue();
             baos.close();
         } catch (IOException e) {
             context.send(context.getTranslated("kolor.failed"));
@@ -117,7 +119,7 @@ public class KolorCommand extends Command {
     private String getCssName(Color color) {
         try {
             InputStream st = getClass().getResourceAsStream("/colors.json");
-            JsonObject jsonObject = new JsonParser().parse(new InputStreamReader(st, StandardCharsets.UTF_8))
+            JsonObject jsonObject = JsonParser.parseReader(new InputStreamReader(st, StandardCharsets.UTF_8))
                     .getAsJsonObject();
             for (Map.Entry<String, JsonElement> entry : jsonObject.entrySet()) {
                 int[] rgbTmp = new int[3];
@@ -139,7 +141,7 @@ public class KolorCommand extends Command {
     private Color getCssColor(CommandContext context) {
         try {
             InputStream st = getClass().getResourceAsStream("/colors.json");
-            JsonObject jsonObject = new JsonParser().parse(new InputStreamReader(st, StandardCharsets.UTF_8))
+            JsonObject jsonObject = JsonParser.parseReader(new InputStreamReader(st, StandardCharsets.UTF_8))
                     .getAsJsonObject();
             for (Map.Entry<String, JsonElement> entry : jsonObject.entrySet()) {
                 int[] rgba = new int[4];

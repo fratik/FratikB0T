@@ -36,8 +36,9 @@ public class GlobalstatyCommand extends Command {
         name = "globalstaty";
         category = CommandCategory.POINTS;
         permLevel = PermLevel.EVERYONE;
-        aliases = new String[] {"globalstats", "gs", "globalnestaty", "statsglobal", "statyglobalne", "gp", "globalpunkty", "globalstaty"};
+        aliases = new String[] {"gs", "globalnestaty", "statsglobal", "statyglobalne", "gp", "globalpunkty"};
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
+        allowPermLevelChange = false;
     }
 
     @Override

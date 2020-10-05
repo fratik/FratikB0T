@@ -22,6 +22,8 @@ import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import io.sentry.Sentry;
+import io.sentry.event.EventBuilder;
+import io.sentry.event.interfaces.ExceptionInterface;
 import lavalink.client.LavalinkUtil;
 import lavalink.client.io.LavalinkSocket;
 import lavalink.client.io.Link;
@@ -35,7 +37,9 @@ import net.dv8tion.jda.api.events.guild.voice.GenericGuildVoiceEvent;
 import net.dv8tion.jda.api.hooks.VoiceDispatchInterceptor;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import okhttp3.Response;
+import okhttp3.ResponseBody;
 import org.jetbrains.annotations.NotNull;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -161,11 +165,12 @@ public class NowyManagerMuzyki {
 
     public List<AudioTrack> getAudioTracks(String url) {
         Ustawienia.Lavalink.LavalinkNode nod = Ustawienia.instance.lavalink.nodes.get(0);
-        try {
-            Response resp = NetworkUtil.downloadResponse("http://" + nod.address + ":" + nod.restPort +
-                    "/loadtracks?identifier=" + URLEncoder.encode(url, "UTF-8"), nod.password);
-            if (resp.body() == null) throw new NullPointerException("body() null");
-            JSONObject td = new JSONObject(resp.body().string());
+        JSONObject td = null;
+        try (Response resp = NetworkUtil.downloadResponse("http://" + nod.address + ":" + nod.restPort +
+                "/loadtracks?identifier=" + URLEncoder.encode(url, "UTF-8"), nod.password)) {
+            ResponseBody body = resp.body();
+            if (body == null) throw new NullPointerException("body() null");
+            td = new JSONObject(body.string());
             List<AudioTrack> list = new ArrayList<>();
             td.getJSONArray("tracks").forEach(o -> {
                 try {
@@ -175,6 +180,11 @@ public class NowyManagerMuzyki {
                 }
             });
             return list;
+        } catch (JSONException exc) {
+            if (td != null)
+                Sentry.capture(new EventBuilder().withSentryInterface(new ExceptionInterface(exc))
+                        .withMessage(exc.getMessage()).withExtra("JSON", td.toString()));
+            throw exc;
         } catch (IOException exc) {
             throw new IllegalStateException(exc);
         }

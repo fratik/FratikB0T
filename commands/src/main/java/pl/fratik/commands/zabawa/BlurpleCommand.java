@@ -49,6 +49,7 @@ public class BlurpleCommand extends Command {
         permLevel = PermLevel.EVERYONE;
         permissions.add(Permission.MESSAGE_ATTACH_FILES);
         cooldown = 5;
+        allowInDMs = true;
     }
 
     @Override
@@ -77,7 +78,7 @@ public class BlurpleCommand extends Command {
                 return false;
             }
             byte[] img = NetworkUtil.getBytesFromBufferArray(zdjecie.getJSONObject("image").getJSONArray("data"));
-            context.getChannel().sendFile(img, "blurple.png").queue();
+            context.getMessageChannel().sendFile(img, "blurple.png").queue();
         } catch (IOException | NullPointerException e) {
             context.send(context.getTranslated("image.server.fail"));
         }

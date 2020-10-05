@@ -21,6 +21,7 @@ import lombok.Getter;
 import okhttp3.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import pl.fratik.core.Statyczne;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -32,14 +33,15 @@ import java.util.Map;
 public class NetworkUtil {
     private NetworkUtil() {}
 
-    private static final String USER_AGENT = "FratikB0T/3.0.0 (https://fratikbot.pl)";
+    private static final String USER_AGENT = "FratikB0T/" + Statyczne.WERSJA_BEZ_BUILDA + " (https://fratikbot.pl)";
     private static final String UA = "User-Agent";
     private static final String AUTH = "Authorization";
     @Getter private static final OkHttpClient client = new OkHttpClient();
 
     public static byte[] download(String url, String authorization) throws IOException {
-        Response res = downloadResponse(url, authorization);
-        return res.body() == null ? new byte[0] : res.body().bytes();
+        try (Response res = downloadResponse(url, authorization)) {
+            return res.body() == null ? new byte[0] : res.body().bytes();
+        }
     }
 
     public static Response downloadResponse(String url, String authorization) throws IOException {
@@ -75,8 +77,9 @@ public class NetworkUtil {
                 .header(UA, USER_AGENT)
                 .url(url)
                 .build();
-        Response res = client.newCall(req).execute();
-        return res.body() == null ? null : new JSONResponse(res.body().string(), res.code());
+        try (Response res = client.newCall(req).execute()) {
+            return res.body() == null ? null : new JSONResponse(res.body().string(), res.code());
+        }
     }
 
     public static JSONArray getJsonArray(String url) throws IOException {
@@ -84,8 +87,9 @@ public class NetworkUtil {
                 .header(UA, USER_AGENT)
                 .url(url)
                 .build();
-        Response res = client.newCall(req).execute();
-        return res.body() == null ? null : new JSONArray(res.body().string());
+        try (Response res = client.newCall(req).execute()) {
+            return res.body() == null ? null : new JSONArray(res.body().string());
+        }
     }
 
     public static JSONObject getJson(String url, String authorization) throws IOException {
@@ -107,8 +111,9 @@ public class NetworkUtil {
     }
 
     public static byte[] download(String url) throws IOException {
-        Response res = downloadResponse(url);
-        return res.body() == null ? new byte[0] : res.body().bytes();
+        try (Response res = downloadResponse(url)) {
+            return res.body() == null ? new byte[0] : res.body().bytes();
+        }
     }
 
     public static byte[] getBytesFromBufferArray(int[] bufferArray) {

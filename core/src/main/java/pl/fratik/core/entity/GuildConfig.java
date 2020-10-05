@@ -23,6 +23,7 @@ import gg.amy.pgorm.annotations.PrimaryKey;
 import gg.amy.pgorm.annotations.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import pl.fratik.core.command.PermLevel;
 import pl.fratik.core.tlumaczenia.Language;
 
 import java.beans.Transient;
@@ -115,15 +116,40 @@ public class GuildConfig implements DatabaseEntity {
     @ConfigField(dontDisplayInSettings = true)
     private Map<String, String> pozegnania = new HashMap<>();
     private Boolean wysylajOgloszenia = false;
+    @ConfigField(dontDisplayInSettings = true)
+    private String liczekKanal = "";
     private Map<String, Webhook> webhooki = new HashMap<>();
     private String lvlUpMessage;
     private Boolean resetujOstrzezeniaPrzyBanie = true;
     @ConfigField(dontDisplayInSettings = true)
     private HashMap<String, String> rolePrefix = new HashMap<>();
+    private Map<String, PermLevel> cmdPermLevelOverrides = new HashMap<>();
+    @ConfigField(dontDisplayInSettings = true)
+    private Map<Integer, String> roleZaZaproszenia = new HashMap<>();
+    private Boolean lvlUpNotify = true;
+    private Boolean trackInvites = false;
+    private Boolean deleteSwearMessage = false;
+    private Boolean cytujFbot = false;
 
     // TODO: 09/04/2020 można to zrobić dla każdego Boolean'a, ale to już kwestia kosmetyki kodu chyba
     public boolean isResetujOstrzezeniaPrzyBanie() {
         return resetujOstrzezeniaPrzyBanie != null && resetujOstrzezeniaPrzyBanie;
+    }
+
+    public boolean isLvlUpNotify() {
+        return lvlUpNotify == null || lvlUpNotify;
+    }
+
+    public boolean isTrackInvites() {
+        return trackInvites != null && trackInvites;
+    }
+
+    public boolean isDeleteSwearMessage() {
+        return deleteSwearMessage != null && deleteSwearMessage;
+    }
+
+    public boolean isCytujFbot() {
+        return cytujFbot != null && cytujFbot;
     }
 
     @Transient

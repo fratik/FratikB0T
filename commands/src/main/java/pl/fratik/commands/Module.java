@@ -20,6 +20,7 @@ package pl.fratik.commands;
 import com.google.common.eventbus.EventBus;
 import com.google.inject.Inject;
 import net.dv8tion.jda.api.sharding.ShardManager;
+import pl.fratik.commands.entity.BlacklistDao;
 import pl.fratik.commands.entity.PrivDao;
 import pl.fratik.commands.narzedzia.*;
 import pl.fratik.commands.system.*;
@@ -35,6 +36,7 @@ import pl.fratik.core.manager.ManagerModulow;
 import pl.fratik.core.moduly.Modul;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.EventWaiter;
+import pl.fratik.core.webhook.WebhookManager;
 
 import java.util.ArrayList;
 
@@ -54,6 +56,7 @@ public class Module implements Modul {
     @Inject private ManagerModulow managerModulow;
     @Inject private EventBus eventBus;
     @Inject private RedisCacheManager redisCacheManager;
+    @Inject private WebhookManager webhookManager;
     private ArrayList<Command> commands;
 
     private MemberListener listener;
@@ -65,11 +68,12 @@ public class Module implements Modul {
     @Override
     public boolean startUp() {
         PrivDao privDao = new PrivDao(managerBazyDanych, eventBus);
+        BlacklistDao blacklistDao = new BlacklistDao(managerBazyDanych, eventBus);
 
         commands = new ArrayList<>();
 
         commands.add(new PingCommand());
-        commands.add(new HelpCommand(managerKomend, guildDao, shardManager));
+        commands.add(new HelpCommand(managerKomend, guildDao, shardManager, redisCacheManager));
         commands.add(new LanguageCommand(userDao));
         commands.add(new UstawieniaCommand(eventWaiter, userDao, guildDao, managerArgumentow, shardManager, tlumaczenia));
         commands.add(new PoziomCommand(guildDao, shardManager));
@@ -93,12 +97,12 @@ public class Module implements Modul {
             commands.add(new BigemojiCommand());
             commands.add(new ChainCommand());
         }
-        commands.add(new OgloszenieCommand(shardManager, guildDao, eventBus, tlumaczenia, managerKomend));
+        commands.add(new OgloszenieCommand(shardManager, guildDao, eventBus, tlumaczenia, managerKomend, redisCacheManager));
         commands.add(new ServerinfoCommand(userDao, eventBus));
         commands.add(new UserinfoCommand(userDao, shardManager, eventBus));
         commands.add(new KolorCommand());
         commands.add(new DegradCommand(shardManager));
-        commands.add(new CytujCommand(shardManager, eventBus));
+        commands.add(new CytujCommand(shardManager, eventBus, webhookManager, guildDao, userDao, tlumaczenia, redisCacheManager));
         commands.add(new PogodaCommand(userDao));
         commands.add(new McpremiumCommand());
         commands.add(new InviteCommand());
@@ -109,10 +113,9 @@ public class Module implements Modul {
         commands.add(new MemeCommand());
         commands.add(new DashboardCommand());
         commands.add(new DonateCommand());
-        commands.add(new OpuscCommand());
-        commands.add(new BoomCommand(eventWaiter, userDao, redisCacheManager));
+//        commands.add(new BoomCommand(eventWaiter, userDao, redisCacheManager));
         commands.add(new PomocCommand());
-        commands.add(new PopCommand(shardManager, guildDao, eventWaiter, eventBus, tlumaczenia));
+        commands.add(new PopCommand(shardManager, guildDao, eventWaiter, eventBus, tlumaczenia, blacklistDao, redisCacheManager));
         commands.add(new PowiadomOPomocyCommand(shardManager));
         commands.add(new OsiemBallCommand());
         commands.add(new ChooseCommand());
@@ -141,8 +144,13 @@ public class Module implements Modul {
         commands.add(new Rule34Command(eventWaiter, eventBus, managerArgumentow));
         commands.add(new CoronastatsCommand());
         commands.add(new PrefixroleCommand(guildDao));
+        commands.add(new UstawPoziomCommand(guildDao, managerKomend));
+        commands.add(new PoziomyUprawnienCommand());
+        commands.add(new BlacklistPopCommand(blacklistDao));
+        commands.add(new ShipCommand(managerArgumentow));
 
-        listener = new MemberListener(guildDao, tlumaczenia, redisCacheManager);
+        listener = new MemberListener(guildDao, tlumaczenia, eventBus, redisCacheManager);
+
         eventBus.register(listener);
 
         commands.forEach(managerKomend::registerCommand);

@@ -53,6 +53,7 @@ public class PrivCommand extends Command {
         allowInDMs = true;
         uzycieDelim = " ";
         aliases = new String[] {"pw", "dm", "msg", "pv", "privee"};
+        allowPermLevelChange = false;
     }
 
     @Override
@@ -60,7 +61,7 @@ public class PrivCommand extends Command {
         User doKogo = (User) context.getArgs()[0];
         User sender = context.getSender();
         String tresc = Arrays.stream(Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length))
-                .map(Object::toString).collect(Collectors.joining(uzycieDelim));
+                .map(o -> o == null ? "" : o.toString()).collect(Collectors.joining(uzycieDelim));
         if (sender.equals(doKogo)) {
             context.send(context.getTranslated("priv.same.recipient"));
             return false;

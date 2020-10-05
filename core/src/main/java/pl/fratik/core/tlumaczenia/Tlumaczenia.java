@@ -93,9 +93,19 @@ public class Tlumaczenia {
 
     public String get(Language l, String key) {
         String property;
-        if (languages.containsKey(l))
-            property = languages.get(l).getProperty(key, languages.get(Language.POLISH).getProperty(key, key));
-        else property = languages.get(Language.POLISH).getProperty(key, key);
+        if (languages.containsKey(l)) {
+            property = languages.get(l).getProperty(key);
+            if (property == null) {
+                property = languages.get(Language.POLISH).getProperty(key, key);
+                if (property.equals(languages.get(Language.POLISH)
+                        .getProperty("translation.empty", "translation.empty")))
+                    property = "";
+            }
+        } else {
+            property = languages.get(Language.POLISH).getProperty(key, key);
+            if (property.equals(languages.get(Language.POLISH)
+                    .getProperty("translation.empty", "translation.empty"))) property = "";
+        }
         if (property.equals(key))
             Sentry.capture(new EventBuilder().withLevel(Event.Level.WARNING).withMessage(key + NOTTRA).build());
         if (property.equals(languages.getOrDefault(l, languages.get(Language.POLISH))
@@ -107,27 +117,13 @@ public class Tlumaczenia {
     }
 
     public String get(Language l, String key, String ...toReplace) {
-        String property;
-        if (languages.containsKey(l))
-            property = languages.get(l).getProperty(key, languages.get(Language.POLISH).getProperty(key, key));
-        else property = languages.get(Language.POLISH).getProperty(key, key);
-        if (property.equals(key))
-            Sentry.capture(new EventBuilder().withLevel(Event.Level.WARNING).withMessage(key + NOTTRA).build());
-        return String.format(property, (Object[]) toReplace);
+        return String.format(get(l, key), (Object[]) toReplace);
     }
 
     public String get(Language l, String key, Object ...toReplace) {
-        String property;
-        if (languages.containsKey(l))
-            property = languages.get(l).getProperty(key, languages.get(Language.POLISH).getProperty(key, key));
-        else property = languages.get(Language.POLISH).getProperty(key, key);
-        if (property.equals(key))
-            Sentry.capture(new EventBuilder().withLevel(Event.Level.WARNING).withMessage(key + NOTTRA).build());
         ArrayList<String> parsedArray = new ArrayList<>();
-        for (Object k : toReplace) {
-            parsedArray.add(k.toString());
-        }
-        return String.format(property, parsedArray.toArray());
+        for (Object k : toReplace) parsedArray.add(k.toString());
+        return String.format(get(l, key), parsedArray.toArray());
     }
 
     public Language getLanguage(Guild guild) {

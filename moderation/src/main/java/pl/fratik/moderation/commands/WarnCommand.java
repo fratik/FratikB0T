@@ -17,12 +17,12 @@
 
 package pl.fratik.moderation.commands;
 
-import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.sharding.ShardManager;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
@@ -88,19 +88,17 @@ public class WarnCommand extends ModerationCommand {
             context.send(context.getTranslated("warn.no.bot"));
             return false;
         }
-        if (context.getGuild().getMemberById(uzytkownik.getUser().getId()) != null) {
-            if (uzytkownik.isOwner()) {
-                context.send(context.getTranslated("warn.cant.warn.owner"));
-                return false;
-            }
-            if (!context.getMember().canInteract(uzytkownik)) {
-                context.send(context.getTranslated("warn.user.cant.interact"));
-                return false;
-            }
-            if (!context.getGuild().getSelfMember().canInteract(uzytkownik)) {
-                context.send(context.getTranslated("warn.bot.cant.interact"));
-                return false;
-            }
+        if (uzytkownik.isOwner()) {
+            context.send(context.getTranslated("warn.cant.warn.owner"));
+            return false;
+        }
+        if (!context.getMember().canInteract(uzytkownik)) {
+            context.send(context.getTranslated("warn.user.cant.interact"));
+            return false;
+        }
+        if (!context.getGuild().getSelfMember().canInteract(uzytkownik)) {
+            context.send(context.getTranslated("warn.bot.cant.interact"));
+            return false;
         }
         GuildConfig gc = guildDao.get(context.getGuild());
         CaseRow caseRow = casesDao.get(context.getGuild());
@@ -119,13 +117,13 @@ public class WarnCommand extends ModerationCommand {
                     WarnUtil.countCases(caseRow, uzytkownik.getId())));
             if (!aCase.getFlagi().contains(Case.Flaga.SILENT)) context.send(context.getTranslated("warn.nomodlogs", context.getPrefix()));
             casesDao.save(caseRow);
-            WarnUtil.takeAction(guildDao, casesDao, uzytkownik, context.getChannel(), context.getLanguage(),
+            WarnUtil.takeAction(guildDao, casesDao, uzytkownik, context.getTextChannel(), context.getLanguage(),
                     context.getTlumaczenia(), managerKomend);
             return true;
         }
         if (!aCase.getFlagi().contains(Case.Flaga.SILENT)) {
             MessageEmbed embed = ModLogBuilder.generate(aCase, context.getGuild(), shardManager,
-                    gc.getLanguage(), managerKomend, true);
+                    gc.getLanguage(), managerKomend, true, false);
             Message message = mlog.sendMessage(embed).complete();
             aCase.setMessageId(message.getId());
         }
@@ -133,7 +131,7 @@ public class WarnCommand extends ModerationCommand {
         context.send(context.getTranslated("warn.success", UserUtil.formatDiscrim(uzytkownik),
                 WarnUtil.countCases(caseRow, uzytkownik.getId())));
         casesDao.save(caseRow);
-        WarnUtil.takeAction(guildDao, casesDao, uzytkownik, context.getChannel(), context.getLanguage(),
+        WarnUtil.takeAction(guildDao, casesDao, uzytkownik, context.getTextChannel(), context.getLanguage(),
                 context.getTlumaczenia(), managerKomend);
         return true;
     }

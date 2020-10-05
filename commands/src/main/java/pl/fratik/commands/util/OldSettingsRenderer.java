@@ -169,10 +169,11 @@ public class OldSettingsRenderer implements SettingsRenderer {
         else
             builder.append("5. ").append(ctx.getTranslated("ustawienia.user.reakcjablad.isnotset")).append("\n");
         builder.append("6. ").append(ctx.getTranslated("ustawienia.user.lvlupmessages." +
-                (userConfig.isPrivWlaczone() ? "enabled" : "disabled"))).append("\n");
+                (userConfig.isLvlupMessages() ? "enabled" : "disabled"))).append("\n");
         builder.append("7. ").append(ctx.getTranslated("ustawienia.user.lvlupondm." +
-                (userConfig.isLvlUpOnDM() ? "enabled" : "disabled")));
-        builder.append("\n");
+                (userConfig.isLvlUpOnDM() ? "enabled" : "disabled"))).append("\n");
+        builder.append("8. ").append(ctx.getTranslated("ustawienia.user.cytujfbot." +
+                (userConfig.isCytujFbot() ? "enabled" : "disabled"))).append("\n");
         builder.append("\n0. ").append(ctx.getTranslated("ustawienia.footer"));
         builder.append("```");
         ctx.send(builder.toString(), message -> {
@@ -219,7 +220,7 @@ public class OldSettingsRenderer implements SettingsRenderer {
                 userConfig.setLvlupMessages(!userConfig.isLvlupMessages());
                 userDao.save(userConfig);
                 ctx.send(ctx.getTranslated("ustawienia.user.lvlupmessages.confirm." +
-                        (userConfig.isPrivWlaczone() ? "enabled" : "disabled")));
+                        (userConfig.isLvlupMessages() ? "enabled" : "disabled")));
                 break;
             case "7":
                 koniecZara = false;
@@ -227,6 +228,13 @@ public class OldSettingsRenderer implements SettingsRenderer {
                 userDao.save(userConfig);
                 ctx.send(ctx.getTranslated("ustawienia.user.lvlupondm.confirm." +
                         (userConfig.isLvlUpOnDM() ? "enabled" : "disabled")));
+                break;
+            case "8":
+                koniecZara = false;
+                userConfig.setCytujFbot(!userConfig.isCytujFbot());
+                userDao.save(userConfig);
+                ctx.send(ctx.getTranslated("ustawienia.user.cytujfbot.confirm." +
+                        (userConfig.isCytujFbot() ? "enabled" : "disabled")));
                 break;
             case "0":
             case "wyjdz":
@@ -272,8 +280,13 @@ public class OldSettingsRenderer implements SettingsRenderer {
             waiter.setTimeoutHandler(() -> onTimeout(message));
             waiter.setMessageHandler(event -> {
                 message.delete().queue();
-                Emoji emotka = (Emoji) managerArgumentow.getArguments().get("emote")
-                        .execute(event.getMessage().getContentRaw().split(" ")[0], tlumaczenia, ctx.getLanguage());
+                Emoji emotka;
+                try {
+                    emotka = (Emoji) managerArgumentow.getArguments().get("emote")
+                            .execute(event.getMessage().getContentRaw().split(" ")[0], tlumaczenia, ctx.getLanguage());
+                } catch (Exception e) {
+                    emotka = null;
+                }
                 if (emotka == null) {
                     ctx.send(ctx.getTranslated("ustawienia.user.set.reakcja.invalid"));
                     if (!koniecZara) {
@@ -296,8 +309,13 @@ public class OldSettingsRenderer implements SettingsRenderer {
             waiter.setTimeoutHandler(() -> onTimeout(message));
             waiter.setMessageHandler(event -> {
                 message.delete().queue();
-                Emoji emotka = (Emoji) managerArgumentow.getArguments().get("emote")
-                        .execute(event.getMessage().getContentRaw().split(" ")[0], tlumaczenia, ctx.getLanguage());
+                Emoji emotka;
+                try {
+                    emotka = (Emoji) managerArgumentow.getArguments().get("emote")
+                            .execute(event.getMessage().getContentRaw().split(" ")[0], tlumaczenia, ctx.getLanguage());
+                } catch (Exception e) {
+                    emotka = null;
+                }
                 if (emotka == null) {
                     ctx.send(ctx.getTranslated("ustawienia.user.set.reakcjablad.invalid"));
                     if (!koniecZara) {
@@ -486,7 +504,7 @@ public class OldSettingsRenderer implements SettingsRenderer {
     }
 
     private boolean checkReaction(MessageReactionAddEvent event) {
-        if (event.getMessageId().equals(paginatingMessage.getId()) && !event.getReactionEmote().isEmote()) {
+        if (paginatingMessage != null && event.getMessageId().equals(paginatingMessage.getId()) && !event.getReactionEmote().isEmote()) {
             switch (event.getReactionEmote().getName()) {
                 case LEFT_EMOJI:
                 case RIGHT_EMOJI:

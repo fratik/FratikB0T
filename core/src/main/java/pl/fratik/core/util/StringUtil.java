@@ -26,6 +26,8 @@ import java.security.SecureRandom;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
+import static java.util.regex.Matcher.quoteReplacement;
+
 public class StringUtil {
 
     private StringUtil() {}
@@ -79,8 +81,9 @@ public class StringUtil {
     }
 
     public static String escapeMarkdown(String text) {
-        return text == null ? "" : text.replaceAll("_", "\\_").replaceAll("\\*", "\\*")
-                .replaceAll("~", "\\~").replaceAll("`", "\\`");
+        return text == null ? "" : text.replaceAll("_", quoteReplacement("\\_"))
+                .replaceAll("\\*", quoteReplacement("\\*")).replaceAll("~", quoteReplacement("\\~"))
+                .replaceAll("`", quoteReplacement("\\`")).replaceAll("\\|", quoteReplacement("\\|"));
     }
 
     public static String generateId() {
@@ -116,9 +119,8 @@ public class StringUtil {
     }
 
     public static String haste(String tresc) {
-        try {
-            Response res = NetworkUtil.postRequest("https://hastebin.com/documents",
-                    MediaType.get("text/plain; charset=utf-8"), tresc, null);
+        try (Response res = NetworkUtil.postRequest("https://hastebin.com/documents",
+                MediaType.get("text/plain; charset=utf-8"), tresc, null)) {
             return new JSONObject(Objects.requireNonNull(res.body() != null ? res.body().string() : null)).getString("key");
         } catch (Exception e) {
             return null;

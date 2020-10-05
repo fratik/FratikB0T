@@ -33,6 +33,8 @@ import pl.fratik.core.command.PermLevel;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.event.DatabaseUpdateEvent;
+import pl.fratik.core.manager.ManagerKomend;
+import pl.fratik.core.manager.implementation.ManagerModulowImpl;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.UserUtil;
 
@@ -51,17 +53,19 @@ public class AntiRaidListener {
     private final Timer timerN;
     private final Timer timerE;
     private final Tlumaczenia tlumaczenia;
+    private final ManagerKomend managerKomend;
     private static final Pattern PING_REGEX = Pattern.compile("<@[!&]?([0-9]{17,18})>");
     private final Map<String, List<String>> lastContentsNormal = new HashMap<>();
     private final Map<String, List<String>> lastContentsExtreme = new HashMap<>();
 
     private final Cache<GuildConfig> gcCache;
 
-    public AntiRaidListener(GuildDao guildDao, ShardManager shardManager, EventBus eventBus, Tlumaczenia tlumaczenia, RedisCacheManager redisCacheManager) {
+    public AntiRaidListener(GuildDao guildDao, ShardManager shardManager, EventBus eventBus, Tlumaczenia tlumaczenia, RedisCacheManager redisCacheManager, ManagerKomend managerKomend) {
         this.guildDao = guildDao;
         this.shardManager = shardManager;
         this.eventBus = eventBus;
         this.tlumaczenia = tlumaczenia;
+        this.managerKomend = managerKomend;
         timerN = new Timer("antiraidNormalClean");
         timerN.scheduleAtFixedRate(new TimerTask() {
             @Override
@@ -87,6 +91,7 @@ public class AntiRaidListener {
         if (antiRaidDisabled(e.getMessage().getGuild())) return;
         if (UserUtil.getPermlevel(e.getMember(), guildDao, shardManager, PermLevel.OWNER).getNum() >= 1) return;
         if (getAntiRaidChannels(e.getMessage().getGuild()).contains(e.getTextChannel().getId())) return;
+        if (!e.getTextChannel().canTalk()) return;
         if (antiRaidExtreme(e.getMessage().getGuild())) extreme(e.getMessage());
         normal(e.getMessage());
     }
@@ -199,7 +204,7 @@ public class AntiRaidListener {
             if (success) logExtreme(e, lastC, "2 wiadomości o podobieństwie " + proc.stream().map(w -> w * 100 + "%")
                     .collect(Collectors.joining(", ")));
         }
-        if (lastC.stream().filter(c -> c != null && c.length() <= 3).count() >= 2) {
+        if (lastC.stream().filter(c -> c != null && c.length() <= 3).count() >= 3) {
             boolean success;
             try {
                 e.getGuild().ban(e.getAuthor(), 0, "Raid").complete();
@@ -248,7 +253,7 @@ public class AntiRaidListener {
         if (gc == null) //czyli nigdy
             return true;
         if (gc.getAntiRaid() == null) return true;
-        return gc.getAntiRaid();
+        return !gc.getAntiRaid();
     }
 
     private boolean antiRaidExtreme(Guild guild) {
@@ -269,11 +274,12 @@ public class AntiRaidListener {
 
     private void log(Message e, List<String> lastC, String powod) {
         e.getChannel().sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(e.getGuild()), "antiraid.notification",
-                "\uD83E\uDD23")).queue();
+                e.getAuthor().getAsTag(), e.getAuthor().getId(), managerKomend.getPrefixes(e.getGuild()).get(0))).queue();
         String wiad = "Zbanowano " + e.getAuthor().getAsTag() + " (" + e.getAuthor().getId() + ") na serwerze " +
                 e.getGuild().getName() + " (" + e.getGuild().getId() + "): " + powod + ".\nWiadomości:\n";
         List<String> lastCostatnie3 = new ArrayList<>();
         for (String el : lastC) {
+            if (el == null || el.isEmpty()) continue;
             lastCostatnie3.add(el);
             if (lastCostatnie3.size() == 3) break;
         }
@@ -282,8 +288,8 @@ public class AntiRaidListener {
         if ((wiad + tekst).length() >= 2000) wiad += "za długie";
         else wiad += tekst;
         try {
-            Object logEvent = Class.forName("pl.fratik.logs.GenericLogEvent").getDeclaredConstructor(String.class,
-                    String.class).newInstance("antiraid", wiad);
+            Object logEvent = ManagerModulowImpl.moduleClassLoader.loadClass("pl.fratik.logs.GenericLogEvent")
+                    .getDeclaredConstructor(String.class, String.class).newInstance("antiraid", wiad);
             eventBus.post(logEvent);
         } catch (Exception err) {
             // nic
@@ -296,6 +302,7 @@ public class AntiRaidListener {
                 e.getGuild().getName() + " (" + e.getGuild().getId() + "): " + powod + ".\nWiadomości:\n";
         List<String> lastCostatnie3 = new ArrayList<>();
         for (String el : lastC) {
+            if (el == null || el.isEmpty()) continue;
             lastCostatnie3.add(el);
             if (lastCostatnie3.size() == 3) break;
         }

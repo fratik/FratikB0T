@@ -24,7 +24,10 @@ import net.dv8tion.jda.internal.entities.AbstractMessage;
 import org.json.JSONObject;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.Ustawienia;
+import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandContext;
+import pl.fratik.core.tlumaczenia.Language;
+import pl.fratik.core.tlumaczenia.Tlumaczenia;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -47,6 +50,8 @@ import java.util.regex.Pattern;
 public class CommonUtil {
 
     private CommonUtil() {}
+
+    public static final Pattern ID_REGEX = Pattern.compile("\\d{17,18}");
 
     public static boolean checkCooldown(Map<Guild, Long> cooldowns, CommandContext context, long time) {
         if (cooldowns != null) {
@@ -176,10 +181,12 @@ public class CommonUtil {
     }
 
     public static String getImageUrl(Message msg) {
-        Matcher matcher = Pattern.compile("[(http(s)?)://(www\\.)?a-zA-Z0-9@:%._\\+~#=]{2,256}\\.[a-z]{2,6" +
-                "}\\b([-a-zA-Z0-9@:%_\\+.~#?&//=]*)", Pattern.CASE_INSENSITIVE | Pattern.DOTALL).matcher(msg.getContentRaw());
-        if (matcher.matches()) return matcher.group();
-        if (!msg.getAttachments().isEmpty()) return msg.getAttachments().get(0).getUrl();
+        Matcher matcher = Pattern.compile("(http(s)?):\\/\\/(www\\.)?[?a-zA-Z0-9@:%._\\+~#=]{2,256}\\.[a-z]{2,6}" +
+                "\\b([-a-zA-Z0-9@:%_\\+.~#?&//=]*\\.(a?png|jpe?g|gif|webp|tiff|svg))",
+                Pattern.CASE_INSENSITIVE).matcher(msg.getContentRaw());
+        if (matcher.find()) return matcher.group();
+        if (!msg.getAttachments().isEmpty() && msg.getAttachments().get(0).isImage())
+            return msg.getAttachments().get(0).getUrl();
         return null;
     }
 
@@ -187,5 +194,15 @@ public class CommonUtil {
         BigDecimal bd = BigDecimal.valueOf(value);
         bd = bd.setScale(scale, mode);
         return bd.doubleValue();
+    }
+
+    public static String resolveName(Command cmd, Tlumaczenia t, Language l) {
+        String raw = t.get(l, cmd.getName() + ".help.name");
+        if (raw.isEmpty()) return cmd.getName();
+        else {
+            String[] aliasy = raw.toLowerCase().split("\\|");
+            if (aliasy[0].isEmpty()) return cmd.getName();
+            else return aliasy[0].trim();
+        }
     }
 }

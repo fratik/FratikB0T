@@ -28,8 +28,14 @@ import lombok.Getter;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.OnlineStatus;
 import net.dv8tion.jda.api.entities.Activity;
+import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.requests.GatewayIntent;
+import net.dv8tion.jda.api.requests.restaction.MessageAction;
 import net.dv8tion.jda.api.sharding.DefaultShardManagerBuilder;
 import net.dv8tion.jda.api.sharding.ShardManager;
+import net.dv8tion.jda.api.utils.ChunkingFilter;
+import net.dv8tion.jda.api.utils.MemberCachePolicy;
+import net.dv8tion.jda.api.utils.cache.CacheFlag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.cache.RedisCacheManager;
@@ -58,6 +64,7 @@ import pl.fratik.core.webhook.WebhookManager;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.Optional;
 import java.util.concurrent.Executors;
@@ -183,19 +190,30 @@ class FratikB0T {
                 int count = Integer.parseUnsignedInt(shards[2]);
 
                 logger.info("Oczekiwanie na shard'y...");
-                DefaultShardManagerBuilder builder = new DefaultShardManagerBuilder();
+                DefaultShardManagerBuilder builder = DefaultShardManagerBuilder.create(token,
+                        GatewayIntent.GUILD_MEMBERS, GatewayIntent.GUILD_BANS, GatewayIntent.GUILD_VOICE_STATES,
+                        GatewayIntent.GUILD_MESSAGES, GatewayIntent.GUILD_MESSAGE_REACTIONS, GatewayIntent.GUILD_INVITES,
+                        GatewayIntent.DIRECT_MESSAGES, GatewayIntent.DIRECT_MESSAGE_REACTIONS, GatewayIntent.GUILD_EMOJIS);
                 builder.setShardsTotal(count);
                 builder.setShards(min, max);
                 builder.setEnableShutdownHook(false);
                 builder.setAudioSendFactory(new NativeAudioSendFactory());
                 builder.setAutoReconnect(true);
-                builder.setToken(token);
+                try {
+                    builder.setChunkingFilter(ChunkingFilter.include(Long.parseLong(Ustawienia.instance.botGuild)));
+                } catch (NumberFormatException e) {
+                    logger.error("Nieprawidłowe ID serwera bota!");
+                    System.exit(1);
+                }
+                builder.setMemberCachePolicy(MemberCachePolicy.ALL);
                 builder.setStatus(OnlineStatus.DO_NOT_DISTURB);
                 builder.setActivity(Activity.playing(String.format("Ładowanie... (%s shard(ów))", count)));
                 builder.addEventListeners(eventHandler);
                 builder.setVoiceDispatchInterceptor(eventHandler);
                 builder.setBulkDeleteSplittingEnabled(false);
                 builder.setCallbackPool(Executors.newFixedThreadPool(4));
+                builder.enableCache(CacheFlag.EMOTE);
+                MessageAction.setDefaultMentions(EnumSet.of(Message.MentionType.EMOTE, Message.MentionType.CHANNEL));
                 ShardManager shardManager = builder.build();
                 ManagerArgumentow managerArgumentow = new ManagerArgumentowImpl();
                 Uzycie.setManagerArgumentow(managerArgumentow);
@@ -235,7 +253,7 @@ class FratikB0T {
 
                 Globals.clientId = shard.get().getSelfUser().getIdLong();
 
-                if (shard.get().getSelfUser().getId().equals("338359366891732993")) {
+                if (shard.get().getSelfUser().getId().equals(Ustawienia.instance.productionBotId)) {
                     Globals.inDiscordBotsServer = Globals.production = true;
                 }
 
@@ -245,6 +263,7 @@ class FratikB0T {
                 });
                 RedisCacheManager redisCacheManager = new RedisCacheManager(Globals.clientId);
                 eventBus.register(redisCacheManager);
+                UserUtil.setGcCache(redisCacheManager.new CacheRetriever<GuildConfig>(){}.getCache());
                 UserUtil.setGbanCache(redisCacheManager.new CacheRetriever<GbanData>(){}.getCache());
                 UserUtil.setTimeZoneCache(redisCacheManager.new CacheRetriever<String>(){}.getCache());
                 GuildUtil.setGbanCache(redisCacheManager.new CacheRetriever<GbanData>(){}.getCache());
@@ -269,7 +288,7 @@ class FratikB0T {
                     Thread.sleep(100);
                 }
 
-                if (shardManager.getGuildById("345655892882096139") != null) Globals.inFratikDev = true;
+                if (shardManager.getGuildById(Ustawienia.instance.botGuild) != null) Globals.inFratikDev = true;
 
                 shardManager.setStatus(OnlineStatus.ONLINE);
                 shardManager.setActivity(Activity.playing("Dzień doberek! | v" + WERSJA));

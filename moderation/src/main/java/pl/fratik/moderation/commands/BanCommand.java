@@ -20,10 +20,13 @@ package pl.fratik.moderation.commands;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.exceptions.HierarchyException;
+import net.dv8tion.jda.api.requests.ErrorResponse;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
+import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Kara;
 import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.util.DurationUtil;
@@ -39,7 +42,9 @@ import java.util.stream.Collectors;
 
 public class BanCommand extends ModerationCommand {
 
-    public BanCommand() {
+    private final GuildDao guildDao;
+
+    public BanCommand(GuildDao guildDao) {
         name = "ban";
         category = CommandCategory.MODERATION;
         uzycieDelim = " ";
@@ -50,6 +55,7 @@ public class BanCommand extends ModerationCommand {
         hmap.put("[...]", "string");
         uzycie = new Uzycie(hmap, new boolean[] {true, false, false});
         aliases = new String[] {"b", "dzban", "BiletWJednąStronę", "syberia", "banujetypa", "zbanuj", "del", "delett", "b&"};
+        this.guildDao = guildDao;
     }
 
     @Override
@@ -64,7 +70,13 @@ public class BanCommand extends ModerationCommand {
             context.send(context.getTranslated("ban.cant.ban.yourself"));
             return false;
         }
-        Member uzMem = context.getGuild().getMemberById(uzytkownik.getId());
+        Member uzMem;
+        try {
+            uzMem = context.getGuild().retrieveMemberById(uzytkownik.getId()).complete();
+        } catch (ErrorResponseException e) {
+            if (e.getErrorResponse() == ErrorResponse.UNKNOWN_MEMBER) uzMem = null;
+            else throw e;
+        }
         if (uzMem != null) {
             if (uzMem.isOwner()) {
                 context.send(context.getTranslated("ban.cant.ban.owner"));
@@ -74,6 +86,13 @@ public class BanCommand extends ModerationCommand {
                 context.send(context.getTranslated("ban.cant.interact"));
                 return false;
             }
+        }
+        try {
+            context.getGuild().retrieveBanById(uzytkownik.getId()).complete();
+            context.send(context.getTranslated("ban.already.banned"));
+            return false;
+        } catch (ErrorResponseException e) {
+            // użytkownik nie ma bana
         }
         DurationUtil.Response durationResp;
         try {

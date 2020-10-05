@@ -31,6 +31,7 @@ public class RzutKosciaCommand extends Command {
         name = "rzutkoscia";
         category = CommandCategory.FUN;
         aliases = new String[] {"rzutk", "kostka", "rk", "rool", "roll"};
+        allowPermLevelChange = false;
     }
 
     @Override

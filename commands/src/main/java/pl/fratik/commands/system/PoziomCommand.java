@@ -41,6 +41,7 @@ public class PoziomCommand extends Command {
         uzycie = new Uzycie("osoba", "member");
         this.guildDao = guildDao;
         this.shardManager = shardManager;
+        allowPermLevelChange = false;
     }
 
     @Override

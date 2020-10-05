@@ -37,7 +37,8 @@ public class RegulaminCommand extends ModerationCommand {
         name = "regulamin";
         category = CommandCategory.MODERATION;
         uzycie = new Uzycie("zasada", "integer", true);
-        aliases = new String[] {"zasady", "reg", "zasada", "rules"};
+        aliases = new String[] {"zasady", "reg", "zasada"};
+        allowPermLevelChange = false;
     }
 
     @Override
@@ -101,4 +102,8 @@ public class RegulaminCommand extends ModerationCommand {
         return PermLevel.EVERYONE;
     }
 
+    @Override
+    public boolean isAllowPermLevelEveryone() {
+        return true;
+    }
 }

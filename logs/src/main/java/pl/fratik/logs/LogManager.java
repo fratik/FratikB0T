@@ -38,7 +38,6 @@ import pl.fratik.core.event.DatabaseUpdateEvent;
 import pl.fratik.core.event.LvlupEvent;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
-import pl.fratik.core.util.DurationUtil;
 import pl.fratik.core.util.NetworkUtil;
 import pl.fratik.core.util.UserUtil;
 
@@ -93,7 +92,7 @@ class LogManager {
                         e.getContext().getSender().getName(), e.getContext().getSender().getId()));
         });
         if (webhookGa == null) return;
-        if (UserUtil.isGadm(e.getContext().getMember(), shardManager)) {
+        if (UserUtil.isGadm(e.getContext().getSender(), shardManager)) {
             if (e.getContext().getGuild() == null) return;
             PermLevel pLevel = UserUtil.getPermlevel(e.getContext().getMember(), guildDao, shardManager,
                     PermLevel.OWNER);
@@ -164,8 +163,8 @@ class LogManager {
         executor.submit(() -> {
             WebhookClient cl = getWebhook(webhook);
             Member owner = e.getGuild().getOwner();
-            if (owner == null) cl.send(String.format("Opuszczono %s (ID: %s)", e.getGuild().getName(),
-                    e.getGuild().getId()));
+            if (owner == null) cl.send(String.format("Opuszczono %s (ID: %s, właściciel [%s])", e.getGuild().getName(),
+                    e.getGuild().getId(), e.getGuild().getOwnerId()));
             else cl.send(String.format("Opuszczono %s (ID: %s, właściciel(ka): %s[%s])", e.getGuild().getName(),
                     e.getGuild().getId(), owner.getUser().getAsTag(), e.getGuild().getOwnerId()));
         });

@@ -47,6 +47,8 @@ public class ReloadCommand extends Command {
         permLevel = PermLevel.BOTOWNER;
         uzycie = new Uzycie("modul", "string");
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
+        allowPermLevelChange = false;
+        allowInDMs = true;
     }
 
     @Override
@@ -59,7 +61,7 @@ public class ReloadCommand extends Command {
         eb.appendDescription(pytajnik + ODMO + "\n");
         eb.appendDescription(pytajnik + UNLOAD + "\n");
         eb.appendDescription(pytajnik + LOAD + "\n");
-        Message msg = context.getChannel().sendMessage(eb.build()).complete();
+        Message msg = context.getMessageChannel().sendMessage(eb.build()).complete();
         File path = managerModulow.getPath((String) context.getArgs()[0]);
         if (path == null) {
             eb.setDescription(eb.getDescriptionBuilder().toString().replace(pytajnik +  ODMO,

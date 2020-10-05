@@ -26,12 +26,14 @@ import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
+import org.mozilla.javascript.Context;
+import org.mozilla.javascript.Script;
+import org.mozilla.javascript.ScriptableObject;
 import pl.fratik.core.Globals;
 import pl.fratik.core.Ustawienia;
-import pl.fratik.core.command.Command;
-import pl.fratik.core.command.CommandCategory;
-import pl.fratik.core.command.CommandContext;
-import pl.fratik.core.command.SubCommand;
+import pl.fratik.core.cache.Cache;
+import pl.fratik.core.cache.RedisCacheManager;
+import pl.fratik.core.command.*;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.event.PluginMessageEvent;
@@ -43,8 +45,12 @@ import pl.fratik.core.util.UserUtil;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class OgloszenieCommand extends Command {
+
+    private static final Pattern CODE_REGEX = Pattern.compile("<js>(.*?)</js>", Pattern.MULTILINE | Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
 
     private final ShardManager shardManager;
     private final GuildDao guildDao;
@@ -52,7 +58,9 @@ public class OgloszenieCommand extends Command {
     private final Tlumaczenia tlumaczenia;
     private final ManagerKomend managerKomend;
 
-    public OgloszenieCommand(ShardManager shardManager, GuildDao guildDao, EventBus eventBus, Tlumaczenia tlumaczenia, ManagerKomend managerKomend) {
+    private final Cache<GuildConfig> gcCache;
+
+    public OgloszenieCommand(ShardManager shardManager, GuildDao guildDao, EventBus eventBus, Tlumaczenia tlumaczenia, ManagerKomend managerKomend, RedisCacheManager rcm) {
         this.guildDao = guildDao;
         this.shardManager = shardManager;
         this.eventBus = eventBus;
@@ -61,7 +69,9 @@ public class OgloszenieCommand extends Command {
         name = "ogloszenie";
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         category = CommandCategory.SYSTEM;
-        aliases = new String[] {"news", "broadcast"};
+        aliases = new String[] {"broadcast"};
+        allowPermLevelChange = false;
+        gcCache = rcm.new CacheRetriever<GuildConfig>(){}.getCache();
     }
 
     @Override
@@ -74,7 +84,8 @@ public class OgloszenieCommand extends Command {
             context.send(context.getTranslated("ogloszenie.no.message"));
             return false;
         }
-        EmbedBuilder eb = ogloszenieEmbed(msgs.get(0), context.getTlumaczenia(), context.getLanguage());
+        EmbedBuilder eb = ogloszenieEmbed(msgs.get(0), context.getTlumaczenia(), context.getLanguage(),
+                context.getGuild());
         context.send(eb.build());
         return true;
     }
@@ -110,8 +121,8 @@ public class OgloszenieCommand extends Command {
                     break;
                 }
                 try {
-                    EmbedBuilder eb = ogloszenieEmbed(msgs.get(0), tlumaczenia, tlumaczenia.getLanguage(gu));
-                    GuildConfig gc = guildDao.get(gu.getId());
+                    EmbedBuilder eb = ogloszenieEmbed(msgs.get(0), tlumaczenia, tlumaczenia.getLanguage(gu), gu);
+                    GuildConfig gc = gcCache.get(gu.getId(), guildDao::get);
                     if (gc.getWysylajOgloszenia() == null || !gc.getWysylajOgloszenia()) {
                         udane.getAndAdd(1);
                         nieWysylaj.getAndAdd(1);
@@ -153,15 +164,45 @@ public class OgloszenieCommand extends Command {
         return true;
     }
 
-    private EmbedBuilder ogloszenieEmbed(Message msg, Tlumaczenia t, Language jezyk) {
+    private EmbedBuilder ogloszenieEmbed(Message msg, Tlumaczenia t, Language jezyk, Guild g) {
         EmbedBuilder eb = new EmbedBuilder();
         eb.setAuthor(UserUtil.formatDiscrim(msg.getAuthor()), null,
                 msg.getAuthor().getEffectiveAvatarUrl().replace(".webp", ".png"));
         eb.setTitle(t.get(jezyk, "ogloszenie.title"));
-        eb.setDescription(msg.getContentRaw());
+        eb.setDescription(parseContent(msg.getContentRaw(), g,
+                UserUtil.getPermlevel(msg.getAuthor(), shardManager) == PermLevel.BOTOWNER, jezyk));
         eb.setTimestamp(msg.isEdited() ? msg.getTimeEdited() : msg.getTimeCreated());
         if (msg.getMember() != null) eb.setColor(msg.getMember().getColor());
         else eb.setColor(UserUtil.getPrimColor(msg.getAuthor()));
         return eb;
+    }
+
+    private String parseContent(String cnt, Guild g, boolean enableCodeExec, Language jezyk) {
+        GuildConfig gc = gcCache.get(g.getId(), guildDao::get);
+        StringBuffer buf = new StringBuffer();
+        if (enableCodeExec) {
+            Matcher matcher = CODE_REGEX.matcher(cnt);
+            while (matcher.find()) {
+                String kod = matcher.group(1);
+                Context ctx = Context.enter();
+                ctx.setLanguageVersion(Context.VERSION_ES6);
+                ScriptableObject scr = ctx.initStandardObjects();
+                int attrib = ScriptableObject.PERMANENT | ScriptableObject.READONLY;
+                scr.defineProperty("guildConfig", gc, attrib);
+                scr.defineProperty("guild", g, attrib);
+                scr.defineProperty("shardManager", shardManager, attrib);
+                scr.defineProperty("tlumaczenia", tlumaczenia, attrib);
+                scr.defineProperty("language", jezyk, attrib);
+                Script script = ctx.compileString(kod, "<ogloszeniacnt>", 1, null);
+                try {
+                    String res = (String) Context.jsToJava(script.exec(ctx, scr), String.class);
+                    matcher.appendReplacement(buf, res);
+                } catch (Exception e) {
+                    matcher.appendReplacement(buf, "<EVAL ERROR>");
+                }
+            }
+            matcher.appendTail(buf);
+        } else buf = new StringBuffer(cnt);
+        return buf.toString().replace("%PREFIX%", managerKomend.getPrefixes(g).get(0));
     }
 }

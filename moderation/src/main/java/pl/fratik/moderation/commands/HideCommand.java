@@ -59,10 +59,10 @@ public class HideCommand extends ModerationCommand {
             context.send(context.getTranslated("hide.no.adminrole", managerKomend.getPrefixes(context.getGuild()).get(0)));
             return false;
         }
-        PermissionOverrideAction overrides = context.getChannel().upsertPermissionOverride(context.getGuild().getPublicRole());
+        PermissionOverrideAction overrides = context.getTextChannel().upsertPermissionOverride(context.getGuild().getPublicRole());
         if (overrides.getDeniedPermissions().contains(Permission.VIEW_CHANNEL)) {
-            PermissionOverrideAction publicOverrides = context.getChannel().putPermissionOverride(context.getGuild().getPublicRole());
-            PermissionOverrideAction adminOverrides = context.getChannel().putPermissionOverride(adminRole);
+            PermissionOverrideAction publicOverrides = context.getTextChannel().putPermissionOverride(context.getGuild().getPublicRole());
+            PermissionOverrideAction adminOverrides = context.getTextChannel().putPermissionOverride(adminRole);
             List<Permission> publicDeny = Lists.newArrayList(publicOverrides.getDeniedPermissions());
             List<Permission> adminAllow = Lists.newArrayList(adminOverrides.getAllowedPermissions());
             publicDeny.remove(Permission.VIEW_CHANNEL);
@@ -75,8 +75,8 @@ public class HideCommand extends ModerationCommand {
                 context.send(context.getTranslated("hide.unhide.fail"));
             }
         } else {
-            PermissionOverrideAction publicOverrides = context.getChannel().putPermissionOverride(context.getGuild().getPublicRole());
-            PermissionOverrideAction adminOverrides = context.getChannel().putPermissionOverride(adminRole);
+            PermissionOverrideAction publicOverrides = context.getTextChannel().putPermissionOverride(context.getGuild().getPublicRole());
+            PermissionOverrideAction adminOverrides = context.getTextChannel().putPermissionOverride(adminRole);
             List<Permission> publicDeny = Lists.newArrayList(publicOverrides.getDeniedPermissions());
             List<Permission> adminAllow = Lists.newArrayList(adminOverrides.getAllowedPermissions());
             publicDeny.add(Permission.VIEW_CHANNEL);

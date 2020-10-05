@@ -63,11 +63,12 @@ public class NukepointsCommand extends Command {
         category = CommandCategory.SYSTEM;
         permLevel = PermLevel.BOTOWNER;
         permissions.add(Permission.MESSAGE_ADD_REACTION);
+        allowPermLevelChange = false;
     }
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
-        Message msg = context.getChannel().sendMessage(context.getTranslated("nukepoints.warning")).complete();
+        Message msg = context.getTextChannel().sendMessage(context.getTranslated("nukepoints.warning")).complete();
         msg.addReaction(POTW).queue();
         msg.addReaction(ODRZ).queue();
         ReactionWaiter rw = new ReactionWaiter(eventWaiter, context) {
@@ -79,7 +80,7 @@ public class NukepointsCommand extends Command {
             }
         };
         Runnable anuluj = () -> context.send(context.getTranslated("nukepoints.cancel"));
-        rw.setReactionHandler(e -> {
+        rw.setReactionHandler(e -> new Thread(() -> {
             msg.editMessage(context.getTranslated("nukepoints.nuking")).queue();
             if (e.getReactionEmote().getName().equals(POTW)) {
                 licznikPunktow.emptyCache();
@@ -88,7 +89,7 @@ public class NukepointsCommand extends Command {
                 for (GuildConfig gc : guildDao.getAll()) {
                     Guild guild = context.getShardManager().getGuildById(gc.getGuildId());
                     if (guild == null) continue;
-                    for (Member mem : guild.getMembers()) {
+                    for (Member mem : guild.loadMembers().get()) {
                         List<Role> rolesToRemove = new ArrayList<>();
                         for (String rId : gc.getRoleZaPoziomy().values()) {
                             if (rId == null || rId.isEmpty()) continue;
@@ -117,7 +118,7 @@ public class NukepointsCommand extends Command {
             if (e.getReactionEmote().getName().equals(ODRZ)) {
                 anuluj.run();
             }
-        });
+        }, "nukepoints-runner").start());
         rw.setTimeoutHandler(anuluj);
         rw.create();
         return true;

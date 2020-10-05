@@ -84,19 +84,17 @@ public class UnwarnCommand extends ModerationCommand {
             context.send(context.getTranslated("unwarn.no.bot"));
             return false;
         }
-        if (context.getGuild().getMemberById(uzytkownik.getUser().getId()) != null) {
-            if (uzytkownik.isOwner()) {
-                context.send(context.getTranslated("unwarn.cant.unwarn.owner"));
-                return false;
-            }
-            if (!context.getMember().canInteract(uzytkownik)) {
-                context.send(context.getTranslated("unwarn.user.cant.interact"));
-                return false;
-            }
-            if (!context.getGuild().getSelfMember().canInteract(uzytkownik)) {
-                context.send(context.getTranslated("unwarn.bot.cant.interact"));
-                return false;
-            }
+        if (uzytkownik.isOwner()) {
+            context.send(context.getTranslated("unwarn.cant.unwarn.owner"));
+            return false;
+        }
+        if (!context.getMember().canInteract(uzytkownik)) {
+            context.send(context.getTranslated("unwarn.user.cant.interact"));
+            return false;
+        }
+        if (!context.getGuild().getSelfMember().canInteract(uzytkownik)) {
+            context.send(context.getTranslated("unwarn.bot.cant.interact"));
+            return false;
         }
         GuildConfig gc = guildDao.get(context.getGuild());
         CaseRow caseRow = casesDao.get(context.getGuild());
@@ -119,7 +117,7 @@ public class UnwarnCommand extends ModerationCommand {
                     for (int i = 0; i >= cases; i--) aaa++;
                     c.setIleRazy(aaa);
                     MessageEmbed embed = ModLogBuilder.generate(c, context.getGuild(), context.getShardManager(),
-                            context.getLanguage(), null, true);
+                            context.getLanguage(), null, true, false);
                     if (mlog != null && context.getGuild().getSelfMember().hasPermission(mlog,
                             Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_WRITE, Permission.MESSAGE_READ)) {
                         Message message = mlog.sendMessage(embed).complete();
@@ -175,7 +173,7 @@ public class UnwarnCommand extends ModerationCommand {
         }
         if (!aCase.getFlagi().contains(Case.Flaga.SILENT)) {
             MessageEmbed embed = ModLogBuilder.generate(aCase, context.getGuild(), shardManager,
-                    gc.getLanguage(), managerKomend, true);
+                    gc.getLanguage(), managerKomend, true, false);
             mlog.sendMessage(embed).queue(message -> {
                 aCase.setMessageId(message.getId());
                 caseRow.getCases().add(aCase);

@@ -42,6 +42,7 @@ public class UngbanCommand extends Command {
         permLevel = PermLevel.GADMIN;
         uzycie = new Uzycie("podmiot", "string", true);
         uzycieDelim = " ";
+        allowPermLevelChange = false;
     }
 
     @Override

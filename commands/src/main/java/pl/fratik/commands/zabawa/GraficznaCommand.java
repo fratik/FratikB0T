@@ -41,6 +41,8 @@ public class GraficznaCommand extends Command {
     { //NOSONAR
         cooldown = 5;
         uzycie = new Uzycie("osoba", "user");
+        allowPermLevelChange = false;
+        allowInDMs = true;
     }
 
     public GraficznaCommand(String name, String endpoint, boolean preventOnSender) {
@@ -105,7 +107,7 @@ public class GraficznaCommand extends Command {
                 return false;
             }
             byte[] img = NetworkUtil.getBytesFromBufferArray(zdjecie.getJSONObject("image").getJSONArray("data"));
-            context.getChannel().sendFile(img, name + ".png").queue();
+            context.getMessageChannel().sendFile(img, name + ".png").queue();
         } catch (IOException | NullPointerException e) {
             context.send(context.getTranslated("image.server.fail"));
         }

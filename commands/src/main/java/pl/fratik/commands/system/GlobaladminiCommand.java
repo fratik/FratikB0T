@@ -49,14 +49,15 @@ public class GlobaladminiCommand extends Command {
         category = CommandCategory.SYSTEM;
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         permissions.add(Permission.MESSAGE_ADD_REACTION);
-        permissions.add(Permission.MESSAGE_MANAGE); // TODO: 22.02.19 wersja bez tych permow
+        permissions.add(Permission.MESSAGE_MANAGE); // TODO: 22.02.19 wersja bez tych permow, wersja w DMach
         aliases = new String[] {"ga", "globaladmin"};
+        allowPermLevelChange = false;
     }
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
         if (!Globals.inFratikDev) throw new IllegalStateException("nie na fdev");
-        Message msg = context.getChannel().sendMessage(context.getTranslated("generic.loading")).complete();
+        Message msg = context.getMessageChannel().sendMessage(context.getTranslated("generic.loading")).complete();
         Map<User, Status> map = new HashMap<>();
         @Nonnull Guild lnodev = Objects.requireNonNull(context.getShardManager().getGuildById(Ustawienia.instance.botGuild));
         for (Member member : lnodev.getMembersWithRoles(lnodev.getRoleById(Ustawienia.instance.gadmRole))) map.put(member.getUser(), Status.GLOBALADMIN);

@@ -45,6 +45,8 @@ public class UnloadCommand extends Command {
         permLevel = PermLevel.BOTOWNER;
         uzycie = new Uzycie("modul", "string");
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
+        allowPermLevelChange = false;
+        allowInDMs = true;
     }
 
     @Override
@@ -56,7 +58,7 @@ public class UnloadCommand extends Command {
         String pytajnik = "\u2753";
         eb.appendDescription(pytajnik + SPMO + "\n");
         eb.appendDescription(pytajnik + UNLOAD + "\n");
-        Message msg = context.getChannel().sendMessage(eb.build()).complete();
+        Message msg = context.getMessageChannel().sendMessage(eb.build()).complete();
         if (!managerModulow.isLoaded((String) context.getArgs()[0])) {
             eb.setDescription(eb.getDescriptionBuilder().toString().replace(pytajnik + SPMO,
                     rtick.getAsMention() + SPMO + ": moduł nie jest wczytany"));

@@ -44,7 +44,7 @@ public class MessageWaiter {
     }
 
     protected boolean checkMessage(MessageReceivedEvent event) {
-        return event.isFromType(ChannelType.TEXT) && event.getTextChannel().equals(context.getChannel())
+        return event.isFromType(ChannelType.TEXT) && event.getTextChannel().equals(context.getTextChannel())
                 && event.getAuthor().equals(context.getSender());
     }
 

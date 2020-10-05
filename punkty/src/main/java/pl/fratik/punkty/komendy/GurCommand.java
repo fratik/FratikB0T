@@ -52,12 +52,13 @@ public class GurCommand extends Command {
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         permissions.add(Permission.MESSAGE_MANAGE);
         permissions.add(Permission.MESSAGE_ADD_REACTION);
+        allowPermLevelChange = false;
     }
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
         Message message = context.send(context.getTranslated("generic.loading"));
-        Map<String, Integer> licznikAlboCo = MapUtil.sortByValue(LicznikPunktow.getAllUserPunkty());
+        Map<String, Integer> licznikAlboCo = MapUtil.sortByValueAsc(LicznikPunktow.getAllUserPunkty());
         List<EmbedBuilder> embedy = new ArrayList<>();
         licznikAlboCo.forEach((id, poziom) -> {
             EmbedBuilder eb = new EmbedBuilder();

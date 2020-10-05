@@ -19,7 +19,6 @@ package pl.fratik.music.commands;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import lavalink.client.io.Link;
-import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.GuildVoiceState;
 import net.dv8tion.jda.api.entities.VoiceChannel;
@@ -86,7 +85,7 @@ public class PlayCommand extends MusicCommand {
             return false;
         }
         if (!URLPATTERN.matcher((String) context.getArgs()[0]).matches()) {
-            SearchManager.SearchResult wynik = searchManager.searchYouTube((String) context.getArgs()[0], false);
+            SearchManager.SearchResult wynik = searchManager.searchYouTube((String) context.getArgs()[0]);
             if (wynik == null || wynik.getEntries().isEmpty()) {
                 context.send(context.getTranslated("play.no.results"));
                 return false;
@@ -96,7 +95,7 @@ public class PlayCommand extends MusicCommand {
             identifier = (String) context.getArgs()[0];
         }
         if (!mms.isConnected()) {
-            mms.setAnnounceChannel(context.getChannel());
+            mms.setAnnounceChannel(context.getTextChannel());
             mms.connect(kanal);
         }
         if (!mms.isConnected()) return false;
@@ -108,18 +107,15 @@ public class PlayCommand extends MusicCommand {
             }
             if (audioTrackList.size() == 1) {
                 AudioTrack at = audioTrackList.get(0);
-                SearchManager.SearchResult.SearchEntry result = searchManager
-                        .getThumbnail(searchManager.extractIdFromUri(at.getInfo().uri));
-                if (result != null) mms.addToQueue(context.getSender(), at, context.getLanguage(), result.getThumbnailURL());
-                else mms.addToQueue(context.getSender(), at, context.getLanguage(), null);
+                mms.addToQueue(context.getSender(), at, context.getLanguage(), null);
             }
             else {
                 for (AudioTrack at : audioTrackList) mms.addToQueue(context.getSender(), at, context.getLanguage());
                 context.send(context.getTranslated("play.queued.playlist", audioTrackList.size()));
             }
             if (!mms.isPlaying()) mms.play();
-            else context.getChannel().sendMessage(new MessageBuilder(context.getTranslated("play.queued",
-                    audioTrackList.get(0).getInfo().title)).stripMentions(context.getGuild()).build()).queue();
+            else context.getTextChannel().sendMessage(context.getTranslated("play.queued",
+                    audioTrackList.get(0).getInfo().title)).queue();
         });
         return true;
     }

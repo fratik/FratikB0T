@@ -57,12 +57,13 @@ public class GsrCommand extends Command {
         permissions.add(Permission.MESSAGE_MANAGE);
         permissions.add(Permission.MESSAGE_ADD_REACTION);
         aliases = new String[] {"sgur", "servergsr", "serverglobaluserrace", "globalserverrace", "serverowyranking", "rankingserverowy"};
+        allowPermLevelChange = false;
     }
 
     @Override
     public boolean execute(@NotNull @Nonnull CommandContext context) {
         context.send(context.getTranslated("generic.loading"), message -> {
-            Map<String, Integer> licznikAlboCo = MapUtil.sortByValue(LicznikPunktow.getAllGuildPunkty());
+            Map<String, Integer> licznikAlboCo = MapUtil.sortByValueAsc(LicznikPunktow.getAllGuildPunkty());
             List<EmbedBuilder> embedy = new ArrayList<>();
             licznikAlboCo.forEach((id, poziom) -> {
                 EmbedBuilder eb = new EmbedBuilder();

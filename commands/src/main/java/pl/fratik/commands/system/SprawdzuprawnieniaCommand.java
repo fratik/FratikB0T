@@ -40,6 +40,7 @@ public class SprawdzuprawnieniaCommand extends Command {
         uzycie = new Uzycie("kanal", "channel", false);
         aliases = new String[] {"sprawdzpermy"};
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
+        allowPermLevelChange = false;
     }
 
     private static final List<Permission> perms;
@@ -57,9 +58,9 @@ public class SprawdzuprawnieniaCommand extends Command {
     public boolean execute(@NotNull CommandContext context) {
         TextChannel kanal;
         if (context.getArgs().length == 1 && context.getArgs()[0] != null) kanal = (TextChannel) context.getArgs()[0];
-        else kanal = context.getChannel();
+        else kanal = context.getTextChannel();
         Member sm = context.getGuild().getSelfMember();
-        if (!sm.hasPermission(context.getChannel(), Permission.MESSAGE_EMBED_LINKS)) {
+        if (!sm.hasPermission(context.getTextChannel(), Permission.MESSAGE_EMBED_LINKS)) {
             context.send(context.getTranslated("sprawdzuprawnienia.no.embed.perms"));
             return false;
         }

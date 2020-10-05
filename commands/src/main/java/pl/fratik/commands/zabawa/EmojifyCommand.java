@@ -32,6 +32,7 @@ public class EmojifyCommand extends Command {
         category = CommandCategory.FUN;
         cooldown = 10;
         uzycie = new Uzycie("tekst", "string", true);
+        allowPermLevelChange = false;
     }
 
     @Override

@@ -60,11 +60,12 @@ public class TopStarCommand extends Command {
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         permissions.add(Permission.MESSAGE_MANAGE);
         permissions.add(Permission.MESSAGE_ADD_REACTION);
+        allowPermLevelChange = false;
     }
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
-        Future<Message> msgFuture = context.getChannel().sendMessage(context.getTranslated("generic.loading")).submit();
+        Future<Message> msgFuture = context.getTextChannel().sendMessage(context.getTranslated("generic.loading")).submit();
         StarsData std = starDataDao.get(context.getGuild());
         Map<String, Integer> stars = new HashMap<>();
         for (StarData sd : std.getStarData().values()) {
@@ -72,7 +73,7 @@ public class TopStarCommand extends Command {
                 stars.put(sd.getAuthor(), stars.getOrDefault(sd.getAuthor(), 0) + sd.getStarredBy().size());
             }
         }
-        stars = MapUtil.sortByValue(stars);
+        stars = MapUtil.sortByValueAsc(stars);
         Message msg;
         try {
             msg = msgFuture.get();

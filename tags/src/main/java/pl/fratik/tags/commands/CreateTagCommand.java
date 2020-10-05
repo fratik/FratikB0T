@@ -32,6 +32,8 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.stream.Collectors;
 
+import static pl.fratik.tags.Module.MAX_TAG_NAME_LENGTH;
+
 public class CreateTagCommand extends Command {
     private final TagsDao tagsDao;
     private final ManagerKomend managerKomend;
@@ -55,7 +57,11 @@ public class CreateTagCommand extends Command {
     public boolean execute(@NotNull CommandContext context) {
         String tagName = ((String) context.getArgs()[0]).toLowerCase();
         String content = Arrays.stream(Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length))
-                .map(Object::toString).collect(Collectors.joining(uzycieDelim));
+                .map(o -> o == null ? "" : o.toString()).collect(Collectors.joining(uzycieDelim));
+        if (tagName.length() > MAX_TAG_NAME_LENGTH) {
+            context.send(context.getTranslated("createtag.too.long"));
+            return false;
+        }
         Tags tags = tagsDao.get(context.getGuild().getId());
         if (tags.getTagi().stream().anyMatch(t -> t.getName().equals(tagName))) {
             context.send(context.getTranslated("createtag.exists"));

@@ -27,7 +27,6 @@ import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.entities.MessageEmbed;
-import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.requests.restaction.MessageAction;
 import net.dv8tion.jda.api.utils.AttachmentOption;
 import net.dv8tion.jda.internal.requests.Route;
@@ -42,6 +41,7 @@ import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.entity.Uzycie;
+import pl.fratik.core.util.NamedThreadFactory;
 import pl.fratik.core.util.UserUtil;
 
 import javax.annotation.Nonnull;
@@ -68,6 +68,8 @@ public class McstatusCommand extends Command {
         allowInDMs = true;
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         cooldown = 13;
+        allowPermLevelChange = false;
+        allowInDMs = true;
     }
 
     private static final Pattern DOMAIN_PATTERN = Pattern.compile("((?:www\\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]*" +
@@ -99,7 +101,7 @@ public class McstatusCommand extends Command {
                     }
                     eb.addField(context.getTranslated("mcstatus.embed.ip"), ip + ":" + port, false);
                     eb.setFooter(ms.getLatency() + " ms", null);
-                    TextChannel ch = context.getChannel();
+                    MessageChannel ch = context.getMessageChannel();
                     Route.CompiledRoute route = Route.Messages.SEND_MESSAGE.compile(ch.getId());
                     return new MesydzAkszyn("ten gorszy", ch.getJDA(), route, ch).embed(eb.build());
                 } catch (Exception e) {
@@ -117,21 +119,22 @@ public class McstatusCommand extends Command {
                             .append(resp.getPlayers().getMax()).append("**\n\n");
                     if (resp.getPlayers().getSample() != null && !resp.getPlayers().getSample().isEmpty()) {
                         int plejers = resp.getPlayers().getOnline();
-                        for (ServerListPing17.Player p : resp.getPlayers().getSample().stream().sorted((a, b) -> a.getName()
-                                .compareToIgnoreCase(b.getName())).collect(Collectors.toList())) {
+                        for (ServerListPing17.Player p : resp.getPlayers().getSample()/*.stream().sorted((a, b) -> a.getName()
+                                .compareToIgnoreCase(b.getName())).collect(Collectors.toList())*/) {
                             if (players.length() + (p.getName() + "\n").length() > 1000 -
                                     (context.getTranslated("mcstatus.embed.players.more", plejers)).length()) {
                                 players.append(context.getTranslated("mcstatus.embed.players.more", plejers));
                             }
-                            players.append(p.getName()).append("\n");
+                            players.append(replaceMinecraftFormatting(p.getName())).append("\n");
                         }
                     }
                     eb.addField(context.getTranslated("mcstatus.embed.players"), players.toString(), false);
-                    eb.addField(context.getTranslated("mcstatus.embed.version"), resp.getVersion().getName(), false);
+                    eb.addField(context.getTranslated("mcstatus.embed.version"),
+                            replaceMinecraftFormatting(resp.getVersion().getName()), false);
                     eb.addField(context.getTranslated("mcstatus.embed.motd"), formatMotd(resp.getDescription()), false);
                     eb.addField(context.getTranslated("mcstatus.embed.ip"), ip + ":" + port, false);
                     eb.setFooter(resp.getTime() + " ms", null);
-                    TextChannel ch = context.getChannel();
+                    MessageChannel ch = context.getMessageChannel();
                     Route.CompiledRoute route = Route.Messages.SEND_MESSAGE.compile(ch.getId());
                     MesydzAkszyn ma = new MesydzAkszyn("ten lepszy", ch.getJDA(), route, ch);
                     eb.setThumbnail("https://eu.mc-api.net/v3/server/favicon/" + ip + ":" + port);
@@ -141,18 +144,7 @@ public class McstatusCommand extends Command {
                     return null;
                 }
             }));
-            SecurityManager s = System.getSecurityManager();
-            ThreadGroup group = (s != null) ? s.getThreadGroup() : //NOSONAR
-                    Thread.currentThread().getThreadGroup();
-            executor = Executors.newFixedThreadPool(2, r -> {
-                Thread t = new Thread(group, r, "McStatus-" + context.getSender().getId(),
-                        0);
-                if (t.isDaemon())
-                    t.setDaemon(false);
-                if (t.getPriority() != Thread.NORM_PRIORITY)
-                    t.setPriority(Thread.NORM_PRIORITY);
-                return t;
-            });
+            executor = Executors.newFixedThreadPool(2, new NamedThreadFactory("McStatus-" + context.getSender().getId()));
             futures.forEach(executor::submit);
             MesydzAkszyn ma = check(futures);
             if (ma == null) throw new IllegalStateException("serwer offline");
@@ -204,9 +196,9 @@ public class McstatusCommand extends Command {
                         xd[0] = adress.getHostAddress();
                         xd[1] = 25565;
                     } else {
-                        xd[0] = ((SRVRecord) r[0]).getTarget().toString(true);
-                        if (DOMAIN_PATTERN.matcher((String) xd[0]).find())
-                            return resolveIpAndPort((String) xd[0], ((SRVRecord) r[0]).getPort());
+                        xd[0] = ((SRVRecord) r[0]).getTarget().toString(false);
+//                        if (DOMAIN_PATTERN.matcher((String) xd[0]).find())
+//                            return resolveIpAndPort((String) xd[0], ((SRVRecord) r[0]).getPort());
                         xd[1] = ((SRVRecord) r[0]).getPort();
                     }
                 } else {
@@ -216,7 +208,7 @@ public class McstatusCommand extends Command {
             } catch (Exception e) {
                 if (DOMAIN_PATTERN.matcher(ip).find()) {
                     Record[] r = new Lookup("_minecraft._tcp." + ip, Type.SRV).run();
-                    xd[0] = ((SRVRecord) r[0]).getTarget().toString(true);
+                    xd[0] = ((SRVRecord) r[0]).getTarget().toString(false);
                     if (DOMAIN_PATTERN.matcher((String) xd[0]).find())
                         return resolveIpAndPort((String) xd[0], ((SRVRecord) r[0]).getPort());
                     xd[1] = ((SRVRecord) r[0]).getPort();

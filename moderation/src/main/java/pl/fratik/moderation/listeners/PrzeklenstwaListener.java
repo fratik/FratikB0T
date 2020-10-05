@@ -104,7 +104,7 @@ public class PrzeklenstwaListener {
                     if (!(mlogchan == null || !mlogchan.getGuild().getSelfMember().hasPermission(mlogchan,
                             Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_WRITE, Permission.MESSAGE_READ))) {
                         Message m = mlogchan.sendMessage(ModLogBuilder.generate(c,
-                                e.getGuild(), shardManager, tlumaczenia.getLanguage(e.getGuild()), managerKomend, true))
+                                e.getGuild(), shardManager, tlumaczenia.getLanguage(e.getGuild()), managerKomend, true, false))
                                 .complete();
                         c.setMessageId(m.getId());
                     }
@@ -117,6 +117,11 @@ public class PrzeklenstwaListener {
                     casesDao.save(cr);
                     WarnUtil.takeAction(guildDao, casesDao, e.getMember(), e.getChannel(),
                             tlumaczenia.getLanguage(e.getGuild()), tlumaczenia, managerKomend);
+                    if (gcCache.get(e.getGuild().getId(), guildDao::get).isDeleteSwearMessage()) {
+                        try {
+                            e.getMessage().delete().complete();
+                        } catch (Exception ignored) { }
+                    }
                 }
                 return;
             }

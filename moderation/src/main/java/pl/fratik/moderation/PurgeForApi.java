@@ -68,7 +68,7 @@ class PurgeForApi {
                         Exchange.body().sendJson(ex, new Exceptions.NoGuild(), 400);
                         return;
                     }
-                    member = g.getMember(shardManager.retrieveUserById(requester).complete());
+                    member = g.retrieveMember(shardManager.retrieveUserById(requester).complete()).complete();
                 } catch (Exception e) {
                     Exchange.body().sendJson(ex, new Exceptions.NoUser(), 400);
                     return;
@@ -80,14 +80,16 @@ class PurgeForApi {
             }
             try { //próbujemy uaktualnić obiekty użytkowników, jeżeli się nie powiedzie to trudno
                 if (purge.getPurgedBy() != null) {
-                    net.dv8tion.jda.api.entities.User xd = shardManager.getUserById(purge.getPurgedBy().getId());
+                    net.dv8tion.jda.api.entities.User xd = shardManager.retrieveUserById(purge.getPurgedBy().getId()).complete();
                     if (xd != null) {
                         purge.setPurgedBy(new User(xd));
                     }
                 }
                 for (Wiadomosc w : purge.getWiadomosci()) {
                     if (w instanceof Purge.ResolvedWiadomosc) {
-                        net.dv8tion.jda.api.entities.User xd = shardManager.getUserById(w.getAuthor().getId());
+                        net.dv8tion.jda.api.entities.User xd;
+                        if (w.getAuthor() != null) xd = shardManager.retrieveUserById(w.getAuthor().getId()).complete();
+                        else xd = null;
                         if (xd != null) {
                             ((Purge.ResolvedWiadomosc) w).setAuthor(new User(xd));
                         }
@@ -116,7 +118,7 @@ class PurgeForApi {
                     Exchange.body().sendJson(ex, new Exceptions.NoGuild(), 400);
                     return;
                 }
-                member = g.getMember(shardManager.retrieveUserById(requester).complete());
+                member = g.retrieveMember(shardManager.retrieveUserById(requester).complete()).complete();
             } catch (Exception e) {
                 Exchange.body().sendJson(ex, new Exceptions.NoUser(), 400);
                 return;
@@ -185,7 +187,7 @@ class PurgeForApi {
                     Exchange.body().sendJson(ex, new Exceptions.NoGuild(), 400);
                     return;
                 }
-                member = g.getMember(shardManager.retrieveUserById(requester).complete());
+                member = g.retrieveMember(shardManager.retrieveUserById(requester).complete()).complete();
             } catch (Exception e) {
                 Exchange.body().sendJson(ex, new Exceptions.NoUser(), 400);
                 return;
@@ -197,7 +199,7 @@ class PurgeForApi {
             try { //próbujemy uaktualnić obiekty użytkowników, jeżeli się nie powiedzie to trudno
                 for (Purge purge : purges) {
                     if (purge.getPurgedBy() != null) {
-                        net.dv8tion.jda.api.entities.User xd = shardManager.getUserById(purge.getPurgedBy().getId());
+                        net.dv8tion.jda.api.entities.User xd = shardManager.retrieveUserById(purge.getPurgedBy().getId()).complete();
                         if (xd != null) {
                             purge.setPurgedBy(new User(xd));
                         }

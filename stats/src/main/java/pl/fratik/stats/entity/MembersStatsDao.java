@@ -46,6 +46,14 @@ public class MembersStatsDao implements Dao<MembersStats> {
         return mapper.loadManyBySubkey("data->>'guildId'", id).stream().filter(ms -> ms.getDate() == date).findAny().orElse(newObject(date, id));
     }
 
+    public List<MembersStats> getAllBefore(long date) {
+        return mapper.loadManyBySubkey("data->>'date'", String.valueOf(date), "<");
+    }
+
+    public boolean delete(MembersStats ms) {
+        return mapper.delete(ms.getUniqid()).orElse(false);
+    }
+
     @Override
     public List<MembersStats> getAll() {
         return mapper.loadAll();

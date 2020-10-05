@@ -45,7 +45,7 @@ public class DodajFcCommand extends Command {
         hmap.put("hajs", "integer");
         uzycie = new Uzycie(hmap, new boolean[] {true, true});
         uzycieDelim = " ";
-        aliases = new String[] {"dodajfratikcoiny", "dfc", "addfc", "addcoin", "addfratikcoins", "addcoins"};
+        aliases = new String[] {"dodajfratikcoiny", "dfc"};
     }
 
     @Override

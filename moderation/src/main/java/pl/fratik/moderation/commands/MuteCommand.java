@@ -18,15 +18,21 @@
 package pl.fratik.moderation.commands;
 
 import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.GuildChannel;
+import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.Role;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.CommandContext;
-import pl.fratik.core.entity.*;
+import pl.fratik.core.entity.GuildConfig;
+import pl.fratik.core.entity.GuildDao;
+import pl.fratik.core.entity.Kara;
+import pl.fratik.core.entity.Uzycie;
+import pl.fratik.core.util.DurationUtil;
 import pl.fratik.core.util.UserUtil;
 import pl.fratik.moderation.entity.Case;
-import pl.fratik.moderation.listeners.ModLogListener;
-import pl.fratik.core.util.DurationUtil;
 import pl.fratik.moderation.entity.CaseBuilder;
+import pl.fratik.moderation.listeners.ModLogListener;
 import pl.fratik.moderation.utils.ReasonUtils;
 
 import java.time.Instant;
@@ -69,16 +75,13 @@ public class MuteCommand extends ModerationCommand {
             context.send(context.getTranslated("mute.no.bot"));
             return false;
         }
-        Member mem = context.getGuild().getMemberById(uzytkownik.getUser().getId());
-        if (mem != null) {
-            if (mem.isOwner()) {
-                context.send(context.getTranslated("mute.cant.mute.owner"));
-                return false;
-            }
-            if (!context.getMember().canInteract(mem)) {
-                context.send(context.getTranslated("mute.cant.interact"));
-                return false;
-            }
+        if (uzytkownik.isOwner()) {
+            context.send(context.getTranslated("mute.cant.mute.owner"));
+            return false;
+        }
+        if (!context.getMember().canInteract(uzytkownik)) {
+            context.send(context.getTranslated("mute.cant.interact"));
+            return false;
         }
         //#region ustawianie roli
         try {
@@ -130,7 +133,7 @@ public class MuteCommand extends ModerationCommand {
     }
 
     private Role createMuteRole(CommandContext context, GuildConfig gc) {
-        Message msg = context.getChannel().sendMessage(context.getTranslated("mute.no.mute.role")).complete();
+        Message msg = context.getTextChannel().sendMessage(context.getTranslated("mute.no.mute.role")).complete();
         try {
             Role rola = context.getGuild().createRole().setName("Wyciszony").complete();
             context.getGuild().modifyRolePositions(true).selectPosition(rola)

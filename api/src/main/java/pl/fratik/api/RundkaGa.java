@@ -66,6 +66,30 @@ class RundkaGa {
                 Exchange.body().sendJson(ex, new Rundka.RundkaWrapper(null, false, null));
             }
         });
+        routes.get("/api/rundka/{nr}/{userId}", ex -> {
+            String userId = Exchange.pathParams().pathParam(ex, "userId").orElse("");
+            if (userId.isEmpty()) {
+                Exchange.body().sendJson(ex, new Exceptions.NoUserParam(), 400);
+                return;
+            }
+            Integer nr;
+            try {
+                nr = Integer.valueOf(Exchange.pathParams().pathParam(ex, "nr").orElse("0"));
+            } catch (NumberFormatException e) {
+                nr = null;
+            }
+            if (nr == null) {
+                Exchange.body().sendJson(ex, new Exceptions.GenericException("nieprawidłowy nr rundki"), 400);
+                return;
+            }
+            Rundka rundka = rundkaDao.get(nr);
+            RundkaOdpowiedzFull a = rundka.getZgloszenia().stream().filter(r -> r.getUserId().equals(userId)).findFirst().orElse(null);
+            if (a == null) {
+                Exchange.body().sendJson(ex, new Exceptions.GenericException("nie znaleziono takiego zgłoszenia"), 404);
+                return;
+            }
+            Exchange.body().sendJson(ex, a);
+        });
         routes.post("/api/rundka", ex -> {
             synchronized (this) {
                 if (!RundkaCommand.isRundkaOn()) {
@@ -97,46 +121,71 @@ class RundkaGa {
                     Exchange.body().sendJson(ex, new Exceptions.GenericException("nie jest na fdev"), 400);
                     return;
                 }
-                EmbedBuilder eb = new EmbedBuilder();
-                eb.setAuthor(user.getAsTag(), null, user.getEffectiveAvatarUrl());
-                eb.setTitle("Nowe podanie!");
-                eb.setColor(UserUtil.getPrimColor(user));
-                eb.addField("Co Twoim zdaniem należy do obowiązków Global Admina?", odp.getObowiazki(), false);
-                eb.addField("Jakiej jesteś płci?", odp.getPlec() == Plec.KOBIETA ? "Kobieta" :
-                        odp.getPlec() == Plec.MEZCZYZNA ? "Mężczyzna" : "Inna/Wolę nie podawać", false); //NOSONAR
-                eb.addField("Podaj sposób ustawiania konfiguracji serwera", odp.getKonfiguracja(), false);
-                eb.addField("Jak ustawić powitanie/pożegnanie?", odp.getUstawPowitaniePozegnanie(), false);
-                eb.addField("Jak usunąć powitanie/pożegnanie?", odp.getUsunPowitaniePozegnanie(), false);
-                eb.addField("Jaki poziom uprawnień ma Global Admin?", String.valueOf(odp.getPozUpr()), false);
-                eb.addField("Jak często przebywasz na Discordzie?",
-                        odp.getCzestotliwoscPrzebywania() == CzestotliwoscPrzebywania.JednaDwieGodziny ?
-                                "1-2h dziennie" : odp.getCzestotliwoscPrzebywania() == CzestotliwoscPrzebywania //NOSONAR
-                                .TrzySiedemGodzin ? "3-7h dziennie" : odp.getCzestotliwoscPrzebywania() //NOSONAR
-                                == CzestotliwoscPrzebywania.DwanasciePietnascieGodzin ? "12-15h dziennie" : //NOSONAR
-                                odp.getCzestotliwoscPrzebywania() == CzestotliwoscPrzebywania.CalyDzien ? //NOSONAR
-                                        "Cały czas jestem, wystarczy mnie @! (o ile nie śpię)" : //NOSONAR
-                                        "N/a", false);
-                eb.addField("Jesteś aktywny na FratikDev?", odp.getAktywnoscFdev() ? "Tak" : "Nie", false);
-                eb.addField("Dlaczego chcesz zostać Global Adminem?", odp.getDlaczegoGa(), false);
-                eb.addField("Dlaczego mamy Cię wybrać?", odp.getDlaczegoWybrac(), false);
-                eb.addField("Data stworzenia konta", sdf.format(new Date(user.getTimeCreated()
-                        .toInstant().toEpochMilli())), false);
-                eb.addField("Data dołączenia", sdf.format(new Date(mem.getTimeJoined()
-                        .toInstant().toEpochMilli())), false);
-                eb.addField("ID", user.getId(), false);
                 Rundka rundka = rundkaDao.get(odp.getRundka());
-                TextChannel ch = shardManager.getTextChannelById(rundka.getVoteChannel());
+                eventBus.post(new RundkaNewAnswerEvent(odp));
                 Objects.requireNonNull(shardManager.getRoleById(Ustawienia.instance.gadmRole))
                         .getManager().setMentionable(true).complete();
-                Message msg = Objects.requireNonNull(ch)
-                        .sendMessage("<@&" + Ustawienia.instance.gadmRole + ">").embed(eb.build()).complete();
+                TextChannel ch = shardManager.getTextChannelById(rundka.getVoteChannel());
+                try {
+                    EmbedBuilder eb = new EmbedBuilder();
+                    eb.setAuthor(user.getAsTag(), null, user.getEffectiveAvatarUrl());
+                    eb.setTitle("Nowe podanie!");
+                    eb.setColor(UserUtil.getPrimColor(user));
+                    eb.addField("Co Twoim zdaniem należy do obowiązków Global Admina?", odp.getObowiazki(), false);
+                    eb.addField("Jakiej jesteś płci?", odp.getPlec() == Plec.KOBIETA ? "Kobieta" :
+                            odp.getPlec() == Plec.MEZCZYZNA ? "Mężczyzna" : "Inna/Wolę nie podawać", false); //NOSONAR
+                    eb.addField("Podaj sposób ustawiania konfiguracji serwera", odp.getKonfiguracja(), false);
+                    eb.addField("Jak ustawić powitanie/pożegnanie?", odp.getUstawPowitaniePozegnanie(), false);
+                    eb.addField("Jak usunąć powitanie/pożegnanie?", odp.getUsunPowitaniePozegnanie(), false);
+                    eb.addField("Jaki poziom uprawnień ma Global Admin?", String.valueOf(odp.getPozUpr()), false);
+                    eb.addField("Jak często przebywasz na Discordzie?",
+                            odp.getCzestotliwoscPrzebywania() == CzestotliwoscPrzebywania.JednaDwieGodziny ?
+                                    "1-2h dziennie" : odp.getCzestotliwoscPrzebywania() == CzestotliwoscPrzebywania //NOSONAR
+                                    .TrzySiedemGodzin ? "3-7h dziennie" : odp.getCzestotliwoscPrzebywania() //NOSONAR
+                                    == CzestotliwoscPrzebywania.DwanasciePietnascieGodzin ? "12-15h dziennie" : //NOSONAR
+                                    odp.getCzestotliwoscPrzebywania() == CzestotliwoscPrzebywania.CalyDzien ? //NOSONAR
+                                            "Cały czas jestem, wystarczy mnie @! (o ile nie śpię)" : //NOSONAR
+                                            "N/a", false);
+                    eb.addField("Jesteś aktywny na FratikDev?", odp.getAktywnoscFdev() ? "Tak" : "Nie", false);
+                    eb.addField("Dlaczego chcesz zostać Global Adminem?", odp.getDlaczegoGa(), false);
+                    eb.addField("Dlaczego mamy Cię wybrać?", odp.getDlaczegoWybrac(), false);
+                    eb.addField("Jak ustawić rolę za poziom?", odp.getRoleZaPoziom(), false);
+                    eb.addField("Jaka komenda służy do naprawienia ilości gwiazdek w starboardzie?", odp.getNaprawaStarboard(), false);
+                    eb.addField("W skali 1-10, jak oceniasz znajomość całego bota?", String.valueOf(odp.getZnajomosc()), false);
+                    eb.addField("Co zrobisz, gdy nie będziesz wiedział jak pomóc użytkownikowi podczas prośby o pomoc?",
+                            odp.getProblemPodczasPopa(), false);
+                    eb.addField("Komenda fb!language zmienia język serwera czy użytkownika?", odp.getCoRobiLanguage(), false);
+                    eb.addField("W jaki sposób można wyłączyć punkty?", odp.getWylaczeniePunktow(), false);
+                    eb.addField("Data stworzenia konta", sdf.format(new Date(user.getTimeCreated()
+                            .toInstant().toEpochMilli())), false);
+                    eb.addField("Data dołączenia", sdf.format(new Date(mem.getTimeJoined()
+                            .toInstant().toEpochMilli())), false);
+                    eb.addField("ID", user.getId(), false);
+                    MessageEmbed embed = eb.build();
+                    if (ch == null) throw new NullPointerException("nie ma kanalu do glosowania");
+                    if (embed.isSendable()) {
+                        Message msg = ch.sendMessage("<@&" + Ustawienia.instance.gadmRole + ">")
+                                .mentionRoles(Ustawienia.instance.gadmRole).embed(embed).complete();
+                        msg.addReaction(Objects.requireNonNull(fdev.getEmoteById(Ustawienia.instance.emotki.greenTick))).complete();
+                        msg.addReaction(Objects.requireNonNull(fdev.getEmoteById(Ustawienia.instance.emotki.redTick))).complete();
+                        msg.pin().complete();
+                        odp.setMessageId(msg.getId());
+                    } else {
+                        throw new IllegalStateException("yes");
+                    }
+                } catch (Exception e) {
+                    Message msg = ch.sendMessage("<@&" + Ustawienia.instance.gadmRole + ">\n" +
+                            "Podanie jest za długie by wyświetlić je na kanale: " +
+                            "zajrzyj na https://fratikbot.pl/rekru/podanie/" + odp.getRundka() + "/" + odp.getUserId())
+                            .mentionRoles(Ustawienia.instance.gadmRole)
+                            .complete();
+                    msg.addReaction(Objects.requireNonNull(fdev.getEmoteById(Ustawienia.instance.emotki.greenTick))).complete();
+                    msg.addReaction(Objects.requireNonNull(fdev.getEmoteById(Ustawienia.instance.emotki.redTick))).complete();
+                    msg.pin().complete();
+                    odp.setMessageId(msg.getId());
+                }
                 Objects.requireNonNull(shardManager.getRoleById(Ustawienia.instance.gadmRole))
                         .getManager().setMentionable(false).complete();
-                msg.addReaction(Objects.requireNonNull(fdev.getEmoteById(Ustawienia.instance.emotki.greenTick))).complete();
-                msg.addReaction(Objects.requireNonNull(fdev.getEmoteById(Ustawienia.instance.emotki.redTick))).complete();
-                msg.pin().complete();
-                odp.setMessageId(msg.getId());
-                eventBus.post(new RundkaNewAnswerEvent(odp));
                 rundka.getZgloszenia().add(odp);
                 rundkaDao.save(rundka);
             }

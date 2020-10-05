@@ -65,8 +65,8 @@ public class QueueCommand extends MusicCommand {
             return false;
         }
         if (Stream.of(Permission.MESSAGE_ADD_REACTION, Permission.MESSAGE_MANAGE, Permission.MESSAGE_EMBED_LINKS)
-                .allMatch(a -> context.getGuild().getSelfMember().getPermissions(context.getChannel()).contains(a))) {
-            Message m = context.getChannel().sendMessage(context.getTranslated("generic.loading")).complete();
+                .allMatch(a -> context.getGuild().getSelfMember().getPermissions(context.getTextChannel()).contains(a))) {
+            Message m = context.getTextChannel().sendMessage(context.getTranslated("generic.loading")).complete();
             List<FutureTask<EmbedBuilder>> pages = new ArrayList<>();
             pages.add(new FutureTask<>(() -> generateEmbed(mms.getAktualnaPiosenka(), context)));
             for (Piosenka piosenka : mms.getKolejka()) {
@@ -114,11 +114,8 @@ public class QueueCommand extends MusicCommand {
         EmbedBuilder eb = new EmbedBuilder();
         eb.setAuthor(context.getTranslated("queue.embed.header"), info.uri);
         eb.setTitle(info.title, piosenka.getAudioTrack().getInfo().uri);
-        if (piosenka.getThumbnailURL() != null) eb.setImage(piosenka.getThumbnailURL());
-        else {
-            piosenka.fillThumbnailURL(searchManager);
-            eb.setImage(piosenka.getThumbnailURL());
-        }
+        piosenka.fillThumbnailURL(searchManager);
+        eb.setImage(piosenka.getThumbnailURL());
         eb.addField(context.getTranslated("queue.embed.added.by"), piosenka.getRequester(), true);
         eb.addField(context.getTranslated("queue.embed.length"), info.isStream ?
                 context.getTranslated(QUEMLI) : TimeUtil.getStringFromMillis(info.length), true);

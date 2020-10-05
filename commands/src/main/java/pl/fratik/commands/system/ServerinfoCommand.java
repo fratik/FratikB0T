@@ -21,6 +21,9 @@ import com.google.common.eventbus.EventBus;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.exceptions.ErrorResponseException;
+import net.dv8tion.jda.api.requests.ErrorResponse;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandCategory;
@@ -33,6 +36,7 @@ import pl.fratik.core.util.UserUtil;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 public class ServerinfoCommand extends Command {
 
@@ -46,10 +50,12 @@ public class ServerinfoCommand extends Command {
         category = CommandCategory.SYSTEM;
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         aliases = new String[] {"serwerinfo"};
+        allowPermLevelChange = false;
     }
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
+        CompletableFuture<Message> f = context.getTextChannel().sendMessage(context.getTranslated("generic.loading")).submit();
         EmbedBuilder eb = new EmbedBuilder();
         eb.setTitle(context.getTranslated("serverinfo.name", context.getGuild().getName()));
         eb.addField(context.getTranslated("serverinfo.id"), context.getGuild().getId(), true);
@@ -57,7 +63,13 @@ public class ServerinfoCommand extends Command {
         sdf.setTimeZone(UserUtil.getTimeZone(context.getSender(), userDao));
         eb.addField(context.getTranslated("serverinfo.created"),
                 sdf.format(new Date(context.getGuild().getTimeCreated().toInstant().toEpochMilli())), true);
-        Member ow = context.getGuild().getOwner();
+        Member ow;
+        try {
+            ow = context.getGuild().retrieveOwner().complete();
+        } catch (ErrorResponseException e) {
+            if (e.getErrorResponse() == ErrorResponse.UNKNOWN_MEMBER) ow = null;
+            else throw e;
+        }
         if (ow != null) eb.addField(context.getTranslated("serverinfo.owner"),
                 UserUtil.formatDiscrim(ow), true);
         else eb.addField(context.getTranslated("serverinfo.owner"),
@@ -89,11 +101,18 @@ public class ServerinfoCommand extends Command {
             eb.addField(context.getTranslated("serverinfo.place"), String.valueOf(pozycja.intValue()), true);
         else eb.addField(context.getTranslated("serverinfo.place"), "???", true);
         eb.addField(context.getTranslated("serverinfo.members"),
-                String.valueOf(context.getGuild().getMembers().size()), true);
+                String.valueOf(context.getGuild().getMemberCount()), true);
         if (context.getGuild().getIconUrl() != null)
             eb.setThumbnail(context.getGuild().getIconUrl().replace(".webp", ".png") + "?size=2048");
         eb.setColor(GuildUtil.getPrimColor(context.getGuild()));
-        context.send(eb.build());
+        Message m;
+        try {
+            m = f.join();
+        } catch (Exception e) {
+            m = null;
+        }
+        if (m != null) m.editMessage(eb.build()).override(true).complete();
+        else context.send(eb.build());
         return true;
     }
 

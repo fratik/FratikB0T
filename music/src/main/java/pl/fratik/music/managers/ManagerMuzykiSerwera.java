@@ -105,4 +105,7 @@ public interface ManagerMuzykiSerwera {
     }
 
     void onEvent(GenericEvent e);
+    
+    void shuffleQueue();
+
 }

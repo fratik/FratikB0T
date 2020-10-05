@@ -29,6 +29,8 @@ build.dependsOn jar
 dependencies {
     compile project(":core")
     compile project(":music")
+    compile project(":invite")
+    compile project(":moderation")
 }
 
 shadowJar {

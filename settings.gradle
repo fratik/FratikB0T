@@ -15,14 +15,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-rootProject.name = 'fratikbot'
+rootProject.name = 'FratikB0T'
 include ':core'
 include ':commands'
 include ':arguments'
 include ':api'
 include ':punkty'
 include ':starboard'
-
 if(file('sdk').exists()){
     include ':sdk'
     apply from: 'sdk/settings.gradle'
@@ -35,5 +34,6 @@ include 'tags'
 include 'logs'
 include 'fdevstats'
 include 'dev'
-include 'gwarny'
+include 'liczek'
+include 'invite'
 

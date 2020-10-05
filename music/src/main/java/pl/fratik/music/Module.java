@@ -91,7 +91,7 @@ public class Module implements Modul {
 
         commands.add(new PlayCommand(managerMuzyki, searchManager, guildDao));
         commands.add(new SkipCommand(managerMuzyki, guildDao));
-        commands.add(new YoutubeCommand(managerMuzyki, searchManager, eventWaiter, managerArgumentow, guildDao));
+        commands.add(new YoutubeCommand(managerMuzyki, searchManager, eventWaiter, guildDao));
         commands.add(new VolumeCommand(managerMuzyki, guildDao));
         commands.add(new QueueCommand(managerMuzyki, eventWaiter, eventBus));
         commands.add(new PlaylistCommand(managerMuzyki, queueDao));
@@ -99,6 +99,7 @@ public class Module implements Modul {
         commands.add(new LeaveCommand(managerMuzyki));
         commands.add(new NowplayingCommand(managerMuzyki));
         commands.add(new PauseCommand(managerMuzyki, guildDao));
+        commands.add(new ShuffleCommand(managerMuzyki, guildDao));
         if (Ustawienia.instance.apiKeys.containsKey("genius"))
             commands.add(new TekstCommand(eventWaiter, eventBus, managerMuzyki));
         commands.add(new NodesCommand());

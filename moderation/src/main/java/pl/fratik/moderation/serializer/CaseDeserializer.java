@@ -18,11 +18,13 @@
 package pl.fratik.moderation.serializer;
 
 import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import pl.fratik.moderation.entity.Case;
 import pl.fratik.core.entity.Kara;
 import pl.fratik.moderation.entity.CaseBuilder;
+import pl.fratik.moderation.entity.Dowod;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -47,10 +49,9 @@ public class CaseDeserializer extends StdDeserializer<List<Case>> {
 
     @Override
     public List<Case> deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
-        Object[] caseMaybeArr = p.readValueAs(Object[].class);
+        List<LinkedHashMap<String, Object>> cases = p.readValueAs(new TypeReference<List<LinkedHashMap<String, Object>>>(){});
         ArrayList<Case> caseList = new ArrayList<>();
-        for (Object caseMaybe : caseMaybeArr) {
-            LinkedHashMap elements = (LinkedHashMap) caseMaybe;
+        for (LinkedHashMap<String, Object> elements : cases) {
             TemporalAccessor timestamp;
             try {
                 timestamp = Instant.ofEpochMilli(((Long) elements.get("timestamp")));
@@ -79,6 +80,23 @@ public class CaseDeserializer extends StdDeserializer<List<Case>> {
                 if ((Integer) elements.get(VALIDTO) != 0)
                     aCase.setValidTo(Instant.ofEpochMilli(((Integer) elements.get(VALIDTO))), true);
             }
+            if (elements.containsKey("dmMsgId")) aCase.setDmMsgId((String) elements.get("dmMsgId"));
+            List<Dowod> dowody = new ArrayList<>();
+            if (elements.containsKey("dowody")) {
+                for (Object dowodRaw : (List<?>) elements.get("dowody")) {
+                    if (dowodRaw == null) continue;
+                    LinkedHashMap<?, ?> dowod = (LinkedHashMap<?, ?>) dowodRaw;
+                    long id;
+                    Object idRaw = dowod.get("id");
+                    if (idRaw instanceof Long) id = (Long) idRaw;
+                    else if (idRaw instanceof Integer) id = ((Integer) idRaw).longValue();
+                    else if (idRaw.getClass().equals(Long.TYPE)) id = (long) idRaw;
+                    else if (idRaw.getClass().equals(Integer.TYPE)) id = (long) ((int) idRaw);
+                    else throw new IllegalStateException("Nieprawidłowa klasa ID: " + idRaw.getClass().getName());
+                    dowody.add(new Dowod(id, (String) dowod.get("aby"), (String) dowod.get("cnt")));
+                }
+            }
+            aCase.setDowody(dowody);
             caseList.add(aCase);
         }
         return caseList;

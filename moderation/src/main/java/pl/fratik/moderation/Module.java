@@ -91,6 +91,7 @@ public class Module implements Modul {
         Case.setStaticVariables(casesDao, scheduleDao);
         ModLogBuilder.setTlumaczenia(tlumaczenia);
         ModLogBuilder.setGuildDao(guildDao);
+        ModLogBuilder.setManagerKomend(managerKomend);
         ModLogListener.setTlumaczenia(tlumaczenia);
         ModLogListener.setManagerKomend(managerKomend);
         LogListener.setTlumaczenia(tlumaczenia);
@@ -99,7 +100,7 @@ public class Module implements Modul {
         przeklenstwaListener = new PrzeklenstwaListener(guildDao, tlumaczenia, managerKomend, shardManager, casesDao, redisCacheManager);
         autobanListener = new AutobanListener(guildDao, tlumaczenia);
         antiInviteListener = new AntiInviteListener(guildDao, tlumaczenia, managerKomend, shardManager, casesDao, redisCacheManager);
-        antiRaidListener = new AntiRaidListener(guildDao, shardManager, eventBus, tlumaczenia, redisCacheManager);
+        antiRaidListener = new AntiRaidListener(guildDao, shardManager, eventBus, tlumaczenia, redisCacheManager, managerKomend);
 
         eventBus.register(this);
         eventBus.register(modLogListener);
@@ -112,12 +113,12 @@ public class Module implements Modul {
         commands = new ArrayList<>();
 
         commands.add(new PurgeCommand(logListener));
-        commands.add(new BanCommand());
+        commands.add(new BanCommand(guildDao));
         commands.add(new UnbanCommand());
         commands.add(new KickCommand());
         commands.add(new WarnCommand(guildDao, casesDao, shardManager, managerKomend));
         commands.add(new UnwarnCommand(guildDao, casesDao, shardManager, managerKomend));
-        commands.add(new AkcjeCommand(casesDao, shardManager, eventWaiter, eventBus, managerKomend));
+        commands.add(new AkcjeCommand(casesDao, shardManager, eventWaiter, eventBus, managerKomend, guildDao));
         commands.add(new ReasonCommand(guildDao, casesDao, shardManager, managerKomend));
         commands.add(new RolesCommand());
         commands.add(new HideCommand(guildDao, managerKomend));
@@ -129,6 +130,7 @@ public class Module implements Modul {
         commands.add(new RolaCommand(guildDao));
         commands.add(new NotatkaCommand(guildDao, casesDao, shardManager, managerKomend));
         commands.add(new RolementionCommand());
+        commands.add(new DowodCommand(guildDao, casesDao, shardManager, managerKomend, eventWaiter, eventBus));
 
         commands.forEach(managerKomend::registerCommand);
 
@@ -145,6 +147,7 @@ public class Module implements Modul {
             LoggerFactory.getLogger(Module.class).debug("Zmieniam long uprawnień: {} -> {}", Globals.permissions, Permission.getRaw(permList));
             Globals.permissions = Permission.getRaw(permList);
         }
+        if (modLogListener != null) modLogListener.cleanup();
         commands.forEach(managerKomend::unregisterCommand);
         antiRaidListener.shutdown();
         try {
@@ -184,12 +187,14 @@ public class Module implements Modul {
                         .setKara(Kara.UNMUTE).createCase();
                 c.setIssuerId(String.valueOf(Globals.clientId));
                 c.setReason(tlumaczenia.get(tlumaczenia.getLanguage(e.getGuild()), "modlog.reason.twomutesoneuser"));
-                MessageEmbed em = ModLogBuilder.generate(c, e.getGuild(), shardManager,
-                        tlumaczenia.getLanguage(e.getGuild()), managerKomend, true);
-                TextChannel mlog = shardManager.getTextChannelById(gc.getModLog());
-                if (mlog != null && mlog.canTalk()) {
-                    mlog.sendMessage(em).complete();
-                    c.setMessageId(mlog.sendMessage(em).complete().getId());
+                if (gc.getModLog() != null && !gc.getModLog().isEmpty()) {
+                    MessageEmbed em = ModLogBuilder.generate(c, e.getGuild(), shardManager,
+                            tlumaczenia.getLanguage(e.getGuild()), managerKomend, true, false);
+                    TextChannel mlog = shardManager.getTextChannelById(gc.getModLog());
+                    if (mlog != null && mlog.canTalk()) {
+                        mlog.sendMessage(em).complete();
+                        c.setMessageId(mlog.sendMessage(em).complete().getId());
+                    }
                 }
                 cases.getCases().add(c);
                 casesDao.save(cases);

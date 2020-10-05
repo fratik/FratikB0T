@@ -1,0 +1,21 @@
+jar {
+    archiveName = "invite.jar"
+    destinationDir project.file('../plugins')
+}
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+mainClassName = 'pl.fratik.invite.Module'
+
+build.dependsOn jar
+
+dependencies {
+    compile project(":arguments")
+    compile project(":core")
+}
+
+shadowJar {
+    manifest {
+        attributes 'Main-Class': 'pl.fratik.invite.Module'
+    }
+}

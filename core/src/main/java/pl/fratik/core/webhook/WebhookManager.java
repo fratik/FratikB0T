@@ -20,6 +20,7 @@ package pl.fratik.core.webhook;
 import club.minnced.discord.webhook.WebhookClient;
 import club.minnced.discord.webhook.WebhookClientBuilder;
 import club.minnced.discord.webhook.exception.HttpException;
+import club.minnced.discord.webhook.receive.ReadonlyMessage;
 import club.minnced.discord.webhook.send.WebhookMessage;
 import club.minnced.discord.webhook.send.WebhookMessageBuilder;
 import com.github.benmanes.caffeine.cache.Cache;
@@ -53,21 +54,22 @@ public class WebhookManager {
                 .setUsername(su.getName()).build(), channel);
     }
 
-    public void send(WebhookMessage m, TextChannel channel) {
+    public ReadonlyMessage send(WebhookMessage m, TextChannel channel) {
         GuildConfig.Webhook whc = getWebhook(channel);
-        try (WebhookClient wh = new WebhookClientBuilder(Long.parseLong(whc.getId()), whc.getToken()).build()) {
-            wh.send(m).get();
-            Thread.sleep(1000);
+        try (WebhookClient wh = new WebhookClientBuilder(Long.parseLong(whc.getId()), whc.getToken()).setWait(true).build()) {
+            return wh.send(m).get();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            return null;
         } catch (ExecutionException e) {
             if (e.getCause() instanceof HttpException) {
                 if (((HttpException) e.getCause()).getCode() == 404) {
                     try {
                         createWebhook(channel, true);
-                        send(m, channel);
-                        return;
-                    } catch (Exception ignored) {}
+                        return send(m, channel);
+                    } catch (Exception ignored) {
+                        return null;
+                    }
                 }
             }
             throw new RuntimeException(e);
@@ -93,12 +95,29 @@ public class WebhookManager {
         });
     }
 
+    public boolean hasWebhook(TextChannel channel) {
+        GuildConfig.Webhook wh = whCache.getIfPresent(channel.getId());
+        if (wh == null) {
+            Map<String, GuildConfig.Webhook> whki = guildDao.get(channel.getGuild()).getWebhooki();
+            if (whki != null) return whki.containsKey(channel.getId());
+            else return false;
+        }
+        return true;
+    }
+
     private GuildConfig.Webhook createWebhook(TextChannel channel, boolean clearCache) {
-        if (!channel.getGuild().getSelfMember().hasPermission(Permission.MANAGE_WEBHOOKS))
+        if (!channel.getGuild().getSelfMember().hasPermission(channel, Permission.MANAGE_WEBHOOKS)) {
+            if (hasWebhook(channel)) {
+                GuildConfig gc = guildDao.get(channel.getGuild());
+                gc.getWebhooki().remove(channel.getId());
+                if (clearCache) whCache.invalidate(channel.getId());
+                guildDao.save(gc);
+            }
             throw new PermissionException("Nie ma perma MANAGE_WEBHOOKS!");
+        }
+        GuildConfig gc = guildDao.get(channel.getGuild());
         Webhook tak = channel.createWebhook("FratikB0T Messages " + channel.getId()).complete();
         GuildConfig.Webhook whc = new GuildConfig.Webhook(tak.getId(), tak.getToken());
-        GuildConfig gc = guildDao.get(channel.getGuild());
         gc.getWebhooki().put(channel.getId(), whc);
         guildDao.save(gc);
         if (clearCache) whCache.invalidate(channel.getId());

@@ -42,6 +42,8 @@ public class BigemojiCommand extends Command {
         uzycieDelim = " ";
         aliases = new String[] {"bigmoji"};
         permissions.add(Permission.MESSAGE_ATTACH_FILES);
+        allowPermLevelChange = false;
+        allowInDMs = true;
     }
 
     @Override
@@ -62,7 +64,7 @@ public class BigemojiCommand extends Command {
                 return false;
             }
             byte[] img = NetworkUtil.getBytesFromBufferArray(zdjecie.getJSONObject("image").getJSONArray("data"));
-            context.getChannel().sendFile(img, "bigemoji.png").queue();
+            context.getMessageChannel().sendFile(img, "bigemoji.png").queue();
             return true;
         } catch (Exception e) {
             context.send(context.getTranslated("image.server.fail"));

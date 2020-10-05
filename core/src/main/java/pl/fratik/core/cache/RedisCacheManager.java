@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import pl.fratik.core.entity.DatabaseEntity;
 import pl.fratik.core.event.DatabaseUpdateEvent;
 import pl.fratik.core.util.GsonUtil;
+import pl.fratik.core.util.NamedThreadFactory;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.ScanParams;
@@ -42,14 +43,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 public class RedisCacheManager {
     private final String PREFIX;
     @Getter(AccessLevel.PACKAGE) private final JedisPool jedisPool;
-    private final ExecutorService executor = Executors.newFixedThreadPool(4, new RedisThreadFactory());
+    private final ExecutorService executor = Executors.newFixedThreadPool(4, new NamedThreadFactory("RedisCacheManager-AsyncThread"));
 
     public RedisCacheManager(long id) {
         GenericObjectPoolConfig pc = new GenericObjectPoolConfig();
@@ -170,6 +169,7 @@ public class RedisCacheManager {
         List<String> str = new ArrayList<>();
         for (Object dbkey : dbKeys)
             str.add(dbkey.toString());
+        if (str.isEmpty()) return;
         try (Jedis jedis = jedisPool.getResource()) {
             jedis.del(str.toArray(new String[]{}));
         }
@@ -260,30 +260,6 @@ public class RedisCacheManager {
             invalidate(field.get(de), de.getClass());
         } catch (Exception ex) {
             LoggerFactory.getLogger(getClass()).warn("wielki błąd", ex);
-        }
-    }
-
-    private static class RedisThreadFactory implements ThreadFactory {
-        private final ThreadGroup group;
-        private final AtomicInteger threadNumber = new AtomicInteger(1);
-        private final String namePrefix;
-        public RedisThreadFactory() {
-            SecurityManager s = System.getSecurityManager();
-            group = (s != null) ? s.getThreadGroup() :
-                    Thread.currentThread().getThreadGroup();
-            namePrefix = "RedisCacheManager-AsyncThread-" ;
-        }
-
-        @Override
-        public Thread newThread(@NotNull Runnable r) {
-            Thread t = new Thread(group, r,
-                    namePrefix + threadNumber.getAndIncrement(),
-                    0);
-            if (t.isDaemon())
-                t.setDaemon(false);
-            if (t.getPriority() != Thread.NORM_PRIORITY)
-                t.setPriority(Thread.NORM_PRIORITY);
-            return t;
         }
     }
 }

@@ -41,6 +41,8 @@ public class HugCommand extends Command {
         permissions.add(Permission.MESSAGE_ATTACH_FILES);
         cooldown = 5;
         aliases = new String[] {"tulas", "przytul"};
+        allowPermLevelChange = false;
+        allowInDMs = true;
     }
 
     @Override
@@ -64,7 +66,7 @@ public class HugCommand extends Command {
                 return false;
             }
             byte[] img = NetworkUtil.getBytesFromBufferArray(zdjecie.getJSONObject("image").getJSONArray("data"));
-            context.getChannel().sendFile(img, "hug.png").queue();
+            context.getMessageChannel().sendFile(img, "hug.png").queue();
         } catch (IOException | NullPointerException e) {
             context.send(context.getTranslated("image.server.fail"));
         }

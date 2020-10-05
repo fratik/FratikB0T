@@ -71,6 +71,11 @@ public class UserConfig implements DatabaseEntity {
     private Long twoFactorTimeLocked = null;
     @ConfigField(dontDisplayInSettings = true)
     private String timezone = "default";
+    private Boolean cytujFbot = false;
+
+    public boolean isCytujFbot() {
+        return cytujFbot != null && cytujFbot;
+    }
 
     @Override
     @JsonIgnore

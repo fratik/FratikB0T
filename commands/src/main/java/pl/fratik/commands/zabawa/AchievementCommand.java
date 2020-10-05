@@ -38,6 +38,8 @@ public class AchievementCommand extends Command {
         permissions.add(Permission.MESSAGE_ATTACH_FILES);
         uzycie = new Uzycie("tresc", "string", true);
         cooldown = 5;
+        allowPermLevelChange = false;
+        allowInDMs = true;
     }
 
     @Override
@@ -50,7 +52,7 @@ public class AchievementCommand extends Command {
         }
         String url ="https://www.minecraftskinstealer.com/achievement/a.php?i=" + rnd + "&h=" + NetworkUtil.encodeURIComponent(context.getTranslated("achievement.msg")) + "&t=" + NetworkUtil.encodeURIComponent((String) context.getArgs()[0]);
         try {
-            context.getChannel().sendFile(NetworkUtil.download(url), "achievement.png").queue();
+            context.getMessageChannel().sendFile(NetworkUtil.download(url), "achievement.png").queue();
         } catch (IOException e) {
             context.send(context.getTranslated("image.server.fail"));
         }

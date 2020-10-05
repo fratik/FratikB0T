@@ -17,10 +17,10 @@
 
 package pl.fratik.music.commands;
 
+import com.sedmelluq.discord.lavaplayer.tools.Units;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import io.sentry.Sentry;
 import lombok.AllArgsConstructor;
-import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.VoiceChannel;
@@ -28,7 +28,6 @@ import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Uzycie;
-import pl.fratik.core.manager.ManagerArgumentow;
 import pl.fratik.core.util.EventWaiter;
 import pl.fratik.core.util.MessageWaiter;
 import pl.fratik.core.util.UserUtil;
@@ -49,14 +48,12 @@ public class YoutubeCommand extends MusicCommand {
     private final NowyManagerMuzyki managerMuzyki;
     private final SearchManager searchManager;
     private final EventWaiter eventWaiter;
-    private final ManagerArgumentow managerArgumentow;
     private final GuildDao guildDao;
 
-    public YoutubeCommand(NowyManagerMuzyki managerMuzyki, SearchManager searchManager, EventWaiter eventWaiter, ManagerArgumentow managerArgumentow, GuildDao guildDao) {
+    public YoutubeCommand(NowyManagerMuzyki managerMuzyki, SearchManager searchManager, EventWaiter eventWaiter, GuildDao guildDao) {
         this.managerMuzyki = managerMuzyki;
         this.searchManager = searchManager;
         this.eventWaiter = eventWaiter;
-        this.managerArgumentow = managerArgumentow;
         this.guildDao = guildDao;
         name = "youtube";
         aliases = new String[] {"yt", "youtube", "szukajwyt", "graj", "puść"};
@@ -81,10 +78,10 @@ public class YoutubeCommand extends MusicCommand {
             context.send(context.getTranslated("play.no.permissions"));
             return false;
         }
-        SearchManager.SearchResult result = searchManager.searchYouTube((String) context.getArgs()[0], false);
+        SearchManager.SearchResult result = searchManager.searchYouTube((String) context.getArgs()[0]);
         Wiadomosc odp = generateResultMessage(result.getEntries(), context.getTranslated("youtube.message.header", (String) context.getArgs()[0]), false);
         int liczba = odp.liczba;
-        Message m = context.getChannel().sendMessage(odp.tresc).complete();
+        Message m = context.getTextChannel().sendMessage(odp.tresc).complete();
         MessageWaiter waiter = new MessageWaiter(eventWaiter, context);
         AtomicBoolean deleted = new AtomicBoolean(false);
         AtomicReference<Boolean> udaloSie = new AtomicReference<>();
@@ -124,7 +121,7 @@ public class YoutubeCommand extends MusicCommand {
                     return;
                 }
                 if (!mms.isConnected()) {
-                    mms.setAnnounceChannel(context.getChannel());
+                    mms.setAnnounceChannel(context.getTextChannel());
                     mms.connect(finalKanal);
                 }
                 if (!mms.isConnected()) {
@@ -138,11 +135,11 @@ public class YoutubeCommand extends MusicCommand {
                 }
                 if (added.size() == 1) {
                     if (!mms.isPlaying()) mms.play();
-                    else context.getChannel().sendMessage(new MessageBuilder(context.getTranslated("play.queued",
-                            added.get(0).getInfo().title)).stripMentions(context.getGuild()).build()).queue();
+                    else context.getTextChannel().sendMessage(context.getTranslated("play.queued",
+                            added.get(0).getInfo().title)).queue();
                 } else {
-                    context.getChannel().sendMessage(new MessageBuilder(context.getTranslated("play.queued.multiple",
-                            added.size())).stripMentions(context.getGuild()).build()).queue();
+                    context.getTextChannel().sendMessage(context.getTranslated("play.queued.multiple",
+                            added.size())).queue();
                     if (!mms.isPlaying()) mms.play();
                 }
                 udaloSie.set(true);
@@ -172,14 +169,14 @@ public class YoutubeCommand extends MusicCommand {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-        if (deleted.get()) return udaloSie.get() == null ? false : udaloSie.get(); //NOSONAR
+        if (deleted.get()) return udaloSie.get() != null && udaloSie.get();
         List<SearchManager.SearchResult.SearchEntry> eList = new ArrayList<>();
         for (SearchManager.SearchResult.SearchEntry entry : result.getEntries()) {
             if (deleted.get()) break;
+            AudioTrack track = managerMuzyki.getAudioTracks(entry.getUrl()).stream().findFirst().orElse(null);
+            if (track == null) continue;
             SearchManager.SearchResult res = new SearchManager.SearchResult();
-            res.addEntry(entry.getTitle(), entry.getUrl(),
-                    searchManager.getDuration(searchManager.extractIdFromUri(entry.getUrl())).getDurationAsInt(),
-                    null);
+            res.addEntry(entry.getTitle(), entry.getUrl(), track.getDuration(), null);
             eList.add(res.getEntries().get(0));
         }
         if (deleted.get()) return false;
@@ -202,7 +199,7 @@ public class YoutubeCommand extends MusicCommand {
             liczba++;
             StringBuilder sb2 = new StringBuilder();
             sb2.append("**").append(liczba).append("**: ").append(entry.getTitle());
-            if (durations) sb2.append(" (").append(entry.getDuration()).append(")");
+            if (durations) sb2.append(" (").append(entry.getDurationAsInt() == Units.DURATION_MS_UNKNOWN ? "LIVE" : entry.getDuration()).append(")");
             sb2.append("\n");
             if (sb.length() + sb2.length() > 2000) {
                 liczba--;

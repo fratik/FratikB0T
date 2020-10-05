@@ -113,7 +113,7 @@ public class GuildUtil {
         Guild guild = guildJoinEvent.getGuild();
         GbanData data = getGbanData(guild);
         if (data.isGbanned()) {
-            User issuer = shardManager.getUserById(data.getIssuerId());
+            User issuer = shardManager.retrieveUserById(data.getIssuerId()).complete();
             Optional<TextChannel> kanal = guild.getTextChannels().stream().filter(TextChannel::canTalk).findFirst();
             kanal.ifPresent(tc -> {
                 if (issuer != null) {

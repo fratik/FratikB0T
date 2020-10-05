@@ -98,7 +98,7 @@ public class BoomCommand extends Command {
             context.send(context.getTranslated("boom.too.many.members"));
             return false;
         }
-        long online = context.getChannel().getMembers().stream()
+        long online = context.getTextChannel().getMembers().stream()
                 .filter(member -> BoomRundka.filtr(member) && !member.equals(context.getMember())).count();
         if (online < 2) {
             context.send(context.getTranslated("boom.no.people.online", String.valueOf(online)));
@@ -143,10 +143,10 @@ public class BoomCommand extends Command {
         private void execute() {
             List<Member> online;
             if (runs == 0) {
-                online = context.getChannel().getMembers().stream().filter(BoomRundka::filtr)
+                online = context.getTextChannel().getMembers().stream().filter(BoomRundka::filtr)
                         .filter(m -> !m.equals(context.getMember())).collect(Collectors.toList());
             } else {
-                online = context.getChannel().getMembers().stream().filter(m -> filtr(m)
+                online = context.getTextChannel().getMembers().stream().filter(m -> filtr(m)
                         && !byli.contains(m) && !m.equals(context.getMember())).collect(Collectors.toList());
             }
             Collections.shuffle(online);
@@ -168,7 +168,7 @@ public class BoomCommand extends Command {
             MessageWaiter waiter = new MessageWaiter(eventWaiter, context) {
                 @Override
                 protected boolean checkMessage(MessageReceivedEvent event) {
-                    return event.isFromGuild() && event.getTextChannel().equals(context.getChannel())
+                    return event.isFromGuild() && event.getTextChannel().equals(context.getTextChannel())
                             && event.getAuthor().equals(randomMember.getUser()) && event.getMessage().getContentRaw()
                             .equalsIgnoreCase(getTranslated(randomMember, "boom.pass"));
                 }

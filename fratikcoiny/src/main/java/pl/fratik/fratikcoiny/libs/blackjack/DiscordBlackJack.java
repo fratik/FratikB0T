@@ -151,7 +151,7 @@ public class DiscordBlackJack {
     }
 
     private void reveal() {
-        if (embedMessage == null) embedMessage = context.getChannel().sendMessage(generateEmbed()).complete();
+        if (embedMessage == null) embedMessage = context.send(generateEmbed());
         else embedMessage.editMessage(generateEmbed()).complete();
     }
 

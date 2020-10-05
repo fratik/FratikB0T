@@ -18,6 +18,7 @@
 package pl.fratik.core.command;
 
 import io.sentry.Sentry;
+import io.sentry.event.User;
 import lombok.Getter;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.exceptions.InsufficientPermissionException;
@@ -27,6 +28,8 @@ import org.slf4j.LoggerFactory;
 import pl.fratik.core.entity.ArgsMissingException;
 import pl.fratik.core.entity.SilentExecutionFail;
 import pl.fratik.core.entity.Uzycie;
+import pl.fratik.core.tlumaczenia.Language;
+import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.CommonErrors;
 import pl.fratik.core.util.UserUtil;
 
@@ -46,12 +49,13 @@ public abstract class Command {
     @Getter protected String uzycieDelim = "";
     @Getter protected PermLevel permLevel = PermLevel.EVERYONE;
     @Getter protected CommandCategory category = CommandCategory.BASIC;
-    @Getter protected CommandType type = CommandType.NORMAL;
     @Getter protected final ArrayList<Permission> permissions = getBasicPermissions();
     @Getter protected boolean allowInDMs = false;
     @Getter protected final HashMap<String, Method> subCommands = new HashMap<>();
     @Getter protected int cooldown;
     @Getter protected boolean ignoreGaPerm = false;
+    @Getter protected boolean allowPermLevelEveryone = true;
+    @Getter protected boolean allowPermLevelChange = true;
 
     protected boolean execute(@NotNull CommandContext context) {
         throw new UnsupportedOperationException("Komenda nie ma zaimplementowanej funkcji execute()");
@@ -71,7 +75,7 @@ public abstract class Command {
     }
 
     public boolean preExecute(CommandContext context) {
-        if (!context.getGuild().getSelfMember().hasPermission(context.getChannel(), Permission.MESSAGE_WRITE))
+        if (!context.isDirect() && !context.getTextChannel().canTalk())
             return false;
 
         if (context.getRawArgs().length != 0) {
@@ -87,11 +91,12 @@ public abstract class Command {
                     if (m.getAnnotation(SubCommand.class).emptyUsage()) {
                         return (Boolean) m.invoke(this, new CommandContext(context.getShardManager(),
                                 context.getTlumaczenia(), this, context.getEvent(),
-                                context.getPrefix(), context.getLabel()));
+                                context.getPrefix(), context.getLabel(), null, context.isDirect()));
                     } else {
                         return (Boolean) m.invoke(this, new CommandContext(context.getShardManager(),
                                 context.getTlumaczenia(), this, context.getEvent(),
-                                context.getPrefix(), context.getLabel(), argsListTmp.toArray(new String[0])));
+                                context.getPrefix(), context.getLabel(), argsListTmp.toArray(new String[0]),
+                                null, context.isDirect()));
                     }
                 } catch (ArgsMissingException e) {
                     CommonErrors.usage(context);
@@ -101,14 +106,14 @@ public abstract class Command {
                     throw e; // rethrow
                 } catch (InvocationTargetException e) {
                     logger.error("Caught error while executing subcommand \"" + name + "\"", e.getCause());
-                    Sentry.getContext().setUser(new io.sentry.event.User(context.getSender().getId(),
+                    Sentry.getContext().setUser(new User(context.getSender().getId(),
                             UserUtil.formatDiscrim(context.getSender()), null, null));
                     Sentry.capture(e);
                     Sentry.clearContext();
                     CommonErrors.exception(context, e.getCause() != null ? e.getCause() : e);
                 } catch (Exception e) {
                     logger.error("Caught error while executing command \"" + name + "\"", e);
-                    Sentry.getContext().setUser(new io.sentry.event.User(context.getSender().getId(),
+                    Sentry.getContext().setUser(new User(context.getSender().getId(),
                             UserUtil.formatDiscrim(context.getSender()), null, null));
                     Sentry.capture(e);
                     Sentry.clearContext();
@@ -118,11 +123,21 @@ public abstract class Command {
             }
         }
 
-        if (!context.getGuild().getSelfMember().hasPermission(context.getChannel(), permissions)) {
+        if (!context.isDirect() && !context.getGuild().getSelfMember().hasPermission(context.getTextChannel(), permissions)) {
             context.send(context.getTranslated("generic.no.botpermission", permissions.stream().map((Permission::getName)).collect(Collectors.joining(", "))));
             return false;
         }
 
         return execute(context);
+    }
+
+    public String[] getAliases(Tlumaczenia tlumaczenia) {
+        List<String> aliases = new ArrayList<>(Arrays.asList(getAliases()));;
+        for (Language lang : Language.values()) {
+            String dodatkowe = tlumaczenia.get(lang, getName() + ".help.name").toLowerCase();
+            if (!dodatkowe.isEmpty()) Arrays.stream(dodatkowe.split("\\|")).skip(1).forEach(aliases::add);
+        }
+        aliases.sort(String::compareToIgnoreCase);
+        return aliases.toArray(new String[0]);
     }
 }

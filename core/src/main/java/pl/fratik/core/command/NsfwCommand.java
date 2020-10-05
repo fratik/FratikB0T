@@ -20,7 +20,7 @@ package pl.fratik.core.command;
 public abstract class NsfwCommand extends Command {
     @Override
     public boolean preExecute(CommandContext context) {
-        if (!context.getChannel().isNSFW()) {
+        if (!context.getTextChannel().isNSFW()) {
             context.send(context.getTranslated("generic.not.nsfw"));
             return false;
         }

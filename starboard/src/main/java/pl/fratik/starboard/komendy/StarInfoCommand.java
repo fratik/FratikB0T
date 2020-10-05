@@ -53,6 +53,7 @@ public class StarInfoCommand extends Command {
         cooldown = 15;
         uzycie = new Uzycie("osoba", "user", false);
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
+        allowPermLevelChange = false;
     }
 
     @Override

@@ -43,6 +43,7 @@ public class ChooseCommand extends Command {
         hmap.put("[...]", STRINGARGTYPE);
         uzycie = new Uzycie(hmap, new boolean[] {true, true, false});
         aliases = new String[] {"chose", "wybierz", "choisi", "choisis", "losuj", "wylosuj", "losowanie", "pomozwybrac"};
+        allowPermLevelChange = false;
     }
 
     @Override

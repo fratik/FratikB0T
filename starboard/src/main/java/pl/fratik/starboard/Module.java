@@ -64,6 +64,7 @@ public class Module implements Modul {
         commands.add(new TopStarCommand(starDataDao, starManager, eventWaiter, eventBus));
         commands.add(new StarInfoCommand(starDataDao, starManager));
         commands.add(new StarRankingCommand(starDataDao, eventWaiter, eventBus));
+        commands.add(new StarBlacklistCommand(starDataDao));
 
         commands.forEach(managerKomend::registerCommand);
 

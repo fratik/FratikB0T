@@ -79,6 +79,7 @@ public class Rule34Command extends NsfwCommand {
             LoggerFactory.getLogger(getClass()).error("Pixiv nie możliwy do użycia - nieprawidłowe dane logowania!");
             pixiv = null;
         }
+        allowPermLevelChange = false;
     }
 
     @Override
@@ -146,7 +147,7 @@ public class Rule34Command extends NsfwCommand {
         }
         return generatePages(context, "https://rule34.xxx/index.php?page=dapi&json=1&s=post&q=index&tags=" +
                 NetworkUtil.encodeURIComponent(Arrays.stream(argi)
-                        .map(Object::toString).collect(Collectors.joining(" "))), "pid", count,
+                        .map(o -> o == null ? "" : o.toString()).collect(Collectors.joining(" "))), "pid", count,
                 100, new TypeToken<List<Rule34Post>>() {});
     }
 
@@ -204,7 +205,7 @@ public class Rule34Command extends NsfwCommand {
             String url;
             if (strony.isEmpty())
                 url = "https://e621.net/posts.json?limit=320&tags=" +
-                        NetworkUtil.encodeURIComponent(Arrays.stream(argi).map(Object::toString)
+                        NetworkUtil.encodeURIComponent(Arrays.stream(argi).map(o -> o == null ? "" : o.toString())
                                 .collect(Collectors.joining(" ")) + " -type:swf ");
             else {
                 long lastId = -1;
@@ -213,7 +214,7 @@ public class Rule34Command extends NsfwCommand {
                     else if (lastId >= post.getId()) lastId = post.getId();
                 }
                 url = "https://e621.net/posts.json?limit=320&page=b" + lastId + "&tags=" +
-                        NetworkUtil.encodeURIComponent(Arrays.stream(argi).map(Object::toString)
+                        NetworkUtil.encodeURIComponent(Arrays.stream(argi).map(o -> o == null ? "" : o.toString())
                                 .collect(Collectors.joining(" ")) + " -type:swf ");
             }
             strony.put(i, GsonUtil.fromJSON(NetworkUtil.download(url), new TypeToken<E621Wrapper>() {}).getPosts());
@@ -240,7 +241,7 @@ public class Rule34Command extends NsfwCommand {
 
     public List<FutureTask<EmbedBuilder>> resolvePixiv(CommandContext context) {
         Object[] argi = Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length);
-        List<Work> works = pixiv.search(Arrays.stream(argi).map(Object::toString)
+        List<Work> works = pixiv.search(Arrays.stream(argi).map(o -> o == null ? "" : o.toString())
                         .collect(Collectors.joining(" ")));
         if (works.isEmpty()) {
             return Collections.emptyList();
@@ -284,7 +285,7 @@ public class Rule34Command extends NsfwCommand {
     public List<FutureTask<EmbedBuilder>> resolvePaheal(CommandContext context) throws IOException {
         Object[] argi = Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length);
         String url = "https://rule34.paheal.net/api/danbooru/find_posts/index.xml?s=post&tags=" +
-                NetworkUtil.encodeURIComponent(Arrays.stream(argi).map(Object::toString)
+                NetworkUtil.encodeURIComponent(Arrays.stream(argi).map(o -> o == null ? "" : o.toString())
                         .collect(Collectors.joining(" ")));
         PahealPostsRoot root = GsonUtil.GSON.fromJson(XML.toJSONObject(new String(NetworkUtil.download(url))).toString(), PahealPostsRoot.class);
         int count = root.getPosts().getCount();
@@ -316,14 +317,14 @@ public class Rule34Command extends NsfwCommand {
     public List<FutureTask<EmbedBuilder>> resolveDanbooru(CommandContext context) throws IOException {
         Object[] argi = Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length);
         int count = GsonUtil.fromJSON(NetworkUtil.download("https://danbooru.donmai.us/counts/posts.json?tags=" +
-                NetworkUtil.encodeURIComponent(Arrays.stream(argi).map(Object::toString)
+                NetworkUtil.encodeURIComponent(Arrays.stream(argi).map(o -> o == null ? "" : o.toString())
                         .collect(Collectors.joining(" ")))), JsonObject.class).getAsJsonObject("counts")
                 .get("posts").getAsInt();
         if (count == 0) {
             return Collections.emptyList();
         }
         return generatePages(context, "https://danbooru.donmai.us/posts.json?limit=200&tags=" +
-                        NetworkUtil.encodeURIComponent(Arrays.stream(argi).map(Object::toString)
+                        NetworkUtil.encodeURIComponent(Arrays.stream(argi).map(o -> o == null ? "" : o.toString())
                                 .collect(Collectors.joining(" "))), "page", count,
                 200, new TypeToken<List<DanbooruPost>>() {});
     }

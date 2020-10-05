@@ -17,10 +17,7 @@
 
 package pl.fratik.moderation.commands;
 
-import net.dv8tion.jda.api.OnlineStatus;
 import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Role;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.CommandCategory;
@@ -34,9 +31,6 @@ import pl.fratik.core.util.CommonErrors;
 import pl.fratik.core.util.StringUtil;
 
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 public class RolaCommand extends ModerationCommand {
 
@@ -47,8 +41,9 @@ public class RolaCommand extends ModerationCommand {
         name = "rola";
         category = CommandCategory.MODERATION;
         uzycie = new Uzycie("rola", "role");
-        aliases = new String[] {"ranga", "rola", "dodajrange", "usunrange", "dodajrole", "usunrole", "dajrole", "wezrole", "dajrange", "wezrange", "proszerole"};
+        aliases = new String[] {"ranga"};
         permissions.add(Permission.MANAGE_ROLES);
+        allowPermLevelChange = false;
     }
 
     @Override

@@ -67,7 +67,7 @@ public class LogListener {
     public LogListener(GuildDao guildDao, PurgeDao purgeDao, RedisCacheManager redisCacheManager) {
         this.guildDao = guildDao;
         this.purgeDao = purgeDao;
-        cache = redisCacheManager.new CacheRetriever<List<LogMessage>>(){}.getCache();
+        cache = redisCacheManager.new CacheRetriever<List<LogMessage>>(){}.getCache(900);
         gcCache = redisCacheManager.new CacheRetriever<GuildConfig>(){}.getCache();
     }
 
@@ -86,7 +86,7 @@ public class LogListener {
         if (!messageUpdateEvent.isFromGuild()) return;
         List<LogMessage> messages = cache.get(messageUpdateEvent.getTextChannel().getId(), c -> new ArrayList<>());
         if (messages == null) throw new IllegalStateException("messages == null mimo compute'owania");
-        Message m = findMessage(messageUpdateEvent.getTextChannel(), messageUpdateEvent.getMessageId(), false);
+        Message m = findMessage(messageUpdateEvent.getTextChannel(), messageUpdateEvent.getMessageId(), false, messages);
         if (m == null) {
             if (messages.size() > 100) messages.remove(0);
             messages.add(new LogMessage(messageUpdateEvent.getMessage()));
@@ -129,34 +129,23 @@ public class LogListener {
         }
         if (znaneAkcje.remove(messageDeleteEvent.getMessageId())) return;
         try {
-            messageDeleteEvent.getGuild().retrieveAuditLogs().type(ActionType.MESSAGE_DELETE).queue(
-                    audiologi -> {
-                        User deletedBy = null;
-                        for (AuditLogEntry log : audiologi) {
-                            if (log.getType() == ActionType.MESSAGE_DELETE
-                                    && log.getTimeCreated().isAfter(OffsetDateTime.now().minusMinutes(1))
-                                    && messageDeleteEvent.getChannel().getId().equals(log.getOption(AuditLogOption.CHANNEL))
-                                    && m.getAuthorId() == log.getTargetIdLong()) {
-                                deletedBy = log.getUser();
-                                break;
-                            }
-                        }
-                        MessageEmbed embed = generateEmbed(LogType.DELETE, m, deletedBy, m.getContentRaw(), false);
-                        try {
-                            channel.sendMessage(embed).queue();
-                        } catch (Exception ignored) {
-                            /*lul*/
-                        }
-                    },
-                    error -> {
-                        MessageEmbed embed = generateEmbed(LogType.DELETE, m, null, m.getContentRaw(), true);
-                        try {
-                            channel.sendMessage(embed).queue();
-                        } catch (Exception ignored) {
-                            /*lul*/
-                        }
-                    }
-            );
+            List<AuditLogEntry> audiologi = messageDeleteEvent.getGuild().retrieveAuditLogs().type(ActionType.MESSAGE_DELETE).complete();
+            User deletedBy = null;
+            for (AuditLogEntry log : audiologi) {
+                if (log.getType() == ActionType.MESSAGE_DELETE
+                        && log.getTimeCreated().isAfter(OffsetDateTime.now().minusMinutes(1))
+                        && messageDeleteEvent.getChannel().getId().equals(log.getOption(AuditLogOption.CHANNEL))
+                        && m.getAuthorId() == log.getTargetIdLong()) {
+                    deletedBy = log.getUser();
+                    break;
+                }
+            }
+            MessageEmbed embed = generateEmbed(LogType.DELETE, m, deletedBy, m.getContentRaw(), false);
+            try {
+                channel.sendMessage(embed).queue();
+            } catch (Exception ignored) {
+                /*lul*/
+            }
         } catch (Exception e) {
             MessageEmbed embed = generateEmbed(LogType.DELETE, m, null, m.getContentRaw(), true);
             try {
@@ -225,8 +214,12 @@ public class LogListener {
     }
 
     private LogMessage findMessage(TextChannel channel, String id, boolean delete) {
+        List<LogMessage> kesz = Objects.requireNonNull(cache.get(channel.getId(), c -> new ArrayList<>()));
+        return findMessage(channel, id, delete, kesz);
+    }
+
+    private LogMessage findMessage(TextChannel channel, String id, boolean delete, List<LogMessage> kesz) {
         try {
-            List<LogMessage> kesz = Objects.requireNonNull(cache.get(channel.getId(), c -> new ArrayList<>()));
             for (LogMessage m : kesz)
                 if (m.getId().equals(id)) {
                     if (!delete) return m;
@@ -253,15 +246,36 @@ public class LogListener {
                 null, message.getAuthor().getEffectiveAvatarUrl().replace(".webp", ".png"));
         if (type == LogType.EDIT) {
             eb.setTimestamp(message.getTimeEdited());
-            eb.addField(tlumaczenia.get(l, "fulllog.old.content"), oldContent, false);
-            eb.addField(tlumaczenia.get(l, "fulllog.new.content"), message.getContentRaw(), false);
+            String oldCnt = oldContent;
+            String oldCnt2 = null;
+            if (oldContent.length() >= 1021) {
+                oldCnt = oldContent.substring(0, 1021).trim() + "...";
+                oldCnt2 = "..." + oldContent.substring(1022).trim();
+            }
+            String newCnt = message.getContentRaw();
+            String newCnt2 = null;
+            if (oldContent.length() >= 1021) {
+                newCnt = message.getContentRaw().substring(0, 1021).trim() + "...";
+                newCnt2 = "..." + message.getContentRaw().substring(1022).trim();
+            }
+            eb.addField(tlumaczenia.get(l, "fulllog.old.content"), oldCnt, false);
+            if (oldCnt2 != null) eb.addField(tlumaczenia.get(l, "fulllog.old.content.pt2"), oldCnt2, false);
+            eb.addField(tlumaczenia.get(l, "fulllog.new.content"), newCnt, false);
+            if (newCnt2 != null) eb.addField(tlumaczenia.get(l, "fulllog.new.content.pt2"), newCnt2, false);
             pushChannel(eb, l, message);
             eb.addField(tlumaczenia.get(l, "fulllog.message.id"), message.getId(), false);
             eb.setColor(decode("#ffa500"));
             eb.setFooter(tlumaczenia.get(l, "fulllog.edit"), null);
         }
         if (type == LogType.DELETE) {
-            eb.addField(tlumaczenia.get(l, "fulllog.content"), message.getContentRaw(), false);
+            String cnt = message.getContentRaw();
+            String cnt2 = null;
+            if (message.getContentRaw().length() >= 1024) {
+                cnt = message.getContentRaw().substring(0, 1021).trim() + "...";
+                cnt2 = "..." + message.getContentRaw().substring(1022).trim();
+            }
+            eb.addField(tlumaczenia.get(l, "fulllog.content"), cnt, false);
+            if (cnt2 != null) eb.addField(tlumaczenia.get(l, "fulllog.content.pt2"), cnt2, false);
             pushChannel(eb, l, message);
             eb.addField(tlumaczenia.get(l, "fulllog.message.id"), message.getId(), false);
             String rmby = "fulllog.removed.by";

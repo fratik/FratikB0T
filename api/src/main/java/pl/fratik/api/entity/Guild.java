@@ -24,28 +24,22 @@ public class Guild {
     private final String name;
     private final String id;
     private final String icon;
-    private final User owner;
     private final Role myHighestRole;
     private final int members;
-    private final int users;
-    private final int bots;
     private final int roles;
     private final int textChannels;
     private final int voiceChannels;
     private final long createdTimestamp;
 
-    public Guild(String name, String id, String icon, User owner, Role myHighestRole, int users, int bots, int roles, int textChannels, int voiceChannels, long createdTimestamp) {
+    public Guild(String name, String id, String icon, Role myHighestRole, int members, int roles, int textChannels, int voiceChannels, long createdTimestamp) {
         this.name = name;
         this.id = id;
         this.icon = icon;
-        this.owner = owner;
         this.myHighestRole = myHighestRole;
         this.roles = roles;
         this.textChannels = textChannels;
         this.voiceChannels = voiceChannels;
         this.createdTimestamp = createdTimestamp;
-        this.members = users + bots;
-        this.users = users;
-        this.bots = bots;
+        this.members = members;
     }
 }
