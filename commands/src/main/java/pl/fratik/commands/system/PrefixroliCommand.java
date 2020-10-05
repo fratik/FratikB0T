@@ -36,15 +36,15 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 @SuppressWarnings("ConstantConditions")
-public class PrefixroleCommand extends Command {
+public class PrefixroliCommand extends Command {
 
     private static final int PREFIX_LENGTH = 8;
 
     private GuildDao guildDao;
 
-    public PrefixroleCommand(GuildDao guildDao) {
-        name = "prefixrole";
-        aliases = new String[] {"roleprefix"};
+    public PrefixroliCommand(GuildDao guildDao) {
+        name = "prefixroli";
+        aliases = new String[] {"prefiksroli", "prefixrol", "prefixrole"}; //FIXME wydżebać prefixrole i wrzucić do .help.nazwa w eng tłumaczeniach
         uzycieDelim = " ";
         LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
         hmap.put("set|remove|list", "string");

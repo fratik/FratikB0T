@@ -195,10 +195,8 @@ class MemberListener {
             }
             if (nick.startsWith(" ")) nick = nick.substring(1);
             try {
-                if ((prefix + nick).length() > 31) {
-                    nick = nick.substring(0, Math.min((prefix + nick).length(), 31));
-                    mem.getGuild().modifyNickname(mem, prefix + " " + nick).queue();
-                }
+                if ((prefix + nick).length() > 28) nick = nick.substring(0, Math.min((prefix + nick).length(), 28)) + "...";
+                mem.getGuild().modifyNickname(mem, prefix + " " + nick).queue();
             } catch (Exception e) {
                 TextChannel a = getFullLogs(mem.getGuild());
                 if (a != null) a.sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(mem.getGuild()),
