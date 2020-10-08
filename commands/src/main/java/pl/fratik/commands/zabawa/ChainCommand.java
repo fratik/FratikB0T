@@ -45,7 +45,7 @@ public class ChainCommand extends Command {
         permLevel = PermLevel.EVERYONE;
         permissions.add(Permission.MESSAGE_ATTACH_FILES);
         cooldown = 5;
-        aliases = new String[] {"lozeczko"};
+        aliases = new String[] {"lozeczko", "fetyszfratika"};
         allowPermLevelChange = false;
         allowInDMs = true;
     }
