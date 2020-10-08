@@ -23,9 +23,9 @@ import pl.fratik.core.entity.Emoji;
 import java.util.Locale;
 
 public enum Language {
-    DEFAULT(null, null, null, null),
-    ENGLISH("en-US", "English (US)", "UNICODE:\uD83C\uDDFA\uD83C\uDDF8", new Locale("en_US")),
-    POLISH("pl", "Polski", "UNICODE:\uD83C\uDDF5\uD83C\uDDF1", new Locale("pl_PL"))//,
+    DEFAULT(null, null, null, null, true),
+    ENGLISH("en-US", "English (US)", "UNICODE:\uD83C\uDDFA\uD83C\uDDF8", new Locale("en_US"), true),
+    POLISH("pl", "Polski", "UNICODE:\uD83C\uDDF5\uD83C\uDDF1", new Locale("pl_PL"), true)//,
     /*POLISH_WULG("pl-WG", "Polski (wulgarny)", "663853676053659687", new Locale("pl_WG")),
     PONGLISH("pl-EN", "Ponglish", "665552851820478515", new Locale("pl_EN"))*/;
 
@@ -33,12 +33,14 @@ public enum Language {
     @Getter private final String localized;
     private final String emoji;
     @Getter private final Locale locale;
+    @Getter private final boolean checked;
 
-    Language(String shortName, String localized, String emoji, Locale locale) {
+    Language(String shortName, String localized, String emoji, Locale locale, boolean checked) {
         this.shortName = shortName;
         this.localized = localized;
         this.emoji = emoji;
         this.locale = locale;
+        this.checked = checked;
     }
 
     public Emoji getEmoji() {

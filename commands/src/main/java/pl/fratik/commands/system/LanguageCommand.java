@@ -20,6 +20,7 @@ package pl.fratik.commands.system;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.Ustawienia;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
@@ -51,11 +52,13 @@ public class LanguageCommand extends Command {
         if (context.getArgs().length == 0 || context.getArgs()[0] == null) {
             EmbedBuilder eb = context.getBaseEmbed(context.getTranslated("language.embed.author"));
             ArrayList<String> tekst = new ArrayList<>();
-            tekst.add(context.getTranslated("language.embed.header", context.getPrefix()));
+            tekst.add(context.getTranslated("language.embed.header", context.getPrefix(), Ustawienia.instance.translationUrl));
             tekst.add("");
             for (Language l : Language.values()) {
                 if (l.equals(Language.DEFAULT)) continue;
-                tekst.add(String.format("%s %s", l.getEmoji().toString(), l.getLocalized()));
+                String str = String.format("%s %s", l.getEmoji().toString(), l.getLocalized());
+                if (!l.isChecked()) str += "\\*";
+                tekst.add(str);
             }
             eb.setDescription(String.join("\n", tekst));
             context.send(eb.build());
