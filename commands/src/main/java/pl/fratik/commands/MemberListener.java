@@ -36,13 +36,11 @@ import pl.fratik.core.event.PluginMessageEvent;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.CommonUtil;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 class MemberListener {
     private final GuildDao guildDao;
@@ -169,40 +167,40 @@ class MemberListener {
 
     @Subscribe
     public void onRoleAdd(GuildMemberRoleAddEvent e) {
-        updateNickname(e.getMember());
+        updateNickname(e.getMember(), null);
     }
 
     @Subscribe
     public void onRoleRemmove(GuildMemberRoleRemoveEvent e) {
-        updateNickname(e.getMember());
+        updateNickname(e.getMember(), e.getRoles());
     }
 
-    private void updateNickname(Member mem) {
+    private void updateNickname(Member mem, List<Role> removedRoles) {
         GuildConfig gc = getGuildConfig(mem.getGuild());
         if (gc.getRolePrefix() == null) return;
-        for (Role role : mem.getRoles()) {
-            String prefix = gc.getRolePrefix().get(role.getId());
-            if (prefix == null) continue;
-            
-            String nick = mem.getNickname();
-            if (nick == null) nick = mem.getUser().getName();
-            else {
-                for (String p : gc.getRolePrefix().values()) {
-                    if (nick.startsWith(p)) {
-                        nick = nick.substring(p.length());
-                    }
+        String nick = mem.getEffectiveName();
+        if (removedRoles != null) {
+            for (Role role : removedRoles) {
+                String prefix = gc.getRolePrefix().get(role.getId());
+                if (prefix == null) continue;
+                if (nick.startsWith(prefix + " ")) {
+                    nick = nick.substring(prefix.length() + 1);
+                    break;
                 }
             }
-            if (nick.startsWith(" ")) nick = nick.substring(1);
-            try {
-                if ((prefix + nick).length() > 28) nick = nick.substring(0, Math.min((prefix + nick).length(), 28)) + "...";
-                mem.getGuild().modifyNickname(mem, prefix + " " + nick).queue();
-            } catch (Exception e) {
-                TextChannel a = getFullLogs(mem.getGuild());
-                if (a != null) a.sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(mem.getGuild()),
-                        "prefixrole.no.perms", mem.getUser().getAsTag())).queue();
-            }
-            break;
+        }
+        String prefix = null;
+        for (Role role : mem.getRoles().stream().sorted(Comparator.reverseOrder()).collect(Collectors.toList())) {
+            prefix = gc.getRolePrefix().get(role.getId());
+        }
+        if (prefix != null) nick += prefix + " " + nick;
+        try {
+            if (nick.length() > 28) nick = nick.substring(0, 28) + "...";
+            mem.getGuild().modifyNickname(mem, nick).queue();
+        } catch (Exception e) {
+            TextChannel a = getFullLogs(mem.getGuild());
+            if (a != null) a.sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(mem.getGuild()),
+                    "prefixrole.no.perms", mem.getUser().getAsTag())).complete();
         }
     }
     
