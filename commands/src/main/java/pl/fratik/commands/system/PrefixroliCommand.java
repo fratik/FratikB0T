@@ -33,12 +33,10 @@ import pl.fratik.core.util.CommonErrors;
 import pl.fratik.core.util.NamedThreadFactory;
 import pl.fratik.core.util.UserUtil;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 import static net.dv8tion.jda.api.EmbedBuilder.ZERO_WIDTH_SPACE;
 import static net.dv8tion.jda.api.entities.MessageEmbed.VALUE_MAX_LENGTH;
@@ -60,7 +58,8 @@ public class PrefixroliCommand extends Command {
         hmap.put("set|remove|list", "string");
         hmap.put("rola", "role");
         hmap.put("prefix", "string");
-        uzycie = new Uzycie(hmap, new boolean[] {true, false, false});
+        hmap.put("[...]", "string");
+        uzycie = new Uzycie(hmap, new boolean[] {true, false, false, false});
         permLevel = PermLevel.ADMIN;
         category = CommandCategory.MODERATION;
         cooldown = 5;
@@ -149,8 +148,9 @@ public class PrefixroliCommand extends Command {
 
         try {
             role = (Role) context.getArgs()[1];
-            prefix = (String) context.getArgs()[2];
-        } catch (ArrayIndexOutOfBoundsException e) {
+            prefix = Arrays.stream(Arrays.copyOfRange(context.getArgs(), 2, context.getArgs().length))
+                    .map(o -> o == null ? "" : o.toString()).collect(Collectors.joining(uzycieDelim));
+        } catch (ArrayIndexOutOfBoundsException | IllegalArgumentException e) {
             CommonErrors.usage(context);
             return false;
         }
