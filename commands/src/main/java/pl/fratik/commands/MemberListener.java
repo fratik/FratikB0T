@@ -193,7 +193,13 @@ class MemberListener {
         for (Role role : mem.getRoles().stream().sorted(Comparator.reverseOrder()).collect(Collectors.toList())) {
             prefix = gc.getRolePrefix().get(role.getId());
         }
-        if (prefix != null) nick = prefix + " " + nick;
+        if (prefix != null) {
+            for (String pre : gc.getRolePrefix().values()) {
+                String pref = pre + " ";
+                if (nick.startsWith(pref)) nick = nick.substring(0, pref.length());
+            }
+            nick = prefix + " " + nick;
+        }
         try {
             if (nick.length() > 28) nick = nick.substring(0, 28) + "...";
             mem.getGuild().modifyNickname(mem, nick).queue();

@@ -73,7 +73,7 @@ public class PrefixroliCommand extends Command {
         }
         if (typ.equals("list")) {
             if (gc.getRolePrefix() == null || gc.getRolePrefix().isEmpty()) {
-                context.send(context.getTranslated("prefixrole.list.isempty"));
+                context.send(context.getTranslated("prefixroli.list.isempty"));
                 return false;
             }
             ArrayList<String> strArray = new ArrayList<>();
@@ -112,10 +112,10 @@ public class PrefixroliCommand extends Command {
                 return false;
             }
             if (r == null || !gc.getRolePrefix().containsKey(r.getId())) {
-                context.send(context.getTranslated("prefixrole.doesnt.set"));
+                context.send(context.getTranslated("prefixroli.doesnt.set"));
                 return false;
             }
-            context.send(context.getTranslated("prefixrole.remove.succes", r.getName()));
+            context.send(context.getTranslated("prefixroli.remove.success", r.getName()));
             gc.getRolePrefix().remove(r.getId());
             guildDao.save(gc);
             return true;
@@ -133,15 +133,15 @@ public class PrefixroliCommand extends Command {
             }
 
             if (role == null) {
-                context.send(context.getTranslated("prefixrole.badrole"));
+                context.send(context.getTranslated("prefixroli.badrole"));
                 return false;
             }
 
             if (prefix.length() > PREFIX_LENGTH) {
-                context.send(context.getTranslated("prefixrole.length", PREFIX_LENGTH));
+                context.send(context.getTranslated("prefixroli.length", PREFIX_LENGTH));
                 return false;
             }
-            context.send(context.getTranslated("prefixrole.set.succes", role.getName()));
+            context.send(context.getTranslated("prefixroli.set.success", role.getName()));
 
             gc.getRolePrefix().remove(role.getId());
             gc.getRolePrefix().put(role.getId(), prefix);
