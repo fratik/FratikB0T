@@ -19,7 +19,9 @@ package pl.fratik.commands.system;
 
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Role;
+import pl.fratik.commands.MemberListener;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
@@ -28,21 +30,30 @@ import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.util.CommonErrors;
+import pl.fratik.core.util.NamedThreadFactory;
 import pl.fratik.core.util.UserUtil;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import static net.dv8tion.jda.api.EmbedBuilder.ZERO_WIDTH_SPACE;
+import static net.dv8tion.jda.api.entities.MessageEmbed.VALUE_MAX_LENGTH;
 
 @SuppressWarnings("ConstantConditions")
 public class PrefixroliCommand extends Command {
 
     private static final int PREFIX_LENGTH = 8;
+    private final ExecutorService executor;
 
-    private GuildDao guildDao;
+    private final GuildDao guildDao;
+    private final MemberListener listener;
 
-    public PrefixroliCommand(GuildDao guildDao) {
+    public PrefixroliCommand(GuildDao guildDao, MemberListener listener) {
+        this.listener = listener;
         name = "prefixroli";
         aliases = new String[] {"prefiksroli", "prefixrol", "prefixrole"}; //FIXME wydżebać prefixrole i wrzucić do .help.nazwa w eng tłumaczeniach
         uzycieDelim = " ";
@@ -57,6 +68,12 @@ public class PrefixroliCommand extends Command {
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
 
         this.guildDao = guildDao;
+        executor = Executors.newSingleThreadExecutor(new NamedThreadFactory("prefixroli-setter"));
+    }
+
+    @Override
+    public void onUnregister() {
+        executor.shutdown();
     }
 
     @Override
@@ -84,21 +101,21 @@ public class PrefixroliCommand extends Command {
                 String s;
                 if (r == null) {
                     gc.getRolePrefix().remove(entry.getKey());
-                    s = "Rola usunięta = " + entry.getValue() + "\n";
                     setuj = true;
-                } else s = r.getAsMention() + " = `" + entry.getValue() + "`\n";
-                if (sb.length() + s.length() > 1900) {
+                    continue;
+                }
+                s = r.getAsMention() + " = `" + entry.getValue() + "`\n";
+                if (sb.length() + s.length() > VALUE_MAX_LENGTH - 100) {
                     strArray.add(sb.toString());
                     sb = new StringBuilder();
                 }
                 sb.append(s);
             }
 
-            EmbedBuilder eb = new EmbedBuilder();
-            eb.setFooter("© " + context.getShardManager().getShardById(0).getSelfUser().getName());
+            EmbedBuilder eb = context.getBaseEmbed(context.getTranslated("prefixroli.list.header"), null);
             eb.setColor(UserUtil.getPrimColor(context.getSender()));
-            if (strArray.isEmpty()) eb.addField(" ", sb.toString(), false);
-            else strArray.forEach(se -> eb.addField(" ", se, false));
+            if (!strArray.isEmpty()) strArray.forEach(se -> eb.addField(ZERO_WIDTH_SPACE, se, false));
+            eb.addField(ZERO_WIDTH_SPACE, sb.toString(), false);
             context.send(eb.build());
             if (setuj) guildDao.save(gc);
             return true;
@@ -116,7 +133,15 @@ public class PrefixroliCommand extends Command {
                 return false;
             }
             context.send(context.getTranslated("prefixroli.remove.success", r.getName()));
-            gc.getRolePrefix().remove(r.getId());
+            String prefix = gc.getRolePrefix().remove(r.getId());
+            executor.submit(() -> {
+                for (Member member : context.getGuild().findMembers(m -> m.getRoles().contains(r)).get()) {
+                    try {
+                        if (member.getNickname() != null && member.getNickname().startsWith(prefix + " "))
+                            member.modifyNickname(member.getNickname().substring((prefix + " ").length())).queue(null, i -> {});
+                    } catch (Exception ignored) {}
+                }
+            });
             guildDao.save(gc);
             return true;
         }
@@ -142,6 +167,10 @@ public class PrefixroliCommand extends Command {
                 return false;
             }
             context.send(context.getTranslated("prefixroli.set.success", role.getName()));
+            executor.submit(() -> {
+                for (Member member : context.getGuild().findMembers(m -> m.getRoles().contains(role)).get())
+                    listener.updateNickname(member, null);
+            });
 
             gc.getRolePrefix().remove(role.getId());
             gc.getRolePrefix().put(role.getId(), prefix);

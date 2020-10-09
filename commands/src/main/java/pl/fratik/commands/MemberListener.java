@@ -40,9 +40,8 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
-class MemberListener {
+public class MemberListener {
     private final GuildDao guildDao;
     private final EventBus eventBus;
     private final Cache<GuildConfig> gcCache;
@@ -50,7 +49,7 @@ class MemberListener {
 
     private static final Pattern INVITE_TAG_REGEX = Pattern.compile("<invite>(.*)</invite>", Pattern.MULTILINE | Pattern.DOTALL);
 
-    MemberListener(GuildDao guildDao, Tlumaczenia tlumaczenia, EventBus eventBus, RedisCacheManager redisCacheManager) {
+    public MemberListener(GuildDao guildDao, Tlumaczenia tlumaczenia, EventBus eventBus, RedisCacheManager redisCacheManager) {
         this.tlumaczenia = tlumaczenia;
         this.guildDao = guildDao;
         this.eventBus = eventBus;
@@ -175,7 +174,7 @@ class MemberListener {
         updateNickname(e.getMember(), e.getRoles());
     }
 
-    private void updateNickname(Member mem, List<Role> removedRoles) {
+    public void updateNickname(Member mem, List<Role> removedRoles) {
         GuildConfig gc = getGuildConfig(mem.getGuild());
         if (gc.getRolePrefix() == null) return;
         String nick = mem.getEffectiveName();
@@ -190,13 +189,19 @@ class MemberListener {
             }
         }
         String prefix = null;
-        for (Role role : mem.getRoles().stream().sorted(Comparator.reverseOrder()).collect(Collectors.toList())) {
-            prefix = gc.getRolePrefix().get(role.getId());
+        List<Role> listaRol = new ArrayList<>(mem.getRoles());
+        Collections.reverse(listaRol);
+        for (Role role : listaRol) {
+            String pTemp = gc.getRolePrefix().get(role.getId());
+            if (pTemp != null) prefix = pTemp;
         }
         if (prefix != null) {
             for (String pre : gc.getRolePrefix().values()) {
                 String pref = pre + " ";
-                if (nick.startsWith(pref)) nick = nick.substring(pref.length());
+                if (nick.startsWith(pref)) {
+                    nick = nick.substring(pref.length());
+                    break;
+                }
             }
             nick = prefix + " " + nick;
         }
