@@ -196,7 +196,7 @@ class MemberListener {
         if (prefix != null) {
             for (String pre : gc.getRolePrefix().values()) {
                 String pref = pre + " ";
-                if (nick.startsWith(pref)) nick = nick.substring(0, pref.length());
+                if (nick.startsWith(pref)) nick = nick.substring(pref.length());
             }
             nick = prefix + " " + nick;
         }
