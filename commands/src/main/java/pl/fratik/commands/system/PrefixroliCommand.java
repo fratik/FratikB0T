@@ -43,7 +43,6 @@ import java.util.concurrent.Executors;
 import static net.dv8tion.jda.api.EmbedBuilder.ZERO_WIDTH_SPACE;
 import static net.dv8tion.jda.api.entities.MessageEmbed.VALUE_MAX_LENGTH;
 
-@SuppressWarnings("ConstantConditions")
 public class PrefixroliCommand extends Command {
 
     private static final int PREFIX_LENGTH = 8;
@@ -145,40 +144,36 @@ public class PrefixroliCommand extends Command {
             guildDao.save(gc);
             return true;
         }
-        if (typ.equals("set")) {
-            Role     role;
-            String prefix;
+        Role     role;
+        String prefix;
 
-            try {
-                role = (Role) context.getArgs()[1];
-                prefix = (String) context.getArgs()[2];
-            } catch (ArrayIndexOutOfBoundsException e) {
-                CommonErrors.usage(context);
-                return false;
-            }
-
-            if (role == null) {
-                context.send(context.getTranslated("prefixroli.badrole"));
-                return false;
-            }
-
-            if (prefix.length() > PREFIX_LENGTH) {
-                context.send(context.getTranslated("prefixroli.length", PREFIX_LENGTH));
-                return false;
-            }
-            context.send(context.getTranslated("prefixroli.set.success", role.getName()));
-            executor.submit(() -> {
-                for (Member member : context.getGuild().findMembers(m -> m.getRoles().contains(role)).get())
-                    listener.updateNickname(member, null);
-            });
-
-            gc.getRolePrefix().remove(role.getId());
-            gc.getRolePrefix().put(role.getId(), prefix);
-            guildDao.save(gc);
-            return true;
+        try {
+            role = (Role) context.getArgs()[1];
+            prefix = (String) context.getArgs()[2];
+        } catch (ArrayIndexOutOfBoundsException e) {
+            CommonErrors.usage(context);
+            return false;
         }
-        CommonErrors.usage(context); // tak na wszelki wypadek
-        return false;
+
+        if (role == null) {
+            context.send(context.getTranslated("prefixroli.badrole"));
+            return false;
+        }
+
+        if (prefix.length() > PREFIX_LENGTH) {
+            context.send(context.getTranslated("prefixroli.length", PREFIX_LENGTH));
+            return false;
+        }
+        context.send(context.getTranslated("prefixroli.set.success", role.getName()));
+        executor.submit(() -> {
+            for (Member member : context.getGuild().findMembers(m -> m.getRoles().contains(role)).get())
+                listener.updateNickname(member, null);
+        });
+
+        gc.getRolePrefix().remove(role.getId());
+        gc.getRolePrefix().put(role.getId(), prefix);
+        guildDao.save(gc);
+        return true;
     }
 
 }
