@@ -211,7 +211,7 @@ public class MemberListener {
         } catch (Exception e) {
             TextChannel a = getFullLogs(mem.getGuild());
             if (a != null) a.sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(mem.getGuild()),
-                    "prefixrole.no.perms", mem.getUser().getAsTag())).complete();
+                    "prefixroli.no.perms", mem.getUser().getAsTag())).complete();
         }
     }
     
