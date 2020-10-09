@@ -130,8 +130,8 @@ public class PrefixroliCommand extends Command {
                 context.send(context.getTranslated("prefixroli.doesnt.set"));
                 return false;
             }
-            context.send(context.getTranslated("prefixroli.remove.success", r.getName()));
             String prefix = gc.getRolePrefix().remove(r.getId());
+            guildDao.save(gc);
             executor.submit(() -> {
                 for (Member member : context.getGuild().findMembers(m -> m.getRoles().contains(r)).get()) {
                     try {
@@ -140,7 +140,7 @@ public class PrefixroliCommand extends Command {
                     } catch (Exception ignored) {}
                 }
             });
-            guildDao.save(gc);
+            context.send(context.getTranslated("prefixroli.remove.success", r.getName()));
             return true;
         }
         Role     role;
@@ -164,15 +164,14 @@ public class PrefixroliCommand extends Command {
             context.send(context.getTranslated("prefixroli.length", PREFIX_LENGTH));
             return false;
         }
-        context.send(context.getTranslated("prefixroli.set.success", role.getName()));
+        gc.getRolePrefix().remove(role.getId());
+        gc.getRolePrefix().put(role.getId(), prefix);
+        guildDao.save(gc);
         executor.submit(() -> {
             for (Member member : context.getGuild().findMembers(m -> m.getRoles().contains(role)).get())
                 listener.updateNickname(member, null);
         });
-
-        gc.getRolePrefix().remove(role.getId());
-        gc.getRolePrefix().put(role.getId(), prefix);
-        guildDao.save(gc);
+        context.send(context.getTranslated("prefixroli.set.success", role.getName()));
         return true;
     }
 
