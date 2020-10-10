@@ -78,8 +78,8 @@ public class CytujCommand extends Command {
     private static final Pattern MESSAGE_LINK_PATTERN =
             Pattern.compile(String.format("^https?://((ptb|canary)?\\.?(discordapp|discord)\\.com)" +
                     "/channels/(%s)/(%s)/(%s)/?$", ID_REGEX, ID_REGEX, ID_REGEX));
-    private static final Pattern URL_PATTERN = Pattern.compile("[(http(s)?)://(www\\.)?a-zA-Z0-9@:%._\\+~#=]{2,256}\\." +
-            "[a-z]{2,6}\\b([-a-zA-Z0-9@:%_\\+.~#?&//=]*)", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+    private static final Pattern URL_PATTERN = Pattern.compile("[(http(s)?)://(www\\.)?a-zA-Z0-9@:-]{2,256}\\." +
+            "[a-z]{2,24}\\b([-a-zA-Z0-9@:%_\\+.~#?&//=]*)", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
 
     private static final Pattern CYTUJ_PATTERN_1 = Pattern.compile(String.format("^Replying to( (<@!?%s>) from)? %s",
             ID_REGEX, MESSAGE_LINK_PATTERN.toString().substring(1, MESSAGE_LINK_PATTERN.toString().length() - 1)));

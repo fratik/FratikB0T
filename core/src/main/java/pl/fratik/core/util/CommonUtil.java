@@ -181,7 +181,7 @@ public class CommonUtil {
     }
 
     public static String getImageUrl(Message msg) {
-        Matcher matcher = Pattern.compile("(http(s)?):\\/\\/(www\\.)?[?a-zA-Z0-9@:%._\\+~#=]{2,256}\\.[a-z]{2,6}" +
+        Matcher matcher = Pattern.compile("(http(s)?):\\/\\/(www\\.)?[?a-zA-Z0-9@:-]{2,256}\\.[a-z]{2,24}" +
                 "\\b([-a-zA-Z0-9@:%_\\+.~#?&//=]*\\.(a?png|jpe?g|gif|webp|tiff|svg))",
                 Pattern.CASE_INSENSITIVE).matcher(msg.getContentRaw());
         if (matcher.find()) return matcher.group();
