@@ -70,6 +70,10 @@ public class Module implements Modul {
         PrivDao privDao = new PrivDao(managerBazyDanych, eventBus);
         BlacklistDao blacklistDao = new BlacklistDao(managerBazyDanych, eventBus);
 
+        listener = new MemberListener(guildDao, tlumaczenia, eventBus, redisCacheManager);
+
+        eventBus.register(listener);
+
         commands = new ArrayList<>();
 
         commands.add(new PingCommand());
@@ -143,13 +147,11 @@ public class Module implements Modul {
             commands.add(new OsuCommand(shardManager, eventWaiter, eventBus));
         commands.add(new Rule34Command(eventWaiter, eventBus, managerArgumentow));
         commands.add(new CoronastatsCommand());
+        commands.add(new PrefixroliCommand(guildDao, listener));
         commands.add(new UstawPoziomCommand(guildDao, managerKomend));
         commands.add(new PoziomyUprawnienCommand());
         commands.add(new BlacklistPopCommand(blacklistDao));
         commands.add(new ShipCommand(managerArgumentow));
-
-        listener = new MemberListener(guildDao, eventBus, redisCacheManager);
-        eventBus.register(listener);
 
         commands.forEach(managerKomend::registerCommand);
 

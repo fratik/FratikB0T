@@ -121,6 +121,8 @@ public class GuildConfig implements DatabaseEntity {
     private Map<String, Webhook> webhooki = new HashMap<>();
     private String lvlUpMessage;
     private Boolean resetujOstrzezeniaPrzyBanie = true;
+    @ConfigField(dontDisplayInSettings = true)
+    private HashMap<String, String> rolePrefix = new HashMap<>();
     private Map<String, PermLevel> cmdPermLevelOverrides = new HashMap<>();
     @ConfigField(dontDisplayInSettings = true)
     private Map<Integer, String> roleZaZaproszenia = new HashMap<>();

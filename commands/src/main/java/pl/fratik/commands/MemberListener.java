@@ -23,6 +23,8 @@ import com.google.common.eventbus.Subscribe;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberRemoveEvent;
+import net.dv8tion.jda.api.events.guild.member.GuildMemberRoleAddEvent;
+import net.dv8tion.jda.api.events.guild.member.GuildMemberRoleRemoveEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.requests.restaction.MessageAction;
 import pl.fratik.core.cache.Cache;
@@ -31,24 +33,24 @@ import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.event.DatabaseUpdateEvent;
 import pl.fratik.core.event.PluginMessageEvent;
+import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.CommonUtil;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-class MemberListener {
+public class MemberListener {
     private final GuildDao guildDao;
     private final EventBus eventBus;
     private final Cache<GuildConfig> gcCache;
+    private final Tlumaczenia tlumaczenia;
 
     private static final Pattern INVITE_TAG_REGEX = Pattern.compile("<invite>(.*)</invite>", Pattern.MULTILINE | Pattern.DOTALL);
 
-    MemberListener(GuildDao guildDao, EventBus eventBus, RedisCacheManager redisCacheManager) {
+    public MemberListener(GuildDao guildDao, Tlumaczenia tlumaczenia, EventBus eventBus, RedisCacheManager redisCacheManager) {
+        this.tlumaczenia = tlumaczenia;
         this.guildDao = guildDao;
         this.eventBus = eventBus;
         gcCache = redisCacheManager.new CacheRetriever<GuildConfig>(){}.getCache();
@@ -161,11 +163,75 @@ class MemberListener {
             // nie mamy permów, zawijamy się
         }
     }
+
+    @Subscribe
+    public void onRoleAdd(GuildMemberRoleAddEvent e) {
+        updateNickname(e.getMember(), null);
+    }
+
+    @Subscribe
+    public void onRoleRemmove(GuildMemberRoleRemoveEvent e) {
+        updateNickname(e.getMember(), e.getRoles());
+    }
+
+    public void updateNickname(Member mem, List<Role> removedRoles) {
+        GuildConfig gc = getGuildConfig(mem.getGuild());
+        if (gc.getRolePrefix() == null) return;
+        String nick = mem.getEffectiveName();
+        if (removedRoles != null) {
+            for (Role role : removedRoles) {
+                String prefix = gc.getRolePrefix().get(role.getId());
+                if (prefix == null) continue;
+                if (nick.startsWith(prefix + " ")) {
+                    nick = nick.substring(prefix.length() + 1);
+                    break;
+                }
+            }
+        }
+        String prefix = null;
+        List<Role> listaRol = new ArrayList<>(mem.getRoles());
+        Collections.reverse(listaRol);
+        for (Role role : listaRol) {
+            String pTemp = gc.getRolePrefix().get(role.getId());
+            if (pTemp != null) prefix = pTemp;
+        }
+        if (prefix != null) {
+            for (String pre : gc.getRolePrefix().values()) {
+                String pref = pre + " ";
+                if (nick.startsWith(pref)) {
+                    nick = nick.substring(pref.length());
+                    break;
+                }
+            }
+            nick = prefix + " " + nick;
+        }
+        try {
+            if (nick.length() > 28) nick = nick.substring(0, 28) + "...";
+            mem.getGuild().modifyNickname(mem, nick).queue();
+        } catch (Exception e) {
+            TextChannel a = getFullLogs(mem.getGuild());
+            if (a != null) a.sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(mem.getGuild()),
+                    "prefixroli.no.perms", mem.getUser().getAsTag())).complete();
+        }
+    }
     
     @Subscribe
     public void onDatabaseUpdateEvent(DatabaseUpdateEvent e) {
         if (e.getEntity() instanceof GuildConfig)
             gcCache.put(((GuildConfig) e.getEntity()).getGuildId(), (GuildConfig) e.getEntity());
+    }
+
+    private TextChannel getFullLogs(Guild guild) {
+        GuildConfig gc = getGuildConfig(guild);
+        if (gc.getFullLogs() == null) return null;
+        String id = null;
+        if (!gc.getFullLogs().isEmpty()) {
+            TextChannel kanal = guild.getTextChannelById(gc.getFullLogs());
+            if (kanal == null) return null;
+            id = kanal.getId();
+        }
+        if (id == null) return null;
+        return guild.getTextChannelById(id);
     }
 
     private void awaitPluginResponse(PluginMessageEvent event) {
