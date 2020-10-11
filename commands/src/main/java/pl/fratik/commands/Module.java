@@ -147,6 +147,7 @@ public class Module implements Modul {
         commands.add(new PoziomyUprawnienCommand());
         commands.add(new BlacklistPopCommand(blacklistDao));
         commands.add(new ShipCommand(managerArgumentow));
+        commands.add(new AdministratorzyCommand(guildDao, redisCacheManager));
 
         listener = new MemberListener(guildDao, eventBus, redisCacheManager);
         eventBus.register(listener);
