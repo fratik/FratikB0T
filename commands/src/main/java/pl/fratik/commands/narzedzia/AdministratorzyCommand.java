@@ -71,9 +71,9 @@ public class AdministratorzyCommand extends Command {
         }
         eb.addField(formatFieldTitle(PermLevel.OWNER, context),
                 owner == null ? context.getTranslated("administratorzy.owner.null") : owner.getAsMention(), false);
-        eb.addField(formatFieldTitle(PermLevel.MANAGESERVERPERMS, context), formatFieldContent(manageServerRoles), false);
-        eb.addField(formatFieldTitle(PermLevel.ADMIN, context), formatFieldContent(adminRoles), false);
-        eb.addField(formatFieldTitle(PermLevel.MOD, context), formatFieldContent(modRoles), false);
+        eb.addField(formatFieldTitle(PermLevel.MANAGESERVERPERMS, context), formatFieldContent(manageServerRoles, context), false);
+        eb.addField(formatFieldTitle(PermLevel.ADMIN, context), formatFieldContent(adminRoles, context), false);
+        eb.addField(formatFieldTitle(PermLevel.MOD, context), formatFieldContent(modRoles, context), false);
         context.send(eb.build());
         return true;
     }
@@ -82,7 +82,8 @@ public class AdministratorzyCommand extends Command {
         return String.format("%s (%s)", context.getTranslated(plvl.getLanguageKey()), plvl.getNum());
     }
 
-    private String formatFieldContent(List<Role> roles) {
+    private String formatFieldContent(List<Role> roles, CommandContext context) {
+        if (roles.isEmpty()) return context.getTranslated("administratorzy.no.roles");
         StringBuilder sb = new StringBuilder();
         for (Role r : roles) {
             if (sb.length() + r.getAsMention().length() + 2 >= VALUE_MAX_LENGTH - 3) {
