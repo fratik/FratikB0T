@@ -89,7 +89,7 @@ public class PrzeklenstwaListener {
         if (!e.getTextChannel().canTalk()) return;
         if (!isAntiswear(e.getTextChannel())) return;
         if (!e.getGuild().getSelfMember().canInteract(e.getMember())) return;
-        String content = e.getMessage().getContentRaw();
+        String content = e.getMessage().getContentRaw().replaceAll("[^\\u0020\\u0030-\\u0039\\u0041\\-\\u005A\\u0061-\\u007A\\u00C0-\\u1D99]", "");
         for (String przeklenstwo : przeklenstwa) {
             boolean res = processWord(przeklenstwo, content);
             if (res) {
