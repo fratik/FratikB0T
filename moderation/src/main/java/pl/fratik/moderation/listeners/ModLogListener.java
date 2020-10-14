@@ -224,38 +224,37 @@ public class ModLogListener {
         User user = e.getUser();
         if (!guild.getSelfMember().hasPermission(Permission.VIEW_AUDIT_LOGS)) return;
 
-        guild.retrieveAuditLogs().type(ActionType.KICK).delay(2, TimeUnit.SECONDS).queue(entries -> {
-            for (AuditLogEntry entry : entries) {
-                if (!entry.getTimeCreated().isAfter(now.minusSeconds(30))) continue;
-                if (entry.getTargetIdLong() == user.getIdLong()) {
-                    if (knownCases.get(guild) == null || knownCases.get(guild).stream()
-                            .noneMatch(c -> c.getUserId().equals(user.getId()) && c.getType() == Kara.KICK)) {
-                        GuildConfig guildConfig = guildDao.get(guild);
-                        CaseRow caseRow = casesDao.get(guild);
-                        ModeResolver modeResolver = new ModeResolver(guildConfig).invoke();
-                        ModLogMode mode = modeResolver.getMode();
-                        TextChannel mlogchan = modeResolver.getMlogchan();
-                        int caseId = Case.getNextCaseId(caseRow);
-                        TemporalAccessor timestamp = Instant.now();
-                        Case aCase = new CaseBuilder().setUser(user).setGuild(guild).setCaseId(caseId)
-                                .setTimestamp(timestamp).setMessageId(null).setKara(Kara.KICK).createCase();
-                        User odpowiedzialny = entry.getUser();
-                        String powod = entry.getReason();
-                        Member srember = guild.getMember(user);
-                        setAndSend(guildConfig, caseRow, mode, mlogchan, aCase, odpowiedzialny, powod, guild, true);
-                    } else {
-                        Optional<Case> oCase = knownCases.get(guild).stream()
-                                .filter(c -> c.getUserId().equals(user.getId()) && c.getType() == Kara.KICK)
-                                .findFirst();
-                        if (!oCase.isPresent()) throw NOCASEEXC;
-                        if (!oCase.get().getFlagi().contains(Case.Flaga.SILENT))
-                            sendAction(oCase.get(), guild, guildDao.get(guild));
-                        saveKnownCase(guild, oCase.get());
-                    }
-                    break;
+        List<AuditLogEntry> entries = guild.retrieveAuditLogs().type(ActionType.KICK).delay(2, TimeUnit.SECONDS).complete();
+        for (AuditLogEntry entry : entries) {
+            if (!entry.getTimeCreated().isAfter(now.minusSeconds(30))) continue;
+            if (entry.getTargetIdLong() == user.getIdLong()) {
+                if (knownCases.get(guild) == null || knownCases.get(guild).stream()
+                        .noneMatch(c -> c.getUserId().equals(user.getId()) && c.getType() == Kara.KICK)) {
+                    GuildConfig guildConfig = guildDao.get(guild);
+                    CaseRow caseRow = casesDao.get(guild);
+                    ModeResolver modeResolver = new ModeResolver(guildConfig).invoke();
+                    ModLogMode mode = modeResolver.getMode();
+                    TextChannel mlogchan = modeResolver.getMlogchan();
+                    int caseId = Case.getNextCaseId(caseRow);
+                    TemporalAccessor timestamp = Instant.now();
+                    Case aCase = new CaseBuilder().setUser(user).setGuild(guild).setCaseId(caseId)
+                            .setTimestamp(timestamp).setMessageId(null).setKara(Kara.KICK).createCase();
+                    User odpowiedzialny = entry.getUser();
+                    String powod = entry.getReason();
+                    Member srember = guild.getMember(user);
+                    setAndSend(guildConfig, caseRow, mode, mlogchan, aCase, odpowiedzialny, powod, guild, true);
+                } else {
+                    Optional<Case> oCase = knownCases.get(guild).stream()
+                            .filter(c -> c.getUserId().equals(user.getId()) && c.getType() == Kara.KICK)
+                            .findFirst();
+                    if (!oCase.isPresent()) throw NOCASEEXC;
+                    if (!oCase.get().getFlagi().contains(Case.Flaga.SILENT))
+                        sendAction(oCase.get(), guild, guildDao.get(guild));
+                    saveKnownCase(guild, oCase.get());
                 }
-            }}, err -> {}
-        );
+                break;
+            }
+        }
     }
 
     @Subscribe
@@ -370,7 +369,7 @@ public class ModLogListener {
             aCase.setValid(false);
             aCase.setValidTo(ts, true);
             try {
-                MessageEmbed embed = ModLogBuilder.generate(aCase, guild, shardManager, gc.getLanguage(), managerKomend, true);
+                MessageEmbed embed = ModLogBuilder.generate(aCase, guild, shardManager, gc.getLanguage(), managerKomend, true, false);
                 if (perms && mlogchan != null) {
                     Message msg = mlogchan.retrieveMessageById(aCase.getMessageId()).complete();
                     if (msg == null) throw new IllegalStateException();
@@ -388,7 +387,7 @@ public class ModLogListener {
             if (lastCid == -1) lastCid = Case.getNextCaseId(guild) - 1;
             Case bCase = new CaseBuilder().setUser(aCase.getUserId()).setGuild(aCase.getGuildId()).setCaseId(lastCid + 1)
                     .setTimestamp(ts).setMessageId(null).setKara(Kara.UNMUTE).createCase();
-            MessageEmbed embed = ModLogBuilder.generate(bCase, guild, shardManager, gc.getLanguage(), managerKomend, true);
+            MessageEmbed embed = ModLogBuilder.generate(bCase, guild, shardManager, gc.getLanguage(), managerKomend, true, false);
             try {
                 if (perms && mlogchan != null) mlogchan.sendMessage(embed).complete();
             } catch (Exception ignored) {/*lul*/}
@@ -442,7 +441,7 @@ public class ModLogListener {
             return;
         }
         if (adw == Kara.UNWARN) {
-            MessageEmbed embed = ModLogBuilder.generate(aCase, guild, shardManager, tlumaczenia.getLanguage(guild), managerKomend, true);
+            MessageEmbed embed = ModLogBuilder.generate(aCase, guild, shardManager, tlumaczenia.getLanguage(guild), managerKomend, true, false);
             GuildConfig gc = guildDao.get(guild);
             String mlogchanStr;
             if (gc.getModLog() == null || gc.getModLog().isEmpty()) mlogchanStr = "0";
@@ -499,7 +498,7 @@ public class ModLogListener {
             return;
         }
         MessageEmbed embed = ModLogBuilder.generate(aCase, guild, shardManager,
-                guildConfig.getLanguage(), managerKomend, true);
+                guildConfig.getLanguage(), managerKomend, true, false);
         mlogchan.sendMessage(embed).queue(message -> {
             aCase.setMessageId(message.getId());
             caseRow.getCases().add(aCase);
@@ -511,7 +510,7 @@ public class ModLogListener {
         c.setValidTo(validTo, true);
         c.setValid(false);
         MessageEmbed embed = ModLogBuilder.generate(c, guild,
-                shardManager, gc.getLanguage(), managerKomend, true);
+                shardManager, gc.getLanguage(), managerKomend, true, false);
         if (mode == ModLogMode.MODLOG) {
             try {
                 Message msg = mlogchan.retrieveMessageById(c.getMessageId()).complete();
@@ -559,15 +558,16 @@ public class ModLogListener {
         }
         if (caze.getFlagi().contains(Case.Flaga.SILENT) || !gc.getWysylajDmOKickachLubBanach()) return;
         MessageEmbed embed = ModLogBuilder.generate(caze, guild, shardManager,
-                gc.getLanguage(), managerKomend, true);
+                gc.getLanguage(), managerKomend, true, false);
 
         User u = shardManager.getUserById(caze.getUserId());
         if (u == null) return; // użytkownik nie znaleziony, można śmiało ignorować
         try {
             Language lang = tlumaczenia.getLanguage(u);
-            u.openPrivateChannel()
+            Message msg = u.openPrivateChannel()
                     .flatMap(c -> c.sendMessage(tlumaczenia.get(lang, "modlog.dm.msg", guild.getName()))
                             .embed(embed)).complete();
+            caze.setDmMsgId(msg.getId());
         } catch (Exception ignored) { }
     }
 

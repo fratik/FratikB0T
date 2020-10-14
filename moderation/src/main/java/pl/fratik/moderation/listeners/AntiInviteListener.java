@@ -109,7 +109,7 @@ public class AntiInviteListener {
                 if (!(mlogc == null || !mlogc.getGuild().getSelfMember().hasPermission(mlogc,
                         Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_WRITE, Permission.MESSAGE_READ))) {
                     Message m = mlogc.sendMessage(ModLogBuilder.generate(c,
-                            msg.getGuild(), shardManager, tlumaczenia.getLanguage(msg.getGuild()), managerKomend, true)).complete();
+                            msg.getGuild(), shardManager, tlumaczenia.getLanguage(msg.getGuild()), managerKomend, true, false)).complete();
                     c.setMessageId(m.getId());
                 }
                 CaseRow cr = casesDao.get(msg.getGuild());

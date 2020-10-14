@@ -102,7 +102,7 @@ public class Module implements Modul {
         commands.add(new UserinfoCommand(userDao, shardManager, eventBus));
         commands.add(new KolorCommand());
         commands.add(new DegradCommand(shardManager));
-        commands.add(new CytujCommand(shardManager, eventBus, webhookManager, guildDao, tlumaczenia, redisCacheManager));
+        commands.add(new CytujCommand(shardManager, eventBus, webhookManager, guildDao, userDao, tlumaczenia, redisCacheManager));
         commands.add(new PogodaCommand(userDao));
         commands.add(new McpremiumCommand());
         commands.add(new InviteCommand());
@@ -147,6 +147,7 @@ public class Module implements Modul {
         commands.add(new PoziomyUprawnienCommand());
         commands.add(new BlacklistPopCommand(blacklistDao));
         commands.add(new ShipCommand(managerArgumentow));
+        commands.add(new AdministratorzyCommand(guildDao, redisCacheManager));
 
         listener = new MemberListener(guildDao, eventBus, redisCacheManager);
         eventBus.register(listener);

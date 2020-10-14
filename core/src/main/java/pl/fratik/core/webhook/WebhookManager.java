@@ -57,9 +57,7 @@ public class WebhookManager {
     public ReadonlyMessage send(WebhookMessage m, TextChannel channel) {
         GuildConfig.Webhook whc = getWebhook(channel);
         try (WebhookClient wh = new WebhookClientBuilder(Long.parseLong(whc.getId()), whc.getToken()).setWait(true).build()) {
-            ReadonlyMessage msg = wh.send(m).get();
-//            Thread.sleep(1000);
-            return msg;
+            return wh.send(m).get();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return null;
@@ -68,9 +66,10 @@ public class WebhookManager {
                 if (((HttpException) e.getCause()).getCode() == 404) {
                     try {
                         createWebhook(channel, true);
-                        send(m, channel);
+                        return send(m, channel);
+                    } catch (Exception ignored) {
                         return null;
-                    } catch (Exception ignored) {}
+                    }
                 }
             }
             throw new RuntimeException(e);
@@ -107,11 +106,18 @@ public class WebhookManager {
     }
 
     private GuildConfig.Webhook createWebhook(TextChannel channel, boolean clearCache) {
-        if (!channel.getGuild().getSelfMember().hasPermission(Permission.MANAGE_WEBHOOKS))
+        if (!channel.getGuild().getSelfMember().hasPermission(channel, Permission.MANAGE_WEBHOOKS)) {
+            if (hasWebhook(channel)) {
+                GuildConfig gc = guildDao.get(channel.getGuild());
+                gc.getWebhooki().remove(channel.getId());
+                if (clearCache) whCache.invalidate(channel.getId());
+                guildDao.save(gc);
+            }
             throw new PermissionException("Nie ma perma MANAGE_WEBHOOKS!");
+        }
+        GuildConfig gc = guildDao.get(channel.getGuild());
         Webhook tak = channel.createWebhook("FratikB0T Messages " + channel.getId()).complete();
         GuildConfig.Webhook whc = new GuildConfig.Webhook(tak.getId(), tak.getToken());
-        GuildConfig gc = guildDao.get(channel.getGuild());
         gc.getWebhooki().put(channel.getId(), whc);
         guildDao.save(gc);
         if (clearCache) whCache.invalidate(channel.getId());

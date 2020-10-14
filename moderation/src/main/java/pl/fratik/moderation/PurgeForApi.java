@@ -87,7 +87,9 @@ class PurgeForApi {
                 }
                 for (Wiadomosc w : purge.getWiadomosci()) {
                     if (w instanceof Purge.ResolvedWiadomosc) {
-                        net.dv8tion.jda.api.entities.User xd = shardManager.retrieveUserById(w.getAuthor().getId()).complete();
+                        net.dv8tion.jda.api.entities.User xd;
+                        if (w.getAuthor() != null) xd = shardManager.retrieveUserById(w.getAuthor().getId()).complete();
+                        else xd = null;
                         if (xd != null) {
                             ((Purge.ResolvedWiadomosc) w).setAuthor(new User(xd));
                         }

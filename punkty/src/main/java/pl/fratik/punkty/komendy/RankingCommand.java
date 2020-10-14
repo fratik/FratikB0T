@@ -108,7 +108,7 @@ public class RankingCommand extends Command {
         return true;
     }
 
-    @SubCommand(name="fratikcoin",aliases={"fratikcoiny"})
+    @SubCommand(name="fratikcoin",aliases={"fratikcoiny", "fc", "money"})
     public boolean fratikcoin(@NotNull CommandContext context) {
         List<MemberConfig> mc = new ArrayList<>();
         List<MemberConfig> mcAa = memberDao.getAll();

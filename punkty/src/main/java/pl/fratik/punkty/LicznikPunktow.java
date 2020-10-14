@@ -330,11 +330,15 @@ public class LicznikPunktow {
             event.getMember().getGuild()
                     .addRoleToMember(event.getMember(), rola)
                     .queue(ignored -> {
+                        if (event.getChannel() instanceof TextChannel && !((TextChannel) event.getChannel()).canTalk())
+                            return;
                         Language l = tlumaczenia.getLanguage(event.getMember());
                         event.getChannel().sendMessage(tlumaczenia.get(l,
                                 "generic.lvlup.withrole", event.getMember().getUser().getName(),
                                 rola.getName(), event.getLevel())).queue();
                     }, throwable -> {
+                        if (event.getChannel() instanceof TextChannel && !((TextChannel) event.getChannel()).canTalk())
+                            return;
                         Language l = tlumaczenia.getLanguage(event.getMember());
                         event.getChannel().sendMessage(tlumaczenia.get(l,
                                 "generic.lvlup.withrole.failed", event.getMember().getUser().getName(),

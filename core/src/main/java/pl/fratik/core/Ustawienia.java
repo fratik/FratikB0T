@@ -64,6 +64,7 @@ public class Ustawienia {
     public FdevStats fdevStats = new FdevStats();
     @SerializedName("allowedIPs")
     public List<String> allowedIPs = new ArrayList<>();
+    public String translationUrl = "https://translate.fratikbot.pl";
 
     public static class GamesClass {
         public Activity.ActivityType type = Activity.ActivityType.DEFAULT;

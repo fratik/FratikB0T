@@ -91,6 +91,7 @@ public class Module implements Modul {
         Case.setStaticVariables(casesDao, scheduleDao);
         ModLogBuilder.setTlumaczenia(tlumaczenia);
         ModLogBuilder.setGuildDao(guildDao);
+        ModLogBuilder.setManagerKomend(managerKomend);
         ModLogListener.setTlumaczenia(tlumaczenia);
         ModLogListener.setManagerKomend(managerKomend);
         LogListener.setTlumaczenia(tlumaczenia);
@@ -129,6 +130,7 @@ public class Module implements Modul {
         commands.add(new RolaCommand(guildDao));
         commands.add(new NotatkaCommand(guildDao, casesDao, shardManager, managerKomend));
         commands.add(new RolementionCommand());
+        commands.add(new DowodCommand(guildDao, casesDao, shardManager, managerKomend, eventWaiter, eventBus));
 
         commands.forEach(managerKomend::registerCommand);
 
@@ -187,7 +189,7 @@ public class Module implements Modul {
                 c.setReason(tlumaczenia.get(tlumaczenia.getLanguage(e.getGuild()), "modlog.reason.twomutesoneuser"));
                 if (gc.getModLog() != null && !gc.getModLog().isEmpty()) {
                     MessageEmbed em = ModLogBuilder.generate(c, e.getGuild(), shardManager,
-                            tlumaczenia.getLanguage(e.getGuild()), managerKomend, true);
+                            tlumaczenia.getLanguage(e.getGuild()), managerKomend, true, false);
                     TextChannel mlog = shardManager.getTextChannelById(gc.getModLog());
                     if (mlog != null && mlog.canTalk()) {
                         mlog.sendMessage(em).complete();

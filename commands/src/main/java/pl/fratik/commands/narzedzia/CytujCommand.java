@@ -39,17 +39,17 @@ import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.command.PermLevel;
-import pl.fratik.core.entity.GuildConfig;
-import pl.fratik.core.entity.GuildDao;
-import pl.fratik.core.entity.Uzycie;
+import pl.fratik.core.entity.*;
 import pl.fratik.core.event.PluginMessageEvent;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.CommonUtil;
+import pl.fratik.core.util.NetworkUtil;
 import pl.fratik.core.util.UserUtil;
 import pl.fratik.core.webhook.WebhookManager;
 import pl.fratik.moderation.entity.LogMessage;
 
+import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -66,26 +66,37 @@ public class CytujCommand extends Command {
     private final EventBus eventBus;
     private final WebhookManager webhookManager;
     private final GuildDao guildDao;
+    private final UserDao userDao;
     private final Tlumaczenia tlumaczenia;
 
     private final ExecutorService executor;
     private final Cache<GuildConfig> gcCache;
+    private final Cache<UserConfig> ucCache;
     private final Cache<List<LogMessage>> lmCache;
 
     private static final String STRINGARGTYPE = "string";
     private static final Pattern MESSAGE_LINK_PATTERN =
             Pattern.compile(String.format("^https?://((ptb|canary)?\\.?(discordapp|discord)\\.com)" +
                     "/channels/(%s)/(%s)/(%s)/?$", ID_REGEX, ID_REGEX, ID_REGEX));
+    private static final Pattern URL_PATTERN = Pattern.compile("[(http(s)?)://(www\\.)?a-zA-Z0-9@:-]{2,256}\\." +
+            "[a-z]{2,24}\\b([-a-zA-Z0-9@:%_\\+.~#?&//=]*)", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
 
     private static final Pattern CYTUJ_PATTERN_1 = Pattern.compile(String.format("^Replying to( (<@!?%s>) from)? %s",
             ID_REGEX, MESSAGE_LINK_PATTERN.toString().substring(1, MESSAGE_LINK_PATTERN.toString().length() - 1)));
     private static final Pattern CYTUJ_PATTERN_2 = Pattern.compile("^> (.*?)$", Pattern.MULTILINE);
 
-    public CytujCommand(ShardManager shardManager, EventBus eventBus, WebhookManager webhookManager, GuildDao guildDao, Tlumaczenia tlumaczenia, RedisCacheManager rcm) {
+    public CytujCommand(ShardManager shardManager,
+                        EventBus eventBus,
+                        WebhookManager webhookManager,
+                        GuildDao guildDao,
+                        UserDao userDao,
+                        Tlumaczenia tlumaczenia,
+                        RedisCacheManager rcm) {
         this.shardManager = shardManager;
         this.eventBus = eventBus;
         this.webhookManager = webhookManager;
         this.guildDao = guildDao;
+        this.userDao = userDao;
         this.tlumaczenia = tlumaczenia;
         name = "cytuj";
         category = CommandCategory.UTILITY;
@@ -101,6 +112,7 @@ public class CytujCommand extends Command {
         allowPermLevelChange = false;
         executor = Executors.newSingleThreadExecutor();
         gcCache = rcm.new CacheRetriever<GuildConfig>(){}.getCache();
+        ucCache = rcm.new CacheRetriever<UserConfig>(){}.getCache();
         Cache<List<LogMessage>> logMessageCache;
         try {
             logMessageCache = rcm.new CacheRetriever<List<LogMessage>>(){}.getCache();
@@ -124,7 +136,8 @@ public class CytujCommand extends Command {
     public void onMessage(MessageReceivedEvent e) {
         if (lmCache == null) return;
         if (!e.isFromGuild()) return;
-        if (!gcCache.get(e.getGuild().getId(), guildDao::get).isCytujFbot()) return;
+        if (!(gcCache.get(e.getGuild().getId(), guildDao::get).isCytujFbot() ||
+                ucCache.get(e.getAuthor().getId(), userDao::get).isCytujFbot())) return;
         Matcher m1 = CYTUJ_PATTERN_1.matcher(e.getMessage().getContentRaw());
         Matcher m2 = CYTUJ_PATTERN_2.matcher(e.getMessage().getContentRaw());
         Message msg = null;
@@ -143,7 +156,7 @@ public class CytujCommand extends Command {
         } else {
             if (m2.find()) {
                 if (m2.start() != 0) return;
-                StringBuilder msgCnt = new StringBuilder();
+                StringBuilder msgCntBld = new StringBuilder();
                 String[] splat = e.getMessage().getContentRaw().split("\n");
                 int lastI = 0;
                 for (int i = 0; i < splat.length; i++) { // wykrywanie czy wszystkie spoilery jeden pod drugim
@@ -163,20 +176,22 @@ public class CytujCommand extends Command {
                     }
                 }
                 do {
-                    msgCnt.append(m2.group(1)).append("\n");
+                    msgCntBld.append(m2.group(1)).append("\n");
                 } while (m2.find());
-                msgCnt.setLength(msgCnt.length() - 1);
+                msgCntBld.setLength(msgCntBld.length() - 1);
+                String msgCnt = msgCntBld.toString();
+                if (msgCnt.isEmpty()) return;
                 cnt = m2.replaceAll("").trim();
                 List<LogMessage> lista = lmCache.getIfPresent(e.getChannel().getId());
                 if (lista == null) lista = Collections.emptyList();
                 Collections.reverse(lista);
                 for (LogMessage m : lista) {
                     if (m == null || m.getTimeCreated().isBefore(OffsetDateTime.now().minusMinutes(5))) continue;
-                    if (m.getContentRaw().equals(msgCnt.toString())) {
+                    if (m.getContentRaw().equals(msgCnt)) {
                         try {
                             if (hits == 0) {
                                 msg = e.getChannel().retrieveMessageById(m.getId()).complete();
-                                if (!msg.getContentRaw().equals(msgCnt.toString())) msg = null;
+                                if (!msg.getContentRaw().equals(msgCnt)) msg = null;
                             }
                             hits++;
                         } catch (Exception er) {
@@ -190,7 +205,8 @@ public class CytujCommand extends Command {
         try {
             sendCytujMessage(msg, tlumaczenia, tlumaczenia.getLanguage(e.getMember()), e.getTextChannel(), cnt,
                     Objects.requireNonNull(e.getMember()).hasPermission(e.getTextChannel(),
-                            Permission.MESSAGE_MENTION_EVERYONE), e.getMessage(), hits <= 1);
+                            Permission.MESSAGE_MENTION_EVERYONE), e.getMessage(), hits <= 1,
+                    URL_PATTERN.matcher(cnt).find() || !e.getMessage().getAttachments().isEmpty(), e.getMessage().getAttachments());
         } catch (Exception ignored) {}
     }
 
@@ -265,11 +281,20 @@ public class CytujCommand extends Command {
                         .map(o -> o == null ? "" : o.toString()).collect(Collectors.joining(uzycieDelim)) : null;
         sendCytujMessage(msg, context.getTlumaczenia(), context.getLanguage(), context.getTextChannel(), tresc,
                 context.getMember().hasPermission(context.getTextChannel(), Permission.MESSAGE_MENTION_EVERYONE),
-                context.getMessage(), true);
+                context.getMessage(), true, false, null);
         return true;
     }
 
-    public void sendCytujMessage(Message msg, Tlumaczenia t, Language l, TextChannel ch, String trescCytatu, boolean mentionEveryone, Message execMsg, boolean jumpTo) {
+    public void sendCytujMessage(Message msg,
+                                 Tlumaczenia t,
+                                 Language l,
+                                 TextChannel ch,
+                                 String trescCytatu,
+                                 boolean mentionEveryone,
+                                 Message execMsg,
+                                 boolean jumpTo,
+                                 boolean webhookOnly,
+                                 List<Message.Attachment> attachments) {
         EmbedBuilder eb = new EmbedBuilder();
         eb.setAuthor(UserUtil.formatDiscrim(msg.getAuthor()), null, msg.getAuthor().getEffectiveAvatarUrl().replace(".webp", ".png"));
         eb.setColor(UserUtil.getPrimColor(msg.getAuthor()));
@@ -286,37 +311,18 @@ public class CytujCommand extends Command {
         else eb.addField(t.get(l, "cytuj.auto"), t.get(l, "cytuj.auto.cnt"), false);
         String link = CommonUtil.getImageUrl(msg);
         if (link != null) eb.setImage(link);
-        if (trescCytatu == null || trescCytatu.isEmpty()) {
-            ch.sendMessage(eb.build()).complete();
-            if (!msg.getEmbeds().isEmpty()) {
-                try {
-                    ch.sendMessage(msg.getEmbeds().get(0)).complete();
-                } catch (IllegalArgumentException e) {
-                    // nieprawidłowy embed
-                }
-            }
-            return;
-        }
-        trescCytatu = Pattern.compile("[(http(s)?)://(www\\.)?a-zA-Z0-9@:%._\\+~#=]{2,256}\\.[a-z]{2,6}\\b([-a-zA-Z0-9" +
-                "@:%_\\+.~#?&//=]*)", Pattern.CASE_INSENSITIVE | Pattern.DOTALL).matcher(trescCytatu).replaceAll("[URL]");
         EnumSet<Message.MentionType> alments = MessageAction.getDefaultMentions();
         if (mentionEveryone) {
             alments.add(Message.MentionType.EVERYONE);
             alments.add(Message.MentionType.HERE);
         }
-        try {
-            eventBus.post(new PluginMessageEvent("commands", "moderation", "znaneAkcje-add:" + execMsg.getId()));
-            execMsg.delete().queue();
-        } catch (Exception ignored) {/*lul*/}
+        if (webhookOnly && !webhookManager.hasWebhook(ch)) {
+            webhookManager.getWebhook(ch);
+            return;
+        }
         if (webhookManager.hasWebhook(ch)) {
             List<WebhookEmbed> embeds = new ArrayList<>();
-            //#region FIXME: wywalić jak https://github.com/MinnDevelopment/discord-webhooks/pull/14 zostanie wprowadzone
-            MessageEmbed emb = eb.build();
-            WebhookEmbedBuilder web = WebhookEmbedBuilder.fromJDA(eb.build());
-            if (emb.getImage() != null) web.setImageUrl(emb.getImage().getUrl());
-            embeds.add(web.build());
-            //#endregion
-            //skrócony kod: embeds.add(WebhookEmbedBuilder.fromJDA(eb.build()).build());
+            embeds.add(WebhookEmbedBuilder.fromJDA(eb.build()).build());
             if (!msg.getEmbeds().isEmpty()) {
                 for (int i = 0; i < msg.getEmbeds().size(); i++) {
                     MessageEmbed embed = msg.getEmbeds().get(i);
@@ -342,20 +348,47 @@ public class CytujCommand extends Command {
             }
             Member member = execMsg.getMember();
             if (member == null) throw new NullPointerException("jak do tego doszło nie wiem");
-            webhookManager.send(new WebhookMessageBuilder().setAvatarUrl(execMsg.getAuthor().getEffectiveAvatarUrl())
-                    .setUsername(member.getEffectiveName()).setContent(trescCytatu).setAllowedMentions(allments)
-                    .addEmbeds(embeds).build(), ch);
-            return;
+            WebhookMessageBuilder wmb = new WebhookMessageBuilder()
+                    .setAvatarUrl(execMsg.getAuthor().getEffectiveAvatarUrl()).setUsername(member.getEffectiveName());
+            if (attachments != null && !attachments.isEmpty()) {
+                for (Message.Attachment attachment : attachments) {
+                    try {
+                        wmb.addFile(attachment.getFileName(), NetworkUtil.download(attachment.getUrl()));
+                    } catch (IOException e) {
+                        return; // w razie błędu, po prostu nie wysyłaj
+                    }
+                }
+            }
+            if (trescCytatu != null && !trescCytatu.isEmpty()) wmb.setContent(trescCytatu);
+            // wyślij webhookiem - w razie nie wysłania (brak permów), wyślij tradycyjną metodą
+            if (webhookManager.send(wmb.setAllowedMentions(allments).addEmbeds(embeds).build(), ch) != null) {
+                try {
+                    eventBus.post(new PluginMessageEvent("commands", "moderation", "znaneAkcje-add:" + execMsg.getId()));
+                    execMsg.delete().queue(null, e -> {});
+                } catch (Exception ignored) {}
+                return;
+            }
         } else {
             executor.submit(() -> {
                 webhookManager.getWebhook(ch); //tworzenie webhooka, na przyszłość - póki co wyślij normalnie
             });
         }
-        ch.sendMessage(eb.build()).allowedMentions(alments)
-                .content("**" + UserUtil.formatDiscrim(execMsg.getAuthor()) + "**: " + trescCytatu).queue();
+        if (webhookOnly) return; // jeżeli tylko webhook, a doszliśmy tu to anuluj
+        MessageAction ma = ch.sendMessage(eb.build()).allowedMentions(alments);
+        if (trescCytatu != null && !trescCytatu.isEmpty()) {
+            trescCytatu = URL_PATTERN.matcher(trescCytatu).replaceAll("[URL]");
+            ma = ma.content("**" + UserUtil.formatDiscrim(execMsg.getAuthor()) + "**: " + trescCytatu);
+        }
+        ma.queue();
         if (!msg.getEmbeds().isEmpty()) {
             ch.sendMessage(msg.getEmbeds().get(0)).complete();
         }
+        try {
+            if ((trescCytatu != null && !trescCytatu.isEmpty()) || webhookManager.hasWebhook(ch)) {
+                eventBus.post(new PluginMessageEvent("commands", "moderation", "znaneAkcje-add:" + execMsg.getId()));
+                execMsg.delete().queue(null, e -> {});
+            }
+        } catch (Exception ignored) {/*lul*/}
     }
 
     private boolean checkPerms(@NotNull CommandContext context, TextChannel tc) {
