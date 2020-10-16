@@ -110,7 +110,9 @@ public class Tlumaczenia {
             Sentry.capture(new EventBuilder().withLevel(Event.Level.WARNING).withMessage(key + NOTTRA).build());
         if (property.equals(languages.getOrDefault(l, languages.get(Language.POLISH))
                 .getProperty("translation.empty", languages.get(Language.POLISH)
-                .getProperty("translation.empty", "translation.empty")))) {
+                .getProperty("translation.empty", "translation.empty"))) ||
+                property.equals(languages.get(Language.POLISH)
+                        .getProperty("translation.empty", "translation.empty"))) {
             property = "";
         }
         return property;
