@@ -68,7 +68,7 @@ public class NetworkUtil {
                 .header(UA, USER_AGENT);
         if (authorization != null) req = req.header(AUTH, authorization);
         req = req.url(url)
-                .post(RequestBody.create(type, content));
+                .post(RequestBody.create(content, type));
         return client.newCall(req.build()).execute();
     }
 

@@ -36,7 +36,7 @@ public class Emoji extends EmoteImpl implements ListedEmote {
     private String name;
 
     public Emoji(EmoteImpl e) {
-        super(e.getIdLong(), Objects.requireNonNull(e.getGuild()), e.isFake());
+        super(e.getIdLong(), Objects.requireNonNull(e.getGuild()));
         setUser(e.hasUser() ? e.getUser() : null);
         setManaged(e.isManaged());
         setAnimated(e.isAnimated());

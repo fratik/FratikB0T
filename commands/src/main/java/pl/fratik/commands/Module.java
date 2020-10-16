@@ -142,7 +142,7 @@ public class Module implements Modul {
         if (Ustawienia.instance.apiKeys.get("osu") != null)
             commands.add(new OsuCommand(shardManager, eventWaiter, eventBus));
         commands.add(new Rule34Command(eventWaiter, eventBus, managerArgumentow));
-        commands.add(new CoronastatsCommand());
+        commands.add(new CoronastatsCommand(eventWaiter, eventBus));
         commands.add(new UstawPoziomCommand(guildDao, managerKomend));
         commands.add(new PoziomyUprawnienCommand());
         commands.add(new BlacklistPopCommand(blacklistDao));

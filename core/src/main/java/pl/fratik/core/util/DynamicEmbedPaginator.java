@@ -49,7 +49,7 @@ public class DynamicEmbedPaginator implements EmbedPaginator {
     private List<FutureTask<EmbedBuilder>> pages;
     private final EventBus eventBus;
     private int pageNo = 1;
-    private Message message;
+    private volatile Message message;
     private Message doKtorej;
     private long messageId = 0;
     private long userId;
@@ -101,8 +101,8 @@ public class DynamicEmbedPaginator implements EmbedPaginator {
                         Thread.currentThread().interrupt();
                     }
                 }
+                loaded();
                 executor.shutdownNow();
-                setLoading(false);
                 LOGGER.debug("Gotowe!");
             });
         } else loading = false;
@@ -351,9 +351,12 @@ public class DynamicEmbedPaginator implements EmbedPaginator {
         return this;
     }
 
-    private void setLoading(boolean loading) {
-        this.loading = loading;
-        if (message != null) message.editMessage(render(pageNo)).override(true).queue();
+    private void loaded() {
+        this.loading = false;
+        long waitUntil = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(5);
+        //noinspection StatementWithEmptyBody
+        while (message == null && System.currentTimeMillis() < waitUntil); // czekamy aż będzie wiadomość, max 5s
+        message.editMessage(render(pageNo)).override(true).queue();
     }
 
     private static class LoadingException extends RuntimeException {
