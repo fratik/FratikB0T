@@ -173,7 +173,7 @@ public class CoronastatsCommand extends Command {
     private void addFields(EmbedBuilder eb, CommandContext ctx, JSONObject staty, boolean paginated) {
         eb.addField(ctx.getTranslated("coronastats.cases"), parseNumber(staty.getInt("cases"), ctx.getLanguage()), true);
         eb.addField(ctx.getTranslated("coronastats.deaths"), parseNumber(staty.getInt("deaths"), ctx.getLanguage()), true);
-        eb.addField(ctx.getTranslated("coronastats.recovered"), parseNumber(staty.getInt("todayCases"), ctx.getLanguage()), true);
+        eb.addField(ctx.getTranslated("coronastats.recovered"), parseNumber(staty.getInt("recovered"), ctx.getLanguage()), true);
         eb.addField(ctx.getTranslated("coronastats.cases.today"), parseNumber(staty.getInt("todayCases"), ctx.getLanguage()), true);
         eb.addField(ctx.getTranslated("coronastats.deaths.today"), parseNumber(staty.getInt("todayDeaths"), ctx.getLanguage()), true);
         eb.addField(ctx.getTranslated("coronastats.active"), parseNumber(staty.getInt("active"), ctx.getLanguage()), true);
