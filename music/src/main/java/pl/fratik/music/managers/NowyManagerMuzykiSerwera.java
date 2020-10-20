@@ -310,9 +310,10 @@ public class NowyManagerMuzykiSerwera implements ManagerMuzykiSerwera {
                 Thread.sleep(100);
                 nod = link.getNode(false);
                 if (tries.getAndAdd(1) >= 600) {
-                    //poddaję się
-                    announceChannel.sendMessage(tlumaczenia.get(aktualnaPiosenka.getRequesterLanguage(),
-                            "play.song.error.node.disconnected.cant.found")).queue();
+                    //poddaję się
+                    if (announceChannel != null)
+                        announceChannel.sendMessage(tlumaczenia.get(aktualnaPiosenka.getRequesterLanguage(),
+                                "play.song.error.node.disconnected.cant.found")).queue();
                     exception = false;
                     disconnect();
                     break;

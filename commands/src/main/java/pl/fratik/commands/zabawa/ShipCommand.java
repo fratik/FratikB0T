@@ -18,6 +18,7 @@
 package pl.fratik.commands.zabawa;
 
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.utils.MarkdownSanitizer;
 import org.jetbrains.annotations.NotNull;
@@ -52,6 +53,7 @@ public class ShipCommand extends Command {
         cooldown = 5;
         LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
         uzycieDelim = " ";
+        permissions.add(Permission.MESSAGE_EMBED_LINKS);
         hmap.put("rzecz1", "string");
         hmap.put("rzecz2", "string");
         uzycie = new Uzycie(hmap, new boolean[] {true, false});
