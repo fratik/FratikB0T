@@ -517,7 +517,7 @@ public class Module implements Modul {
                 return;
             }
             if (!RundkaCommand.isRundkaOn()) {
-                LOGGER.info("{} próbował się zalogować do websocketa, ale rundki nie ma, zamykam",
+                LOGGER.info("{} próbował się zalogować do websocketa, ale rundki nie ma, zamykam",
                         channel.getSourceAddress().getHostString());
                 WebSockets.sendText(Json.serializer().toString(new Exceptions.NoRundka()), channel, null);
                 try {

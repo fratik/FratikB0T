@@ -82,7 +82,7 @@ public class ReloadCommand extends Command {
         msg.editMessage(eb.build()).override(true).complete();
         try {
             boolean odp = managerModulow.stopModule((String) context.getArgs()[0]);
-            if (!odp) throw new Exception("Unload modułu nieudany - sprawdź konsolę.");
+            if (!odp) throw new Exception("Unload modułu nieudany - sprawdź konsolę.");
             managerModulow.unload((String) context.getArgs()[0], true);
         } catch (Exception e) {
             logger.error("Błąd w komendzie reload:", e);
@@ -98,7 +98,7 @@ public class ReloadCommand extends Command {
         try {
             managerModulow.load(path.getAbsolutePath());
             boolean odp = managerModulow.startModule((String) context.getArgs()[0]);
-            if (!odp) throw new Exception("Nie udało się wczytać modułu - sprawdź konsolę.");
+            if (!odp) throw new Exception("Nie udało się wczytać modułu - sprawdź konsolę.");
         } catch (Exception e) {
             logger.error("Błąd w komendzie reload:", e);
             eb.setDescription(eb.getDescriptionBuilder().toString().replace(pytajnik +  LOAD,

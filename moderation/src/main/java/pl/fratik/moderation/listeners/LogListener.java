@@ -325,7 +325,7 @@ public class LogListener {
                 return;
             }
         }
-        LoggerFactory.getLogger(getClass()).warn("Wiadomość niezrozumiała!");
+        LoggerFactory.getLogger(getClass()).warn("Wiadomość niezrozumiała!");
     }
 
     private TextChannel getChannel(Guild guild) {

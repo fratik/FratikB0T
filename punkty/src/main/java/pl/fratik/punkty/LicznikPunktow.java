@@ -439,13 +439,13 @@ public class LicznikPunktow {
         if (e.getMessage().startsWith("Module-getPunkty:")) {
             String[] id = e.getMessage().replace("Module-getPunkty:", "").split("-");
             if (id.length != 2) {
-                LoggerFactory.getLogger(getClass()).warn("Wiadomość niezrozumiała!");
+                LoggerFactory.getLogger(getClass()).warn("Wiadomość niezrozumiała!");
                 return;
             }
             e.setResponse(getPunkty(id[0], id[1]));
             return;
         }
-        LoggerFactory.getLogger(getClass()).warn("Wiadomość niezrozumiała!");
+        LoggerFactory.getLogger(getClass()).warn("Wiadomość niezrozumiała!");
     }
 
     public void setLock(boolean lock) {

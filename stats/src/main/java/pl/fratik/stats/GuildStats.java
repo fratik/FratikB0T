@@ -65,7 +65,7 @@ class GuildStats {
         try {
             routes = (RoutingHandler) modul.getClass().getDeclaredMethod("getRoutes").invoke(modul);
         } catch (Exception e) {
-            LoggerFactory.getLogger(GuildStats.class).error("Nie udało się doczepić do modułu api!", e);
+            LoggerFactory.getLogger(GuildStats.class).error("Nie udało się doczepić do modułu api!", e);
             return;
         }
         routes.get("/api/{guildId}/stats", ex -> {

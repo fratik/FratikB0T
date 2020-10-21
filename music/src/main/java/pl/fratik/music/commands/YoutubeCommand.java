@@ -128,7 +128,7 @@ public class YoutubeCommand extends MusicCommand {
                     udaloSie.set(false);
                     return;
                 }
-                List<AudioTrack> added = new ArrayList<>(); // można by to było zrobić mniejszą ilością varów ale jestem juz taki śpiący ;_; ej sonar-lint to nie kod, uspokój sie
+                List<AudioTrack> added = new ArrayList<>(); // można by to było zrobić mniejszą ilością varów ale jestem juz taki śpiący ;_; ej sonar-lint to nie kod, uspokój sie
                 for (AudioTrack at : audioTracks) {
                     mms.addToQueue(context.getSender(), at, context.getLanguage());
                     added.add(at);

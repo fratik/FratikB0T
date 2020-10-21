@@ -71,7 +71,7 @@ public class UnloadCommand extends Command {
         msg.editMessage(eb.build()).override(true).complete();
         try {
             boolean odp = managerModulow.stopModule((String) context.getArgs()[0]);
-            if (!odp) throw new Exception("Unload modułu nieudany - sprawdź konsolę.");
+            if (!odp) throw new Exception("Unload modułu nieudany - sprawdź konsolę.");
             managerModulow.unload((String) context.getArgs()[0], true);
         } catch (Exception e) {
             logger.error("Błąd w komendzie unload:", e);

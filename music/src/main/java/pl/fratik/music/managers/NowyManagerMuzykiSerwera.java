@@ -141,7 +141,7 @@ public class NowyManagerMuzykiSerwera implements ManagerMuzykiSerwera {
                 Thread.sleep(5);
                 czekam++;
                 if (czekam == 1000) {
-                    LOGGER.error("{}: Nie udało się połączyć po 5s!", guild.getId());
+                    LOGGER.error("{}: Nie udało się połączyć po 5s!", guild.getId());
                     announceChannel.sendMessage("Nie udało się połączyć po 5s! Anuluje!").queue();
                     kolejka.clear();
                     player = null;
@@ -252,7 +252,7 @@ public class NowyManagerMuzykiSerwera implements ManagerMuzykiSerwera {
                     Thread.sleep(5);
                     czekam++;
                     if (czekam == 1000) {
-                        LOGGER.error("{}: Nie udało się połączyć po 5s!", guild.getId());
+                        LOGGER.error("{}: Nie udało się połączyć po 5s!", guild.getId());
                         announceChannel.sendMessage("Nie udało się połączyć po 5s! Anuluje!").queue();
                         disconnect();
                         return;

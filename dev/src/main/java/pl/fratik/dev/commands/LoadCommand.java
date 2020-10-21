@@ -81,7 +81,7 @@ public class LoadCommand extends Command {
         try {
             managerModulow.load(path.getAbsolutePath());
             boolean odp = managerModulow.startModule(managerModulow.getDescription(path).getName());
-            if (!odp) throw new Exception("Nie udało się wczytać modułu - sprawdź konsolę.");
+            if (!odp) throw new Exception("Nie udało się wczytać modułu - sprawdź konsolę.");
         } catch (Exception e) {
             logger.error("Błąd w komendzie load:", e);
             eb.setDescription(eb.getDescriptionBuilder().toString().replace(pytajnik +  WCZ,
