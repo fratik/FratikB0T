@@ -60,8 +60,10 @@ public class PublishListener {
     @Subscribe
     @AllowConcurrentEvents
     public void onReact(MessageReactionAddEvent e) {
-        TextChannel kanal = e.getTextChannel();
-        if (!e.isFromGuild() || !kanal.isNews() ||
+        TextChannel kanal;
+        if (e.isFromGuild()) kanal = e.getTextChannel();
+        else kanal = null;
+        if (!e.isFromGuild() || kanal == null || !kanal.isNews() ||
                 !e.getGuild().getSelfMember().hasPermission(kanal, Permission.MESSAGE_MANAGE, Permission.MESSAGE_HISTORY) ||
                 !e.getReactionEmote().isEmoji() || // jeżeli nie emotka
                 (e.getReactionEmote().isEmoji() && !e.getReactionEmote().getEmoji().equals(EMOTE))) // jeżeli nie EMOTE
