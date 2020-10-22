@@ -43,7 +43,7 @@ public class TakeTagCommand extends Command {
     public boolean execute(@NotNull CommandContext context) {
         Tags tags = tagsDao.get(context.getGuild().getId());
         Tag tag = tags.getTagi().stream()
-                .filter(t -> t.getName().equals(context.getArgs()[0])).findFirst().orElse(null);
+                .filter(t -> t.getName().equalsIgnoreCase((String) context.getArgs()[0])).findFirst().orElse(null);
         if (tag == null) {
             context.send(context.getTranslated("taketag.tag.notfound"));
             return false;
