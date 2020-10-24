@@ -70,10 +70,7 @@ import pl.fratik.core.manager.ManagerModulow;
 import pl.fratik.core.moduly.Modul;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
-import pl.fratik.core.util.EventWaiter;
-import pl.fratik.core.util.GsonUtil;
-import pl.fratik.core.util.StringUtil;
-import pl.fratik.core.util.UserUtil;
+import pl.fratik.core.util.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -84,6 +81,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static io.undertow.Handlers.path;
@@ -219,6 +217,52 @@ public class Module implements Modul {
             }
             pl.fratik.api.entity.Status status = new pl.fratik.api.entity.Status(Statyczne.startDate, shards);
             Exchange.body().sendJson(ex, status);
+        });
+        routes.get("/api/{userId}/userconfig", ex -> {
+            String userId = Exchange.pathParams().pathParam(ex, "userId").orElse(null);
+            if (userId == null || userId.isEmpty()) {
+                Exchange.body().sendJson(ex, new Exceptions.NoGuildParam(), 400);
+                return;
+            }
+            User user;
+            try {
+                user = shardManager.getUserById(userId);
+            } catch (Exception ignored) {
+                user = CommonUtil.supressException((Function<String, User>) id -> shardManager.retrieveUserById(id).complete(), userId);
+            }
+            if (user == null) {
+                Exchange.body().sendJson(ex, new Exceptions.NoUser(), 400);
+                return;
+            }
+            ex.getResponseHeaders().put(Headers.CONTENT_TYPE, "application/json");
+            ex.setStatusCode(200);
+            ex.getResponseSender().send(ByteBuffer.wrap(new ObjectMapper().writeValueAsBytes(userDao.get(user))));
+        });
+        routes.post("/api/{userId}/userconfig", ex -> {
+            String userId = Exchange.pathParams().pathParam(ex, "userId").orElse(null);
+            if (userId == null || userId.isEmpty()) {
+                Exchange.body().sendJson(ex, new Exceptions.NoUserParam(), 400);
+                return;
+            }
+            User user;
+            try {
+                user = shardManager.getUserById(userId);
+            } catch (Exception ignored) {
+                user = CommonUtil.supressException((Function<String, User>) id -> shardManager.retrieveUserById(id).complete(), userId);
+            }
+            if (user == null) {
+                Exchange.body().sendJson(ex, new Exceptions.NoUser(), 400);
+                return;
+            }
+            UserConfig uc = userDao.get(user);
+            JsonObject parsed = GsonUtil.GSON.fromJson(IOUtils.toString(ex.getInputStream(), StandardCharsets.UTF_8), JsonObject.class);
+            try {
+                merge(uc, parsed);
+            } catch (Exception e) {
+                Exchange.body().sendJson(ex, new Exceptions.GenericException("nieprawidłowy format"));
+            }
+            userDao.save(uc);
+            Exchange.body().sendJson(ex, new Successes.GenericSuccess("zapisano"));
         });
         routes.get("/api/{guildId}/config", ex -> {
             String guildId = Exchange.pathParams().pathParam(ex, "guildId").orElse(null);
@@ -627,7 +671,7 @@ public class Module implements Modul {
                 Globals.permissions + "&scope=bot";
     }
 
-    private void merge(GuildConfig obj, JsonObject update) {
+    private void merge(Object obj, JsonObject update) {
         for (Map.Entry<String, JsonElement> e : update.entrySet()) {
             String fieldName = e.getKey();
             String fieldSetter = "set" + StringUtil.firstLetterUpperCase(fieldName);
