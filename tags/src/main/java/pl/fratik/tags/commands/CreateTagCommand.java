@@ -63,11 +63,12 @@ public class CreateTagCommand extends Command {
             return false;
         }
         Tags tags = tagsDao.get(context.getGuild().getId());
-        if (tags.getTagi().stream().anyMatch(t -> t.getName().equals(tagName))) {
+        if (tags.getTagi().stream().anyMatch(t -> t.getName().equalsIgnoreCase(tagName))) {
             context.send(context.getTranslated("createtag.exists"));
             return false;
         }
-        if (managerKomend.getRegistered().stream().anyMatch(c -> c.getName().equals(tagName))) {
+        if (managerKomend.getRegistered().stream().anyMatch(c -> c.getName().equalsIgnoreCase(tagName) ||
+                Arrays.asList(c.getAliases(context.getTlumaczenia())).contains(tagName))) {
             context.send(context.getTranslated("createtag.reserved"));
             return false;
         }

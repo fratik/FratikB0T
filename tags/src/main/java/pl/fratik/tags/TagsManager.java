@@ -39,6 +39,7 @@ import pl.fratik.tags.entity.Tags;
 import pl.fratik.tags.entity.TagsDao;
 
 import java.awt.*;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -70,7 +71,8 @@ class TagsManager {
         Tag tag = getTagByName(getFirstWord(e.getMessage()), tagi);
         if (tag == null) return;
         if (tag.getName().length() > MAX_TAG_NAME_LENGTH) return;
-        if (managerKomend.getRegistered().stream().anyMatch(c -> c.getName().equals(tag.getName()))) return;
+        if (managerKomend.getRegistered().stream().anyMatch(c -> c.getName().equalsIgnoreCase(tag.getName()) ||
+                Arrays.asList(c.getAliases(tlumaczenia)).contains(tag.getName()))) return;
         try {
             webhookManager.send(tag.getContent(), e.getTextChannel());
         } catch (Exception err) {
@@ -101,7 +103,7 @@ class TagsManager {
 
     @Nullable
     private Tag getTagByName(String name, Tags tags) {
-        return tags.getTagi().stream().filter(t -> t.getName().equals(name)).findFirst().orElse(null);
+        return tags.getTagi().stream().filter(t -> t.getName().equalsIgnoreCase(name)).findFirst().orElse(null);
     }
 
     private MessageEmbed generateEmbed(Tag tag, Language lang, Guild guild) {
