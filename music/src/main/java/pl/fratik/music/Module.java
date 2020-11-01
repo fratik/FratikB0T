@@ -90,7 +90,7 @@ public class Module implements Modul {
         commands = new ArrayList<>();
 
         commands.add(new PlayCommand(managerMuzyki, searchManager, guildDao));
-        commands.add(new SkipCommand(managerMuzyki, guildDao));
+        commands.add(new SkipCommand(managerMuzyki, guildDao, redisCacheManager));
         commands.add(new YoutubeCommand(managerMuzyki, searchManager, eventWaiter, guildDao));
         commands.add(new VolumeCommand(managerMuzyki, guildDao));
         commands.add(new QueueCommand(managerMuzyki, eventWaiter, eventBus));

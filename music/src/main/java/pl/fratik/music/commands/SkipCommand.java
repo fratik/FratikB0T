@@ -18,9 +18,14 @@
 package pl.fratik.music.commands;
 
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.cache.Cache;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.command.CommandContext;
+import pl.fratik.core.command.PermLevel;
 import pl.fratik.core.command.SubCommand;
+import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
+import pl.fratik.core.util.UserUtil;
 import pl.fratik.music.entity.RepeatMode;
 import pl.fratik.music.managers.ManagerMuzykiSerwera;
 import pl.fratik.music.managers.NowyManagerMuzyki;
@@ -31,13 +36,15 @@ public class SkipCommand extends MusicCommand {
 
     private final NowyManagerMuzyki managerMuzyki;
     private final GuildDao guildDao;
+    private final Cache<GuildConfig> gcCache;
 
-    public SkipCommand(NowyManagerMuzyki managerMuzyki, GuildDao guildDao) {
+    public SkipCommand(NowyManagerMuzyki managerMuzyki, GuildDao guildDao, RedisCacheManager redisCacheManager) {
         this.managerMuzyki = managerMuzyki;
         this.guildDao = guildDao;
         name = "skip";
         requireConnection = true;
         aliases = new String[] {"pomin", "pass", "passer"};
+        gcCache = redisCacheManager.new CacheRetriever<GuildConfig>() {}.getCache();
     }
 
     @Override
@@ -71,9 +78,12 @@ public class SkipCommand extends MusicCommand {
         return true;
     }
 
-    @SubCommand(name = "force", aliases = {"wymus", "-f"})
+    @SubCommand(name = "force", aliases = {"wymus", "-f", "--force"})
     public boolean force(@NotNull CommandContext context) {
-        if (!hasFullDjPerms(context.getMember(), context.getShardManager(), guildDao)) {
+        GuildConfig gc = gcCache.get(context.getGuild().getId(), guildDao::get);
+        PermLevel plvl = UserUtil.getPermlevel(context.getMember(), guildDao, context.getShardManager(), PermLevel.OWNER);
+        if ((isDjConfigured(gc) && !hasFullDjPerms(context.getMember(), context.getShardManager(), guildDao)) ||
+                (!isDjConfigured(gc) && plvl.getNum() < PermLevel.MOD.getNum())) {
             context.send(context.getTranslated("skip.forced.error"));
             return false;
         }
