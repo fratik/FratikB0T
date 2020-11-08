@@ -431,18 +431,20 @@ public class ModLogListener {
                         adw.name().toLowerCase()).toLowerCase());
         aCase.setReason(reason);
         if (adw == Kara.UNBAN) {
-            List<Case> caseList = knownCases.getOrDefault(guild, new ArrayList<>());
-            caseList.add(aCase);
-            guild.unban(akcja.getCase().getUserId()).reason(reason).queue(null, t -> {
-                caseList.remove(aCase);
+            synchronized (knownCases) {
+                List<Case> caseList = knownCases.getOrDefault(guild, new ArrayList<>());
+                caseList.add(aCase);
+                guild.unban(akcja.getCase().getUserId()).reason(reason).queue(null, t -> {
+                    caseList.remove(aCase);
+                    knownCases.put(guild, caseList);
+                });
                 knownCases.put(guild, caseList);
-            });
-            knownCases.put(guild, caseList);
-            return;
+                return;
+            }
         }
+        GuildConfig gc = guildDao.get(guild);
         if (adw == Kara.UNWARN) {
             MessageEmbed embed = ModLogBuilder.generate(aCase, guild, shardManager, tlumaczenia.getLanguage(guild), managerKomend, true, false);
-            GuildConfig gc = guildDao.get(guild);
             String mlogchanStr;
             if (gc.getModLog() == null || gc.getModLog().isEmpty()) mlogchanStr = "0";
             else mlogchanStr = gc.getModLog();
@@ -462,26 +464,37 @@ public class ModLogListener {
             return;
         }
         if (adw == Kara.UNMUTE) {
-            Role muteRole = guild.getRoleById(guildDao.get(guild).getWyciszony());
+            Role muteRole = guild.getRoleById(gc.getWyciszony());
             if (muteRole == null) return;
-            List<Case> caseList = knownCases.getOrDefault(guild, new ArrayList<>());
-            caseList.add(aCase);
-            Member member;
-            try {
-                member = guild.retrieveMemberById(akcja.getCase().getUserId()).complete();
-            } catch (ErrorResponseException er) {
-                if (er.getErrorResponse() == ErrorResponse.UNKNOWN_MEMBER)
-                    member = null;
-                else throw er;
+            synchronized (knownCases) {
+                List<Case> caseList = knownCases.getOrDefault(guild, new ArrayList<>());
+                caseList.add(aCase);
+                Member member;
+                try {
+                    member = guild.retrieveMemberById(akcja.getCase().getUserId()).complete();
+                } catch (ErrorResponseException er) {
+                    if (er.getErrorResponse() == ErrorResponse.UNKNOWN_MEMBER)
+                        member = null;
+                    else throw er;
+                }
+                if (member == null) {
+                    caseList.remove(aCase);
+                    ModeResolver modeResolver = new ModeResolver(gc);
+                    CaseRow caseRow = casesDao.get(guild);
+                    Case origCase = caseRow.getCases().get(akcja.getCaseId() - 1);
+                    invalidateCase(gc, Instant.now(), modeResolver.getMode(), modeResolver.getMlogchan(),
+                            origCase, guild);
+                    casesDao.save(caseRow);
+                    return;
+                }
+                guild.removeRoleFromMember(member, muteRole)
+                        .reason(reason).queue(null, t -> {
+                    List<Case> caseList2 = knownCases.getOrDefault(guild, new ArrayList<>());
+                    caseList2.remove(aCase);
+                    knownCases.put(guild, caseList2);
+                });
+                knownCases.put(guild, caseList);
             }
-            if (member == null) return;
-            guild.removeRoleFromMember(member, muteRole)
-                    .reason(reason).queue(null, t -> {
-                List<Case> caseList2 = knownCases.getOrDefault(guild, new ArrayList<>());
-                caseList2.remove(aCase);
-                knownCases.put(guild, caseList2);
-            });
-            knownCases.put(guild, caseList);
         }
     }
 

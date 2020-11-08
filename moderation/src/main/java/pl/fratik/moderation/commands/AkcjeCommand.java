@@ -104,7 +104,6 @@ public class AkcjeCommand extends ModerationCommand {
         long kickow = mcases.stream().filter(c -> c.getType() == Kara.KICK).count();
         long banow = mcases.stream().filter(c -> c.getType() == Kara.BAN).count();
         long mutow = mcases.stream().filter(c -> c.getType() == Kara.MUTE).count();
-        long unmutow = mcases.stream().filter(c -> c.getType() == Kara.UNMUTE).count();
         ArrayList<EmbedBuilder> strony = new ArrayList<>();
         strony.add(context.getBaseEmbed(UserUtil.formatDiscrim(user), user.getEffectiveAvatarUrl()
                 .replace(".webp", ".png"))
@@ -115,7 +114,6 @@ public class AkcjeCommand extends ModerationCommand {
                 .addField(context.getTranslated("akcje.embed.kicks"), String.valueOf(kickow), true)
                 .addField(context.getTranslated("akcje.embed.bans"), String.valueOf(banow), true)
                 .addField(context.getTranslated("akcje.embed.mutes"), String.valueOf(mutow), true)
-                .addField(context.getTranslated("akcje.embed.unmutes"), String.valueOf(unmutow), true)
                 .setDescription(context.getTranslated("akcje.embed.description")).setFooter("%s/%s", null));
         for (Case aCase : caseRow.getCases().stream().filter(c -> c.getUserId().equals(user.getId())).collect(Collectors.toList())) {
             EmbedBuilder eb = new EmbedBuilder(ModLogBuilder.generate(aCase, context.getGuild(), shardManager, context.getLanguage(), managerKomend, false, true));
@@ -153,7 +151,6 @@ public class AkcjeCommand extends ModerationCommand {
         long kickow = mcases.stream().filter(c -> c.getType() == Kara.KICK).count();
         long banow = mcases.stream().filter(c -> c.getType() == Kara.BAN).count();
         long mutow = mcases.stream().filter(c -> c.getType() == Kara.MUTE).count();
-        long unmutow = mcases.stream().filter(c -> c.getType() == Kara.UNMUTE).count();
         ArrayList<EmbedBuilder> strony = new ArrayList<>();
         strony.add(context.getBaseEmbed(UserUtil.formatDiscrim(user), user.getEffectiveAvatarUrl()
                 .replace(".webp", ".png"))
@@ -164,7 +161,6 @@ public class AkcjeCommand extends ModerationCommand {
                 .addField(context.getTranslated("akcje.admin.embed.kicks"), String.valueOf(kickow), true)
                 .addField(context.getTranslated("akcje.admin.embed.bans"), String.valueOf(banow), true)
                 .addField(context.getTranslated("akcje.admin.embed.mutes"), String.valueOf(mutow), true)
-                .addField(context.getTranslated("akcje.admin.embed.unmutes"), String.valueOf(unmutow), true)
                 .setDescription(context.getTranslated("akcje.admin.embed.description")).setFooter("%s/%s", null));
         for (Case aCase : caseRow.getCases().stream().filter(c -> Objects.equals(c.getIssuerId(), user.getId())).collect(Collectors.toList())) {
             EmbedBuilder eb = new EmbedBuilder(ModLogBuilder.generate(aCase, context.getGuild(), shardManager, context.getLanguage(), managerKomend, false, true));

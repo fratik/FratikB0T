@@ -83,6 +83,10 @@ public class ReasonCommand extends CaseEditingCommand {
             return false;
         }
         Case aCase = caseRow.getCases().get(caseId - 1);
+        if (akcjaDo != null && !aCase.isValid()) {
+            context.send(context.getTranslated("reason.not.valid"));
+            return false;
+        }
         aCase.getFlagi().remove(Case.Flaga.NOBODY); // usuwa -n, -n może zostać ponownie dodane w parseFlags
         if (akcjaDo != null) aCase.setValidTo(akcjaDo);
         @Nullable TextChannel modLogChannel = gc.getModLog() != null && !Objects.equals(gc.getModLog(), "") ?

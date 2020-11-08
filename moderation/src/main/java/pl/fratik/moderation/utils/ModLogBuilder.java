@@ -155,7 +155,7 @@ public class ModLogBuilder {
                         sdf.format(Date.from(Instant.from(validTo))), false);
             }
         }
-        if ((kara == Kara.WARN || kara == Kara.UNWARN) && ileRazy != null && ileRazy > 0) {
+        if ((kara == Kara.WARN || kara == Kara.UNWARN) && ileRazy != null && ileRazy > 1) {
             eb.addField(tlumaczenia.get(lang, "modlog.times.header"),
                     tlumaczenia.get(lang, "modlog.times.content." + kara.name().toLowerCase() + "s", ileRazy),
                     false);
