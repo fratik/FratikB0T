@@ -45,7 +45,7 @@ repositories {
 }
 
 dependencies {
-    compile 'net.dv8tion:JDA:' + jdaVersion
+    compile 'net.dv8tion:JDA:4.2.0_214'
     compile 'com.intellij:annotations:+@jar'
     compile 'com.fasterxml.jackson.core:jackson-databind:2.10.1'
     compile 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.10.1'

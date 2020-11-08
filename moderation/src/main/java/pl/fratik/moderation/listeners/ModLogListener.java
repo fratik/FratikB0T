@@ -29,8 +29,7 @@ import net.dv8tion.jda.api.events.channel.text.TextChannelCreateEvent;
 import net.dv8tion.jda.api.events.guild.GuildBanEvent;
 import net.dv8tion.jda.api.events.guild.GuildUnbanEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberRemoveEvent;
-import net.dv8tion.jda.api.events.guild.member.GuildMemberRoleAddEvent;
-import net.dv8tion.jda.api.events.guild.member.GuildMemberRoleRemoveEvent;
+import net.dv8tion.jda.api.events.guild.member.GuildMemberUpdateEvent;
 import net.dv8tion.jda.api.events.role.RoleDeleteEvent;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.requests.ErrorResponse;
@@ -48,10 +47,7 @@ import pl.fratik.moderation.utils.ModLogBuilder;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.temporal.TemporalAccessor;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -259,91 +255,92 @@ public class ModLogListener {
 
     @Subscribe
     @AllowConcurrentEvents
-    public void onMemberRoleAdd(GuildMemberRoleAddEvent guildMemberRoleAddEvent) {
-        if (ignoredMutes.contains(guildMemberRoleAddEvent.getUser().getId() + guildMemberRoleAddEvent.getGuild().getId())) {
-            ignoredMutes.remove(guildMemberRoleAddEvent.getUser().getId() + guildMemberRoleAddEvent.getGuild().getId());
-            return;
-        }
-        Guild guild = guildMemberRoleAddEvent.getGuild();
-        GuildConfig gc = guildDao.get(guild);
-        User user = guildMemberRoleAddEvent.getUser();
+    public void onMemberUpdate(GuildMemberUpdateEvent event) {
         Role rola;
+        Guild guild = event.getGuild();
+        GuildConfig gc = guildDao.get(guild);
         try {
             rola = guild.getRoleById(gc.getWyciszony());
         } catch (Exception ignored) {
             rola = null;
         }
         if (rola == null) return;
-        if (!guildMemberRoleAddEvent.getRoles().contains(rola)) return;
-        if (knownCases.get(guild) == null || knownCases.get(guild).stream()
-                .noneMatch(c -> c.getUserId().equals(user.getId()) && c.getType() == Kara.MUTE)) {
+        boolean isMuted = false;
+        boolean hasMuteRole;
+        Case muteCase = casesDao.get(event.getGuild()).getCases().stream()
+                .filter(c -> c.getUserId().equals(event.getUser().getId()))
+                .max(Comparator.comparingInt(Case::getCaseId)).orElse(null);
+        if (muteCase != null && muteCase.isValid()) {
+            isMuted = true;
+        }
+        if (!isMuted) return;
+        hasMuteRole = event.getMember().getRoles().contains(rola);
+        if (!hasMuteRole) {
+            if (ignoredMutes.contains(event.getUser().getId() + event.getGuild().getId())) {
+                ignoredMutes.remove(event.getUser().getId() + event.getGuild().getId());
+                return;
+            }
+            User user = event.getUser();
+            if (!event.getMember().getRoles().contains(rola)) return;
+            if (knownCases.get(guild) == null || knownCases.get(guild).stream()
+                    .noneMatch(c -> c.getUserId().equals(user.getId()) && c.getType() == Kara.MUTE)) {
+                GuildConfig guildConfig = guildDao.get(guild);
+                CaseRow caseRow = casesDao.get(guild);
+                ModeResolver modeResolver = new ModeResolver(guildConfig).invoke();
+                ModLogMode mode = modeResolver.getMode();
+                TextChannel mlogchan = modeResolver.getMlogchan();
+                int caseId = Case.getNextCaseId(caseRow);
+                TemporalAccessor timestamp = Instant.now();
+                Case aCase = new CaseBuilder().setUser(user).setGuild(guild).setCaseId(caseId).setTimestamp(timestamp)
+                        .setMessageId(null).setKara(Kara.MUTE).createCase();
+                if (mode == ModLogMode.MODLOG) {
+                    saveToModLog(aCase, guildConfig, caseRow, mlogchan, guild);
+                } else {
+                    caseRow.getCases().add(aCase);
+                    casesDao.save(caseRow);
+                }
+            } else {
+                Optional<Case> oCase = knownCases.get(guild).stream()
+                        .filter(c -> c.getUserId().equals(user.getId()) && c.getType() == Kara.MUTE)
+                        .findFirst();
+                if (!oCase.isPresent()) throw NOCASEEXC;
+                saveKnownCase(guild, oCase.get());
+            }
+        } else {
             GuildConfig guildConfig = guildDao.get(guild);
             CaseRow caseRow = casesDao.get(guild);
-            ModeResolver modeResolver = new ModeResolver(guildConfig).invoke();
-            ModLogMode mode = modeResolver.getMode();
-            TextChannel mlogchan = modeResolver.getMlogchan();
-            int caseId = Case.getNextCaseId(caseRow);
-            TemporalAccessor timestamp = Instant.now();
-            Case aCase = new CaseBuilder().setUser(user).setGuild(guild).setCaseId(caseId).setTimestamp(timestamp).setMessageId(null).setKara(Kara.MUTE).createCase();
-            if (mode == ModLogMode.MODLOG) {
-                saveToModLog(aCase, guildConfig, caseRow, mlogchan, guild);
+            User user = event.getUser();
+            if (knownCases.get(guild) == null || knownCases.get(guild).stream()
+                    .noneMatch(c -> c.getUserId().equals(user.getId()) && c.getType() == Kara.UNMUTE)) {
+                ModeResolver modeResolver = new ModeResolver(guildConfig).invoke();
+                ModLogMode mode = modeResolver.getMode();
+                TextChannel mlogchan = modeResolver.getMlogchan();
+                int caseId = Case.getNextCaseId(caseRow);
+                TemporalAccessor timestamp = Instant.now();
+                List<Case> cases = caseRow.getCases();
+                Case aCase = new CaseBuilder().setUser(user).setGuild(guild).setCaseId(caseId).setTimestamp(timestamp)
+                        .setMessageId(null).setKara(Kara.UNMUTE).createCase();
+                invalidateOldMutes(event, guildConfig, caseRow, cases, timestamp, mode, mlogchan);
+                if (mode == ModLogMode.MODLOG) {
+                    saveToModLog(aCase, guildConfig, caseRow, mlogchan, guild);
+                } else {
+                    caseRow.getCases().add(aCase);
+                    casesDao.save(caseRow);
+                }
             } else {
-                caseRow.getCases().add(aCase);
-                casesDao.save(caseRow);
+                Optional<Case> oCase = knownCases.get(guild).stream()
+                        .filter(c -> c.getUserId().equals(user.getId()) && c.getType() == Kara.UNMUTE)
+                        .findFirst();
+                if (!oCase.isPresent()) throw NOCASEEXC;
+                Case aCase = oCase.get();
+                List<Case> cases = caseRow.getCases();
+                TemporalAccessor teraz = Instant.now();
+                ModeResolver modeResolver = new ModeResolver(guildConfig).invoke();
+                ModLogMode mode = modeResolver.getMode();
+                TextChannel mlogchan = modeResolver.getMlogchan();
+                invalidateOldMutes(event, guildConfig, caseRow, cases, teraz, mode, mlogchan);
+                poddajeSieZTymiNazwami(guild, aCase, guildConfig, caseRow, mode, mlogchan);
             }
-        } else {
-            Optional<Case> oCase = knownCases.get(guild).stream()
-                    .filter(c -> c.getUserId().equals(user.getId()) && c.getType() == Kara.MUTE)
-                    .findFirst();
-            if (!oCase.isPresent()) throw NOCASEEXC;
-            saveKnownCase(guild, oCase.get());
-        }
-    }
-
-    @Subscribe
-    @AllowConcurrentEvents
-    public void onMemberRoleRemove(GuildMemberRoleRemoveEvent guildMemberRoleRemoveEvent) {
-        Guild guild = guildMemberRoleRemoveEvent.getGuild();
-        GuildConfig guildConfig = guildDao.get(guild);
-        CaseRow caseRow = casesDao.get(guild);
-        User user = guildMemberRoleRemoveEvent.getUser();
-        Role rola;
-        try {
-            rola = guild.getRoleById(guildConfig.getWyciszony());
-        } catch (Exception ignored) {
-            rola = null;
-        }
-        if (rola == null) return;
-        if (!guildMemberRoleRemoveEvent.getRoles().contains(rola)) return;
-        if (knownCases.get(guild) == null || knownCases.get(guild).stream()
-                .noneMatch(c -> c.getUserId().equals(user.getId()) && c.getType() == Kara.UNMUTE)) {
-            ModeResolver modeResolver = new ModeResolver(guildConfig).invoke();
-            ModLogMode mode = modeResolver.getMode();
-            TextChannel mlogchan = modeResolver.getMlogchan();
-            int caseId = Case.getNextCaseId(caseRow);
-            TemporalAccessor timestamp = Instant.now();
-            List<Case> cases = caseRow.getCases();
-            Case aCase = new CaseBuilder().setUser(user).setGuild(guild).setCaseId(caseId).setTimestamp(timestamp).setMessageId(null).setKara(Kara.UNMUTE).createCase();
-            invalidateOldMutes(guildMemberRoleRemoveEvent, guildConfig, caseRow, cases, timestamp, mode, mlogchan);
-            if (mode == ModLogMode.MODLOG) {
-                saveToModLog(aCase, guildConfig, caseRow, mlogchan, guild);
-            } else {
-                caseRow.getCases().add(aCase);
-                casesDao.save(caseRow);
-            }
-        } else {
-            Optional<Case> oCase = knownCases.get(guild).stream()
-                    .filter(c -> c.getUserId().equals(user.getId()) && c.getType() == Kara.UNMUTE)
-                    .findFirst();
-            if (!oCase.isPresent()) throw NOCASEEXC;
-            Case aCase = oCase.get();
-            List<Case> cases = caseRow.getCases();
-            TemporalAccessor teraz = Instant.now();
-            ModeResolver modeResolver = new ModeResolver(guildConfig).invoke();
-            ModLogMode mode = modeResolver.getMode();
-            TextChannel mlogchan = modeResolver.getMlogchan();
-            invalidateOldMutes(guildMemberRoleRemoveEvent, guildConfig, caseRow, cases, teraz, mode, mlogchan);
-            poddajeSieZTymiNazwami(guild, aCase, guildConfig, caseRow, mode, mlogchan);
         }
     }
 
@@ -535,11 +532,11 @@ public class ModLogListener {
         }
     }
 
-    private void invalidateOldMutes(GuildMemberRoleRemoveEvent guildMemberRoleRemoveEvent, GuildConfig guildConfig, CaseRow caseRow, List<Case> cases, TemporalAccessor teraz, ModLogMode mode, TextChannel mlogchan) {
+    private void invalidateOldMutes(GuildMemberUpdateEvent event, GuildConfig guildConfig, CaseRow caseRow, List<Case> cases, TemporalAccessor teraz, ModLogMode mode, TextChannel mlogchan) {
         for (Case muteCase : cases) {
             if (muteCase.getType() != Kara.MUTE || !muteCase.isValid() || !muteCase.getUserId()
-                    .equals(guildMemberRoleRemoveEvent.getMember().getUser().getId())) continue;
-            invalidateCase(guildConfig, teraz, mode, mlogchan, muteCase, guildMemberRoleRemoveEvent.getGuild());
+                    .equals(event.getMember().getUser().getId())) continue;
+            invalidateCase(guildConfig, teraz, mode, mlogchan, muteCase, event.getGuild());
         }
         caseRow.setCases(cases);
     }
