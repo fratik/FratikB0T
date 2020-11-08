@@ -266,7 +266,6 @@ public class ModLogListener {
         }
         if (rola == null) return;
         boolean isMuted = false;
-        boolean hasMuteRole;
         Case muteCase = casesDao.get(event.getGuild()).getCases().stream()
                 .filter(c -> c.getUserId().equals(event.getUser().getId()))
                 .max(Comparator.comparingInt(Case::getCaseId)).orElse(null);
@@ -274,14 +273,12 @@ public class ModLogListener {
             isMuted = true;
         }
         if (!isMuted) return;
-        hasMuteRole = event.getMember().getRoles().contains(rola);
-        if (!hasMuteRole) {
+        if (event.getMember().getRoles().contains(rola)) {
             if (ignoredMutes.contains(event.getUser().getId() + event.getGuild().getId())) {
                 ignoredMutes.remove(event.getUser().getId() + event.getGuild().getId());
                 return;
             }
             User user = event.getUser();
-            if (!event.getMember().getRoles().contains(rola)) return;
             if (knownCases.get(guild) == null || knownCases.get(guild).stream()
                     .noneMatch(c -> c.getUserId().equals(user.getId()) && c.getType() == Kara.MUTE)) {
                 GuildConfig guildConfig = guildDao.get(guild);
