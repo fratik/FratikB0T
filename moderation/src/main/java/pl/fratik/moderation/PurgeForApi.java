@@ -52,29 +52,29 @@ class PurgeForApi {
         routes.get("/api/purge/{purgeId}", ex -> {
             Purge purge = purgeDao.get(Exchange.pathParams().pathParam(ex, "purgeId").orElse(""));
             if (purge == null) {
-                Exchange.body().sendJson(ex, new Exceptions.GenericException("Nie znaleziono purge z tym ID"), 404);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.INVALID_PURGE_ID);
                 return;
             }
             if (purge.getPrivacy() == PurgePrivacy.PERMLEVEL) {
                 String requester = Exchange.headers().getHeader(ex, "Requester-ID").orElse(null);
                 if (requester == null) {
-                    Exchange.body().sendJson(ex, new Exceptions.GenericException("Brak Requester-ID dla prywatnego purge"), 401);
+                    Exchange.body().sendErrorCode(ex, Exceptions.Codes.PURGE_NO_REQUESTER_ID);
                     return;
                 }
                 Member member;
                 try {
                     Guild g = shardManager.getGuildById(purge.getGuildId());
                     if (g == null) {
-                        Exchange.body().sendJson(ex, new Exceptions.NoGuild(), 400);
+                        Exchange.body().sendErrorCode(ex, Exceptions.Codes.INVALID_GUILD);
                         return;
                     }
                     member = g.retrieveMember(shardManager.retrieveUserById(requester).complete()).complete();
                 } catch (Exception e) {
-                    Exchange.body().sendJson(ex, new Exceptions.NoUser(), 400);
+                    Exchange.body().sendErrorCode(ex, Exceptions.Codes.INVALID_USER);
                     return;
                 }
                 if (UserUtil.getPermlevel(member, guildDao, shardManager).getNum() < purge.getMinPermLevel()) {
-                    Exchange.body().sendJson(ex, new Exceptions.GenericException("Brak uprawnień"), 403);
+                    Exchange.body().sendErrorCode(ex, Exceptions.Codes.UNAUTHORIZED, 401);
                     return;
                 }
             }
@@ -103,28 +103,28 @@ class PurgeForApi {
         routes.delete("/api/purge/{purgeId}", ex -> {
             Purge purge = purgeDao.get(Exchange.pathParams().pathParam(ex, "purgeId").orElse(""));
             if (purge == null) {
-                Exchange.body().sendJson(ex, new Exceptions.GenericException("Nie znaleziono purge z tym ID"), 404);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARM);
                 return;
             }
             String requester = Exchange.headers().getHeader(ex, "Requester-ID").orElse(null);
             if (requester == null) {
-                Exchange.body().sendJson(ex, new Exceptions.GenericException("Brak Requester-ID"), 401);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.PURGE_NO_REQUESTER_ID);
                 return;
             }
             Member member;
             try {
                 Guild g = shardManager.getGuildById(purge.getGuildId());
                 if (g == null) {
-                    Exchange.body().sendJson(ex, new Exceptions.NoGuild(), 400);
+                    Exchange.body().sendErrorCode(ex, Exceptions.Codes.INVALID_GUILD);
                     return;
                 }
                 member = g.retrieveMember(shardManager.retrieveUserById(requester).complete()).complete();
             } catch (Exception e) {
-                Exchange.body().sendJson(ex, new Exceptions.NoUser(), 400);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.INVALID_USER);
                 return;
             }
             if (UserUtil.getPermlevel(member, guildDao, shardManager).getNum() < PermLevel.ADMIN.getNum()) {
-                Exchange.body().sendJson(ex, new Exceptions.GenericException("Brak uprawnień"), 403);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.UNAUTHORIZED, 401);
                 return;
             }
             purge.setDeleted(true);
@@ -149,7 +149,7 @@ class PurgeForApi {
                 try {
                     purge.setMinPermLevel(PermLevel.getPermLevel(modifiedPurge.getMinPermLevel()).getNum());
                 } catch (Exception e) {
-                    Exchange.body().sendJson(ex, new Exceptions.GenericException("Nieprawidłowy permlevel"), 400);
+                    Exchange.body().sendErrorCode(ex, Exceptions.Codes.INVALID_PERM_LVL);
                 }
                 purgeDao.save(purge);
                 Exchange.body().sendJson(ex, new Successes.GenericSuccess(String.format("Pomyślnie ustawiono prywatność na perm level %s.", modifiedPurge.getMinPermLevel())));
@@ -160,13 +160,14 @@ class PurgeForApi {
                 try {
                     purge.setMinPermLevel(PermLevel.getPermLevel(modifiedPurge.getMinPermLevel()).getNum());
                 } catch (Exception e) {
-                    Exchange.body().sendJson(ex, new Exceptions.GenericException("Nieprawidłowy permlevel"), 400);
+                    Exchange.body().sendErrorCode(ex, Exceptions.Codes.INVALID_PERM_LVL);
+                    return;
                 }
                 purgeDao.save(purge);
                 Exchange.body().sendJson(ex, new Successes.GenericSuccess(String.format("Pomyślnie ustawiono prywatność na perm level %s.", modifiedPurge.getMinPermLevel())));
                 return;
             }
-            Exchange.body().sendJson(ex, new Exceptions.GenericException("Nie wykryto dozwolonych zmian"), 400);
+            Exchange.body().sendErrorCode(ex, Exceptions.Codes.UNKNOWN, 500);
         });
         routes.get("/api/purge/list", ex -> {
             String gId = Exchange.queryParams().queryParam(ex, "guildId").orElse("");
@@ -177,23 +178,23 @@ class PurgeForApi {
             }
             String requester = Exchange.headers().getHeader(ex, "Requester-ID").orElse(null);
             if (requester == null) {
-                Exchange.body().sendJson(ex, new Exceptions.GenericException("Brak Requester-ID"), 401);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.PURGE_NO_REQUESTER_ID);
                 return;
             }
             Member member;
             try {
                 Guild g = shardManager.getGuildById(gId);
                 if (g == null) {
-                    Exchange.body().sendJson(ex, new Exceptions.NoGuild(), 400);
+                    Exchange.body().sendErrorCode(ex, Exceptions.Codes.INVALID_GUILD);
                     return;
                 }
                 member = g.retrieveMember(shardManager.retrieveUserById(requester).complete()).complete();
             } catch (Exception e) {
-                Exchange.body().sendJson(ex, new Exceptions.NoUser(), 400);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.INVALID_USER);
                 return;
             }
             if (UserUtil.getPermlevel(member, guildDao, shardManager).getNum() < PermLevel.MOD.getNum()) {
-                Exchange.body().sendJson(ex, new Exceptions.GenericException("Brak uprawnień"), 403);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.UNAUTHORIZED, 401);
                 return;
             }
             try { //próbujemy uaktualnić obiekty użytkowników, jeżeli się nie powiedzie to trudno

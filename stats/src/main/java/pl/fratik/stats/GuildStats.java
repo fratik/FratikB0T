@@ -73,7 +73,7 @@ class GuildStats {
             boolean wszystkieDane = Exchange.queryParams().queryParamAsBoolean(ex, "wszystkieDane")
                     .orElse(false);
             if (guildId == null || guildId.isEmpty()) {
-                Exchange.body().sendJson(ex, new Exceptions.NoGuildParam(), 400);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARM);
                 return;
             }
             Guild guild = null;
@@ -81,7 +81,7 @@ class GuildStats {
                 guild = shardManager.getGuildById(guildId);
             } catch (Exception ignored) {/*lul*/}
             if (guild == null) {
-                Exchange.body().sendJson(ex, new Exceptions.NoGuild(), 400);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.INVALID_GUILD);
                 return;
             }
             List<MembersStats> mss = getAllMembersStatsFor(guildId);
