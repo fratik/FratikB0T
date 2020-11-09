@@ -69,7 +69,7 @@ class RundkaGa {
         routes.get("/api/rundka/{nr}/{userId}", ex -> {
             String userId = Exchange.pathParams().pathParam(ex, "userId").orElse("");
             if (userId.isEmpty()) {
-                Exchange.body().sendJson(ex, new Exceptions.NoUserParam(), 400);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARM);
                 return;
             }
             Integer nr;
@@ -79,13 +79,13 @@ class RundkaGa {
                 nr = null;
             }
             if (nr == null) {
-                Exchange.body().sendJson(ex, new Exceptions.GenericException("nieprawidłowy nr rundki"), 400);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.INVALID_RUNDKA_ID);
                 return;
             }
             Rundka rundka = rundkaDao.get(nr);
             RundkaOdpowiedzFull a = rundka.getZgloszenia().stream().filter(r -> r.getUserId().equals(userId)).findFirst().orElse(null);
             if (a == null) {
-                Exchange.body().sendJson(ex, new Exceptions.GenericException("nie znaleziono takiego zgłoszenia"), 404);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.UNKNOWN, 500);
                 return;
             }
             Exchange.body().sendJson(ex, a);
@@ -93,7 +93,7 @@ class RundkaGa {
         routes.post("/api/rundka", ex -> {
             synchronized (this) {
                 if (!RundkaCommand.isRundkaOn()) {
-                    Exchange.body().sendJson(ex, new Exceptions.GenericException("rundka nie jest w toku"), 400);
+                    Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_RUNDKA);
                     return;
                 }
                 RundkaOdpowiedzFull odp;
@@ -101,15 +101,15 @@ class RundkaGa {
                     odp = Exchange.body().parseJson(ex, new TypeReference<RundkaOdpowiedzFull>() {});
                     if (odp.getOceny() == null) odp.setOceny(new Oceny());
                 } catch (Exception e) {
-                    Exchange.body().sendJson(ex, new Exceptions.GenericException("podanie ma braki odpowiedzi"), 400);
+                    Exchange.body().sendErrorCode(ex, Exceptions.Codes.RUNDKA_NO_REPLY);
                     return;
                 }
                 if (odp.getRundka() != RundkaCommand.getNumerRundy()) {
-                    Exchange.body().sendJson(ex, new Exceptions.GenericException("nieprawidłowy numer rundy"), 400);
+                    Exchange.body().sendErrorCode(ex, Exceptions.Codes.INVALID_RUNDKA_ID);
                     return;
                 }
                 if (anyFieldNull(odp, new String[] {"messageid", "oceny"})) {
-                    Exchange.body().sendJson(ex, new Exceptions.GenericException("podanie ma braki odpowiedzi"), 400);
+                    Exchange.body().sendErrorCode(ex, Exceptions.Codes.RUNDKA_NO_REPLY);
                     return;
                 }
                 User user = shardManager.retrieveUserById(odp.getUserId()).complete();
@@ -118,7 +118,7 @@ class RundkaGa {
                 if (fdev == null) throw new NullPointerException("FDev null");
                 Member mem = fdev.getMember(user);
                 if (mem == null) {
-                    Exchange.body().sendJson(ex, new Exceptions.GenericException("nie jest na fdev"), 400);
+                    Exchange.body().sendJson(ex, Exceptions.Codes.getJson(Exceptions.Codes.NOT_IN_FDEV), 400);
                     return;
                 }
                 Rundka rundka = rundkaDao.get(odp.getRundka());

@@ -156,16 +156,16 @@ public class Module implements Modul {
         routes.get("/api/user", ex -> {
             String userId = Exchange.queryParams().queryParam(ex, "userId").orElse(null);
             if (userId == null || userId.isEmpty()) {
-                Exchange.body().sendJson(ex, new Exceptions.NoUserParam(), 400);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARM);
                 return;
             }
             try {
                 if (shardManager.retrieveUserById(userId).complete() == null) {
-                    Exchange.body().sendJson(ex, new Exceptions.NoUser(), 400);
+                    Exchange.body().sendErrorCode(ex, Exceptions.Codes.INVALID_USER);
                     return;
                 }
             } catch (Exception e) {
-                Exchange.body().sendJson(ex, new Exceptions.NoUser(), 400);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.INVALID_USER);
                 return;
             }
             User ussr = shardManager.retrieveUserById(userId).complete();
@@ -182,7 +182,7 @@ public class Module implements Modul {
             Optional<String> langTmp = Exchange.queryParams().queryParam(ex, "language");
             Language lang = null;
             if (!langTmp.isPresent()) {
-                Exchange.body().sendJson(ex, new Exceptions.NoLanguageException(), 400);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARM);
                 return;
             }
             for (Language l : Language.values()) {
@@ -190,7 +190,7 @@ public class Module implements Modul {
                 if (l.getShortName().equals(langTmp.get())) lang = l;
             }
             if (lang == null) {
-                Exchange.body().sendJson(ex, new Exceptions.InvalidLanguageException(), 400);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.INVALID_LANG);
                 return;
             }
             List<Komenda> komendy = new ArrayList<>();
@@ -221,7 +221,7 @@ public class Module implements Modul {
         routes.get("/api/{userId}/userconfig", ex -> {
             String userId = Exchange.pathParams().pathParam(ex, "userId").orElse(null);
             if (userId == null || userId.isEmpty()) {
-                Exchange.body().sendJson(ex, new Exceptions.NoGuildParam(), 400);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARM);
                 return;
             }
             User user;
@@ -231,7 +231,7 @@ public class Module implements Modul {
                 user = CommonUtil.supressException((Function<String, User>) id -> shardManager.retrieveUserById(id).complete(), userId);
             }
             if (user == null) {
-                Exchange.body().sendJson(ex, new Exceptions.NoUser(), 400);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.INVALID_USER);
                 return;
             }
             ex.getResponseHeaders().put(Headers.CONTENT_TYPE, "application/json");
@@ -241,7 +241,7 @@ public class Module implements Modul {
         routes.post("/api/{userId}/userconfig", ex -> {
             String userId = Exchange.pathParams().pathParam(ex, "userId").orElse(null);
             if (userId == null || userId.isEmpty()) {
-                Exchange.body().sendJson(ex, new Exceptions.NoUserParam(), 400);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARM);
                 return;
             }
             User user;
@@ -251,7 +251,7 @@ public class Module implements Modul {
                 user = CommonUtil.supressException((Function<String, User>) id -> shardManager.retrieveUserById(id).complete(), userId);
             }
             if (user == null) {
-                Exchange.body().sendJson(ex, new Exceptions.NoUser(), 400);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.INVALID_USER);
                 return;
             }
             UserConfig uc = userDao.get(user);
@@ -259,7 +259,7 @@ public class Module implements Modul {
             try {
                 merge(uc, parsed);
             } catch (Exception e) {
-                Exchange.body().sendJson(ex, new Exceptions.GenericException("nieprawidłowy format"));
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.INVALID_FORMAT);
             }
             userDao.save(uc);
             Exchange.body().sendJson(ex, new Successes.GenericSuccess("zapisano"));
@@ -267,7 +267,7 @@ public class Module implements Modul {
         routes.get("/api/{guildId}/config", ex -> {
             String guildId = Exchange.pathParams().pathParam(ex, "guildId").orElse(null);
             if (guildId == null || guildId.isEmpty()) {
-                Exchange.body().sendJson(ex, new Exceptions.NoGuildParam(), 400);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARM);
                 return;
             }
             Guild guild = null;
@@ -275,7 +275,7 @@ public class Module implements Modul {
                 guild = shardManager.getGuildById(guildId);
             } catch (Exception ignored) {/*lul*/}
             if (guild == null) {
-                Exchange.body().sendJson(ex, new Exceptions.NoGuild(), 400);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.INVALID_GUILD);
                 return;
             }
             ex.getResponseHeaders().put(Headers.CONTENT_TYPE, "application/json");
@@ -285,7 +285,7 @@ public class Module implements Modul {
         routes.post("/api/{guildId}/config", ex -> {
             String guildId = Exchange.pathParams().pathParam(ex, "guildId").orElse(null);
             if (guildId == null || guildId.isEmpty()) {
-                Exchange.body().sendJson(ex, new Exceptions.NoGuildParam(), 400);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARM);
                 return;
             }
             Guild guild = null;
@@ -293,7 +293,7 @@ public class Module implements Modul {
                 guild = shardManager.getGuildById(guildId);
             } catch (Exception ignored) {/*lul*/}
             if (guild == null) {
-                Exchange.body().sendJson(ex, new Exceptions.NoGuild(), 400);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.INVALID_GUILD);
                 return;
             }
             GuildConfig gc = guildDao.get(guild);
@@ -301,7 +301,7 @@ public class Module implements Modul {
             try {
                 merge(gc, parsed);
             } catch (Exception e) {
-                Exchange.body().sendJson(ex, new Exceptions.GenericException("nieprawidłowy format"));
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.INVALID_FORMAT);
             }
             guildDao.save(gc);
             Exchange.body().sendJson(ex, new Successes.GenericSuccess("zapisano"));
@@ -310,11 +310,11 @@ public class Module implements Modul {
             String guildId = Exchange.pathParams().pathParam(ex, "guildId").orElse(null);
             String userId = Exchange.pathParams().pathParam(ex, "userId").orElse(null);
             if (guildId == null || guildId.isEmpty()) {
-                Exchange.body().sendJson(ex, new Exceptions.NoGuildParam(), 400);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARM);
                 return;
             }
             if (userId == null || userId.isEmpty()) {
-                Exchange.body().sendJson(ex, new Exceptions.NoUserParam(), 400);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARM);
                 return;
             }
             Guild guild = null;
@@ -324,11 +324,11 @@ public class Module implements Modul {
                 user = shardManager.retrieveUserById(userId).complete();
             } catch (Exception ignored) {/*lul*/}
             if (guild == null) {
-                Exchange.body().sendJson(ex, new Exceptions.NoGuild(), 400);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.INVALID_GUILD);
                 return;
             }
             if (user == null) {
-                Exchange.body().sendJson(ex, new Exceptions.NoUser(), 400);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.INVALID_USER);
                 return;
             }
             if (guild.getMember(user) == null) { //przyjmujemy że admin (p.lvl. 5)
@@ -340,7 +340,7 @@ public class Module implements Modul {
         routes.get("/api/{guildId}/roles", ex -> {
             String guildId = Exchange.pathParams().pathParam(ex, "guildId").orElse(null);
             if (guildId == null || guildId.isEmpty()) {
-                Exchange.body().sendJson(ex, new Exceptions.NoGuildParam(), 400);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARM);
                 return;
             }
             Guild guild = null;
@@ -348,7 +348,7 @@ public class Module implements Modul {
                 guild = shardManager.getGuildById(guildId);
             } catch (Exception ignored) {/*lul*/}
             if (guild == null) {
-                Exchange.body().sendJson(ex, new Exceptions.NoGuild(), 400);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.INVALID_GUILD);
                 return;
             }
             List<pl.fratik.api.entity.Role> roles = new ArrayList<>();
@@ -361,7 +361,7 @@ public class Module implements Modul {
         routes.get("/api/{guildId}/channels", ex -> {
             String guildId = Exchange.pathParams().pathParam(ex, "guildId").orElse(null);
             if (guildId == null || guildId.isEmpty()) {
-                Exchange.body().sendJson(ex, new Exceptions.NoGuildParam(), 400);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARM);
                 return;
             }
             Guild guild = null;
@@ -369,7 +369,7 @@ public class Module implements Modul {
                 guild = shardManager.getGuildById(guildId);
             } catch (Exception ignored) {/*lul*/}
             if (guild == null) {
-                Exchange.body().sendJson(ex, new Exceptions.NoGuild(), 400);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.INVALID_GUILD);
                 return;
             }
             List<pl.fratik.api.entity.Channel> channels = new ArrayList<>();
@@ -382,7 +382,7 @@ public class Module implements Modul {
         routes.get("/api/{guildId}/owner", ex -> {
             String guildId = Exchange.pathParams().pathParam(ex, "guildId").orElse(null);
             if (guildId == null || guildId.isEmpty()) {
-                Exchange.body().sendJson(ex, new Exceptions.NoGuildParam(), 400);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARM);
                 return;
             }
             Guild guild = null;
@@ -390,7 +390,7 @@ public class Module implements Modul {
                 guild = shardManager.getGuildById(guildId);
             } catch (Exception ignored) {/*lul*/}
             if (guild == null) {
-                Exchange.body().sendJson(ex, new Exceptions.NoGuild(), 400);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.INVALID_GUILD);
                 return;
             }
             Member owner;
@@ -401,7 +401,7 @@ public class Module implements Modul {
                 else throw e;
             }
             if (owner == null) {
-                Exchange.body().sendJson(ex, new Exceptions.NoUser(), 400);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.INVALID_USER);
                 return;
             }
             Exchange.body().sendJson(ex, new pl.fratik.api.entity.User(owner.getUser(), shardManager));
@@ -410,15 +410,15 @@ public class Module implements Modul {
             String accessToken = Exchange.queryParams().queryParam(ex, "accessToken").orElse(null);
             String userId = Exchange.queryParams().queryParam(ex, "userId").orElse(null);
             if (userId == null || userId.isEmpty()) {
-                Exchange.body().sendJson(ex, new Exceptions.NoUserParam(), 400);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARM);
                 return;
             }
             if (shardManager.retrieveUserById(userId).complete() == null) {
-                Exchange.body().sendJson(ex, new Exceptions.NoUser(), 400);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.INVALID_USER);
                 return;
             }
             if (!Globals.inFratikDev) {
-                Exchange.body().sendJson(ex, new Exceptions.NotInFdev(), 400);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NOT_IN_FDEV);
                 return;
             }
             RestAction<Guild.Ban> banAction = Objects.requireNonNull(shardManager.getGuildById(Ustawienia.instance.botGuild))
@@ -431,23 +431,23 @@ public class Module implements Modul {
             } catch (ExecutionException e) {
                 if (!(e.getCause() instanceof ErrorResponseException)) {
                     LOGGER.error("Śmieszny błąd", e);
-                    Exchange.body().sendJson(ex, new Exceptions.GenericException("unknown error"), 500);
+                    Exchange.body().sendErrorCode(ex, Exceptions.Codes.UNKNOWN, 500);
                     return;
                 }
             } catch (Exception e) {
                 LOGGER.error("Śmieszny błąd", e);
-                Exchange.body().sendJson(ex, new Exceptions.GenericException("unknown error"), 500);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.UNKNOWN, 500);
                 return;
             }
             if (banne != null) {
-                Exchange.body().sendJson(ex, new Exceptions.GenericException("banned"), 403);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.BANNED);
                 return;
             }
             try {
                 Objects.requireNonNull(shardManager.getGuildById(Ustawienia.instance.botGuild))
                         .addMember(Objects.requireNonNull(accessToken), userId).complete();
             } catch (Exception e) {
-                Exchange.body().sendJson(ex, new Exceptions.GenericException("join error"), 500);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.JOIN);
                 return;
             }
             Exchange.body().sendJson(ex, new Successes.GenericSuccess(null));
@@ -502,7 +502,7 @@ public class Module implements Modul {
                 Exchange.body().sendJson(ex, hmap);
             } catch (Exception e) {
                 LOGGER.error("Nie udało się odczytać creditsów!", e);
-                Exchange.body().sendJson(ex, new Exceptions.GenericException("Internal server error"), 500);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.UNKNOWN, 500);
             }
         });
         Rundka rundka = rundkaDao.getAll().stream().filter(Rundka::isTrwa).findAny().orElse(null);
@@ -531,7 +531,7 @@ public class Module implements Modul {
             String userId = Exchange.queryParams().queryParam(exchange, "userId").orElse(null);
             if (userId == null || userId.isEmpty()) {
                 LOGGER.info("Websocket rundek {} nie podał ID użytkownika, zamykam", userId);
-                WebSockets.sendText(Json.serializer().toString(new Exceptions.NoUserParam()), channel, null);
+                WebSockets.sendText(Exceptions.Codes.getJson(Exceptions.Codes.NO_PARM), channel, null);
                 try {
                     channel.close();
                 } catch (IOException e) {
@@ -542,7 +542,7 @@ public class Module implements Modul {
             try {
                 if (shardManager.retrieveUserById(userId).complete() == null) {
                     LOGGER.info("Websocket rundek {} podał nieprawidłowe ID użytkownika, zamykam", userId);
-                    WebSockets.sendText(Json.serializer().toString(new Exceptions.NoUser()), channel, null);
+                    WebSockets.sendText(Exceptions.Codes.getJson(Exceptions.Codes.INVALID_USER), channel, null);
                     try {
                         channel.close();
                     } catch (IOException e) {
@@ -552,7 +552,7 @@ public class Module implements Modul {
                 }
             } catch (Exception e) {
                 LOGGER.info("Websocket rundek {} podał nieprawidłowe ID użytkownika, zamykam", userId);
-                WebSockets.sendText(Json.serializer().toString(new Exceptions.NoUser()), channel, null);
+                WebSockets.sendText(Exceptions.Codes.getJson(Exceptions.Codes.INVALID_USER), channel, null);
                 try {
                     channel.close();
                 } catch (IOException e1) {
@@ -563,7 +563,7 @@ public class Module implements Modul {
             if (!RundkaCommand.isRundkaOn()) {
                 LOGGER.info("{} próbował się zalogować do websocketa, ale rundki nie ma, zamykam",
                         channel.getSourceAddress().getHostString());
-                WebSockets.sendText(Json.serializer().toString(new Exceptions.NoRundka()), channel, null);
+                WebSockets.sendText(Exceptions.Codes.getJson(Exceptions.Codes.NO_RUNDKA), channel, null);
                 try {
                     channel.close();
                 } catch (IOException e) {
