@@ -19,6 +19,7 @@ package pl.fratik.api.internale;
 
 import io.undertow.server.HttpServerExchange;
 import io.undertow.util.Headers;
+import pl.fratik.api.entity.Exceptions;
 
 import java.nio.ByteBuffer;
 
@@ -33,4 +34,15 @@ public interface JsonSender {
         exchange.setStatusCode(code);
         exchange.getResponseSender().send(ByteBuffer.wrap(Json.serializer().toByteArray(obj)));
     }
+
+    default void sendErrorCode(HttpServerExchange exchange, Exceptions.Codes codes) {
+        sendErrorCode(exchange, codes, 400);
+    }
+
+    default void sendErrorCode(HttpServerExchange exchange, Exceptions.Codes codes, int code) {
+        exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, "application/json");
+        exchange.setStatusCode(code);
+        exchange.getResponseSender().send(Exceptions.Codes.getJson(codes));
+    }
+
 }

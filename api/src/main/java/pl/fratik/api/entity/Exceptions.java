@@ -17,38 +17,44 @@
 
 package pl.fratik.api.entity;
 
-@SuppressWarnings({"squid:S1068", "squid:S1170", "squid:S2166", "unused"})
+import lombok.Getter;
+
 public abstract class Exceptions {
-    private final boolean success = false;
-    @SuppressWarnings("FieldCanBeLocal")
-    public static class GenericException extends Exceptions {
-        private final String error;
-        public GenericException(String errorMessage) {
-            error = errorMessage;
+
+    public enum Codes {
+
+        UNKNOWN(1000),                  // Błąd nieznany
+        UNAUTHORIZED(1001),             // Brak permów
+
+        NO_PARM(1002),                  // Brakuje parametru(-ow) w requescie
+        NOT_IN_FDEV(1003),              // Bot nie na fdevie
+
+        INVALID_USER(1004),             // Zły użytkownik
+        INVALID_LANG(1005),             // Zły język
+        INVALID_FORMAT(1006),           // Zły format
+        INVALID_GUILD(1007),            // Zły serwer
+        INVALID_PERM_LVL(1008),         // Zły perm level
+
+        INVALID_RUNDKA_ID(1009),        // Złe ID rundki
+        RUNDKA_NO_REPLY(1010),          // Brak odpowiedzi w rundzie
+        NO_RUNDKA(10011),                // Nie ma żdanej aktywnej rundki
+
+        INVALID_PURGE_ID(1012),         // Złe ID purga
+        PURGE_NO_REQUESTER_ID(1013),    // Brak Requester-ID dla prywatnego purge
+
+        BANNED(1014),                   // Użytkownik jest zbanowany
+        JOIN(1015);                     // Błąd przy dołączaniu
+
+        @Getter private final int code;
+
+        Codes(int code) {
+            this.code = code;
         }
+
+        public static String getJson(Codes code) {
+            return String.format("{\"success\": false, \"code\": %s}", code.getCode());
+        }
+
     }
-    public static class NoLanguageException extends Exceptions {
-        private final String error = "nie ma parametru języka";
-    }
-    public static class InvalidLanguageException extends Exceptions {
-        private final String error = "nieprawidłowy język";
-    }
-    public static class NoGuildParam extends Exceptions {
-        private final String error = "nie podano serwera";
-    }
-    public static class NoGuild extends Exceptions {
-        private final String error = "nie znaleziono serwera";
-    }
-    public static class NoUserParam extends Exceptions {
-        private final String error = "nie podano użytkownika";
-    }
-    public static class NoUser extends Exceptions {
-        private final String error = "nie znaleziono użytkownika";
-    }
-    public static class NoRundka extends Exceptions {
-        private final String error = "żadna rundka nie jest w toku";
-    }
-    public static class NotInFdev extends Exceptions {
-        private final String error = "nie na fdev";
-    }
+
 }

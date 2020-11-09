@@ -42,7 +42,7 @@ public class CustomHandlers {
                     Ustawienia.instance.allowedIPs.contains(exchange.getSourceAddress().getAddress().getHostAddress())) {
                 next.handleRequest(exchange);
             } else {
-                Exchange.body().sendJson(exchange, new Exceptions.GenericException("Unauthorized"), 401);
+                Exchange.body().sendErrorCode(exchange, Exceptions.Codes.UNAUTHORIZED, 401);
             }
         };
     }
