@@ -85,7 +85,7 @@ class RundkaGa {
             Rundka rundka = rundkaDao.get(nr);
             RundkaOdpowiedzFull a = rundka.getZgloszenia().stream().filter(r -> r.getUserId().equals(userId)).findFirst().orElse(null);
             if (a == null) {
-                Exchange.body().sendErrorCode(ex, Exceptions.Codes.UNKNOWN, 500);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.UNKNOWN_ERROR, 500);
                 return;
             }
             Exchange.body().sendJson(ex, a);

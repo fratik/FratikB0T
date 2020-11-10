@@ -167,7 +167,7 @@ class PurgeForApi {
                 Exchange.body().sendJson(ex, new Successes.GenericSuccess(String.format("Pomyślnie ustawiono prywatność na perm level %s.", modifiedPurge.getMinPermLevel())));
                 return;
             }
-            Exchange.body().sendErrorCode(ex, Exceptions.Codes.UNKNOWN, 500);
+            Exchange.body().sendErrorCode(ex, Exceptions.Codes.UNKNOWN_ERROR, 500);
         });
         routes.get("/api/purge/list", ex -> {
             String gId = Exchange.queryParams().queryParam(ex, "guildId").orElse("");
