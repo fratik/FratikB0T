@@ -69,7 +69,7 @@ class RundkaGa {
         routes.get("/api/rundka/{nr}/{userId}", ex -> {
             String userId = Exchange.pathParams().pathParam(ex, "userId").orElse("");
             if (userId.isEmpty()) {
-                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARM);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARAM);
                 return;
             }
             Integer nr;

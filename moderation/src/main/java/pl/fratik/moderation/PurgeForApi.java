@@ -103,7 +103,7 @@ class PurgeForApi {
         routes.delete("/api/purge/{purgeId}", ex -> {
             Purge purge = purgeDao.get(Exchange.pathParams().pathParam(ex, "purgeId").orElse(""));
             if (purge == null) {
-                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARM);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARAM);
                 return;
             }
             String requester = Exchange.headers().getHeader(ex, "Requester-ID").orElse(null);

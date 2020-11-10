@@ -73,7 +73,7 @@ class GuildStats {
             boolean wszystkieDane = Exchange.queryParams().queryParamAsBoolean(ex, "wszystkieDane")
                     .orElse(false);
             if (guildId == null || guildId.isEmpty()) {
-                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARM);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARAM);
                 return;
             }
             Guild guild = null;

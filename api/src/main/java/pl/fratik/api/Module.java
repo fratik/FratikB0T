@@ -156,7 +156,7 @@ public class Module implements Modul {
         routes.get("/api/user", ex -> {
             String userId = Exchange.queryParams().queryParam(ex, "userId").orElse(null);
             if (userId == null || userId.isEmpty()) {
-                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARM);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARAM);
                 return;
             }
             try {
@@ -182,7 +182,7 @@ public class Module implements Modul {
             Optional<String> langTmp = Exchange.queryParams().queryParam(ex, "language");
             Language lang = null;
             if (!langTmp.isPresent()) {
-                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARM);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARAM);
                 return;
             }
             for (Language l : Language.values()) {
@@ -221,7 +221,7 @@ public class Module implements Modul {
         routes.get("/api/{userId}/userconfig", ex -> {
             String userId = Exchange.pathParams().pathParam(ex, "userId").orElse(null);
             if (userId == null || userId.isEmpty()) {
-                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARM);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARAM);
                 return;
             }
             User user;
@@ -241,7 +241,7 @@ public class Module implements Modul {
         routes.post("/api/{userId}/userconfig", ex -> {
             String userId = Exchange.pathParams().pathParam(ex, "userId").orElse(null);
             if (userId == null || userId.isEmpty()) {
-                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARM);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARAM);
                 return;
             }
             User user;
@@ -267,7 +267,7 @@ public class Module implements Modul {
         routes.get("/api/{guildId}/config", ex -> {
             String guildId = Exchange.pathParams().pathParam(ex, "guildId").orElse(null);
             if (guildId == null || guildId.isEmpty()) {
-                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARM);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARAM);
                 return;
             }
             Guild guild = null;
@@ -285,7 +285,7 @@ public class Module implements Modul {
         routes.post("/api/{guildId}/config", ex -> {
             String guildId = Exchange.pathParams().pathParam(ex, "guildId").orElse(null);
             if (guildId == null || guildId.isEmpty()) {
-                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARM);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARAM);
                 return;
             }
             Guild guild = null;
@@ -310,11 +310,11 @@ public class Module implements Modul {
             String guildId = Exchange.pathParams().pathParam(ex, "guildId").orElse(null);
             String userId = Exchange.pathParams().pathParam(ex, "userId").orElse(null);
             if (guildId == null || guildId.isEmpty()) {
-                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARM);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARAM);
                 return;
             }
             if (userId == null || userId.isEmpty()) {
-                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARM);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARAM);
                 return;
             }
             Guild guild = null;
@@ -340,7 +340,7 @@ public class Module implements Modul {
         routes.get("/api/{guildId}/roles", ex -> {
             String guildId = Exchange.pathParams().pathParam(ex, "guildId").orElse(null);
             if (guildId == null || guildId.isEmpty()) {
-                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARM);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARAM);
                 return;
             }
             Guild guild = null;
@@ -361,7 +361,7 @@ public class Module implements Modul {
         routes.get("/api/{guildId}/channels", ex -> {
             String guildId = Exchange.pathParams().pathParam(ex, "guildId").orElse(null);
             if (guildId == null || guildId.isEmpty()) {
-                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARM);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARAM);
                 return;
             }
             Guild guild = null;
@@ -382,7 +382,7 @@ public class Module implements Modul {
         routes.get("/api/{guildId}/owner", ex -> {
             String guildId = Exchange.pathParams().pathParam(ex, "guildId").orElse(null);
             if (guildId == null || guildId.isEmpty()) {
-                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARM);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARAM);
                 return;
             }
             Guild guild = null;
@@ -410,7 +410,7 @@ public class Module implements Modul {
             String accessToken = Exchange.queryParams().queryParam(ex, "accessToken").orElse(null);
             String userId = Exchange.queryParams().queryParam(ex, "userId").orElse(null);
             if (userId == null || userId.isEmpty()) {
-                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARM);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARAM);
                 return;
             }
             if (shardManager.retrieveUserById(userId).complete() == null) {
@@ -440,14 +440,14 @@ public class Module implements Modul {
                 return;
             }
             if (banne != null) {
-                Exchange.body().sendErrorCode(ex, Exceptions.Codes.BANNED);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.JOIN_BANNED);
                 return;
             }
             try {
                 Objects.requireNonNull(shardManager.getGuildById(Ustawienia.instance.botGuild))
                         .addMember(Objects.requireNonNull(accessToken), userId).complete();
             } catch (Exception e) {
-                Exchange.body().sendErrorCode(ex, Exceptions.Codes.JOIN);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.JOIN_ERROR);
                 return;
             }
             Exchange.body().sendJson(ex, new Successes.GenericSuccess(null));
@@ -531,7 +531,7 @@ public class Module implements Modul {
             String userId = Exchange.queryParams().queryParam(exchange, "userId").orElse(null);
             if (userId == null || userId.isEmpty()) {
                 LOGGER.info("Websocket rundek {} nie podał ID użytkownika, zamykam", userId);
-                WebSockets.sendText(Exceptions.Codes.getJson(Exceptions.Codes.NO_PARM), channel, null);
+                WebSockets.sendText(Exceptions.Codes.getJson(Exceptions.Codes.NO_PARAM), channel, null);
                 try {
                     channel.close();
                 } catch (IOException e) {
