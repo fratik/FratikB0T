@@ -431,12 +431,12 @@ public class Module implements Modul {
             } catch (ExecutionException e) {
                 if (!(e.getCause() instanceof ErrorResponseException)) {
                     LOGGER.error("Śmieszny błąd", e);
-                    Exchange.body().sendErrorCode(ex, Exceptions.Codes.UNKNOWN, 500);
+                    Exchange.body().sendErrorCode(ex, Exceptions.Codes.UNKNOWN_ERROR, 500);
                     return;
                 }
             } catch (Exception e) {
                 LOGGER.error("Śmieszny błąd", e);
-                Exchange.body().sendErrorCode(ex, Exceptions.Codes.UNKNOWN, 500);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.UNKNOWN_ERROR, 500);
                 return;
             }
             if (banne != null) {
@@ -502,7 +502,7 @@ public class Module implements Modul {
                 Exchange.body().sendJson(ex, hmap);
             } catch (Exception e) {
                 LOGGER.error("Nie udało się odczytać creditsów!", e);
-                Exchange.body().sendErrorCode(ex, Exceptions.Codes.UNKNOWN, 500);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.UNKNOWN_ERROR, 500);
             }
         });
         Rundka rundka = rundkaDao.getAll().stream().filter(Rundka::isTrwa).findAny().orElse(null);

@@ -41,7 +41,7 @@ public class ExceptionHandlers {
     public static void handleAllExceptions(HttpServerExchange exchange) {
         LoggerFactory.getLogger(ExceptionHandlers.class).error("Błąd w request'cie!",
                 exchange.getAttachment(ExceptionHandler.THROWABLE));
-        Exchange.body().sendErrorCode(exchange, Exceptions.Codes.UNKNOWN, 500);
+        Exchange.body().sendErrorCode(exchange, Exceptions.Codes.UNKNOWN_ERROR, 500);
     }
 
     public static void throwWebException(HttpServerExchange exchange) {

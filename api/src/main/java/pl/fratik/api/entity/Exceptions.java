@@ -23,9 +23,9 @@ public abstract class Exceptions {
 
     public enum Codes {
 
-        UNAUTHORIZED(401),             // Nie zalogowany
-        FORBIDDEN(403),                // Brak dostępu
-        UNKNOWN(500),                  // Nieznany błąd
+        UNAUTHORIZED(401),              // Nie zalogowany
+        FORBIDDEN(403),                 // Brak dostępu
+        UNKNOWN_ERROR(500),             // Nieznany błąd
 
         NO_PARAM(1002),                 // Brakuje parametru(-ow) w requescie
         NOT_IN_FDEV(1003),              // Bot nie na fdevie
