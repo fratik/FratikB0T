@@ -23,10 +23,11 @@ public abstract class Exceptions {
 
     public enum Codes {
 
-        UNKNOWN(1000),                  // Błąd nieznany
-        UNAUTHORIZED(1001),             // Brak permów
+        UNAUTHORIZED(401),             // Nie zalogowany
+        FORBIDDEN(403),                // Brak dostępu
+        UNKNOWN(500),                  // Nieznany błąd
 
-        NO_PARM(1002),                  // Brakuje parametru(-ow) w requescie
+        NO_PARAM(1002),                 // Brakuje parametru(-ow) w requescie
         NOT_IN_FDEV(1003),              // Bot nie na fdevie
 
         INVALID_USER(1004),             // Zły użytkownik
@@ -37,13 +38,13 @@ public abstract class Exceptions {
 
         INVALID_RUNDKA_ID(1009),        // Złe ID rundki
         RUNDKA_NO_REPLY(1010),          // Brak odpowiedzi w rundzie
-        NO_RUNDKA(10011),                // Nie ma żdanej aktywnej rundki
+        NO_RUNDKA(1011),                // Nie ma żadnej aktywnej rundki
 
         INVALID_PURGE_ID(1012),         // Złe ID purga
         PURGE_NO_REQUESTER_ID(1013),    // Brak Requester-ID dla prywatnego purge
 
-        BANNED(1014),                   // Użytkownik jest zbanowany
-        JOIN(1015);                     // Błąd przy dołączaniu
+        JOIN_BANNED(1014),              // Użytkownik jest zbanowany
+        JOIN_ERROR(1015);               // Błąd przy dołączaniu
 
         @Getter private final int code;
 
