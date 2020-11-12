@@ -49,10 +49,7 @@ import pl.fratik.core.event.CommandDispatchedEvent;
 import pl.fratik.core.manager.ManagerKomend;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
-import pl.fratik.core.util.CommonErrors;
-import pl.fratik.core.util.GuildUtil;
-import pl.fratik.core.util.StringUtil;
-import pl.fratik.core.util.UserUtil;
+import pl.fratik.core.util.*;
 
 import java.awt.*;
 import java.lang.reflect.Method;
@@ -217,6 +214,7 @@ public class ManagerKomendImpl implements ManagerKomend {
             if (content.toLowerCase().startsWith(prefix.toLowerCase())) {
                 content = content.trim().substring(prefix.length()).trim();
                 handleNormal(event, prefix, content, direct);
+                return;
             }
         }
 
@@ -227,6 +225,7 @@ public class ManagerKomendImpl implements ManagerKomend {
                 return;
             }
             handleNormal(event, prefixes.get(0), content, direct);
+            return;
         }
         if (content.startsWith("<@!" + event.getJDA().getSelfUser().getId() + ">")) {
             content = content.trim().substring(("<@!" + event.getJDA().getSelfUser().getId() + ">").length()).trim();
@@ -235,6 +234,12 @@ public class ManagerKomendImpl implements ManagerKomend {
                 return;
             }
             handleNormal(event, prefixes.get(0), content, direct);
+            return;
+        }
+        if (!direct && content.toLowerCase().startsWith(Ustawienia.instance.prefix.toLowerCase()) &&
+                CommonUtil.isPomoc(shardManager, event.getGuild())) {
+            content = content.trim().substring(Ustawienia.instance.prefix.length()).trim();
+            handleNormal(event, Ustawienia.instance.prefix, content, false);
         }
 
     }
