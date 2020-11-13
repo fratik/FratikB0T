@@ -237,7 +237,7 @@ public class ManagerKomendImpl implements ManagerKomend {
             return;
         }
         if (!direct && content.toLowerCase().startsWith(Ustawienia.instance.prefix.toLowerCase()) &&
-                CommonUtil.isPomoc(shardManager, event.getGuild())) {
+                CommonUtil.isPomoc(shardManager, event.getGuild()) && UserUtil.isStaff(event.getAuthor(), shardManager)) {
             content = content.trim().substring(Ustawienia.instance.prefix.length()).trim();
             handleNormal(event, Ustawienia.instance.prefix, content, false);
         }
