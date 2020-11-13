@@ -20,6 +20,8 @@ package pl.fratik.core.util;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageActivity;
+import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.sharding.ShardManager;
 import net.dv8tion.jda.internal.entities.AbstractMessage;
 import org.json.JSONObject;
 import org.slf4j.LoggerFactory;
@@ -204,5 +206,20 @@ public class CommonUtil {
             if (aliasy[0].isEmpty()) return cmd.getName();
             else return aliasy[0].trim();
         }
+    }
+
+    public static boolean isPomoc(ShardManager shardManager, Guild g) {
+        TextChannel kanal = Objects.requireNonNull(shardManager.getGuildById(Ustawienia.instance.botGuild))
+                .getTextChannelById(Ustawienia.instance.popChannel);
+        if (kanal == null) throw new NullPointerException("nieprawidłowy popChannel");
+        List<Message> wiads = kanal.getHistory().retrievePast(50).complete();
+        for (Message mess : wiads) {
+            if (mess.getEmbeds().isEmpty()) continue;
+            //noinspection ConstantConditions
+            String id = mess.getEmbeds().get(0).getFooter().getText().split(" \\| ")[1];
+            if (id.equals(g.getId())) {
+                return true;
+            }
+        } return false;
     }
 }

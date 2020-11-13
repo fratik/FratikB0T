@@ -39,10 +39,7 @@ import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.SilentExecutionFail;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
-import pl.fratik.core.util.CommonErrors;
-import pl.fratik.core.util.EventWaiter;
-import pl.fratik.core.util.MessageWaiter;
-import pl.fratik.core.util.UserUtil;
+import pl.fratik.core.util.*;
 
 import java.time.Instant;
 import java.util.List;
@@ -122,7 +119,7 @@ public class PopCommand extends Command {
             context.send(context.getTranslated("pop.inprogress"));
             return false;
         }
-        if (isPomoc(context.getGuild())) {
+        if (CommonUtil.isPomoc(shardManager, context.getGuild())) {
             context.send(context.getTranslated("pop.pomoc.isset"));
             if (UserUtil.isStaff(context.getMember(), shardManager)) {
                 TextChannel kanal = Objects.requireNonNull(shardManager.getGuildById(Ustawienia.instance.botGuild))
@@ -240,7 +237,7 @@ public class PopCommand extends Command {
         TextChannel logi = fdev.getTextChannelById(Ustawienia.instance.popLogChannel);
         if (logi == null) return; //nie możemy throw'nąć bo to mogło być podczas ładowania shard'ów
         if (!UserUtil.isGadm(e.getUser(), shardManager)) return;
-        if (!isPomoc(e.getGuild())) return;
+        if (!CommonUtil.isPomoc(shardManager, e.getGuild())) return;
         logi.sendMessage((String.format("%s(%s) dostał bana na serwerze %s[%s]. Czy nie należy się gban?",
                 UserUtil.formatDiscrim(e.getUser()), e.getUser().getId(),
                 e.getGuild().getName(), e.getGuild().getId()))).queue();
@@ -316,20 +313,5 @@ public class PopCommand extends Command {
             if (rola == null) return;
             rola.delete().queue();
         }
-    }
-
-    private boolean isPomoc(Guild g) {
-        TextChannel kanal = Objects.requireNonNull(shardManager.getGuildById(Ustawienia.instance.botGuild))
-                .getTextChannelById(Ustawienia.instance.popChannel);
-        if (kanal == null) throw new NullPointerException("nieprawidłowy popChannel");
-        List<Message> wiads = kanal.getHistory().retrievePast(50).complete();
-        for (Message mess : wiads) {
-            if (mess.getEmbeds().isEmpty()) continue;
-            //noinspection ConstantConditions
-            String id = mess.getEmbeds().get(0).getFooter().getText().split(" \\| ")[1];
-            if (id.equals(g.getId())) {
-                return true;
-            }
-        } return false;
     }
 }
