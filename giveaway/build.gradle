@@ -15,26 +15,24 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-rootProject.name = 'FratikB0T'
-include ':core'
-include ':commands'
-include ':arguments'
-include ':api'
-include ':punkty'
-include ':starboard'
-if(file('sdk').exists()){
-    include ':sdk'
-    apply from: 'sdk/settings.gradle'
+jar {
+    archiveName = "giveaway.jar"
+    destinationDir project.file('../plugins')
 }
-include ':moderation'
-include ':fratikcoiny'
-include ':music'
-include 'stats'
-include 'tags'
-include 'logs'
-include 'fdevstats'
-include 'dev'
-include 'liczek'
-include 'invite'
-include 'giveaway'
 
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+mainClassName = 'pl.fratik.giveaway.Module'
+
+build.dependsOn jar
+
+dependencies {
+    compile project(":arguments")
+    compile project(":core")
+}
+
+shadowJar {
+    manifest {
+        attributes 'Main-Class': 'pl.fratik.giveaway.Module'
+    }
+}

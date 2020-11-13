@@ -226,6 +226,7 @@ class FratikB0T {
                 ScheduleDao scheduleDao = new ScheduleDao(mbd, eventBus);
                 EventWaiter eventWaiter = new EventWaiter();
                 WebhookManager webhookManager = new WebhookManager(guildDao);
+                GiveawayDao giveawayDao = new GiveawayDao(mbd, eventBus);
                 while (shardManager.getShards().stream().noneMatch(s -> {
                     try {
                         s.getSelfUser();
@@ -274,7 +275,7 @@ class FratikB0T {
                         tlumaczenia, eventBus, redisCacheManager);
                 moduleManager = new ManagerModulowImpl(shardManager, mbd, guildDao, webhookManager, memberDao, userDao,
                         redisCacheManager, gbanDao, scheduleDao, managerKomend, managerArgumentow, eventWaiter,
-                        tlumaczenia, eventBus);
+                        tlumaczenia, eventBus, giveawayDao);
                 glownyService = new ServiceManager(ImmutableList.of(new FratikB0TService(shardManager, eventBus,
                         eventWaiter, tlumaczenia, managerKomend, mbd, guildDao, moduleManager, gbanDao)));
                 statusService = new ServiceManager(ImmutableList.of(new StatusService(shardManager)));

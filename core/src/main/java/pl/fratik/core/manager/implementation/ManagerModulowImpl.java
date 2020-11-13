@@ -92,12 +92,13 @@ public class ManagerModulowImpl implements ManagerModulow {
     private Graph<String> graph = null;
     private final RedisCacheManager redisCacheManager;
     private GbanDao gbanDao;
+    private GiveawayDao giveawayDao;
 
     public ManagerModulowImpl(ShardManager shardManager, ManagerBazyDanych managerBazyDanych, GuildDao guildDao,
                               WebhookManager webhookManager, MemberDao memberDao, UserDao userDao,
                               RedisCacheManager redisCacheManager, GbanDao gbanDao, ScheduleDao scheduleDao,
                               ManagerKomend managerKomend, ManagerArgumentow managerArgumentow,
-                              EventWaiter eventWaiter, Tlumaczenia tlumaczenia, EventBus eventBus) {
+                              EventWaiter eventWaiter, Tlumaczenia tlumaczenia, EventBus eventBus, GiveawayDao giveawayDao) {
         this.guildDao = guildDao;
         this.memberDao = memberDao;
         this.userDao = userDao;
@@ -115,6 +116,7 @@ public class ManagerModulowImpl implements ManagerModulow {
         this.eventWaiter = eventWaiter;
         this.eventBus = eventBus;
         this.webhookManager = webhookManager;
+        this.giveawayDao = giveawayDao;
 
         modules = new LinkedHashMap<>();
         classLoaders = new HashMap<>();
@@ -188,6 +190,7 @@ public class ManagerModulowImpl implements ManagerModulow {
                         bind(ManagerModulow.class).toInstance(ManagerModulowImpl.this);
                         bind(WebhookManager.class).toInstance(webhookManager);
                         bind(RedisCacheManager.class).toInstance(redisCacheManager);
+                        bind(GiveawayDao.class).toInstance(giveawayDao);
                     }
                 });
 

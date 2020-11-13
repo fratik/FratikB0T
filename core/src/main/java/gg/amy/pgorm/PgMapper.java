@@ -162,6 +162,22 @@ public class PgMapper<T> {
         return result.value;
     }
 
+    public List<T> loadWhere(String key, String value) {
+        final List<T> data = new ArrayList<>();
+        store.sql(String.format("SELECT * FROM %s WHERE data::jsonb @> '{\"%s\": %s}';", table.value(), key, value), c -> {
+            final ResultSet resultSet = c.executeQuery();
+            if(resultSet.isBeforeFirst()) {
+                resultSet.next();
+                try {
+                    data.add(loadFromResultSet(resultSet));
+                } catch(final IllegalStateException e) {
+                    logger.error("Load error:", e);
+                }
+            }
+        });
+        return data;
+    }
+
     /**
      * This is a slightly-weird thing, but it makes sense given the kind of
      * use-case I have. <p/>
