@@ -65,16 +65,4 @@ public class GiveawayConfig implements DatabaseEntity {
         return "giveaways";
     }
 
-    @Transient
-    @JsonIgnore
-    public String getDecodeGuild() {
-        return id.split("-")[1];
-    }
-
-    @Transient
-    @JsonIgnore
-    public String getDecodeId() {
-        return id.split("-")[0];
-    }
-
 }

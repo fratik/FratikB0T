@@ -69,7 +69,7 @@ public class GiveawayListener {
         try {
             txt = shardManager.getTextChannelById(entry.getChannelId());
             msg = txt.retrieveMessageById(entry.getMessageId()).complete();
-            g = shardManager.getGuildById(entry.getDecodeGuild());
+            g = shardManager.getGuildById(entry.getId().split("-")[1]);
             if (g == null) throw new Exception();
         } catch (Exception e) { // nie ma kanału/wiadomości/serwera to usuwamy z bazy
             giveawayDao.delete(entry.getId());
@@ -111,7 +111,7 @@ public class GiveawayListener {
         SimpleDateFormat sfd = new SimpleDateFormat("dd.MM.yyyy @ HH:mm:ss");
         EmbedBuilder eb = new EmbedBuilder();
 
-        eb.setFooter("ID: " + config.getDecodeId() + " | Ostatnia aktualizacja");
+        eb.setFooter("ID: " + config.getId().split("-")[0] + " | Ostatnia aktualizacja");
         eb.setTimestamp(Instant.now());
         eb.setTitle(TADA + " Konkurs");
         eb.addField("Nagroda", config.getPrize(), false);
