@@ -1,6 +1,6 @@
 {
   "name": "giveaway",
   "main": "pl.fratik.giveaway.Module",
-  "dependencies": ["core","arguments"],
+  "dependencies": ["arguments"],
   "coreVersion": "@core.version@"
 }
