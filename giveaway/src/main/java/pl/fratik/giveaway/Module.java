@@ -52,7 +52,7 @@ public class Module implements Modul {
         commands = new ArrayList<>();
         listener.setStartup(true);
         commands.add(new GiveawayCommand(eventWaiter, managerArgumentow, listener));
-
+        commands.forEach(managerKomend::registerCommand);
         return true;
     }
 
