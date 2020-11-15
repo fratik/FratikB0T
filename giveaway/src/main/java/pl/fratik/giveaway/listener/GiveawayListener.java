@@ -17,11 +17,13 @@
 
 package pl.fratik.giveaway.listener;
 
+import com.google.gson.Gson;
 import lombok.Getter;
 import lombok.Setter;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.sharding.ShardManager;
+import org.slf4j.LoggerFactory;
 import pl.fratik.core.entity.GiveawayConfig;
 import pl.fratik.core.entity.GiveawayDao;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
@@ -139,7 +141,8 @@ public class GiveawayListener {
     }
 
     public void create(GiveawayConfig config, Guild guild) {
-        config.setId(giveawayDao.getNextId(guild.getId()) + "");
+        LoggerFactory.getLogger(getClass()).debug(new Gson().toJson(config));
+        config.setId("1");
         config.setGuildId(guild.getId());
 
         try {

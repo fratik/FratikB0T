@@ -71,9 +71,8 @@ public class GiveawayDao implements Dao<GiveawayConfig> {
         eventBus.post(new DatabaseUpdateEvent(toCos));
     }
 
-    public int getNextId(String guildId) {
-        List<GiveawayConfig> schList = mapper.loadRaw("SELECT * FROM ? WHERE data@>> {\"guildId\": '?'}", mapper.getTableName(), guildId);
-        return schList.size() + 1;
+    public int getNextId() {
+        return getAll().size() + 1;
     }
 
 }

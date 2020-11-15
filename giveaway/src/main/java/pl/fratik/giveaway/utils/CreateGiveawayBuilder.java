@@ -17,10 +17,13 @@
 
 package pl.fratik.giveaway.utils;
 
+import com.google.gson.Gson;
 import lombok.Getter;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pl.fratik.core.entity.GiveawayConfig;
 import pl.fratik.core.manager.ManagerArgumentow;
 import pl.fratik.core.tlumaczenia.Language;
@@ -36,13 +39,15 @@ import java.util.concurrent.TimeUnit;
 
 public class CreateGiveawayBuilder {
 
+    private final Logger logger = LoggerFactory.getLogger(getClass());;
+
     private final EventWaiter eventWaiter;
     private final Tlumaczenia tlumaczenia;
     private final Language language;
     private final ManagerArgumentow managerArgumentow;
     private final GiveawayListener giveawayListener;
 
-    private GiveawayConfig config = new GiveawayConfig();
+    private GiveawayConfig config = new GiveawayConfig("0");
 
     String userId;
 
@@ -72,6 +77,7 @@ public class CreateGiveawayBuilder {
     private void waitForMessage() {
         Progress nextStep = progress.poll();
         if (nextStep == null) {
+            logger.debug(new Gson().toJson(config));
             giveawayListener.create(config, channel.getGuild());
             return;
         }
@@ -87,7 +93,7 @@ public class CreateGiveawayBuilder {
     }
 
     private void handle(MessageReceivedEvent e, Progress nextStep) {
-        String msg = e.getMessage().getContentDisplay();
+        String msg = e.getMessage().getContentRaw();
         if (msg.isEmpty() || nextStep == null) {
             clear(false);
             return;
@@ -100,12 +106,14 @@ public class CreateGiveawayBuilder {
                     return;
                 }
                 config.setChannelId(txt.getId());
+                break;
             case PRIZE:
                 if (msg.length() > 1000) {
                     clear(false);
                     return;
                 }
                 config.setPrize(msg);
+                break;
             case TIME:
                 try {
                     DurationUtil.Response durationResp = DurationUtil.parseDuration(msg);
@@ -114,6 +122,7 @@ public class CreateGiveawayBuilder {
                     clear(false);
                     return;
                 }
+                break;
             case MEMBERS:
                 try {
                     int i = Integer.parseInt(msg);
