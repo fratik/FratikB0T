@@ -22,7 +22,6 @@ import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.utils.MarkdownSanitizer;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.Ustawienia;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
@@ -33,11 +32,11 @@ import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.UserUtil;
 
 import java.awt.*;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Random;
+
+import static pl.fratik.core.util.CommonUtil.generateProgressBar;
 
 public class ShipCommand extends Command {
 
@@ -45,8 +44,6 @@ public class ShipCommand extends Command {
 
     private static final String HEART1 = "\u2764\uFE0F";
     private static final String HEART2 = "\uD83D\uDC9F\uFE0F";
-    private static final String BLOCK = "\u2589\uFE0F";
-
     private static final long SEED_DATE = Instant.now().toEpochMilli();
 
     public ShipCommand(ManagerArgumentow managerArgumentow) {
@@ -125,39 +122,16 @@ public class ShipCommand extends Command {
 
         int procent = calc(rzecz1 + "x" + rzecz2);
 
-        int niebieskie = round(procent);
-        int biale = 10;
-        if (niebieskie != 10) {
-            biale -= niebieskie;
-        } else biale = 0;
-
-        String text = getText(niebieskie, context.getTlumaczenia(), context.getLanguage());
+        String text = getText(procent / 10, context.getTlumaczenia(), context.getLanguage());
         if (procent == 69) text = context.getTranslated("ship.percent.69");
 
         desc.append(shipFormat);
 
-        String loadingScreen = "[%s](%s)%s %s%%\n%s";
-        desc.append(String.format(loadingScreen,
-                append(niebieskie),
-                Ustawienia.instance.botUrl,
-                append(biale),
-                procent, text));
+        String loadingScreen = "%s\n%s";
+        desc.append(String.format(loadingScreen, generateProgressBar(procent, true), text));
         eb.setDescription(desc);
         context.send(eb.build());
         return true;
-    }
-
-    private String append(int ii) {
-        if (ii == 0) return "";
-        StringBuilder s2 = new StringBuilder();
-        for (int i = 1; i < ii; i++) { s2.append(ShipCommand.BLOCK); }
-        return ShipCommand.BLOCK + s2;
-    }
-
-    private int round(double d) {
-        BigDecimal bd = BigDecimal.valueOf(d);
-        bd = bd.setScale(-1, RoundingMode.HALF_UP);
-        return (int) bd.doubleValue() / 10;
     }
 
     private String getText(int procent, Tlumaczenia tlumaczenia, Language lang) {

@@ -56,6 +56,7 @@ public class CommonUtil {
     public static final Pattern ID_REGEX = Pattern.compile("\\d{17,18}");
     private static final Pattern IMAGE_PATTERN = Pattern.compile("[(http(s)?)://(www\\.)?a-zA-Z0-9@:-]{2,256}" +
             "\\.[a-z]{2,24}\\b([-a-zA-Z0-9@:%_\\+.~#?&//=]*\\.(a?png|jpe?g|gif|webp|tiff|svg))", Pattern.CASE_INSENSITIVE);
+    private static final String BLOCK = "\u2589\uFE0F";
 
     public static boolean checkCooldown(Map<Guild, Long> cooldowns, CommandContext context, long time) {
         if (cooldowns != null) {
@@ -221,5 +222,24 @@ public class CommonUtil {
                 return true;
             }
         } return false;
+    }
+
+    private static String append(int ii) {
+        if (ii == 0) return "";
+        StringBuilder s2 = new StringBuilder();
+        for (int i = 1; i < ii; i++) { s2.append(BLOCK); }
+        return BLOCK + s2;
+    }
+
+    public static String generateProgressBar(int procent, boolean showPrecentage) {
+        int niebieskie = (int) (CommonUtil.round(procent, -1, RoundingMode.HALF_UP) / 10);
+        int biale = 10;
+        if (niebieskie != 10) {
+            biale -= niebieskie;
+        } else biale = 0;
+        String format = "[%s](%s)%s";
+        if (showPrecentage) format += " %s%%";
+        if (!showPrecentage) return String.format(format, append(niebieskie), Ustawienia.instance.botUrl, append(biale));
+        else return String.format(format, append(niebieskie), Ustawienia.instance.botUrl, append(biale), procent);
     }
 }

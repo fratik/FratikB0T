@@ -25,7 +25,10 @@ import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.entity.Uzycie;
+import pl.fratik.core.util.CommonUtil;
 import pl.fratik.punkty.LicznikPunktow;
+
+import java.math.RoundingMode;
 
 public class StatsCommand extends Command {
     private final LicznikPunktow licznik;
@@ -55,8 +58,19 @@ public class StatsCommand extends Command {
                 .getEffectiveAvatarUrl().replace(".webp", ".png"));
         eb.setTitle(context.getTranslated("stats.embed.title"));
         eb.setDescription(context.getTranslated("stats.embed.description"));
-        eb.addField(context.getTranslated("stats.embed.points"), String.valueOf(LicznikPunktow.getPunkty(mem)), false);
-        eb.addField(context.getTranslated("stats.embed.level"), String.valueOf(LicznikPunktow.getLvl(mem)), false);
+        int punkty = LicznikPunktow.getPunkty(mem);
+        eb.addField(context.getTranslated("stats.embed.points"), String.valueOf(punkty), false);
+        int level = LicznikPunktow.getLvl(mem);
+        eb.addField(context.getTranslated("stats.embed.level"), String.valueOf(level), false);
+        String progress = "%s\n\n%s %s/%s";
+        double curLvlPunkty = (Math.pow(level, 2) * 100) / 4;
+        double nextLvlPunkty = (Math.pow(level + 1, 2) * 100) / 4;
+        double current = punkty - curLvlPunkty; //aktualna liczba punktów - ilość punktów na aktualny poziom
+        double target = nextLvlPunkty - curLvlPunkty; //ilość punktów na (akt. poziom + 1) - ilość pkt. na akt. poziom
+        progress = String.format(progress, context.getTranslated("stats.progress.text", (int) (nextLvlPunkty - punkty)),
+                CommonUtil.generateProgressBar((int) (CommonUtil.round(((current / target) * 100), 0,
+                        RoundingMode.HALF_UP)), true), (int) current, (int) target);
+        eb.addField(context.getTranslated("stats.embed.progress"), progress, false);
         context.send(eb.build());
         return true;
     }
