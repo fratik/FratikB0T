@@ -58,7 +58,7 @@ public class UnloadCommand extends Command {
         String pytajnik = "\u2753";
         eb.appendDescription(pytajnik + SPMO + "\n");
         eb.appendDescription(pytajnik + UNLOAD + "\n");
-        Message msg = context.getMessageChannel().sendMessage(eb.build()).complete();
+        Message msg = context.reply(eb.build());
         if (!managerModulow.isLoaded((String) context.getArgs()[0])) {
             eb.setDescription(eb.getDescriptionBuilder().toString().replace(pytajnik + SPMO,
                     rtick.getAsMention() + SPMO + ": moduł nie jest wczytany"));

@@ -53,9 +53,9 @@ public class KasaCommand extends Command {
         Emote e = context.getShardManager().getEmoteById(Ustawienia.instance.emotki.fratikCoin);
         if (e == null) throw new IllegalStateException("eMoTkA jEsT nUlL");
         if (m.equals(context.getMember()))
-            context.send(context.getTranslated("kasa.success.self", String.valueOf(mc.getFratikCoiny()), e.getAsMention()));
+            context.reply(context.getTranslated("kasa.success.self", String.valueOf(mc.getFratikCoiny()), e.getAsMention()));
         else
-            context.send(context.getTranslated("kasa.success.other", m.getUser().getAsTag(),
+            context.reply(context.getTranslated("kasa.success.other", m.getUser().getAsTag(),
                     String.valueOf(mc.getFratikCoiny()), e.getAsMention()));
         return true;
     }

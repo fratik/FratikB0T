@@ -31,7 +31,7 @@ public class DonateCommand extends Command {
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
-        context.send(context.getTranslated("donate.plz"));
+        context.reply(context.getTranslated("donate.plz"));
         return true;
     }
 }

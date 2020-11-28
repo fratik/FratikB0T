@@ -61,12 +61,12 @@ public class QueueCommand extends MusicCommand {
     public boolean execute(@NotNull CommandContext context) {
         ManagerMuzykiSerwera mms = managerMuzyki.getManagerMuzykiSerwera(context.getGuild());
         if (mms == null || (mms.getKolejka().isEmpty() && mms.getAktualnaPiosenka() == null)) {
-            context.send(context.getTranslated("queue.empty"));
+            context.reply(context.getTranslated("queue.empty"));
             return false;
         }
         if (Stream.of(Permission.MESSAGE_ADD_REACTION, Permission.MESSAGE_MANAGE, Permission.MESSAGE_EMBED_LINKS)
                 .allMatch(a -> context.getGuild().getSelfMember().getPermissions(context.getTextChannel()).contains(a))) {
-            Message m = context.getTextChannel().sendMessage(context.getTranslated("generic.loading")).complete();
+            Message m = context.reply(context.getTranslated("generic.loading"));
             List<FutureTask<EmbedBuilder>> pages = new ArrayList<>();
             pages.add(new FutureTask<>(() -> generateEmbed(mms.getAktualnaPiosenka(), context)));
             for (Piosenka piosenka : mms.getKolejka()) {
@@ -104,7 +104,7 @@ public class QueueCommand extends MusicCommand {
                         .append(")\n");
                 if (i + 1 < Math.min(mms.getKolejka().size(), 10)) sb.append("\n");
             }
-            context.send(sb.toString());
+            context.reply(sb.toString());
         }
         return true;
     }

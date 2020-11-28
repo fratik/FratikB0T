@@ -250,10 +250,10 @@ public class ManagerKomendImpl implements ManagerKomend {
             return;
         }
         if (prefixes.size() == 1) event.getChannel().sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(event.getMember()),
-                "generic.prefix.reminder", prefixes.get(0).replaceAll("`", "`\u200b"))).queue();
+                "generic.prefix.reminder", prefixes.get(0).replaceAll("`", "`\u200b"))).reference(event.getMessage()).queue();
         else event.getChannel().sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(event.getMember()),
                 "generic.prefix.reminder.multiple", prefixes.stream().map(p->p.replaceAll("`",
-                        "\u200b`\u200b")).collect(Collectors.joining("\n")))).queue();
+                        "\u200b`\u200b")).collect(Collectors.joining("\n")))).reference(event.getMessage()).queue();
     }
 
     private void handleNormal(MessageReceivedEvent event, String prefix, String content, boolean direct) {
@@ -272,7 +272,7 @@ public class ManagerKomendImpl implements ManagerKomend {
                 int cooldown = isOnCooldown(event.getAuthor(), c);
                 if (cooldown > 0) {
                     event.getChannel().sendMessage(tlumaczenia.get(l, "generic.cooldown", String.valueOf(cooldown)))
-                            .queue();
+                            .reference(event.getMessage()).queue();
                     return;
                 }
 
@@ -295,7 +295,7 @@ public class ManagerKomendImpl implements ManagerKomend {
                 final PermLevel permLevel = customPlvl == null ? c.getPermLevel() : customPlvl;
                 if (permLevel.getNum() > plvl.getNum()) {
                     event.getChannel().sendMessage(tlumaczenia.get(l, "generic.permlevel.too.small",
-                            plvl.getNum(), permLevel.getNum())).queue();
+                            plvl.getNum(), permLevel.getNum())).reference(event.getMessage()).queue();
                     return;
                 }
 
@@ -314,13 +314,13 @@ public class ManagerKomendImpl implements ManagerKomend {
                             .setFooter("© " + event.getJDA().getSelfUser().getName(),
                                     event.getJDA().getSelfUser().getEffectiveAvatarUrl()
                                             .replace(".webp", ".png"));
-                    CommonErrors.usage(eb, tlumaczenia, l, prefix, c, event.getChannel(), customPlvl);
+                    CommonErrors.usage(eb, tlumaczenia, l, prefix, c, event.getChannel(), customPlvl, event.getMessage());
                     return;
                 }
 
                 if (!direct && gcCache.get(event.getGuild().getId(), guildDao::get).getDisabledCommands()
                         .contains(c.getName())) {
-                    context.send(context.getTranslated("generic.disabled"));
+                    context.reply(context.getTranslated("generic.disabled"));
                     zareaguj(context, false);
                     return;
                 }
@@ -338,14 +338,14 @@ public class ManagerKomendImpl implements ManagerKomend {
                     String issuerString = issuer == null ? "N/a???" : UserUtil.formatDiscrim(issuer);
                     if (!issuerString.equals(gdata.getName())) issuerString = context.getTranslated("gbanlist.different.name",
                             issuer == null ? "N/a???" : UserUtil.formatDiscrim(issuer), gdata.getIssuer());
-                    context.send(context.getTranslated("generic.gban", issuerString, gdata.getReason()));
+                    context.reply(context.getTranslated("generic.gban", issuerString, gdata.getReason()));
                     zareaguj(context, false);
                     return;
                 }
 
                 if (!direct && GuildUtil.isGbanned(context.getGuild())) {
                     GbanData gdata = GuildUtil.getGbanData(context.getGuild());
-                    context.send(context.getTranslated("generic.gban.guild", gdata.getIssuer(), gdata.getReason()));
+                    context.reply(context.getTranslated("generic.gban.guild", gdata.getIssuer(), gdata.getReason()));
                     zareaguj(context, false);
                     return;
                 }

@@ -60,13 +60,13 @@ public class StarcatchCommand extends Command {
                             "&cutMode=" + cutMode + "&extended=" + extended,
                     Ustawienia.instance.apiKeys.get("image-server"));
             if (zdjecie == null || !zdjecie.getBoolean("success")) {
-                context.send(context.getTranslated("image.server.fail"));
+                context.reply(context.getTranslated("image.server.fail"));
                 return false;
             }
             byte[] img = NetworkUtil.getBytesFromBufferArray(zdjecie.getJSONObject("image").getJSONArray("data"));
-            context.getMessageChannel().sendFile(img, "starcatch.png").queue();
+            context.getMessageChannel().sendFile(img, "starcatch.png").reference(context.getMessage()).queue();
         } catch (IOException | NullPointerException e) {
-            context.send(context.getTranslated("image.server.fail"));
+            context.reply(context.getTranslated("image.server.fail"));
         }
         return true;
     }

@@ -44,14 +44,14 @@ public class DeleteTagCommand extends Command {
         String tagName = (String) context.getArgs()[0];
         Tags tags = tagsDao.get(context.getGuild().getId());
         if (tags.getTagi().stream().noneMatch(t -> t.getName().equalsIgnoreCase(tagName))) {
-            context.send(context.getTranslated("deletetag.doesnt.exist"));
+            context.reply(context.getTranslated("deletetag.doesnt.exist"));
             return false;
         }
         Tag tag = tags.getTagi().stream().filter(t -> t.getName().equalsIgnoreCase(tagName)).findFirst()
                 .orElseThrow(IllegalStateException::new);
         tags.getTagi().remove(tag);
         tagsDao.save(tags);
-        context.send(context.getTranslated("deletetag.success"));
+        context.reply(context.getTranslated("deletetag.success"));
         return true;
     }
 }

@@ -103,7 +103,7 @@ public class McstatusCommand extends Command {
                     eb.setFooter(ms.getLatency() + " ms", null);
                     MessageChannel ch = context.getMessageChannel();
                     Route.CompiledRoute route = Route.Messages.SEND_MESSAGE.compile(ch.getId());
-                    return new MesydzAkszyn("ten gorszy", ch.getJDA(), route, ch).embed(eb.build());
+                    return new MesydzAkszyn("ten gorszy", ch.getJDA(), route, ch).reference(context.getMessage()).embed(eb.build());
                 } catch (Exception e) {
                     return null;
                 }
@@ -136,7 +136,7 @@ public class McstatusCommand extends Command {
                     eb.setFooter(resp.getTime() + " ms", null);
                     MessageChannel ch = context.getMessageChannel();
                     Route.CompiledRoute route = Route.Messages.SEND_MESSAGE.compile(ch.getId());
-                    MesydzAkszyn ma = new MesydzAkszyn("ten lepszy", ch.getJDA(), route, ch);
+                    MesydzAkszyn ma = new MesydzAkszyn("ten lepszy", ch.getJDA(), route, ch).reference(context.getMessage());
                     eb.setThumbnail("https://eu.mc-api.net/v3/server/favicon/" + ip + ":" + port);
                     ma = ma.embed(eb.build());
                     return ma;
@@ -158,7 +158,7 @@ public class McstatusCommand extends Command {
                 MessageAction ma1 = me.editMessage(f.get().getEmbed()).override(true);
                 if (f.get().getFiles() != null && !f.get().getFiles().isEmpty()) {
                     me.delete().queue();
-                    ma1 = me.getTextChannel().sendMessage(f.get().getEmbed());
+                    ma1 = me.getTextChannel().sendMessage(f.get().getEmbed()).reference(context.getMessage());
                     for (Map.Entry<String, InputStream> file : f.get().getFiles().entrySet()) {
                         ma1 = ma1.addFile(file.getValue(), file.getKey());
                     }
@@ -173,7 +173,7 @@ public class McstatusCommand extends Command {
             if (executor != null) {
                 executor.shutdown();
             }
-            context.send(context.getTranslated("mcstatus.offline"));
+            context.reply(context.getTranslated("mcstatus.offline"));
             return false;
         }
     }
@@ -308,6 +308,14 @@ public class McstatusCommand extends Command {
         public MesydzAkszyn embed(MessageEmbed embed) {
             //noinspection ResultOfMethodCallIgnored
             super.embed(embed);
+            return this;
+        }
+
+        @NotNull
+        @Override
+        public MesydzAkszyn reference(@NotNull Message message) {
+            //noinspection ResultOfMethodCallIgnored
+            super.reference(message);
             return this;
         }
 

@@ -47,14 +47,14 @@ public class AchievementCommand extends Command {
         int rnd = RANDOM.nextInt(39) + 1;
 
         if (((String) context.getArgs()[0]).length() > 22) {
-            context.send(context.getTranslated("achievement.maxsize"));
+            context.reply(context.getTranslated("achievement.maxsize"));
             return false;
         }
         String url ="https://www.minecraftskinstealer.com/achievement/a.php?i=" + rnd + "&h=" + NetworkUtil.encodeURIComponent(context.getTranslated("achievement.msg")) + "&t=" + NetworkUtil.encodeURIComponent((String) context.getArgs()[0]);
         try {
-            context.getMessageChannel().sendFile(NetworkUtil.download(url), "achievement.png").queue();
+            context.getMessageChannel().sendFile(NetworkUtil.download(url), "achievement.png").reference(context.getMessage()).queue();
         } catch (IOException e) {
-            context.send(context.getTranslated("image.server.fail"));
+            context.reply(context.getTranslated("image.server.fail"));
         }
         return true;
     }

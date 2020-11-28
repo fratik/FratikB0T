@@ -82,7 +82,7 @@ public class EvalCommand extends Command {
         ebStart.setColor(Color.YELLOW);
         ebStart.addField("\ud83d\udce4 INPUT", codeBlock("js", (String) context.getArgs()[0]), false);
         ebStart.addField("\ud83d\udce5 OUPTUT", "Oczekiwanie...", false);
-        Message message = context.send(ebStart.build());
+        Message message = context.reply(ebStart.build());
         try {
             Context ctx = Context.enter();
             ctx.setLanguageVersion(Context.VERSION_ES6);

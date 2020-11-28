@@ -74,7 +74,7 @@ public class AdministratorzyCommand extends Command {
         eb.addField(formatFieldTitle(PermLevel.MANAGESERVERPERMS, context), formatFieldContent(manageServerRoles, context), false);
         eb.addField(formatFieldTitle(PermLevel.ADMIN, context), formatFieldContent(adminRoles, context), false);
         eb.addField(formatFieldTitle(PermLevel.MOD, context), formatFieldContent(modRoles, context), false);
-        context.send(eb.build());
+        context.reply(eb.build());
         return true;
     }
 

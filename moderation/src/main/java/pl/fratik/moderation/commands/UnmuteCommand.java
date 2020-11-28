@@ -61,15 +61,15 @@ public class UnmuteCommand extends ModerationCommand {
                     .map(e -> e == null ? "" : e).map(Objects::toString).collect(Collectors.joining(uzycieDelim));
         else powod = context.getTranslated("unmute.reason.default");
         if (uzytkownik.equals(context.getMember())) {
-            context.send(context.getTranslated("unmute.cant.unmute.yourself"));
+            context.reply(context.getTranslated("unmute.cant.unmute.yourself"));
             return false;
         }
         if (uzytkownik.isOwner()) {
-            context.send(context.getTranslated("unmute.cant.unmute.owner"));
+            context.reply(context.getTranslated("unmute.cant.unmute.owner"));
             return false;
         }
         if (!context.getMember().canInteract(uzytkownik)) {
-            context.send(context.getTranslated("unmute.cant.interact"));
+            context.reply(context.getTranslated("unmute.cant.interact"));
             return false;
         }
         try {
@@ -84,11 +84,11 @@ public class UnmuteCommand extends ModerationCommand {
             }
         }
         if (rola == null) {
-            context.send(context.getTranslated("unmute.no.mute.role"));
+            context.reply(context.getTranslated("unmute.no.mute.role"));
             return false;
         }
         if (!uzytkownik.getRoles().contains(rola)) {
-            context.send(context.getTranslated("unmute.not.muted"));
+            context.reply(context.getTranslated("unmute.not.muted"));
             return false;
         }
         Case aCase = new CaseBuilder().setUser(uzytkownik.getUser()).setGuild(context.getGuild())
@@ -101,11 +101,11 @@ public class UnmuteCommand extends ModerationCommand {
         ModLogListener.getKnownCases().put(context.getGuild(), caseList);
         try {
             context.getGuild().removeRoleFromMember(uzytkownik, rola).complete();
-            context.send(context.getTranslated("unmute.success", UserUtil.formatDiscrim(uzytkownik)));
+            context.reply(context.getTranslated("unmute.success", UserUtil.formatDiscrim(uzytkownik)));
         } catch (Exception ignored) {
             caseList.remove(aCase);
             ModLogListener.getKnownCases().put(context.getGuild(), caseList);
-            context.send(context.getTranslated("unmute.fail"));
+            context.reply(context.getTranslated("unmute.fail"));
         }
         return true;
     }

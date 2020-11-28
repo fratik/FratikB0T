@@ -52,7 +52,7 @@ public class GlobalstatyCommand extends Command {
         punkty.forEach((idSerwera, ilosc) -> atomicInteger.getAndAdd(ilosc));
         eb.addField(context.getTranslated("globalstaty.embed.points"), String.valueOf(atomicInteger.intValue()), false);
         eb.setTimestamp(Instant.now());
-        context.send(eb.build());
+        context.reply(eb.build());
         return true;
     }
 }

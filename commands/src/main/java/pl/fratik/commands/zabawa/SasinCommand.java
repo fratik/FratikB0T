@@ -47,7 +47,7 @@ public class SasinCommand extends Command {
         String sasinyStr;
         if (sasiny.intValue() == sasiny.doubleValue()) sasinyStr = String.valueOf(sasiny.intValue());
         else sasinyStr = sasiny.toPlainString();
-        context.send(context.getTranslated("sasin.result", liczba, sasinyStr));
+        context.reply(context.getTranslated("sasin.result", liczba, sasinyStr));
         return true;
     }
 }

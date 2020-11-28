@@ -54,7 +54,7 @@ public class ChooseCommand extends Command {
             return false;
         }
         String odp = (String) odpowiedzi[random.nextInt(odpowiedzi.length)];
-        context.send(context.getTranslated("choose.choosing", "\uD83E\uDD14", StringUtil.escapeMarkdown(odp.trim())));
+        context.reply(context.getTranslated("choose.choosing", "\uD83E\uDD14", StringUtil.escapeMarkdown(odp.trim())));
         return true;
     }
 }

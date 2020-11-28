@@ -91,7 +91,7 @@ public class OsuCommand extends Command {
     @SubCommand(name = "user")
     public boolean user(@NotNull CommandContext context) {
         NumberFormat nf = NumberFormat.getInstance(context.getLanguage().getLocale());
-        Message mes = context.send(context.getTranslated("generic.loading"));
+        Message mes = context.reply(context.getTranslated("generic.loading"));
         try {
             OsuUser u = osu.users.query(new EndpointUsers.ArgumentsBuilder(resolveUserName(context)).build());
             if (u == null) {
@@ -132,7 +132,7 @@ public class OsuCommand extends Command {
 
     @SubCommand(name = "topPlay")
     public boolean topPlay(@NotNull CommandContext context) {
-        Message mes = context.send(context.getTranslated("generic.loading"));
+        Message mes = context.reply(context.getTranslated("generic.loading"));
         try {
             List<OsuScore> wyniki = osu.userBests
                     .query(new EndpointUserBests.ArgumentsBuilder(resolveUserName(context)).setLimit(100).build());
@@ -150,7 +150,7 @@ public class OsuCommand extends Command {
 
     @SubCommand(name = "recentPlay")
     public boolean recentPlay(@NotNull CommandContext context) {
-        Message mes = context.send(context.getTranslated("generic.loading"));
+        Message mes = context.reply(context.getTranslated("generic.loading"));
         try {
             List<OsuScore> wyniki = osu.userRecents
                     .query(new EndpointUserRecents.ArgumentsBuilder(resolveUserName(context)).setLimit(50).build());

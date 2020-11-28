@@ -56,7 +56,7 @@ public class UngbanCommand extends Command {
         if (user != null) gdata = gbanDao.get(user);
         if (gdata == null) throw new IllegalStateException("gdata == null");
         if (!gdata.isGbanned()) {
-            context.send(context.getTranslated("ungban.no.gban"));
+            context.reply(context.getTranslated("ungban.no.gban"));
             return false;
         }
         if (user != null) {
@@ -66,7 +66,7 @@ public class UngbanCommand extends Command {
             gdata.setName(null);
             gdata.setReason(null);
             gbanDao.save(gdata);
-            context.send(context.getTranslated("ungban.success.user", UserUtil.formatDiscrim(user)));
+            context.reply(context.getTranslated("ungban.success.user", UserUtil.formatDiscrim(user)));
             return true;
         }
         gdata.setGbanned(false);
@@ -75,7 +75,7 @@ public class UngbanCommand extends Command {
         gdata.setName(null);
         gdata.setReason(null);
         gbanDao.save(gdata);
-        context.send(context.getTranslated("ungban.success.guild", guild));
+        context.reply(context.getTranslated("ungban.success.guild", guild));
         return true;
     }
 }

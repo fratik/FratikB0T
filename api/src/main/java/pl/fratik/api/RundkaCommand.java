@@ -59,7 +59,7 @@ public class RundkaCommand extends Command {
     @Override
     public boolean execute(@NotNull CommandContext context) {
         if (!rundkaOn && (context.getArgs().length == 0 || context.getArgs()[0] == null)) {
-            context.send("Nie podano numeru rundki");
+            context.reply("Nie podano numeru rundki");
             return false;
         }
         rundkaOn = !rundkaOn;
@@ -71,13 +71,13 @@ public class RundkaCommand extends Command {
         if (rundkaOn) {
             TextChannel vch = (TextChannel) context.getArgs()[1];
             TextChannel tch = (TextChannel) context.getArgs()[2];
-            context.send("Rundka nr " + (numerRundy == 0 ? context.getArgs()[0] : numerRundy) + " została rozpoczęta!\n" +
+            context.reply("Rundka nr " + (numerRundy == 0 ? context.getArgs()[0] : numerRundy) + " została rozpoczęta!\n" +
                     String.format("Ustawiono <#%s> jako kanał dyskusji administracyjnej/głosów i <#%s> jako kanał dyskusji",
                             vch.getId(), tch.getId()) + " po napisaniu podania!");
             rundka.setVoteChannel(vch.getId());
             rundka.setNormalChannel(tch.getId());
         } else {
-            context.send("Rundka nr " + (numerRundy == 0 ? context.getArgs()[0] : numerRundy) + " została zakończona!");
+            context.reply("Rundka nr " + (numerRundy == 0 ? context.getArgs()[0] : numerRundy) + " została zakończona!");
         }
         numerRundy = rundkaOn ? (int) context.getArgs()[0] : 0;
         rundkaDao.save(rundka);

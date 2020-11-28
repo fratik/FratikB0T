@@ -70,7 +70,7 @@ public class TekstCommand extends MusicCommand {
             CommonErrors.usage(context);
             return false;
         }
-        Message loading = context.send(context.getTranslated("generic.loading"));
+        Message loading = context.reply(context.getTranslated("generic.loading"));
         try {
             Piosenka p = requestGenius(q);
             if (p == null) {

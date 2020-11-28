@@ -64,7 +64,7 @@ public class GbanlistCommand extends Command {
     public boolean execute(@NotNull CommandContext context) {
         List<GbanData> gdataList = gbanDao.getAll();
         List<FutureTask<EmbedBuilder>> pages = new ArrayList<>();
-        Message m = context.send(context.getTranslated("generic.loading"));
+        Message m = context.reply(context.getTranslated("generic.loading"));
         for (GbanData gdata : gdataList) {
             if (!gdata.isGbanned()) continue;
             pages.add(new FutureTask<>(() -> {
@@ -101,7 +101,7 @@ public class GbanlistCommand extends Command {
             }));
         }
         if (pages.isEmpty()) {
-            context.send(context.getTranslated("gbanlist.empty"));
+            context.reply(context.getTranslated("gbanlist.empty"));
             return false;
         }
         new DynamicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(), context.getTlumaczenia(), eventBus).create(m);

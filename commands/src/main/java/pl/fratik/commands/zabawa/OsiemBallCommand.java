@@ -42,10 +42,10 @@ public class OsiemBallCommand extends Command {
         String[] odpowiedzi = context.getTranslated("8ball.responses").split(";");
         String odp = odpowiedzi[random.nextInt(odpowiedzi.length)];
         if (!((String) context.getArgs()[0]).endsWith("?")) {
-            context.send(context.getTranslated("8ball.not.a.question"));
+            context.reply(context.getTranslated("8ball.not.a.question"));
             return false;
         }
-        context.send("\uD83E\uDD14", m -> m.editMessage(odp).queueAfter(3, TimeUnit.SECONDS));
+        context.reply("\uD83E\uDD14", m -> m.editMessage(odp).queueAfter(3, TimeUnit.SECONDS));
         return true;
     }
 }

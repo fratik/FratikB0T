@@ -56,7 +56,7 @@ public class RolaCommand extends ModerationCommand {
         GuildConfig gc = guildDao.get(context.getGuild());
 
         if (!gc.getUzytkownicyMogaNadacSobieTeRange().contains(rola.getId())) {
-            context.send(context.getTranslated("rola.not.defined"));
+            context.reply(context.getTranslated("rola.not.defined"));
             return false;
         }
 
@@ -66,15 +66,15 @@ public class RolaCommand extends ModerationCommand {
         if (maxRolesSize > 0) {
             int memberRolesSize = (int) context.getMember().getRoles().stream().filter(r -> filtr(r, gc)).count();
             if (memberRolesSize >= maxRolesSize) {
-                context.send(context.getTranslated("rola.maxroles", maxRolesSize, memberRolesSize, context.getPrefix()));
+                context.reply(context.getTranslated("rola.maxroles", maxRolesSize, memberRolesSize, context.getPrefix()));
                 return false;
             }
         }
         try {
             context.getGuild().addRoleToMember(context.getMember(), rola).complete();
-            context.send(context.getTranslated("rola.success"));
+            context.reply(context.getTranslated("rola.success"));
         } catch (Exception e) {
-            context.send(context.getTranslated("rola.failed"));
+            context.reply(context.getTranslated("rola.failed"));
             return false;
         }
         return true;
@@ -99,13 +99,13 @@ public class RolaCommand extends ModerationCommand {
             } else sb.append(rola);
         }
         if (ilosc == 0) {
-            context.send(context.getTranslated("rola.list.noroles"));
+            context.reply(context.getTranslated("rola.list.noroles"));
             return false;
         }
         sb.append("```");
         strArray.add(sb.toString());
         for (String str : strArray) {
-            context.send(str);
+            context.reply(str);
         }
         return true;
     }

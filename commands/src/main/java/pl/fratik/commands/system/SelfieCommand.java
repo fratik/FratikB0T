@@ -49,18 +49,18 @@ public class SelfieCommand extends Command {
         try (Response res = NetworkUtil.downloadResponse(ipUrlPc,
                 Ustawienia.instance.apiKeys.get("networkIpPc"), xd)) {
             if (res.code() == 401) {
-                context.send(context.getTranslated("selfie.invalidpass"));
+                context.reply(context.getTranslated("selfie.invalidpass"));
                 return false;
             }
             if (res.code() == 403) {
-                context.send(context.getTranslated("selfie.rejected"));
+                context.reply(context.getTranslated("selfie.rejected"));
                 return false;
             }
             if (res.body() == null) throw new IOException();
-            context.getMessageChannel().sendFile(res.body().bytes(), "ryjfratika.jpg").queue();
+            context.getMessageChannel().sendFile(res.body().bytes(), "ryjfratika.jpg").reference(context.getMessage()).queue();
             return true;
         } catch (IOException e) {
-            context.send(context.getTranslated("image.server.fail"));
+            context.reply(context.getTranslated("image.server.fail"));
             return false;
         }
     }
@@ -74,18 +74,18 @@ public class SelfieCommand extends Command {
         try (Response res = NetworkUtil.downloadResponse(ipUrlMb,
                 Ustawienia.instance.apiKeys.get("networkIpMb"), xd)) {
             if (res.code() == 401) {
-                context.send(context.getTranslated("selfie.invalidpass"));
+                context.reply(context.getTranslated("selfie.invalidpass"));
                 return false;
             }
             if (res.code() == 403) {
-                context.send(context.getTranslated("selfie.rejected"));
+                context.reply(context.getTranslated("selfie.rejected"));
                 return false;
             }
             if (res.body() == null) throw new IOException();
-            context.getMessageChannel().sendFile(res.body().bytes(), "ryjfratika.jpg").queue();
+            context.getMessageChannel().sendFile(res.body().bytes(), "ryjfratika.jpg").reference(context.getMessage()).queue();
             return true;
         } catch (IOException e) {
-            context.send(context.getTranslated("image.server.fail"));
+            context.reply(context.getTranslated("image.server.fail"));
             return false;
         }
     }

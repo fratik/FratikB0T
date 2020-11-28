@@ -50,24 +50,24 @@ public abstract class MusicCommand extends Command {
             }
         }
         if (managerMuzyki.getLavaClient().getNodes().stream().noneMatch(LavalinkSocket::isAvailable)) {
-            context.send(context.getTranslated("music.nodes.unavailble"));
+            context.reply(context.getTranslated("music.nodes.unavailble"));
             return false;
         }
         if (!requireConnection) {
             return super.preExecute(context);
         }
         if (context.getMember().getVoiceState() == null || !context.getMember().getVoiceState().inVoiceChannel()) {
-            context.send(context.getTranslated("music.notconnected"));
+            context.reply(context.getTranslated("music.notconnected"));
             return false;
         }
         if (context.getGuild().getSelfMember().getVoiceState() == null ||
                 !context.getGuild().getSelfMember().getVoiceState().inVoiceChannel()) {
-            context.send(context.getTranslated("music.self.notconnected"));
+            context.reply(context.getTranslated("music.self.notconnected"));
             return false;
         }
         if (!Objects.equals(context.getMember().getVoiceState().getChannel(),
                 context.getGuild().getSelfMember().getVoiceState().getChannel())) {
-            context.send(context.getTranslated("music.different.channels"));
+            context.reply(context.getTranslated("music.different.channels"));
             return false;
         }
         return super.preExecute(context);

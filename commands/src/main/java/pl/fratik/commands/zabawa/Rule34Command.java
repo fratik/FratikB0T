@@ -101,7 +101,7 @@ public class Rule34Command extends NsfwCommand {
 
     @Override
     protected boolean execute(@NotNull CommandContext context) {
-        Message loading = context.send(context.getTranslated("generic.loading"));
+        Message loading = context.reply(context.getTranslated("generic.loading"));
         try {
             List<FutureTask<EmbedBuilder>> pages;
             switch ((Sources) context.getArgs()[0]) {
@@ -132,7 +132,7 @@ public class Rule34Command extends NsfwCommand {
                     context.getTlumaczenia(), eventBus).setEnableShuffle(true).setEnableDelett(true).setTimeout(300).create(loading);
             return true;
         } catch (IOException e) {
-            context.send(context.getTranslated("rule34.fail"));
+            context.reply(context.getTranslated("rule34.fail"));
             return false;
         }
     }

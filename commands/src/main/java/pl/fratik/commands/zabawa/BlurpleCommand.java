@@ -74,13 +74,13 @@ public class BlurpleCommand extends Command {
                     URLEncoder.encode(user.getEffectiveAvatarUrl().replace(".webp", ".png")
                             + "?size=2048", "UTF-8"), reverse, classic), Ustawienia.instance.apiKeys.get("image-server"));
             if (zdjecie == null || !zdjecie.getBoolean("success")) {
-                context.send("Wystąpił błąd ze zdobyciem zdjęcia!");
+                context.reply("Wystąpił błąd ze zdobyciem zdjęcia!");
                 return false;
             }
             byte[] img = NetworkUtil.getBytesFromBufferArray(zdjecie.getJSONObject("image").getJSONArray("data"));
-            context.getMessageChannel().sendFile(img, "blurple.png").queue();
+            context.getMessageChannel().sendFile(img, "blurple.png").reference(context.getMessage()).queue();
         } catch (IOException | NullPointerException e) {
-            context.send(context.getTranslated("image.server.fail"));
+            context.reply(context.getTranslated("image.server.fail"));
         }
 
         return true;

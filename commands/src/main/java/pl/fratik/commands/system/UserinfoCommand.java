@@ -59,7 +59,8 @@ public class UserinfoCommand extends Command {
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
-        CompletableFuture<Message> f = context.getMessageChannel().sendMessage(context.getTranslated("generic.loading")).submit();
+        CompletableFuture<Message> f = context.getMessageChannel().sendMessage(context.getTranslated("generic.loading"))
+                .reference(context.getMessage()).submit();
         User osoba = null;
         Member member;
         if (context.getArgs().length != 0) osoba = (User) context.getArgs()[0];
@@ -117,7 +118,7 @@ public class UserinfoCommand extends Command {
             m = null;
         }
         if (m != null) m.editMessage(eb.build()).override(true).complete();
-        else context.send(eb.build());
+        else context.reply(eb.build());
         return true;
     }
 

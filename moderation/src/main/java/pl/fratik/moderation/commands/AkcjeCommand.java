@@ -80,7 +80,7 @@ public class AkcjeCommand extends ModerationCommand {
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
-        Message m = context.send(context.getTranslated("generic.loading"));
+        Message m = context.reply(context.getTranslated("generic.loading"));
         User tmpUser = null;
         Object[] args = context.getArgs();
         if (args.length > 0 && args[0] != null) tmpUser = (User) args[0];
@@ -129,7 +129,7 @@ public class AkcjeCommand extends ModerationCommand {
 
     @SubCommand(name = "admin", aliases = {"adm"})
     public boolean adminMode(@NotNull CommandContext context) {
-        Message m = context.send(context.getTranslated("generic.loading"));
+        Message m = context.reply(context.getTranslated("generic.loading"));
         User tmpUser = null;
         Object[] args = context.getArgs();
         if (args.length > 0 && args[0] != null) tmpUser = (User) args[0];
@@ -179,10 +179,10 @@ public class AkcjeCommand extends ModerationCommand {
     @SubCommand(name = "reset")
     public boolean reset(CommandContext context) {
         if (UserUtil.getPermlevel(context.getMember(), guildDao, shardManager, PermLevel.OWNER).getNum() < PermLevel.OWNER.getNum()) {
-            context.send(context.getTranslated("akcje.reset.perms"));
+            context.reply(context.getTranslated("akcje.reset.perms"));
             return false;
         }
-        Message msg = context.send(context.getTranslated("akcje.reset.confirmation"));
+        Message msg = context.reply(context.getTranslated("akcje.reset.confirmation"));
         msg.addReaction("\u2705").completeAfter(5, TimeUnit.SECONDS);
         msg.addReaction("\u274c").queue();
         ReactionWaiter waiter = new ReactionWaiter(eventWaiter, context) {
@@ -200,7 +200,7 @@ public class AkcjeCommand extends ModerationCommand {
                 anuluj.run();
                 return;
             }
-            Message m = context.send(context.getTranslated("akcje.reset.in.progress"));
+            Message m = context.reply(context.getTranslated("akcje.reset.in.progress"));
             try {
                 CaseRow cd = casesDao.get(context.getGuild());
                 cd.setCases(new ArrayList<>());
@@ -208,7 +208,7 @@ public class AkcjeCommand extends ModerationCommand {
                 m.editMessage(context.getTranslated("akcje.reset.complete")).completeAfter(1, TimeUnit.SECONDS);
             } catch (ErrorResponseException err) {
                 if (err.getErrorResponse() == ErrorResponse.UNKNOWN_MESSAGE) {
-                    context.send(context.getTranslated("akcje.reset.complete"));
+                    context.reply(context.getTranslated("akcje.reset.complete"));
                     return;
                 }
                 throw err;
@@ -221,7 +221,7 @@ public class AkcjeCommand extends ModerationCommand {
                     m.editMessage(context.getTranslated("akcje.reset.error")).complete();
                 } catch (ErrorResponseException ed) {
                     if (ed.getErrorResponse() == ErrorResponse.UNKNOWN_MESSAGE) {
-                        context.send(context.getTranslated("akcje.reset.error"));
+                        context.reply(context.getTranslated("akcje.reset.error"));
                         return;
                     }
                     throw err;

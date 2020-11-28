@@ -68,7 +68,7 @@ public class NukepointsCommand extends Command {
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
-        Message msg = context.getTextChannel().sendMessage(context.getTranslated("nukepoints.warning")).complete();
+        Message msg = context.reply(context.getTranslated("nukepoints.warning"));
         msg.addReaction(POTW).queue();
         msg.addReaction(ODRZ).queue();
         ReactionWaiter rw = new ReactionWaiter(eventWaiter, context) {
@@ -113,7 +113,7 @@ public class NukepointsCommand extends Command {
                         Thread.currentThread().interrupt();
                     }
                 } while (futures.stream().filter(Future::isDone).count() != futures.size());
-                context.send(context.getTranslated("nukepoints.success"));
+                context.reply(context.getTranslated("nukepoints.success"));
             }
             if (e.getReactionEmote().getName().equals(ODRZ)) {
                 anuluj.run();

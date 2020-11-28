@@ -99,28 +99,28 @@ public class PopCommand extends Command {
         Blacklist ubl = blacklistCache.get(context.getSender().getId(), blacklistDao::get);
         if (ubl.isBlacklisted()) {
             String tag = context.getShardManager().retrieveUserById(ubl.getExecutor()).complete().getAsTag();
-            context.send(context.getTranslated("pop.user.blacklisted", tag, ubl.getReason(),
+            context.reply(context.getTranslated("pop.user.blacklisted", tag, ubl.getReason(),
                     context.getPrefix(), tag));
             return false;
         }
         Blacklist sbl = blacklistCache.get(context.getGuild().getId(), blacklistDao::get);
         if (sbl.isBlacklisted()) {
             String tag = context.getShardManager().retrieveUserById(sbl.getExecutor()).complete().getAsTag();
-            context.send(context.getTranslated("pop.server.blacklisted", tag, sbl.getReason(),
+            context.reply(context.getTranslated("pop.server.blacklisted", tag, sbl.getReason(),
                     context.getPrefix(), tag));
             return false;
         }
         if (context.getGuild().getTimeCreated().toInstant().toEpochMilli() - Instant.now().toEpochMilli() > -1209600000
                 && !bypass) {
-            context.send(context.getTranslated("pop.server.young"));
+            context.reply(context.getTranslated("pop.server.young"));
             return false;
         }
         if (!context.getGuild().getRolesByName(context.getTranslated("pop.role.name"), false).isEmpty()) {
-            context.send(context.getTranslated("pop.inprogress"));
+            context.reply(context.getTranslated("pop.inprogress"));
             return false;
         }
         if (CommonUtil.isPomoc(shardManager, context.getGuild())) {
-            context.send(context.getTranslated("pop.pomoc.isset"));
+            context.reply(context.getTranslated("pop.pomoc.isset"));
             if (UserUtil.isStaff(context.getMember(), shardManager)) {
                 TextChannel kanal = Objects.requireNonNull(shardManager.getGuildById(Ustawienia.instance.botGuild))
                         .getTextChannelById(Ustawienia.instance.popChannel);
@@ -131,7 +131,7 @@ public class PopCommand extends Command {
                     //noinspection ConstantConditions
                     String id = mess.getEmbeds().get(0).getFooter().getText().split(" \\| ")[1];
                     if (id.equals(context.getGuild().getId())) {
-                        context.send(mess.getEmbeds().get(0));
+                        context.reply(mess.getEmbeds().get(0));
                         return false;
                     }
                 }
@@ -139,7 +139,7 @@ public class PopCommand extends Command {
             return false;
         }
         PermLevel permLevel = UserUtil.getPermlevel(context.getMember(), guildDao, shardManager);
-        context.send(context.getTranslated("pop.start"));
+        context.reply(context.getTranslated("pop.start"));
         MessageWaiter mw = new MessageWaiter(eventWaiter, context) {
             @Override
             public void create() {
@@ -149,15 +149,15 @@ public class PopCommand extends Command {
         };
         mw.setMessageHandler(e -> {
             if (e.getMessage().getContentRaw().trim().equalsIgnoreCase(context.getTranslated("pop.abort"))) {
-                context.send(context.getTranslated("pop.aborted"));
+                context.reply(context.getTranslated("pop.aborted"));
                 return;
             }
             if (e.getMessage().getContentRaw().length() < 15) {
-                context.send(context.getTranslated("pop.min.length"));
+                context.reply(context.getTranslated("pop.min.length"));
                 return;
             }
             if (e.getMessage().getContentRaw().length() >= 1000) {
-                context.send(context.getTranslated("pop.max.length"));
+                context.reply(context.getTranslated("pop.max.length"));
                 return;
             }
             Role role = context.getGuild().createRole().setColor(decode("#f11515"))
@@ -188,7 +188,7 @@ public class PopCommand extends Command {
                             invite.getCode()).embed(eb.build()).mentionRoles(Ustawienia.instance.popRole).complete();
             popRole.getManager().setMentionable(false).complete();
             msg.addReaction("\uD83D\uDDD1").queue();
-            context.send(context.getTranslated("pop.success"));
+            context.reply(context.getTranslated("pop.success"));
             PermLevel lvl = UserUtil.getPermlevel(e.getMember(), guildDao, shardManager);
             TextChannel poplch = fdev.getTextChannelById(Ustawienia.instance.popLogChannel);
             if (poplch == null) throw new IllegalStateException("nie ma popLogChannel/nieprawidłowy");
@@ -198,7 +198,7 @@ public class PopCommand extends Command {
                     context.getSender().getId(), context.getGuild().getName(), context.getGuild().getId(),
                     e.getMessage().getContentRaw(), lvl.getNum(), context.getTranslated(lvl.getLanguageKey()))).complete();
         });
-        mw.setTimeoutHandler(() -> context.send(context.getTranslated("pop.aborted")));
+        mw.setTimeoutHandler(() -> context.reply(context.getTranslated("pop.aborted")));
         mw.create();
         return true;
     }
@@ -213,7 +213,7 @@ public class PopCommand extends Command {
             }
         }
         if (UserUtil.getPermlevel(context.getMember(), guildDao, shardManager).getNum() < PermLevel.MOD.getNum()) {
-            context.send(context.getTranslated("pop.no.perms", context.getPrefix()));
+            context.reply(context.getTranslated("pop.no.perms", context.getPrefix()));
             return false;
         }
         return super.preExecute(context);
@@ -225,8 +225,8 @@ public class PopCommand extends Command {
             throw new SilentExecutionFail();
         }
         bypass = !bypass;
-        if (bypass) context.send("Ignoruje czas stworzenia serwera");
-        else context.send("Już nie ignoruje czasu stworzenia serwera");
+        if (bypass) context.reply("Ignoruje czas stworzenia serwera");
+        else context.reply("Już nie ignoruje czasu stworzenia serwera");
         return true;
     }
 

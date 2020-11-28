@@ -43,7 +43,7 @@ public class PoziomyUprawnienCommand extends Command {
         }
         sb.append("```");
         eb.setDescription(sb.toString());
-        context.send(eb.build());
+        context.reply(eb.build());
         return true;
     }
 

@@ -60,14 +60,14 @@ public class BigemojiCommand extends Command {
             sb.setLength(sb.length() - 1);
             JSONObject zdjecie = NetworkUtil.getJson(sb.toString(), Ustawienia.instance.apiKeys.get("image-server"));
             if (zdjecie == null || !zdjecie.getBoolean("success")) {
-                context.send(context.getTranslated("image.server.fail"));
+                context.reply(context.getTranslated("image.server.fail"));
                 return false;
             }
             byte[] img = NetworkUtil.getBytesFromBufferArray(zdjecie.getJSONObject("image").getJSONArray("data"));
-            context.getMessageChannel().sendFile(img, "bigemoji.png").queue();
+            context.getMessageChannel().sendFile(img, "bigemoji.png").reference(context.getMessage()).queue();
             return true;
         } catch (Exception e) {
-            context.send(context.getTranslated("image.server.fail"));
+            context.reply(context.getTranslated("image.server.fail"));
             return false;
         }
     }

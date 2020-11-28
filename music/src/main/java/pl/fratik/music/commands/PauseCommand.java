@@ -38,13 +38,13 @@ public class PauseCommand extends MusicCommand {
     @Override
     public boolean execute(@NotNull CommandContext context) {
         if (!hasFullDjPerms(context.getMember(), context.getShardManager(), guildDao)) {
-            context.send(context.getTranslated("pause.dj"));
+            context.reply(context.getTranslated("pause.dj"));
             return false;
         }
         ManagerMuzykiSerwera mms = managerMuzyki.getManagerMuzykiSerwera(context.getGuild());
         boolean paused = mms.pause();
-        if (paused) context.send(context.getTranslated("pause.paused"));
-        else context.send(context.getTranslated("pause.resumed"));
+        if (paused) context.reply(context.getTranslated("pause.paused"));
+        else context.reply(context.getTranslated("pause.resumed"));
         return true;
     }
 }

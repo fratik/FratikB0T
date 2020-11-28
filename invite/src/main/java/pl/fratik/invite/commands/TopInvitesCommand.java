@@ -56,7 +56,7 @@ public class TopInvitesCommand extends AbstractInvitesCommand {
     @Override
     public boolean execute(@NotNull CommandContext context) {
         if (!checkEnabled(context)) return false;
-        Message msg = context.send(context.getTranslated("generic.loading"));
+        Message msg = context.reply(context.getTranslated("generic.loading"));
         EmbedBuilder eb = new EmbedBuilder();
         StringBuilder sb = new StringBuilder();
         List<EmbedBuilder> pages = new ArrayList<>();
@@ -69,7 +69,7 @@ public class TopInvitesCommand extends AbstractInvitesCommand {
         }
 
         if (zaproszenia.isEmpty()) {
-            context.send(context.getTranslated("topinvites.empty"));
+            context.reply(context.getTranslated("topinvites.empty"));
             return false;
         }
 

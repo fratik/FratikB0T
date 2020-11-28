@@ -55,14 +55,14 @@ public class NodesCommand extends Command {
             pass = args[1];
             port = Integer.parseInt(args[2]);
         } catch (Exception e) {
-            context.send(context.getTranslated("nodes.add.failed.parse"));
+            context.reply(context.getTranslated("nodes.add.failed.parse"));
             return false;
         }
         if (pass.equals("default")) {
             pass = Ustawienia.instance.lavalink.defaultPass;
         }
         Ustawienia.instance.lavalink.nodes.add(new Ustawienia.Lavalink.LavalinkNode(ip, pass, port, port));
-        context.send(context.getTranslated("nodes.add.success"));
+        context.reply(context.getTranslated("nodes.add.success"));
         return true;
     }
 
@@ -72,10 +72,10 @@ public class NodesCommand extends Command {
         try {
             Ustawienia.instance.lavalink.nodes.remove(index);
         } catch (IndexOutOfBoundsException e) {
-            context.send(context.getTranslated("nodes.delete.unknown"));
+            context.reply(context.getTranslated("nodes.delete.unknown"));
             return false;
         }
-        context.send(context.getTranslated("nodes.delete.success"));
+        context.reply(context.getTranslated("nodes.delete.success"));
         return true;
     }
 
@@ -89,7 +89,7 @@ public class NodesCommand extends Command {
             i++;
         }
         builderTresci.append("```");
-        context.send(builderTresci);
+        context.reply(builderTresci);
         return true;
     }
 }

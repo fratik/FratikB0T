@@ -50,7 +50,7 @@ public class InviteCommand extends Command {
         eb.setDescription(context.getTranslated("invite.description"));
         eb.addField(context.getTranslated("invite.addbot"), context.getTranslated("generic.click", invite), true);
         eb.addField(context.getTranslated("invite.joinfdev"), context.getTranslated("generic.click", dc), true);
-        context.send(eb.build());
+        context.reply(eb.build());
         return true;
     }
 

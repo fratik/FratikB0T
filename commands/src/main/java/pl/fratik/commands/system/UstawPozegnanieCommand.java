@@ -55,10 +55,10 @@ public class UstawPozegnanieCommand extends Command {
         if (context.getMessage().getContentRaw().contains("--delete")) {
             String usunieto = gc.getPozegnania().remove(((GuildChannel) context.getArgs()[0]).getId());
             if (usunieto == null) {
-                context.send(context.getTranslated("ustawpozegnanie.delete.failure"));
+                context.reply(context.getTranslated("ustawpozegnanie.delete.failure"));
                 return false;
             }
-            context.send(context.getTranslated("ustawpozegnanie.delete.success"));
+            context.reply(context.getTranslated("ustawpozegnanie.delete.success"));
             guildDao.save(gc);
             return true;
         }
@@ -71,7 +71,7 @@ public class UstawPozegnanieCommand extends Command {
         }
         gc.getPozegnania().put(((GuildChannel) context.getArgs()[0]).getId(), tekst);
         guildDao.save(gc);
-        context.send(context.getTranslated("ustawpozegnanie.response"));
+        context.reply(context.getTranslated("ustawpozegnanie.response"));
         return true;
     }
 }

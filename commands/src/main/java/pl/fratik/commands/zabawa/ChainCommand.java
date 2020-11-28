@@ -60,7 +60,7 @@ public class ChainCommand extends Command {
             obok = context.getSender();
         }
         if (nalozku.getId().equals(obok.getId())) {
-            context.send(context.getTranslated("chain.selfchain"));
+            context.reply(context.getTranslated("chain.selfchain"));
             return false;
         }
         try {
@@ -71,13 +71,13 @@ public class ChainCommand extends Command {
                     URLEncoder.encode(obok.getEffectiveAvatarUrl().replace(".webp", ".png")
                             + "?size=2048", "UTF-8")), Ustawienia.instance.apiKeys.get("image-server"));
             if (zdjecie == null || !zdjecie.getBoolean("success")) {
-                context.send("Wystąpił błąd ze zdobyciem zdjęcia!");
+                context.reply("Wystąpił błąd ze zdobyciem zdjęcia!");
                 return false;
             }
             byte[] img = NetworkUtil.getBytesFromBufferArray(zdjecie.getJSONObject("image").getJSONArray("data"));
-            context.getMessageChannel().sendFile(img, "chain.png").queue();
+            context.getMessageChannel().sendFile(img, "chain.png").reference(context.getMessage()).queue();
         } catch (IOException | NullPointerException e) {
-            context.send(context.getTranslated("image.server.fail"));
+            context.reply(context.getTranslated("image.server.fail"));
         }
 
         return true;

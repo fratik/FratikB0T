@@ -59,7 +59,7 @@ public class LoadCommand extends Command {
         String pytajnik = "\u2753";
         eb.appendDescription(pytajnik + SPSC + "\n");
         eb.appendDescription(pytajnik + WCZ + "\n");
-        Message msg = context.getMessageChannel().sendMessage(eb.build()).complete();
+        Message msg = context.reply(eb.build());
         File path = new File((String) context.getArgs()[0]);
         if (!path.exists()) {
             eb.setDescription(eb.getDescriptionBuilder().toString().replace(pytajnik +  SPSC,

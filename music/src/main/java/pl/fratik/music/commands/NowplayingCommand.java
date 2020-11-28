@@ -48,7 +48,7 @@ public class NowplayingCommand extends MusicCommand {
         ManagerMuzykiSerwera mms = managerMuzyki.getManagerMuzykiSerwera(context.getGuild());
         Piosenka piosenka = mms.getAktualnaPiosenka();
         EmbedBuilder eb = generateEmbed(piosenka, context, mms);
-        context.send(eb.build());
+        context.reply(eb.build());
         return true;
     }
 

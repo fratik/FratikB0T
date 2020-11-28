@@ -57,37 +57,37 @@ public class PlayCommand extends MusicCommand {
     @Override
     public boolean execute(@NotNull CommandContext context) {
         if (!hasFullDjPerms(context.getMember(), context.getShardManager(), guildDao)) {
-            context.send(context.getTranslated("play.dj"));
+            context.reply(context.getTranslated("play.dj"));
             return false;
         }
         GuildVoiceState memVS = context.getMember().getVoiceState();
         GuildVoiceState selfVS = context.getGuild().getSelfMember().getVoiceState();
         if (memVS == null || !memVS.inVoiceChannel()) {
-            context.send(context.getTranslated("play.not.connected"));
+            context.reply(context.getTranslated("play.not.connected"));
             return false;
         }
         if (managerMuzyki.getLavaClient().getLink(context.getGuild()).getState() == Link.State.CONNECTED &&
                 selfVS != null && !Objects.equals(memVS.getChannel(), selfVS.getChannel())) {
-            context.send(context.getTranslated("music.different.channels"));
+            context.reply(context.getTranslated("music.different.channels"));
             return false;
         }
         VoiceChannel kanal = memVS.getChannel();
         if (kanal == null) throw new IllegalStateException("połączony ale nie na kanale, co do");
         EnumSet<Permission> upr = context.getGuild().getSelfMember().getPermissions(kanal);
         if (!Stream.of(Permission.VIEW_CHANNEL, Permission.VOICE_CONNECT, Permission.VOICE_SPEAK).allMatch(upr::contains)) {
-            context.send(context.getTranslated("play.no.permissions"));
+            context.reply(context.getTranslated("play.no.permissions"));
             return false;
         }
         String identifier;
         ManagerMuzykiSerwera mms = managerMuzyki.getManagerMuzykiSerwera(context.getGuild());
         if (mms.isPaused()) {
-            context.send(context.getTranslated("play.use.pause"));
+            context.reply(context.getTranslated("play.use.pause"));
             return false;
         }
         if (!URLPATTERN.matcher((String) context.getArgs()[0]).matches()) {
             SearchManager.SearchResult wynik = searchManager.searchYouTube((String) context.getArgs()[0]);
             if (wynik == null || wynik.getEntries().isEmpty()) {
-                context.send(context.getTranslated("play.no.results"));
+                context.reply(context.getTranslated("play.no.results"));
                 return false;
             }
             identifier = wynik.getEntries().get(0).getUrl();
@@ -101,7 +101,7 @@ public class PlayCommand extends MusicCommand {
         if (!mms.isConnected()) return false;
         managerMuzyki.getAudioTracksAsync(identifier, audioTrackList -> {
             if (audioTrackList.isEmpty()) {
-                context.send(context.getTranslated("play.not.found"));
+                context.reply(context.getTranslated("play.not.found"));
                 mms.disconnect();
                 return;
             }
@@ -111,11 +111,11 @@ public class PlayCommand extends MusicCommand {
             }
             else {
                 for (AudioTrack at : audioTrackList) mms.addToQueue(context.getSender(), at, context.getLanguage());
-                context.send(context.getTranslated("play.queued.playlist", audioTrackList.size()));
+                context.reply(context.getTranslated("play.queued.playlist", audioTrackList.size()));
             }
             if (!mms.isPlaying()) mms.play();
             else context.getTextChannel().sendMessage(context.getTranslated("play.queued",
-                    audioTrackList.get(0).getInfo().title)).queue();
+                    audioTrackList.get(0).getInfo().title)).reference(context.getMessage()).queue();
         });
         return true;
     }

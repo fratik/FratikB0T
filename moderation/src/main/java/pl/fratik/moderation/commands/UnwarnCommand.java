@@ -77,23 +77,23 @@ public class UnwarnCommand extends ModerationCommand {
                     .map(e -> e == null ? "" : e).map(Objects::toString).collect(Collectors.joining(uzycieDelim));
         else powod = context.getTranslated("unwarn.reason.default");
         if (uzytkownik.equals(context.getMember())) {
-            context.send(context.getTranslated("unwarn.cant.unwarn.yourself"));
+            context.reply(context.getTranslated("unwarn.cant.unwarn.yourself"));
             return false;
         }
         if (uzytkownik.getUser().isBot()) {
-            context.send(context.getTranslated("unwarn.no.bot"));
+            context.reply(context.getTranslated("unwarn.no.bot"));
             return false;
         }
         if (uzytkownik.isOwner()) {
-            context.send(context.getTranslated("unwarn.cant.unwarn.owner"));
+            context.reply(context.getTranslated("unwarn.cant.unwarn.owner"));
             return false;
         }
         if (!context.getMember().canInteract(uzytkownik)) {
-            context.send(context.getTranslated("unwarn.user.cant.interact"));
+            context.reply(context.getTranslated("unwarn.user.cant.interact"));
             return false;
         }
         if (!context.getGuild().getSelfMember().canInteract(uzytkownik)) {
-            context.send(context.getTranslated("unwarn.bot.cant.interact"));
+            context.reply(context.getTranslated("unwarn.bot.cant.interact"));
             return false;
         }
         GuildConfig gc = guildDao.get(context.getGuild());
@@ -104,7 +104,7 @@ public class UnwarnCommand extends ModerationCommand {
         if (gc.getModLog() != null && !gc.getModLog().isEmpty()) mlog = shardManager.getTextChannelById(gc.getModLog());
         try {
             if (cases < 0) {
-                context.send(context.getTranslated("unwarn.too.many.unwarns.fixing"));
+                context.reply(context.getTranslated("unwarn.too.many.unwarns.fixing"));
                 try {
                     TemporalAccessor timestamp = Instant.now();
                     Case c = new CaseBuilder().setUser(uzytkownik.getUser()).setGuild(context.getGuild())
@@ -126,15 +126,15 @@ public class UnwarnCommand extends ModerationCommand {
                     caseRow.getCases().add(c);
                     caseId++;
                 } catch (Exception e1) {
-                    context.send(context.getTranslated("unwarn.too.many.unwarns.cant.fix"));
+                    context.reply(context.getTranslated("unwarn.too.many.unwarns.cant.fix"));
                     return false;
                 }
-                context.send(context.getTranslated("unwarn.too.many.unwarns.fixed"));
+                context.reply(context.getTranslated("unwarn.too.many.unwarns.fixed"));
                 cases = WarnUtil.countCases(caseRow, uzytkownik.getId());
             }
         } catch (Exception e) {
             String prefix = context.getPrefix();
-            context.send(context.getTranslated("unwarn.unexpected.error", prefix, prefix));
+            context.reply(context.getTranslated("unwarn.unexpected.error", prefix, prefix));
             return false;
         }
         int ileRazy = 1;
@@ -154,7 +154,7 @@ public class UnwarnCommand extends ModerationCommand {
             }
         }
         if (cases - ileRazy < 0) {
-            context.send(context.getTranslated("unwarn.no.warns"));
+            context.reply(context.getTranslated("unwarn.no.warns"));
             return false;
         }
         TemporalAccessor timestamp = Instant.now();
@@ -165,7 +165,7 @@ public class UnwarnCommand extends ModerationCommand {
         if (mlog == null || !context.getGuild().getSelfMember().hasPermission(mlog,
                 Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_WRITE, Permission.MESSAGE_READ)) {
             caseRow.getCases().add(aCase);
-            context.send(context.getTranslated("unwarn.success", UserUtil.formatDiscrim(uzytkownik),
+            context.reply(context.getTranslated("unwarn.success", UserUtil.formatDiscrim(uzytkownik),
                     WarnUtil.countCases(caseRow, uzytkownik.getId())));
             if (!aCase.getFlagi().contains(Case.Flaga.SILENT)) context.send(context.getTranslated("unwarn.nomodlogs", context.getPrefix()));
             casesDao.save(caseRow);
@@ -177,14 +177,14 @@ public class UnwarnCommand extends ModerationCommand {
             mlog.sendMessage(embed).queue(message -> {
                 aCase.setMessageId(message.getId());
                 caseRow.getCases().add(aCase);
-                context.send(context.getTranslated("unwarn.success", UserUtil.formatDiscrim(uzytkownik),
+                context.reply(context.getTranslated("unwarn.success", UserUtil.formatDiscrim(uzytkownik),
                         WarnUtil.countCases(caseRow, uzytkownik.getId())), m -> {
                 });
                 casesDao.save(caseRow);
             });
         } else {
             caseRow.getCases().add(aCase);
-            context.send(context.getTranslated("unwarn.success", UserUtil.formatDiscrim(uzytkownik),
+            context.reply(context.getTranslated("unwarn.success", UserUtil.formatDiscrim(uzytkownik),
                     WarnUtil.countCases(caseRow, uzytkownik.getId())), m -> {
             });
             casesDao.save(caseRow);

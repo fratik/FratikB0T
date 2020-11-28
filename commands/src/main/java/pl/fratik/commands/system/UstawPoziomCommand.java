@@ -68,7 +68,7 @@ public class UstawPoziomCommand extends Command {
         }
         if (typ.equals("list") || typ.equals("lista")) {
             if (gc.getCmdPermLevelOverrides().isEmpty()) {
-                context.send(context.getTranslated("ustawpoziom.list.isempty"));
+                context.reply(context.getTranslated("ustawpoziom.list.isempty"));
                 return false;
             }
             ArrayList<String> list = new ArrayList<>();
@@ -94,7 +94,7 @@ public class UstawPoziomCommand extends Command {
             });
             if (list.isEmpty()) embed.setDescription(sb[0].toString());
             else list.forEach(s -> embed.addField(" ", s, false));
-            context.send(embed.build());
+            context.reply(embed.build());
             if (setuj.get()) guildDao.save(gc);
             return true;
         }
@@ -107,16 +107,16 @@ public class UstawPoziomCommand extends Command {
                 return false;
             }
             if (!managerKomend.getCommands().containsKey(cmd)) {
-                context.send(context.getTranslated("ustawpoziom.set.unknowncmd"));
+                context.reply(context.getTranslated("ustawpoziom.set.unknowncmd"));
                 return false;
             }
             if (!gc.getCmdPermLevelOverrides().containsKey(cmd)) {
-                context.send(context.getTranslated("ustawpoziom.remove.doesnt.exist"));
+                context.reply(context.getTranslated("ustawpoziom.remove.doesnt.exist"));
                 return false;
             }
             gc.getCmdPermLevelOverrides().remove(cmd);
             guildDao.save(gc);
-            context.send(context.getTranslated("ustawpoziom.remove.succes"));
+            context.reply(context.getTranslated("ustawpoziom.remove.succes"));
             return true;
         }
         if (typ.equals("set") || typ.equals("add")) {
@@ -136,50 +136,50 @@ public class UstawPoziomCommand extends Command {
                 plvl = PermLevel.getPermLevel(lvl);
                 if (plvl == null) throw new Exception("jeśli to czytasz, idź na wybory");
             } catch (Exception e) {
-                context.send(context.getTranslated("ustawpoziom.set.unknownplvl"));
+                context.reply(context.getTranslated("ustawpoziom.set.unknownplvl"));
                 return false;
             }
             ccmd = managerKomend.getCommands().get(cmd);
             if (ccmd == null) {
-                context.send(context.getTranslated("ustawpoziom.set.unknowncmd"));
+                context.reply(context.getTranslated("ustawpoziom.set.unknowncmd"));
                 return false;
             }
 
             if (plvl.getNum() > PermLevel.OWNER.getNum()) {
-                context.send(context.getTranslated("ustawpoziom.set.gaplvl", PermLevel.OWNER.getNum()));
+                context.reply(context.getTranslated("ustawpoziom.set.gaplvl", PermLevel.OWNER.getNum()));
                 return false;
             }
 
             PermLevel jegolvl = UserUtil.getPermlevel(context.getMember(), guildDao, context.getShardManager());
             if (ccmd.getPermLevel().getNum() > jegolvl.getNum() || plvl.getNum() > jegolvl.getNum()) {
-                context.send(context.getTranslated("ustawpoziom.set.nopermissions"));
+                context.reply(context.getTranslated("ustawpoziom.set.nopermissions"));
                 return false;
             }
 
             if (!ccmd.isAllowPermLevelChange()) {
-                context.send(context.getTranslated("ustawpoziom.set.edit.not.allowed", context.getPrefix()));
+                context.reply(context.getTranslated("ustawpoziom.set.edit.not.allowed", context.getPrefix()));
                 return false;
             }
 
             if (!ccmd.isAllowPermLevelEveryone() && plvl.getNum() == PermLevel.EVERYONE.getNum()) {
-                context.send(context.getTranslated("ustawpoziom.set.everyone.not.allowed", plvl.getNum()));
+                context.reply(context.getTranslated("ustawpoziom.set.everyone.not.allowed", plvl.getNum()));
                 return false;
             }
 
             if (ccmd.getPermLevel().equals(plvl)) {
                 if (gc.getCmdPermLevelOverrides().remove(cmd) != null) {
-                    context.send(context.getTranslated("ustawpoziom.set.default.value", plvl.getNum()));
+                    context.reply(context.getTranslated("ustawpoziom.set.default.value", plvl.getNum()));
                     guildDao.save(gc);
                     return true;
                 } else {
-                    context.send(context.getTranslated("ustawpoziom.set.not.changed", plvl.getNum(), ccmd.getPermLevel().getNum()));
+                    context.reply(context.getTranslated("ustawpoziom.set.not.changed", plvl.getNum(), ccmd.getPermLevel().getNum()));
                     return false;
                 }
             }
 
             gc.getCmdPermLevelOverrides().put(ccmd.getName(), plvl);
             guildDao.save(gc);
-            context.send(context.getTranslated("ustawpoziom.set.success",
+            context.reply(context.getTranslated("ustawpoziom.set.success",
                     ccmd.getName(), plvl.getNum(), context.getTranslated(plvl.getLanguageKey())));
             return true;
         }

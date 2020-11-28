@@ -59,22 +59,22 @@ public class CreateTagCommand extends Command {
         String content = Arrays.stream(Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length))
                 .map(o -> o == null ? "" : o.toString()).collect(Collectors.joining(uzycieDelim));
         if (tagName.length() > MAX_TAG_NAME_LENGTH) {
-            context.send(context.getTranslated("createtag.too.long"));
+            context.reply(context.getTranslated("createtag.too.long"));
             return false;
         }
         Tags tags = tagsDao.get(context.getGuild().getId());
         if (tags.getTagi().stream().anyMatch(t -> t.getName().equalsIgnoreCase(tagName))) {
-            context.send(context.getTranslated("createtag.exists"));
+            context.reply(context.getTranslated("createtag.exists"));
             return false;
         }
         if (managerKomend.getRegistered().stream().anyMatch(c -> c.getName().equalsIgnoreCase(tagName) ||
                 Arrays.asList(c.getAliases(context.getTlumaczenia())).contains(tagName))) {
-            context.send(context.getTranslated("createtag.reserved"));
+            context.reply(context.getTranslated("createtag.reserved"));
             return false;
         }
         tags.getTagi().add(new Tag(tagName, context.getSender().getId(), content));
         tagsDao.save(tags);
-        context.send(context.getTranslated("createtag.success"));
+        context.reply(context.getTranslated("createtag.success"));
         return true;
     }
 }

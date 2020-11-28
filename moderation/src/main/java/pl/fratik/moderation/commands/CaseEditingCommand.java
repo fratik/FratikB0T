@@ -50,11 +50,11 @@ public abstract class CaseEditingCommand extends ModerationCommand {
     protected boolean updateCase(CommandContext context, String successMessage, String failMessage, CaseRow caseRow, TextChannel modLogChannel, Case aCase, GuildConfig gc) {
         if (modLogChannel == null || !context.getGuild().getSelfMember().hasPermission(modLogChannel,
                 Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_WRITE, Permission.MESSAGE_READ)) {
-            context.send(successMessage);
+            context.reply(successMessage);
             casesDao.save(caseRow);
             return true;
         }
-        Consumer<Throwable> throwableConsumer = err -> context.send(failMessage, c -> {});
+        Consumer<Throwable> throwableConsumer = err -> context.reply(failMessage, c -> {});
         User issuer = null;
         if (aCase.getIssuerId() != null && !aCase.getIssuerId().isEmpty()) {
             try {
@@ -105,12 +105,12 @@ public abstract class CaseEditingCommand extends ModerationCommand {
                 MessageEmbed embed = ModLogBuilder.generate(aCase, context.getGuild(),
                         gc.getLanguage(), managerKomend, true, false, finalIssuer, user);
                 modLogChannel.sendMessage(embed).queue(m -> {
-                    context.send(successMessage, c -> {});
+                    context.reply(successMessage, c -> {});
                     aCase.setMessageId(m.getId());
                     casesDao.save(caseRow);
                 }, throwableConsumer);
             }
-            context.send(successMessage);
+            context.reply(successMessage);
             casesDao.save(caseRow);
             return true;
         }
@@ -119,7 +119,7 @@ public abstract class CaseEditingCommand extends ModerationCommand {
             msg.editMessage(ModLogBuilder.generate(aCase, context.getGuild(), gc.getLanguage(), managerKomend,
                     true, false, finalIssuer, user))
                     .override(true).queue(m -> {
-                context.send(successMessage, c -> {});
+                context.reply(successMessage, c -> {});
                 casesDao.save(caseRow);
             }, throwableConsumer);
         }, error -> {
@@ -129,7 +129,7 @@ public abstract class CaseEditingCommand extends ModerationCommand {
                         true, false, finalIssuer, user);
                 modLogChannel.sendMessage(embed).queue(m -> {
                     aCase.setMessageId(m.getId());
-                    context.send(successMessage, c -> {});
+                    context.reply(successMessage, c -> {});
                     casesDao.save(caseRow);
                 }, throwableConsumer);
             }

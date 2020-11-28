@@ -21,7 +21,7 @@ public abstract class NsfwCommand extends Command {
     @Override
     public boolean preExecute(CommandContext context) {
         if (!context.getTextChannel().isNSFW()) {
-            context.send(context.getTranslated("generic.not.nsfw"));
+            context.reply(context.getTranslated("generic.not.nsfw"));
             return false;
         }
         return super.preExecute(context);

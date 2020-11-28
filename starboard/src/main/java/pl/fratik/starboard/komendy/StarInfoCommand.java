@@ -126,7 +126,7 @@ public class StarInfoCommand extends Command {
                     StarboardListener.getStarEmoji(topStarData.getStarredBy().size()) + " | " +
                     topStarData.id, false);
         }
-        context.send(eb.build());
+        context.reply(eb.build());
         for (Message fix : toFix) {
             starManager.fixStars(fix, starDataDao.get(context.getGuild()));
         }

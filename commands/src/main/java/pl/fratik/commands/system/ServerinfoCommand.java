@@ -55,7 +55,8 @@ public class ServerinfoCommand extends Command {
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
-        CompletableFuture<Message> f = context.getTextChannel().sendMessage(context.getTranslated("generic.loading")).submit();
+        CompletableFuture<Message> f = context.getTextChannel().sendMessage(context.getTranslated("generic.loading"))
+                .reference(context.getMessage()).submit();
         EmbedBuilder eb = new EmbedBuilder();
         eb.setTitle(context.getTranslated("serverinfo.name", context.getGuild().getName()));
         eb.addField(context.getTranslated("serverinfo.id"), context.getGuild().getId(), true);
@@ -112,7 +113,7 @@ public class ServerinfoCommand extends Command {
             m = null;
         }
         if (m != null) m.editMessage(eb.build()).override(true).complete();
-        else context.send(eb.build());
+        else context.reply(eb.build());
         return true;
     }
 

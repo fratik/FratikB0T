@@ -81,7 +81,7 @@ public class BotstatsCommand extends Command {
                 // nic XD
             }
         }
-        context.send(eb.build());
+        context.reply(eb.build());
         return true;
     }
 

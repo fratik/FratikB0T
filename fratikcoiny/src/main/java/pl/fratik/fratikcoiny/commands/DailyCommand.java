@@ -53,7 +53,7 @@ public class DailyCommand extends Command {
         if (mc.getDailyDate() != null) {
             long dist = dailyDate.getTime() - teraz.getTime();
             if (dist >= 0) {
-                context.send(context.getTranslated("daily.cooldown"));
+                context.reply(context.getTranslated("daily.cooldown"));
                 return false;
             }
         }
@@ -63,14 +63,14 @@ public class DailyCommand extends Command {
         dailyDate = Date.from(cal.toInstant());
         long fc = isHoliday() ? mc.getFratikCoiny() + 500 : mc.getFratikCoiny() + 250;
         if (fc == Long.MAX_VALUE) {
-            context.send(context.getTranslated("daily.too.many.coins"));
+            context.reply(context.getTranslated("daily.too.many.coins"));
             return false;
         }
         String msg = isHoliday() ? "daily.success.holiday" : "daily.success";
         mc.setFratikCoiny(fc);
         mc.setDailyDate(dailyDate);
         memberDao.save(mc);
-        context.send(context.getTranslated(msg, emotkaFc.getAsMention(), mc.getFratikCoiny(), emotkaFc.getAsMention()));
+        context.reply(context.getTranslated(msg, emotkaFc.getAsMention(), mc.getFratikCoiny(), emotkaFc.getAsMention()));
         return true;
     }
 

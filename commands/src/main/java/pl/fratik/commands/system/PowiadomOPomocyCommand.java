@@ -49,11 +49,11 @@ public class PowiadomOPomocyCommand extends Command {
         Member mem = fdev.getMember(context.getSender());
         if (Objects.requireNonNull(mem).getRoles().contains(rola)) {
             fdev.removeRoleFromMember(mem, Objects.requireNonNull(rola)).complete();
-            context.send(context.getTranslated("powiadomopomocy.success.removed"));
+            context.reply(context.getTranslated("powiadomopomocy.success.removed"));
             return false;
         }
         fdev.addRoleToMember(mem, Objects.requireNonNull(rola)).complete();
-        context.send(context.getTranslated("powiadomopomocy.success"));
+        context.reply(context.getTranslated("powiadomopomocy.success"));
         return true;
     }
 }

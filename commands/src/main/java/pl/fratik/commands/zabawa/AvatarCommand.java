@@ -46,7 +46,7 @@ public class AvatarCommand extends Command {
         eb.setAuthor(UserUtil.formatDiscrim(osoba));
         eb.setTitle(context.getTranslated("avatar.link"), osoba.getEffectiveAvatarUrl().replace(".webp", ".png"));
         eb.setColor(UserUtil.getPrimColor(osoba));
-        context.send(eb.build());
+        context.reply(eb.build());
         return true;
     }
 }

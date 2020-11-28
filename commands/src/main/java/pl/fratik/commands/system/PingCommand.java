@@ -38,7 +38,7 @@ public class PingCommand extends Command {
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
-        Message message = context.getMessageChannel().sendMessage(context.getTranslated("ping.pinging")).complete();
+        Message message = context.reply(context.getTranslated("ping.pinging"));
         long ping = context.getEvent().getMessage().getTimeCreated().until(message.getTimeCreated(), ChronoUnit.MILLIS);
         message.editMessage(context.getTranslated("ping.delay", ping, context.getMessage().getJDA().getGatewayPing())).complete();
         return true;

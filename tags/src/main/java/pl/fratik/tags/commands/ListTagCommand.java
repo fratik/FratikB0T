@@ -69,11 +69,11 @@ public class ListTagCommand extends Command {
         });
         if (sb[0].length() != 0) pages.add(renderEmbed(sb[0], context));
         if (pages.isEmpty()) {
-            context.send(context.getTranslated("listtag.no.tags"));
+            context.reply(context.getTranslated("listtag.no.tags"));
             return false;
         }
         if (pages.size() == 1) {
-            context.send(pages.get(0).build());
+            context.reply(pages.get(0).build());
             return true;
         }
         new ClassicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(), context.getTlumaczenia(), eventBus).create(context.getMessage());

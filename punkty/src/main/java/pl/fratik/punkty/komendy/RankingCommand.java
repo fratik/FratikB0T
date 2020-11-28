@@ -51,7 +51,7 @@ public class RankingCommand extends Command {
     @SubCommand(name="punkty",aliases={"points", "pkt"})
     public boolean punkty(@NotNull CommandContext context) {
         if (!licznik.punktyWlaczone(context.getGuild())) {
-            context.send(context.getTranslated("punkty.off"));
+            context.reply(context.getTranslated("punkty.off"));
             return false;
         }
         Map<String, Integer> dane = punktyDao.getTopkaPunktow(context.getGuild());
@@ -73,14 +73,14 @@ public class RankingCommand extends Command {
                 if (liczba != dane.size()) tekst.add("");
             }
         });
-        context.send(context.getTranslated("ranking.points.header") + "```" + String.join("\n", tekst) + "```");
+        context.reply(context.getTranslated("ranking.points.header") + "```" + String.join("\n", tekst) + "```");
         return true;
     }
 
     @SubCommand(name="poziom",aliases={"level", "lvl"})
     public boolean poziom(@NotNull CommandContext context) {
         if (!licznik.punktyWlaczone(context.getGuild())) {
-            context.send(context.getTranslated("punkty.off"));
+            context.reply(context.getTranslated("punkty.off"));
             return false;
         }
         Map<String, Integer> dane = punktyDao.getTopkaPoziomow(context.getGuild());
@@ -104,7 +104,7 @@ public class RankingCommand extends Command {
                 if (liczba != Math.min(10, dane.size())) tekst.add("");
             }
         });
-        context.send(context.getTranslated("ranking.levels.header") + "```" + String.join("\n", tekst) + "```");
+        context.reply(context.getTranslated("ranking.levels.header") + "```" + String.join("\n", tekst) + "```");
         return true;
     }
 
@@ -139,7 +139,7 @@ public class RankingCommand extends Command {
                 if (liczba != Math.min(10, dane.size())) tekst.add("");
             }
         });
-        context.send(context.getTranslated("ranking.fratikcoin.header") + "```" + String.join("\n", tekst) + "```");
+        context.reply(context.getTranslated("ranking.fratikcoin.header") + "```" + String.join("\n", tekst) + "```");
         return true;
     }
 

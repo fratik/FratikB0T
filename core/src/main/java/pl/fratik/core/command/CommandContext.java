@@ -114,11 +114,6 @@ public class CommandContext {
         return event.getMember();
     }
 
-    @Deprecated
-    public TextChannel getChannel() {
-        return getTextChannel();
-    }
-
     public MessageChannel getMessageChannel() {
         return event.getChannel();
     }
@@ -167,6 +162,43 @@ public class CommandContext {
 
     public void send(MessageEmbed message, Consumer<Message> callback) {
         event.getChannel().sendMessage(message).queue(callback);
+    }
+
+    public Message reply(CharSequence message) {
+        return reply(message, true);
+    }
+
+    public Message reply(CharSequence message, boolean checkUrl) {
+        if (checkUrl && URLPATTERN.matcher(message).matches()) {
+            Exception blad = new Exception("Odpowiedź zawiera link!");
+            Sentry.getContext().setUser(new io.sentry.event.User(getSender().getId(),
+                    getSender().getName(), null, null));
+            Sentry.capture(new EventBuilder().withLevel(Level.WARNING).withMessage(blad.getMessage())
+                    .withExtra("wiadomosc", message).withSentryInterface(new ExceptionInterface(blad)));
+            Sentry.clearContext();
+        }
+        return event.getChannel().sendMessage(message).reference(getMessage()).complete();
+    }
+
+    //    @Deprecated
+    public Message reply(MessageEmbed message) {
+        return event.getChannel().sendMessage(message).reference(getMessage()).complete();
+    }
+
+    public void reply(CharSequence message, Consumer<Message> callback) {
+        if (URLPATTERN.matcher(message).matches()) {
+            Exception blad = new Exception("Odpowiedź zawiera link!");
+            Sentry.getContext().setUser(new io.sentry.event.User(getSender().getId(),
+                    getSender().getName(), null, null));
+            Sentry.capture(new EventBuilder().withLevel(Level.WARNING).withMessage(blad.getMessage())
+                    .withExtra("wiadomosc", message).withSentryInterface(new ExceptionInterface(blad)));
+            Sentry.clearContext();
+        }
+        event.getChannel().sendMessage(message).reference(getMessage()).queue(callback);
+    }
+
+    public void reply(MessageEmbed message, Consumer<Message> callback) {
+        event.getChannel().sendMessage(message).reference(getMessage()).queue(callback);
     }
 
     public boolean checkSensitive(String input) {

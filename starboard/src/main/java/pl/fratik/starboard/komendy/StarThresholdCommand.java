@@ -43,7 +43,7 @@ public class StarThresholdCommand extends Command {
         StarsData std = starDataDao.get(context.getGuild());
         int ilosc = (int) context.getArgs()[0];
         std.setStarThreshold(ilosc);
-        context.send(context.getTranslated("starthreshold.set", ilosc));
+        context.reply(context.getTranslated("starthreshold.set", ilosc));
         starDataDao.save(std);
         return true;
     }

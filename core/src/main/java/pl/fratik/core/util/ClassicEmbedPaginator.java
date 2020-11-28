@@ -67,8 +67,8 @@ public class ClassicEmbedPaginator implements EmbedPaginator {
     }
 
     @Override
-    public void create(MessageChannel channel) {
-        channel.sendMessage(render(1)).override(true).queue(msg -> {
+    public void create(MessageChannel channel, String referenceMessageId) {
+        channel.sendMessage(render(1)).referenceById(referenceMessageId).override(true).queue(msg -> {
             message = msg;
             messageId = msg.getIdLong();
             if (pages.size() != 1) {

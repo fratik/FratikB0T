@@ -119,7 +119,7 @@ public class HypixelCommand extends Command {
                     }
                 }
             } catch (Exception e) {
-                context.send(context.getTranslated("hypixel.error.playerapi"));
+                context.reply(context.getTranslated("hypixel.error.playerapi"));
                 return false;
             }
             EmbedBuilder eb = new EmbedBuilder();
@@ -135,7 +135,7 @@ public class HypixelCommand extends Command {
             eb.addField(context.getTranslated("hypixel.embed.player.lastlogin"), date.format(lastlogin), true);
             eb.addField(context.getTranslated("hypixel.embed.player.language"), jezyk, false);
             eb.addField(context.getTranslated("hypixel.embed.player.karma"), String.valueOf(karma), true);
-            context.send(eb.build());
+            context.reply(eb.build());
             return true;
         } else if (cos.equals("guild")) {
             try {
@@ -150,7 +150,7 @@ public class HypixelCommand extends Command {
                 tagcolor = g.getTagColor();
                 coins = g.getCoins();
             } catch (Exception e) {
-                context.send(context.getTranslated("hypixel.error.guildapi"));
+                context.reply(context.getTranslated("hypixel.error.guildapi"));
                 return false;
             }
             EmbedBuilder eb = new EmbedBuilder();
@@ -164,7 +164,7 @@ public class HypixelCommand extends Command {
             eb.addField(context.getTranslated("hypixel.embed.guild.members"), String.valueOf(members), false);
             eb.addField(context.getTranslated("hypixel.embed.guild.coiny"), String.valueOf(coins), false);
             eb.addField(context.getTranslated("hypixel.embed.guild.exp"), String.valueOf(exp), true);
-            context.send(eb.build());
+            context.reply(eb.build());
             return true;
         }
         return false;

@@ -36,8 +36,8 @@ public class RzutKosciaCommand extends Command {
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
-        context.send(context.getTranslated("rzutkoscia.response", "\uD83D\uDC4C", context.getSender().getAsMention(),
-                String.valueOf(random.nextInt(6) + 1)));
+        context.reply(context.getTranslated("rzutkoscia.response", context.getSender().getAsMention(),
+                String.valueOf(random.nextInt(6) + 1), "\uD83D\uDC4C"));
         return true;
     }
 }
