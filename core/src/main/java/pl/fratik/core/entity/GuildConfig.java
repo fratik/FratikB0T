@@ -57,6 +57,7 @@ public class GuildConfig implements DatabaseEntity {
     @ConfigField(holdsEntity = ConfigField.Entities.ROLE)
     private String adminRole = "";
     private Boolean antiswear = false;
+    private Boolean antiLink = false;
     private Boolean autoban = false;
     @ConfigField(holdsEntity = ConfigField.Entities.ROLE)
     private List<String> autorole = new ArrayList<>();
@@ -75,6 +76,8 @@ public class GuildConfig implements DatabaseEntity {
     private String modRole = "";
     @ConfigField(holdsEntity = ConfigField.Entities.CHANNEL)
     private List<String> swearchannels = new ArrayList<>();
+    @ConfigField(holdsEntity = ConfigField.Entities.CHANNEL)
+    private List<String> linkchannels = new ArrayList<>();
     @ConfigField(holdsEntity = ConfigField.Entities.CHANNEL)
     private List<String> nolvlchannelchange = new ArrayList<>();
     private Boolean warnAdminLubModTraciRange = true;
@@ -127,6 +130,7 @@ public class GuildConfig implements DatabaseEntity {
     private Boolean lvlUpNotify = true;
     private Boolean trackInvites = false;
     private Boolean deleteSwearMessage = false;
+    private Boolean deleteLinkMessage = false;
     private Boolean cytujFbot = false;
     private Boolean publikujReakcja = false;
 
@@ -153,6 +157,19 @@ public class GuildConfig implements DatabaseEntity {
 
     public boolean isPublikujReakcja() {
         return publikujReakcja != null && publikujReakcja;
+    }
+
+    public Boolean isAntiLink() {
+        return antiLink != null && antiLink;
+    }
+
+    public List<String> getLinkchannels() {
+        if (linkchannels == null) linkchannels = new ArrayList<>();
+        return linkchannels;
+    }
+
+    public boolean isDeleteLinkMessage() {
+        return deleteLinkMessage != null && deleteLinkMessage;
     }
 
     @Transient

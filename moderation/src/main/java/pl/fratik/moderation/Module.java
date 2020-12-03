@@ -66,6 +66,7 @@ public class Module implements Modul {
     private ModLogListener modLogListener;
     private LogListener logListener;
     private PrzeklenstwaListener przeklenstwaListener;
+    private LinkListener linkListener;
     private AntiInviteListener antiInviteListener;
     private AntiRaidListener antiRaidListener;
     private CasesDao casesDao;
@@ -99,6 +100,7 @@ public class Module implements Modul {
         modLogListener = new ModLogListener(guildDao, shardManager, casesDao);
         logListener = new LogListener(guildDao, purgeDao, redisCacheManager);
         przeklenstwaListener = new PrzeklenstwaListener(guildDao, tlumaczenia, managerKomend, shardManager, casesDao, redisCacheManager);
+        linkListener = new LinkListener(guildDao, tlumaczenia, managerKomend, shardManager, casesDao, redisCacheManager);
         autobanListener = new AutobanListener(guildDao, tlumaczenia);
         antiInviteListener = new AntiInviteListener(guildDao, tlumaczenia, managerKomend, shardManager, casesDao, redisCacheManager);
         antiRaidListener = new AntiRaidListener(guildDao, shardManager, eventBus, tlumaczenia, redisCacheManager, managerKomend);
@@ -108,6 +110,7 @@ public class Module implements Modul {
         eventBus.register(modLogListener);
         eventBus.register(logListener);
         eventBus.register(przeklenstwaListener);
+        eventBus.register(linkListener);
         eventBus.register(autobanListener);
         eventBus.register(antiInviteListener);
         eventBus.register(antiRaidListener);
@@ -158,6 +161,7 @@ public class Module implements Modul {
             eventBus.unregister(modLogListener);
             eventBus.unregister(logListener);
             eventBus.unregister(przeklenstwaListener);
+            eventBus.unregister(linkListener);
             eventBus.unregister(autobanListener);
             eventBus.unregister(antiInviteListener);
             eventBus.unregister(antiRaidListener);
