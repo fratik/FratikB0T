@@ -46,7 +46,7 @@ public class StatsCommand extends Command {
     @Override
     public boolean execute(@NotNull CommandContext context) {
         if (!licznik.punktyWlaczone(context.getGuild())) {
-            context.send(context.getTranslated("punkty.off"));
+            context.reply(context.getTranslated("punkty.off"));
             return false;
         }
         Member mem = context.getMember();
@@ -71,7 +71,7 @@ public class StatsCommand extends Command {
                 CommonUtil.generateProgressBar((int) (CommonUtil.round(((current / target) * 100), 0,
                         RoundingMode.HALF_UP)), true), (int) current, (int) target);
         eb.addField(context.getTranslated("stats.embed.progress"), progress, false);
-        context.send(eb.build());
+        context.reply(eb.build());
         return true;
     }
 }

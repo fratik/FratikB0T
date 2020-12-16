@@ -33,7 +33,7 @@ public abstract class AbstractInvitesCommand extends Command {
 
     protected boolean checkEnabled(CommandContext context) {
         if (!invitesCache.tracksInvites(context.getGuild())) {
-            context.send(context.getTranslated("invites.disabled"));
+            context.reply(context.getTranslated("invites.disabled"));
             return false;
         }
         return true;

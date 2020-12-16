@@ -48,7 +48,7 @@ public class EmojiInfoCommand extends Command {
     public boolean execute(@NotNull CommandContext context) {
         Emoji em = (Emoji) context.getArgs()[0];
         if (em.isUnicode()) {
-            context.send(context.getTranslated("emojiinfo.unicode"));
+            context.reply(context.getTranslated("emojiinfo.unicode"));
             return false;
         }
         EmbedBuilder eb = new EmbedBuilder();
@@ -72,7 +72,7 @@ public class EmojiInfoCommand extends Command {
                 "generic.yes" : "generic.no"), false);
         eb.setThumbnail(em.getImageUrl());
         eb.setColor(CommonUtil.getPrimColorFromImageUrl(em.getImageUrl()));
-        context.send(eb.build());
+        context.reply(eb.build());
         return true;
     }
 

@@ -214,6 +214,7 @@ class FratikB0T {
                 builder.setCallbackPool(Executors.newFixedThreadPool(4));
                 builder.enableCache(CacheFlag.EMOTE);
                 MessageAction.setDefaultMentions(EnumSet.of(Message.MentionType.EMOTE, Message.MentionType.CHANNEL));
+                MessageAction.setDefaultMentionRepliedUser(false);
                 ShardManager shardManager = builder.build();
                 ManagerArgumentow managerArgumentow = new ManagerArgumentowImpl();
                 Uzycie.setManagerArgumentow(managerArgumentow);

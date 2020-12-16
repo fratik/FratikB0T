@@ -51,12 +51,12 @@ public class HideCommand extends ModerationCommand {
         GuildConfig gc = guildDao.get(context.getGuild());
         if (gc.getAdminRole() == null || gc.getAdminRole().equals("") || (gc.getAdminRole() != null &&
                 !gc.getAdminRole().equals("") && context.getGuild().getRoleById(gc.getAdminRole()) == null)) {
-            context.send(context.getTranslated("hide.no.adminrole", managerKomend.getPrefixes(context.getGuild()).get(0)));
+            context.reply(context.getTranslated("hide.no.adminrole", managerKomend.getPrefixes(context.getGuild()).get(0)));
             return false;
         }
         Role adminRole = context.getGuild().getRoleById(gc.getAdminRole());
         if (adminRole == null) {
-            context.send(context.getTranslated("hide.no.adminrole", managerKomend.getPrefixes(context.getGuild()).get(0)));
+            context.reply(context.getTranslated("hide.no.adminrole", managerKomend.getPrefixes(context.getGuild()).get(0)));
             return false;
         }
         PermissionOverrideAction overrides = context.getTextChannel().upsertPermissionOverride(context.getGuild().getPublicRole());
@@ -70,9 +70,9 @@ public class HideCommand extends ModerationCommand {
             try {
                 publicOverrides.setDeny(publicDeny).complete();
                 adminOverrides.setAllow(adminAllow).complete();
-                context.send(context.getTranslated("hide.unhide.success"));
+                context.reply(context.getTranslated("hide.unhide.success"));
             } catch (Exception e) {
-                context.send(context.getTranslated("hide.unhide.fail"));
+                context.reply(context.getTranslated("hide.unhide.fail"));
             }
         } else {
             PermissionOverrideAction publicOverrides = context.getTextChannel().putPermissionOverride(context.getGuild().getPublicRole());
@@ -84,9 +84,9 @@ public class HideCommand extends ModerationCommand {
             try {
                 publicOverrides.setDeny(publicDeny).complete();
                 adminOverrides.setAllow(adminAllow).complete();
-                context.send(context.getTranslated("hide.hide.success"));
+                context.reply(context.getTranslated("hide.hide.success"));
             } catch (Exception e) {
-                context.send(context.getTranslated("hide.hide.fail"));
+                context.reply(context.getTranslated("hide.hide.fail"));
             }
         }
         return true;

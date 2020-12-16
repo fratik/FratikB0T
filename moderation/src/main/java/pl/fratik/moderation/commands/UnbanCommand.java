@@ -60,7 +60,7 @@ public class UnbanCommand extends ModerationCommand {
         else powod = context.getTranslated("unban.reason.default");
         List<Guild.Ban> bany = context.getGuild().retrieveBanList().complete();
         if (bany.stream().noneMatch(b -> b.getUser().equals(uzytkownik))) {
-            context.send(context.getTranslated("unban.not.banned"));
+            context.reply(context.getTranslated("unban.not.banned"));
             return false;
         }
         Case aCase = new CaseBuilder().setUser(uzytkownik).setGuild(context.getGuild())
@@ -76,10 +76,10 @@ public class UnbanCommand extends ModerationCommand {
         } catch (Exception e) {
             caseList.remove(aCase);
             ModLogListener.getKnownCases().put(context.getGuild(), caseList);
-            context.send(context.getTranslated("unban.failed"));
+            context.reply(context.getTranslated("unban.failed"));
             return false;
         }
-        context.send(context.getTranslated("unban.success", UserUtil.formatDiscrim(uzytkownik)));
+        context.reply(context.getTranslated("unban.success", UserUtil.formatDiscrim(uzytkownik)));
         return true;
     }
 }

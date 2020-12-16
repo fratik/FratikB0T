@@ -86,7 +86,7 @@ public class KolorCommand extends Command {
         }
         //#endregion kolory
         if (color == null) {
-            context.send(context.getTranslated("kolor.unknown.color"));
+            context.reply(context.getTranslated("kolor.unknown.color"));
             return false;
         }
         try {
@@ -108,10 +108,11 @@ public class KolorCommand extends Command {
             eb.addField("RGB", String.join(", ", rgb), true);
             eb.addField("Hex", "#" + asHex(color), true);
             if (getCssName(color) != null) eb.addField("CSS", getCssName(color), true);
-            context.getMessageChannel().sendMessage(eb.build()).addFile(baos.toByteArray(), asHex(color) + ".png").queue();
+            context.getMessageChannel().sendMessage(eb.build()).addFile(baos.toByteArray(), asHex(color) + ".png")
+                    .reference(context.getMessage()).queue();
             baos.close();
         } catch (IOException e) {
-            context.send(context.getTranslated("kolor.failed"));
+            context.reply(context.getTranslated("kolor.failed"));
         }
         return true;
     }

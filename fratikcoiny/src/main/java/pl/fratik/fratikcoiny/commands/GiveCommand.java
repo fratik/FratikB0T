@@ -54,18 +54,18 @@ public class GiveCommand extends Command {
         MemberConfig od = memberDao.get(context.getMember());
         MemberConfig kurwaDo = memberDao.get(komu);
         if (od.getFratikCoiny() < ile) {
-            context.send(context.getTranslated("give.no.money"));
+            context.reply(context.getTranslated("give.no.money"));
             return false;
         }
         if (context.getSender().getId().contains(komu.getUser().getId())) {
-            context.send(context.getTranslated("give.no.self"));
+            context.reply(context.getTranslated("give.no.self"));
             return false;
         }
         od.setFratikCoiny(od.getFratikCoiny() - ile);
         kurwaDo.setFratikCoiny(kurwaDo.getFratikCoiny() + ile);
         memberDao.save(od);
         memberDao.save(kurwaDo);
-        context.send(context.getTranslated("give.success"));
+        context.reply(context.getTranslated("give.success"));
         return true;
     }
 }

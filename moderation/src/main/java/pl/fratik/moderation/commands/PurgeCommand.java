@@ -60,10 +60,10 @@ public class PurgeCommand extends ModerationCommand { //TODO: 1000 wiadomosci dl
         context.getMessage().delete().queue();
         int ilosc = (int) context.getArgs()[0];
         if (ilosc < 2 || ilosc > 100) {
-            context.send(context.getTranslated("purge.no.limit"));
+            context.reply(context.getTranslated("purge.no.limit"));
             return false;
         }
-        Message message = context.getTextChannel().sendMessage(context.getTranslated("purge.retrieving")).complete();
+        Message message = context.reply(context.getTranslated("purge.retrieving"));
         CompletableFuture<MessageHistory> historia = context.getTextChannel().getHistoryBefore(context.getMessage(), ilosc).submit();
         boolean staraWiadomosc = false;
         long dwaTygodnieTemu = (System.currentTimeMillis() - TimeUnit.DAYS.toMillis(14) - TimeUtil.DISCORD_EPOCH)
@@ -94,7 +94,8 @@ public class PurgeCommand extends ModerationCommand { //TODO: 1000 wiadomosci dl
                 message.editMessage(context.getTranslated("purge.deleting", ilosc)).complete();
             } catch (ErrorResponseException e) {
                 try {
-                    message.getChannel().sendMessage(context.getTranslated("purge.deleting", ilosc)).complete();
+                    message.getChannel().sendMessage(context.getTranslated("purge.deleting", ilosc))
+                            .reference(context.getMessage()).complete();
                 } catch (ErrorResponseException ignored) {}
             }
         }
@@ -104,7 +105,8 @@ public class PurgeCommand extends ModerationCommand { //TODO: 1000 wiadomosci dl
                 message.editMessage(context.getTranslated("purge.deleting.empty")).complete();
             } catch (ErrorResponseException e) {
                 try {
-                    message.getChannel().sendMessage(context.getTranslated("purge.deleting.empty")).complete();
+                    message.getChannel().sendMessage(context.getTranslated("purge.deleting.empty"))
+                            .reference(context.getMessage()).complete();
                 } catch (ErrorResponseException ignored) {}
             }
             return false;

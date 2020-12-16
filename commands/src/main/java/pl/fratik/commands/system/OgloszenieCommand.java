@@ -81,12 +81,12 @@ public class OgloszenieCommand extends Command {
         if (kanau == null) throw new IllegalStateException("brak kanału");
         List<Message> msgs = kanau.getHistory().retrievePast(1).complete();
         if (msgs.isEmpty()) {
-            context.send(context.getTranslated("ogloszenie.no.message"));
+            context.reply(context.getTranslated("ogloszenie.no.message"));
             return false;
         }
         EmbedBuilder eb = ogloszenieEmbed(msgs.get(0), context.getTlumaczenia(), context.getLanguage(),
                 context.getGuild());
-        context.send(eb.build());
+        context.reply(eb.build());
         return true;
     }
 
@@ -100,14 +100,14 @@ public class OgloszenieCommand extends Command {
         if (kanau == null) throw new IllegalStateException("brak kanału");
         List<Message> msgs = kanau.getHistory().retrievePast(1).complete();
         if (msgs.isEmpty()) {
-            context.send(context.getTranslated("ogloszenie.no.message"));
+            context.reply(context.getTranslated("ogloszenie.no.message"));
             return false;
         }
         Emote emotka = shardManager.getEmoteById(Ustawienia.instance.emotki.loading);
         Message wiadomosc;
-        if (emotka == null) wiadomosc = context.send(context.getTranslated("ogloszenie.post.sending.starting",
+        if (emotka == null) wiadomosc = context.reply(context.getTranslated("ogloszenie.post.sending.starting",
                 "\u2699"));
-        else wiadomosc = context.send(context.getTranslated("ogloszenie.post.sending.starting",
+        else wiadomosc = context.reply(context.getTranslated("ogloszenie.post.sending.starting",
                 emotka.getAsMention()));
         AtomicInteger udane = new AtomicInteger();
         AtomicInteger nieudane = new AtomicInteger();
@@ -160,7 +160,7 @@ public class OgloszenieCommand extends Command {
                     emotka.getAsMention(), udane.get(), serwery.size(), nieudane.get(), nieWysylaj.get(),
                     nieMaKanalu.get())).complete();
         }
-        context.send(context.getTranslated("ogloszenie.post.done"));
+        context.reply(context.getTranslated("ogloszenie.post.done"));
         return true;
     }
 

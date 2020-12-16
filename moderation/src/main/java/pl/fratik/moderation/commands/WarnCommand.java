@@ -81,23 +81,23 @@ public class WarnCommand extends ModerationCommand {
                     .map(e -> e == null ? "" : e).map(Objects::toString).collect(Collectors.joining(uzycieDelim));
         else powod = context.getTranslated("warn.reason.default");
         if (uzytkownik.equals(context.getMember())) {
-            context.send(context.getTranslated("warn.cant.warn.yourself"));
+            context.reply(context.getTranslated("warn.cant.warn.yourself"));
             return false;
         }
         if (uzytkownik.getUser().isBot()) {
-            context.send(context.getTranslated("warn.no.bot"));
+            context.reply(context.getTranslated("warn.no.bot"));
             return false;
         }
         if (uzytkownik.isOwner()) {
-            context.send(context.getTranslated("warn.cant.warn.owner"));
+            context.reply(context.getTranslated("warn.cant.warn.owner"));
             return false;
         }
         if (!context.getMember().canInteract(uzytkownik)) {
-            context.send(context.getTranslated("warn.user.cant.interact"));
+            context.reply(context.getTranslated("warn.user.cant.interact"));
             return false;
         }
         if (!context.getGuild().getSelfMember().canInteract(uzytkownik)) {
-            context.send(context.getTranslated("warn.bot.cant.interact"));
+            context.reply(context.getTranslated("warn.bot.cant.interact"));
             return false;
         }
         GuildConfig gc = guildDao.get(context.getGuild());
@@ -113,7 +113,7 @@ public class WarnCommand extends ModerationCommand {
         if (mlog == null || !context.getGuild().getSelfMember().hasPermission(mlog,
                 Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_WRITE, Permission.MESSAGE_READ)) {
             caseRow.getCases().add(aCase);
-            context.send(context.getTranslated("warn.success", UserUtil.formatDiscrim(uzytkownik),
+            context.reply(context.getTranslated("warn.success", UserUtil.formatDiscrim(uzytkownik),
                     WarnUtil.countCases(caseRow, uzytkownik.getId())));
             if (!aCase.getFlagi().contains(Case.Flaga.SILENT)) context.send(context.getTranslated("warn.nomodlogs", context.getPrefix()));
             casesDao.save(caseRow);
@@ -128,7 +128,7 @@ public class WarnCommand extends ModerationCommand {
             aCase.setMessageId(message.getId());
         }
         caseRow.getCases().add(aCase);
-        context.send(context.getTranslated("warn.success", UserUtil.formatDiscrim(uzytkownik),
+        context.reply(context.getTranslated("warn.success", UserUtil.formatDiscrim(uzytkownik),
                 WarnUtil.countCases(caseRow, uzytkownik.getId())));
         casesDao.save(caseRow);
         WarnUtil.takeAction(guildDao, casesDao, uzytkownik, context.getTextChannel(), context.getLanguage(),

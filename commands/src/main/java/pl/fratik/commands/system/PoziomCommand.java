@@ -49,12 +49,12 @@ public class PoziomCommand extends Command {
         Member mem = (Member) context.getArgs()[0];
         if (mem == null) {
             PermLevel pmLvl = UserUtil.getPermlevel(context.getMember(), guildDao, shardManager);
-            context.send(context.getTranslated("poziom.response", context.getSender().getAsMention(),
+            context.reply(context.getTranslated("poziom.response", context.getSender().getAsMention(),
                     String.valueOf(pmLvl.getNum()), context.getTranslated(pmLvl.getLanguageKey())));
             return true;
         } else {
             PermLevel pmLvl = UserUtil.getPermlevel(mem, guildDao, shardManager);
-            context.send(context.getTranslated("poziom.response.someone", UserUtil.formatDiscrim(mem),
+            context.reply(context.getTranslated("poziom.response.someone", UserUtil.formatDiscrim(mem),
                     String.valueOf(pmLvl.getNum()), context.getTranslated(pmLvl.getLanguageKey())));
             return true;
         }

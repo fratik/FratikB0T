@@ -57,7 +57,7 @@ public class GlobaladminiCommand extends Command {
     @Override
     public boolean execute(@NotNull CommandContext context) {
         if (!Globals.inFratikDev) throw new IllegalStateException("nie na fdev");
-        Message msg = context.getMessageChannel().sendMessage(context.getTranslated("generic.loading")).complete();
+        Message msg = context.reply(context.getTranslated("generic.loading"));
         Map<User, Status> map = new HashMap<>();
         @Nonnull Guild lnodev = Objects.requireNonNull(context.getShardManager().getGuildById(Ustawienia.instance.botGuild));
         for (Member member : lnodev.getMembersWithRoles(lnodev.getRoleById(Ustawienia.instance.gadmRole))) map.put(member.getUser(), Status.GLOBALADMIN);

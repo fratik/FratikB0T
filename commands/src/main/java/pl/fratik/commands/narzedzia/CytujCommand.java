@@ -211,6 +211,7 @@ public class CytujCommand extends Command {
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
+        context.reply(context.getTranslated("cytuj.deprecated"), a -> {});
         TextChannel kanal = null;
         Message msg;
         String msgID = (String) context.getArgs()[0];

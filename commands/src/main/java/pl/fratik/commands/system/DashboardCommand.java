@@ -49,7 +49,7 @@ public class DashboardCommand extends Command {
 
         eb.setColor(UserUtil.getPrimColor(context.getMember().getUser()));
         eb.setDescription(context.getTranslated("dashboard.embed.description"));
-        context.send(eb.build());
+        context.reply(eb.build());
         return true;
     }
 }

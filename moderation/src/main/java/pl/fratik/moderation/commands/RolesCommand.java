@@ -51,7 +51,7 @@ public class RolesCommand extends ModerationCommand {
         sb.append("```");
         strArray.add(sb.toString());
         for (String str : strArray) {
-            context.send(str);
+            context.reply(str);
         }
         return true;
     }

@@ -58,13 +58,13 @@ public class StarBlacklistCommand extends Command {
         if (std.getBlacklista() == null) std.setBlacklista(new ArrayList<>());
         String tag = StringUtil.escapeMarkdown(member.getUser().getAsTag());
         if (std.getBlacklista().remove(member.getId())) {
-            context.send(context.getTranslated("starblacklist.removed", tag));
+            context.reply(context.getTranslated("starblacklist.removed", tag));
             starDataDao.save(std);
             return true;
         }
         std.getBlacklista().add(member.getId());
         starDataDao.save(std);
-        context.send(context.getTranslated("starblacklist.added", tag));
+        context.reply(context.getTranslated("starblacklist.added", tag));
         return true;
     }
 }

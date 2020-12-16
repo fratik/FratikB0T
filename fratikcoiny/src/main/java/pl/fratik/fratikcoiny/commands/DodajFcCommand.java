@@ -53,17 +53,17 @@ public class DodajFcCommand extends Command {
         Member komu = (Member) context.getArgs()[0];
         int ile = (int) context.getArgs()[1];
         if (ile == 0) {
-            context.send(context.getTranslated("dodajfc.badnumber"));
+            context.reply(context.getTranslated("dodajfc.badnumber"));
             return false;
         }
         if (komu.getUser().isBot()) {
-            context.send(context.getTranslated("dodajfc.bot"));
+            context.reply(context.getTranslated("dodajfc.bot"));
             return false;
         }
         MemberConfig mc = memberDao.get(komu);
         mc.setFratikCoiny(mc.getFratikCoiny() + ile);
         memberDao.save(mc);
-        context.send(context.getTranslated("dodajfc.success"));
+        context.reply(context.getTranslated("dodajfc.success"));
         return true;
     }
 }

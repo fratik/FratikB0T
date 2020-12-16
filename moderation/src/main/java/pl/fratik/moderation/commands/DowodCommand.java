@@ -94,7 +94,7 @@ public class DowodCommand extends CaseEditingCommand {
                 aCase = Case.getCaseById(Integer.parseInt(context.getRawArgs()[0]), caseRow);
                 if (aCase == null) throw new NullPointerException("e");
             } catch (NumberFormatException | IndexOutOfBoundsException | NullPointerException e) {
-                context.send(context.getTranslated("dowod.invalid.case"));
+                context.reply(context.getTranslated("dowod.invalid.case"));
                 return false;
             }
             for (Dowod dowod : aCase.getDowody()) {
@@ -109,7 +109,7 @@ public class DowodCommand extends CaseEditingCommand {
                 }));
             }
             if (pages.isEmpty()) {
-                context.send(context.getTranslated("dowod.empty"));
+                context.reply(context.getTranslated("dowod.empty"));
                 return true;
             }
             new DynamicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(),
@@ -134,7 +134,7 @@ public class DowodCommand extends CaseEditingCommand {
                     aCase = Case.getCaseById(Integer.parseInt(id[0]), caseRow);
                     if (aCase == null) throw new NullPointerException("e");
                 } catch (NumberFormatException | IndexOutOfBoundsException | NullPointerException e) {
-                    context.send(context.getTranslated("dowod.invalid.case"));
+                    context.reply(context.getTranslated("dowod.invalid.case"));
                     return false;
                 }
                 Dowod dowod;
@@ -142,7 +142,7 @@ public class DowodCommand extends CaseEditingCommand {
                     dowod = Dowod.getDowodById(Integer.parseInt(id[1]), aCase.getDowody());
                     if (dowod == null) throw new NullPointerException("e");
                 } catch (NumberFormatException | IndexOutOfBoundsException | NullPointerException e) {
-                    context.send(context.getTranslated("dowod.invalid.proof.id"));
+                    context.reply(context.getTranslated("dowod.invalid.proof.id"));
                     return false;
                 }
                 User user = dowod.retrieveAttachedBy(shardManager).complete();
@@ -155,11 +155,11 @@ public class DowodCommand extends CaseEditingCommand {
                 }
                 PermLevel selfPermLevel = UserUtil.getPermlevel(context.getMember(), guildDao, shardManager, PermLevel.OWNER);
                 if (selfPermLevel.getNum() < attachedByPermlevel.getNum()) {
-                    context.send(context.getTranslated("dowod.usun.lower.permlevel"));
+                    context.reply(context.getTranslated("dowod.usun.lower.permlevel"));
                     return false;
                 }
                 if (!aCase.getDowody().remove(dowod)) throw new IllegalStateException("nie udało się usunąć!");
-                context.send(context.getTranslated("dowod.usun.success"));
+                context.reply(context.getTranslated("dowod.usun.success"));
                 casesDao.save(caseRow);
                 return true;
             }
@@ -168,12 +168,12 @@ public class DowodCommand extends CaseEditingCommand {
         try {
             caseId = Integer.parseInt((String) context.getArgs()[0]);
         } catch (NumberFormatException | IndexOutOfBoundsException | NullPointerException e) {
-            context.send(context.getTranslated("dowod.invalid.case"));
+            context.reply(context.getTranslated("dowod.invalid.case"));
             return false;
         }
         if (caseRow.getCases().size() < caseId || (caseRow.getCases().size() >= caseId - 1 &&
                 caseRow.getCases().get(caseId - 1) == null)) {
-            context.send(context.getTranslated("dowod.invalid.case"));
+            context.reply(context.getTranslated("dowod.invalid.case"));
             return false;
         }
         Case aCase = caseRow.getCases().get(caseId - 1);
@@ -193,7 +193,7 @@ public class DowodCommand extends CaseEditingCommand {
         }
         content = contentBld.toString();
         if (content.length() > 500) {
-            context.send(context.getTranslated("dowod.char.limits"));
+            context.reply(context.getTranslated("dowod.char.limits"));
             return false;
         }
         aCase.getDowody().add(new Dowod(Dowod.getNextId(aCase.getDowody()), context.getSender().getId(), content.trim()));

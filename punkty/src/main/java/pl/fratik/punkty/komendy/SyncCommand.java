@@ -51,7 +51,7 @@ public class SyncCommand extends Command {
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
-        Message message = context.send(context.getTranslated("sync.synchronizing"));
+        Message message = context.reply(context.getTranslated("sync.synchronizing"));
         GuildConfig gc = guildDao.get(context.getGuild());
         AtomicInteger udaloSieDla = new AtomicInteger();
         ArrayList<User> nieUdaloSie = new ArrayList<>();

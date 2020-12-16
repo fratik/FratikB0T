@@ -63,11 +63,11 @@ public class RegulaminCommand extends ModerationCommand {
            }
         }
         if (kanal == null) {
-            context.send(context.getTranslated("regulamin.channel.doesnt.exist"));
+            context.reply(context.getTranslated("regulamin.channel.doesnt.exist"));
             return false;
         }
         if (!context.getGuild().getSelfMember().hasPermission(kanal, Permission.MESSAGE_HISTORY)) {
-            context.send(context.getTranslated("regulamin.channel.no.perms"));
+            context.reply(context.getTranslated("regulamin.channel.no.perms"));
             return false;
         }
         List<Message> wiadomosci = kanal.getHistory().retrievePast(100).complete();
@@ -84,16 +84,16 @@ public class RegulaminCommand extends ModerationCommand {
             }
         }
         if ((int) context.getArgs()[0] > punkty.size()) {
-            context.send(context.getTranslated("regulamin.no.rule"));
+            context.reply(context.getTranslated("regulamin.no.rule"));
             return false;
         }
         //noinspection SuspiciousMethodCalls (faktycznie jest to int)
         String tekst = punkty.get(context.getArgs()[0]);
         if (tekst == null) {
-            context.send(context.getTranslated("regulamin.no.rule"));
+            context.reply(context.getTranslated("regulamin.no.rule"));
             return false;
         }
-        context.send(tekst);
+        context.reply(tekst);
         return true;
     }
 

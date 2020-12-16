@@ -45,15 +45,15 @@ public class TakeTagCommand extends Command {
         Tag tag = tags.getTagi().stream()
                 .filter(t -> t.getName().equalsIgnoreCase((String) context.getArgs()[0])).findFirst().orElse(null);
         if (tag == null) {
-            context.send(context.getTranslated("taketag.tag.notfound"));
+            context.reply(context.getTranslated("taketag.tag.notfound"));
             return false;
         }
         if (tag.getCreatedBy() != null) {
-            context.send(context.getTranslated("taketag.tag.alreadyclaimed", context.getShardManager()
+            context.reply(context.getTranslated("taketag.tag.alreadyclaimed", context.getShardManager()
                     .retrieveUserById(tag.getCreatedBy()).complete().getAsTag()));
             return false;
         }
-        context.send(context.getTranslated("taketag.tag.claimed"));
+        context.reply(context.getTranslated("taketag.tag.claimed"));
         tags.getTagi().remove(tag);
         tags.getTagi().add(new Tag(tag.getName(), context.getSender().getId(), tag.getContent()));
         tagsDao.save(tags);

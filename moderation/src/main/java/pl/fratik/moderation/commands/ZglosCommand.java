@@ -59,6 +59,7 @@ public class ZglosCommand extends ModerationCommand {
         Member uzytkownik = (Member) context.getArgs()[0];
         String powod = Arrays.stream(Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length))
                 .map(e -> e == null ? "" : e).map(Objects::toString).collect(Collectors.joining(uzycieDelim));
+        context.getMessage().delete().queue();
         if (powod.isEmpty()) {
             context.send(context.getTranslated("zglos.no.reason"));
             return false;
@@ -89,7 +90,6 @@ public class ZglosCommand extends ModerationCommand {
             context.send(context.getTranslated("zglos.invalid.admin.channel"));
             return false;
         }
-        context.getMessage().delete().queue();
         try {
             channel.sendMessage(context.getTranslated("zglos.admin.message",
                     UserUtil.formatDiscrim(context.getSender()), context.getSender().getId(), powod,

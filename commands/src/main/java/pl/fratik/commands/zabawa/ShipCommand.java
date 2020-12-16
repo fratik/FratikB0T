@@ -70,7 +70,7 @@ public class ShipCommand extends Command {
             if (context.getArgs().length == 1 || (context.getArgs().length > 1 && context.getArgs()[1] == null)) {
                 // shipujemy arg0 i sendera
                 if (user.getId().equals(context.getMember().getId())) {
-                    context.send(context.getTranslated("ship.urself"));
+                    context.reply(context.getTranslated("ship.urself"));
                     return false;
                 }
                 return ship(UserUtil.formatDiscrim(context.getSender()), UserUtil.formatDiscrim(user), context,
@@ -111,7 +111,7 @@ public class ShipCommand extends Command {
         String shipFormat = HEART1 + " %s %s %s " + HEART1 + "\n";
 
         if (rzecz1.equalsIgnoreCase(rzecz2)) {
-            context.send(context.getTranslated("ship.same"));
+            context.reply(context.getTranslated("ship.same"));
             return false;
         }
 
@@ -130,7 +130,7 @@ public class ShipCommand extends Command {
         String loadingScreen = "%s\n%s";
         desc.append(String.format(loadingScreen, generateProgressBar(procent, true), text));
         eb.setDescription(desc);
-        context.send(eb.build());
+        context.reply(eb.build());
         return true;
     }
 

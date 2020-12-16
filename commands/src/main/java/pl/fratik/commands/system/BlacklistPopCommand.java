@@ -67,7 +67,7 @@ public class BlacklistPopCommand extends Command {
         }
         if (user == null && server == null) {
             if (!CommonUtil.ID_REGEX.matcher(id).matches()) {
-                context.send(context.getTranslated("blacklistpop.invalid.id"));
+                context.reply(context.getTranslated("blacklistpop.invalid.id"));
                 return false;
             }
         }
@@ -76,12 +76,12 @@ public class BlacklistPopCommand extends Command {
             xd.setBlacklisted(false);
             xd.setReason(null);
             xd.setExecutor(null);
-            context.send(context.getTranslated("blacklistpop.success.removed"));
+            context.reply(context.getTranslated("blacklistpop.success.removed"));
         } else {
             xd.setBlacklisted(true);
             xd.setReason(powod);
             xd.setExecutor(context.getSender().getId());
-            context.send(context.getTranslated("blacklistpop.success.added"));
+            context.reply(context.getTranslated("blacklistpop.success.added"));
         }
         blacklistDao.save(xd);
         return true;

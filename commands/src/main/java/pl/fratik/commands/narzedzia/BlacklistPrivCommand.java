@@ -47,7 +47,7 @@ public class BlacklistPrivCommand extends Command {
         UserConfig uc = userDao.get(ignore);
         uc.setPrivBlacklist(true);
         userDao.save(uc);
-        context.send(context.getTranslated("blacklistpriv.success"));
+        context.reply(context.getTranslated("blacklistpriv.success"));
         return true;
     }
 }

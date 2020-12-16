@@ -22,6 +22,12 @@ import net.dv8tion.jda.api.entities.MessageChannel;
 
 public interface EmbedPaginator {
     void create(Message message);
-    void create(MessageChannel channel);
+    default void create(MessageChannel channel) {
+        create(channel, (Message) null);
+    }
+    default void create(MessageChannel channel, Message referenceMessage) {
+        create(channel, referenceMessage == null ? null : referenceMessage.getId());
+    }
+    void create(MessageChannel channel, String referenceMessageId);
     EmbedPaginator setCustomFooter(boolean customFooter);
 }

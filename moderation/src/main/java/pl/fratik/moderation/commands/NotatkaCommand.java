@@ -78,19 +78,19 @@ public class NotatkaCommand extends ModerationCommand {
                     .map(e -> e == null ? "" : e).map(Objects::toString).collect(Collectors.joining(uzycieDelim));
         else throw new IllegalStateException("nie ma powodu, wtf");
         if (uzytkownik.equals(context.getMember())) {
-            context.send(context.getTranslated("notatka.cant.note.yourself"));
+            context.reply(context.getTranslated("notatka.cant.note.yourself"));
             return false;
         }
         if (uzytkownik.isOwner()) {
-            context.send(context.getTranslated("notatka.cant.note.owner"));
+            context.reply(context.getTranslated("notatka.cant.note.owner"));
             return false;
         }
         if (!context.getMember().canInteract(uzytkownik)) {
-            context.send(context.getTranslated("notatka.user.cant.interact"));
+            context.reply(context.getTranslated("notatka.user.cant.interact"));
             return false;
         }
         if (!context.getGuild().getSelfMember().canInteract(uzytkownik)) {
-            context.send(context.getTranslated("notatka.bot.cant.interact"));
+            context.reply(context.getTranslated("notatka.bot.cant.interact"));
             return false;
         }
         GuildConfig gc = guildDao.get(context.getGuild());
@@ -106,8 +106,8 @@ public class NotatkaCommand extends ModerationCommand {
         TextChannel mlogchan = shardManager.getTextChannelById(mlogchanStr);
         if (mlogchan == null || !mlogchan.getGuild().getSelfMember().hasPermission(mlogchan,
                 Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_WRITE, Permission.MESSAGE_READ)) {
-            context.send(context.getTranslated("notatka.success", UserUtil.formatDiscrim(uzytkownik)));
-            if (!aCase.getFlagi().contains(Case.Flaga.SILENT)) context.send(context.getTranslated("notatka.nomodlogs", context.getPrefix()));
+            context.reply(context.getTranslated("notatka.success", UserUtil.formatDiscrim(uzytkownik)));
+            if (!aCase.getFlagi().contains(Case.Flaga.SILENT)) context.reply(context.getTranslated("notatka.nomodlogs", context.getPrefix()));
             caseRow.getCases().add(aCase);
             casesDao.save(caseRow);
             return false;
@@ -116,14 +116,14 @@ public class NotatkaCommand extends ModerationCommand {
             MessageEmbed embed = ModLogBuilder.generate(aCase, context.getGuild(), shardManager,
                     gc.getLanguage(), managerKomend, true, false);
             mlogchan.sendMessage(embed).queue(message -> {
-                context.send(context.getTranslated("notatka.success", UserUtil.formatDiscrim(uzytkownik)), m -> {
+                context.reply(context.getTranslated("notatka.success", UserUtil.formatDiscrim(uzytkownik)), m -> {
                 });
                 aCase.setMessageId(message.getId());
                 caseRow.getCases().add(aCase);
                 casesDao.save(caseRow);
             });
         } else {
-            context.send(context.getTranslated("notatka.success", UserUtil.formatDiscrim(uzytkownik)), m -> {});
+            context.reply(context.getTranslated("notatka.success", UserUtil.formatDiscrim(uzytkownik)), m -> {});
             caseRow.getCases().add(aCase);
             casesDao.save(caseRow);
         }

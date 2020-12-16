@@ -63,25 +63,25 @@ public class YoutubeCommand extends MusicCommand {
     @Override
     public boolean execute(@NotNull CommandContext context) {
         if (!hasFullDjPerms(context.getMember(), context.getShardManager(), guildDao)) {
-            context.send(context.getTranslated("play.dj"));
+            context.reply(context.getTranslated("play.dj"));
             return false;
         }
         VoiceChannel kanal = null;
         if (context.getMember().getVoiceState() != null) kanal = context.getMember().getVoiceState().getChannel();
         if (context.getMember().getVoiceState() == null || !context.getMember().getVoiceState().inVoiceChannel() ||
                 kanal == null) {
-            context.send(context.getTranslated("play.not.connected"));
+            context.reply(context.getTranslated("play.not.connected"));
             return false;
         }
         EnumSet<Permission> upr = context.getGuild().getSelfMember().getPermissions(kanal);
         if (!Stream.of(Permission.VIEW_CHANNEL, Permission.VOICE_CONNECT, Permission.VOICE_SPEAK).allMatch(upr::contains)) {
-            context.send(context.getTranslated("play.no.permissions"));
+            context.reply(context.getTranslated("play.no.permissions"));
             return false;
         }
         SearchManager.SearchResult result = searchManager.searchYouTube((String) context.getArgs()[0]);
         Wiadomosc odp = generateResultMessage(result.getEntries(), context.getTranslated("youtube.message.header", (String) context.getArgs()[0]), false);
         int liczba = odp.liczba;
-        Message m = context.getTextChannel().sendMessage(odp.tresc).complete();
+        Message m = context.reply(odp.tresc);
         MessageWaiter waiter = new MessageWaiter(eventWaiter, context);
         AtomicBoolean deleted = new AtomicBoolean(false);
         AtomicReference<Boolean> udaloSie = new AtomicReference<>();
@@ -94,13 +94,15 @@ public class YoutubeCommand extends MusicCommand {
                 deleted.set(true);
                 m.delete().queue();
                 if (context.getMember().getVoiceState().getChannel() != finalKanal) {
-                    context.send(context.getTranslated("youtube.badchannel"));
+                    context.getTextChannel().sendMessage(context.getTranslated("youtube.badchannel"))
+                            .reference(e.getMessage()).complete();
                     udaloSie.set(false);
                     return;
                 }
                 for (int numerek : numerkiFilmow) {
                     if (numerek < 1 || numerek > liczba) {
-                        context.send(context.getTranslated("youtube.invalid.reply"));
+                        context.getTextChannel().sendMessage(context.getTranslated("youtube.invalid.reply"))
+                                .reference(e.getMessage()).complete();
                         udaloSie.set(false);
                         return;
                     }
@@ -116,7 +118,8 @@ public class YoutubeCommand extends MusicCommand {
                     audioTracks.add(tracks.get(0));
                 }
                 if (audioTracks.isEmpty()) {
-                    context.send(context.getTranslated("youtube.cant.find"));
+                    context.getTextChannel().sendMessage(context.getTranslated("youtube.cant.find"))
+                            .reference(e.getMessage()).complete();
                     udaloSie.set(false);
                     return;
                 }
@@ -136,31 +139,33 @@ public class YoutubeCommand extends MusicCommand {
                 if (added.size() == 1) {
                     if (!mms.isPlaying()) mms.play();
                     else context.getTextChannel().sendMessage(context.getTranslated("play.queued",
-                            added.get(0).getInfo().title)).queue();
+                            added.get(0).getInfo().title)).reference(e.getMessage()).queue();
                 } else {
                     context.getTextChannel().sendMessage(context.getTranslated("play.queued.multiple",
-                            added.size())).queue();
+                            added.size())).reference(e.getMessage()).queue();
                     if (!mms.isPlaying()) mms.play();
                 }
                 udaloSie.set(true);
             } catch (NumberFormatException error) {
                 deleted.set(true);
                 m.delete().queue(null, a -> {});
-                context.send(context.getTranslated("youtube.invalid.reply"));
+                context.getTextChannel().sendMessage(context.getTranslated("youtube.invalid.reply"))
+                        .reference(e.getMessage()).complete();
                 udaloSie.set(false);
             } catch (Exception error) {
                 Sentry.getContext().setUser(new io.sentry.event.User(context.getSender().getId(),
                         UserUtil.formatDiscrim(context.getSender()), null, null));
                 Sentry.capture(error);
                 Sentry.clearContext();
-                context.send(context.getTranslated("youtube.errored"));
+                context.getTextChannel().sendMessage(context.getTranslated("youtube.errored"))
+                        .reference(e.getMessage()).complete();
                 udaloSie.set(false);
             }
         }).start());
         waiter.setTimeoutHandler(() -> {
             deleted.set(true);
             m.delete().queue(null, a -> {});
-            context.send(context.getTranslated("youtube.invalid.reply"));
+            context.reply(context.getTranslated("youtube.invalid.reply"));
             udaloSie.set(false);
         });
         waiter.create();

@@ -83,12 +83,12 @@ public class CoronastatsCommand extends Command {
                 formatDate(context, eb, dzisiaj.toEpochMilli());
                 addFields(eb, context, staty, paginated);
                 if (!paginated) {
-                    context.send(eb.build());
+                    context.reply(eb.build());
                     return true;
                 }
                 pages.add(new FutureTask<>(() -> eb));
             } catch (IOException e) {
-                context.send(context.getTranslated("coronastats.api.error"));
+                context.reply(context.getTranslated("coronastats.api.error"));
                 return false;
             }
             pages.add(new FutureTask<>(() -> {
@@ -126,12 +126,12 @@ public class CoronastatsCommand extends Command {
                         eb.setImage("https://cdn.discordapp.com/attachments/424887765478539264/694101067461427281/ezgif.com-optimize.gif");
                     }
                     if (!paginated) {
-                        context.send(eb.build());
+                        context.reply(eb.build());
                         return true;
                     }
                     pages.add(new FutureTask<>(() -> eb));
                 } catch (JSONException e) {
-                    context.send(context.getTranslated("coronastats.unknown.country"));
+                    context.reply(context.getTranslated("coronastats.unknown.country"));
                     return false;
                 }
                 pages.add(new FutureTask<>(() -> {
@@ -161,12 +161,12 @@ public class CoronastatsCommand extends Command {
                     return eb;
                 }));
             } catch (IOException e) {
-                context.send(context.getTranslated("coronastats.api.error"));
+                context.reply(context.getTranslated("coronastats.api.error"));
                 return false;
             }
         }
         new DynamicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(),
-                context.getTlumaczenia(), eventBus).setCustomFooter(true).create(context.getTextChannel());
+                context.getTlumaczenia(), eventBus).setCustomFooter(true).create(context.getTextChannel(), context.getMessage());
         return true;
     }
 

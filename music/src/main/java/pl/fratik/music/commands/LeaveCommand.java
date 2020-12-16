@@ -34,7 +34,7 @@ public class LeaveCommand extends MusicCommand {
     @Override
     public boolean execute(@NotNull CommandContext context) {
         managerMuzyki.getManagerMuzykiSerwera(context.getGuild()).disconnect();
-        context.send(context.getTranslated("leave.success"));
+        context.reply(context.getTranslated("leave.success"));
         return true;
     }
 }

@@ -74,31 +74,31 @@ public class RemindCommand extends Command {
         try {
             res = DurationUtil.parseDuration(content);
         } catch (IllegalArgumentException e) {
-            context.send(context.getTranslated("remind.max.duration"));
+            context.reply(context.getTranslated("remind.max.duration"));
             return false;
         }
         if (res.getDoKiedy() == null) {
-            context.send(context.getTranslated("remind.failed"));
+            context.reply(context.getTranslated("remind.failed"));
             return false;
         }
         if (res.getTekst().isEmpty()) {
-            context.send(context.getTranslated("remind.empty"));
+            context.reply(context.getTranslated("remind.empty"));
             return false;
         }
         if (res.getTekst().length() > 1000) {
-            context.send(context.getTranslated("remind.char.limit"));
+            context.reply(context.getTranslated("remind.char.limit"));
             return false;
         }
         scheduleDao.save(scheduleDao.createNew(res.getDoKiedy().toEpochMilli(), context.getSender().getId(),
                 Akcja.REMIND, new Schedule.Przypomnienie(context.getSender().getId(), res.getTekst(),
                         Collections.singletonList(context.getMessage().getJumpUrl()))));
-        context.send(context.getTranslated("remind.success"));
+        context.reply(context.getTranslated("remind.success"));
         return true;
     }
 
     @SubCommand(name = "list", emptyUsage = true)
     public boolean list(@NotNull CommandContext context) {
-        Message msg = context.send(context.getTranslated("generic.loading"));
+        Message msg = context.reply(context.getTranslated("generic.loading"));
         List<Schedule> schedules = scheduleDao.getAll();
         List<FutureTask<EmbedBuilder>> pages = new ArrayList<>();
         SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy',' HH:mm:ss z", context.getLanguage().getLocale());
@@ -142,15 +142,15 @@ public class RemindCommand extends Command {
     public boolean delete(@NotNull CommandContext context) {
         Schedule sch = scheduleDao.get((String) context.getArgs()[0]);
         if (sch == null || !(sch.getContent() instanceof Schedule.Przypomnienie)) {
-            context.send(context.getTranslated("remind.delete.not.found"));
+            context.reply(context.getTranslated("remind.delete.not.found"));
             return false;
         }
         if (!((Schedule.Przypomnienie) sch.getContent()).getOsoba().equals(context.getSender().getId())) {
-            context.send(context.getTranslated("remind.delete.not.yours"));
+            context.reply(context.getTranslated("remind.delete.not.yours"));
             return false;
         }
         scheduleDao.delete(String.valueOf(sch.getId()));
-        context.send(context.getTranslated("remind.delete.success"));
+        context.reply(context.getTranslated("remind.delete.success"));
         return true;
     }
 }

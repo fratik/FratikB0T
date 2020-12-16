@@ -51,28 +51,28 @@ public class SkipCommand extends MusicCommand {
     public boolean execute(@NotNull CommandContext context) {
         ManagerMuzykiSerwera mms = managerMuzyki.getManagerMuzykiSerwera(context.getGuild());
         if (mms.getRepeatMode() != RepeatMode.OFF) {
-            context.send(context.getTranslated("skip.on.repeat"));
+            context.reply(context.getTranslated("skip.on.repeat"));
             return false;
         }
         synchronized (context.getGuild()) {
             if (mms.getChannel().getMembers().size() > 4) {
                 List<String> skips = mms.getSkips();
                 if (skips.contains(context.getSender().getId())) {
-                    context.send(context.getTranslated("skip.already.voted"));
+                    context.reply(context.getTranslated("skip.already.voted"));
                     return false;
                 }
                 skips.add(context.getSender().getId());
                 int total = mms.getChannel().getMembers().size() - 1;
                 int size = skips.size();
                 if (size < total * 0.4) {
-                    context.send("\uD83D\uDD38 | " + context.getTranslated("skip.votes", size, (int) Math.ceil(total * 0.4)));
+                    context.reply("\uD83D\uDD38 | " + context.getTranslated("skip.votes", size, (int) Math.ceil(total * 0.4)));
                     return true;
                 }
             } else if (!hasFullDjPerms(context.getMember(), context.getShardManager(), guildDao)) {
-                context.send(context.getTranslated("skip.dj"));
+                context.reply(context.getTranslated("skip.dj"));
                 return false;
             }
-            context.send(context.getTranslated("skip.success"));
+            context.reply(context.getTranslated("skip.success"));
             mms.skip();
         }
         return true;
@@ -84,15 +84,15 @@ public class SkipCommand extends MusicCommand {
         PermLevel plvl = UserUtil.getPermlevel(context.getMember(), guildDao, context.getShardManager(), PermLevel.OWNER);
         if ((isDjConfigured(gc) && !hasFullDjPerms(context.getMember(), context.getShardManager(), guildDao)) ||
                 (!isDjConfigured(gc) && plvl.getNum() < PermLevel.MOD.getNum())) {
-            context.send(context.getTranslated("skip.forced.error"));
+            context.reply(context.getTranslated("skip.forced.error"));
             return false;
         }
         ManagerMuzykiSerwera mms = managerMuzyki.getManagerMuzykiSerwera(context.getGuild());
         if (mms.getRepeatMode() != RepeatMode.OFF) {
-            context.send(context.getTranslated("skip.on.repeat"));
+            context.reply(context.getTranslated("skip.on.repeat"));
             return false;
         }
-        context.send(context.getTranslated("skip.success.forced"));
+        context.reply(context.getTranslated("skip.success.forced"));
         mms.skip();
         return true;
     }

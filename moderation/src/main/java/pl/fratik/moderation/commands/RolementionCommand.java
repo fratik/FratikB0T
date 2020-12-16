@@ -58,7 +58,7 @@ public class RolementionCommand extends ModerationCommand {
                     .map(e -> e == null ? "" : e).map(Objects::toString).collect(Collectors.joining(uzycieDelim));
         else tekst = null;
         if (!context.getGuild().getSelfMember().canInteract(rola)) {
-            context.send(context.getTranslated("rolemention.hierarchy"));
+            context.reply(context.getTranslated("rolemention.hierarchy"));
             return false;
         }
         context.getMessage().delete().queue();

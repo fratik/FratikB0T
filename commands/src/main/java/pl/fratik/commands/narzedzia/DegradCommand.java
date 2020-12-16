@@ -64,15 +64,15 @@ public class DegradCommand extends Command {
         @SuppressWarnings("ConstantConditions") // sprawdzamy to wyżej
         Member czlonek = shardManager.getGuildById(Ustawienia.instance.botGuild).getMember(gadmin);
         if (czlonek == null) {
-            context.send(context.getTranslated("degrad.no.member"));
+            context.reply(context.getTranslated("degrad.no.member"));
             return false;
         }
         if (!UserUtil.isGadm(czlonek, shardManager)) {
-            context.send(context.getTranslated("degrad.no.role"));
+            context.reply(context.getTranslated("degrad.no.role"));
             return false;
         }
         if (context.getSender().getId().equals(czlonek.getUser().getId())) {
-            context.send(context.getTranslated("degrad.selfdegrad"));
+            context.reply(context.getTranslated("degrad.selfdegrad"));
             return false;
         }
         byte[] zdjecie;
@@ -83,7 +83,8 @@ public class DegradCommand extends Command {
             zdjecie = null;
         }
         MessageAction maction = context.getTextChannel()
-                .sendMessage(context.getTranslated("degrad.inprogress", UserUtil.formatDiscrim(czlonek)));
+                .sendMessage(context.getTranslated("degrad.inprogress", UserUtil.formatDiscrim(czlonek)))
+                .reference(context.getMessage());
         if (zdjecie != null) maction = maction.addFile(zdjecie, "degrad.jpg");
         maction.queue(msg -> czlonek.getGuild()
                 .removeRoleFromMember(czlonek, Objects.requireNonNull(czlonek.getGuild().getRoleById(Ustawienia.instance.gadmRole)))

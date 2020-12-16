@@ -57,7 +57,7 @@ public class GurCommand extends Command {
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
-        Message message = context.send(context.getTranslated("generic.loading"));
+        Message message = context.reply(context.getTranslated("generic.loading"));
         Map<String, Integer> licznikAlboCo = MapUtil.sortByValueAsc(LicznikPunktow.getAllUserPunkty());
         List<EmbedBuilder> embedy = new ArrayList<>();
         licznikAlboCo.forEach((id, poziom) -> {

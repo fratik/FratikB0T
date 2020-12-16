@@ -96,18 +96,19 @@ public class ZglosPrivCommand extends Command {
         }
         Priv priv = privDao.get(id);
         if (priv == null || !priv.getDoKogo().equals(context.getSender().getId())) {
-            context.send(context.getTranslated("zglospriv.no.priv"));
+            context.reply(context.getTranslated("zglospriv.no.priv"));
             return false;
         }
         if (priv.getZgloszone() != null) {
             if (priv.getZgloszone()) {
-                context.send(context.getTranslated("zglospriv.reported"));
+                context.reply(context.getTranslated("zglospriv.reported"));
                 return false;
             }
-            context.send(context.getTranslated("zglospriv.reported.answered"));
+            context.reply(context.getTranslated("zglospriv.reported.answered"));
             return false;
         }
-        Message msg = context.getMessageChannel().sendMessage(context.getTranslated("zglospriv.confirmation")).complete();
+        Message msg = context.getMessageChannel().sendMessage(context.getTranslated("zglospriv.confirmation"))
+                .reference(context.getMessage()).complete();
         msg.addReaction(POTW).queue();
         msg.addReaction(ODRZ).queue();
         ReactionWaiter waiter = new ReactionWaiter(eventWaiter, context) {
@@ -118,7 +119,7 @@ public class ZglosPrivCommand extends Command {
                                 event.getReactionEmote().getName().equals(ODRZ));
             }
         };
-        Runnable cancel = () -> context.send(context.getTranslated("zglospriv.cancelled"));
+        Runnable cancel = () -> context.reply(context.getTranslated("zglospriv.cancelled"));
         waiter.setTimeoutHandler(cancel);
         String finalPowod = powod;
         waiter.setReactionHandler(e -> {
@@ -152,7 +153,7 @@ public class ZglosPrivCommand extends Command {
                     .complete();
             priv.setZgloszone(true);
             privDao.save(priv);
-            context.send(context.getTranslated("zglospriv.success"));
+            context.reply(context.getTranslated("zglospriv.success"));
         });
         waiter.create();
         return true;

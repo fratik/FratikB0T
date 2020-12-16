@@ -58,7 +58,7 @@ public class ModulesCommand extends Command {
             else eb.getDescriptionBuilder().append(rtick.getAsMention()).append(" ").append(nazwa);
             eb.getDescriptionBuilder().append("\n");
         }
-        context.send(eb.build());
+        context.reply(eb.build());
         return true;
     }
 }

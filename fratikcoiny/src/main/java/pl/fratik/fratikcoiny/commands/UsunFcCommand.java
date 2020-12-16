@@ -56,17 +56,17 @@ public class UsunFcCommand extends Command {
         Member komu = (Member) context.getArgs()[0];
         int ile = (int) context.getArgs()[1];
         if (ile == 0) {
-            context.send(context.getTranslated("usunfc.badnumber"));
+            context.reply(context.getTranslated("usunfc.badnumber"));
             return false;
         }
         if (komu.getUser().isBot()) {
-            context.send(context.getTranslated("usunfc.bot"));
+            context.reply(context.getTranslated("usunfc.bot"));
             return false;
         }
         MemberConfig mc = memberDao.get(komu);
         long hajs = mc.getFratikCoiny() - ile;
         if (hajs < 0) {
-            context.send(context.getTranslated("usunfc.badnumber.sub"));
+            context.reply(context.getTranslated("usunfc.badnumber.sub"));
             return false;
         }
         Emote fc = context.getShardManager().getEmoteById(Ustawienia.instance.emotki.fratikCoin);
@@ -75,7 +75,7 @@ public class UsunFcCommand extends Command {
         }
         mc.setFratikCoiny(hajs);
         memberDao.save(mc);
-        context.send(context.getTranslated("usunfc.success",
+        context.reply(context.getTranslated("usunfc.success",
                 UserUtil.formatDiscrim(komu),
                 hajs, fc.getAsMention()));
         return true;

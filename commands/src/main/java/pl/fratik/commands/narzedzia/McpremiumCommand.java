@@ -84,7 +84,7 @@ public class McpremiumCommand extends Command {
                 }
             }
         } catch (Exception e) {
-            context.send(context.getTranslated("mcpremium.failed", nick));
+            context.reply(context.getTranslated("mcpremium.failed", nick));
             Sentry.capture(new EventBuilder().withMessage(e.getMessage())
                     .withSentryInterface(new ExceptionInterface(e)).withExtra("nick", nick));
             return false;
@@ -101,7 +101,7 @@ public class McpremiumCommand extends Command {
         }
         eb.setThumbnail("https://minotar.net/helm/" + name + "/2048.png");
         eb.setImage("https://minotar.net/armor/body/" + name + "/124.png");
-        context.send(eb.build());
+        context.reply(eb.build());
         return true;
     }
 

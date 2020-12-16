@@ -110,14 +110,22 @@ public class PrzeklenstwaListener {
                     }
                     CaseRow cr = casesDao.get(e.getGuild());
                     cr.getCases().add(c);
-                    e.getChannel().sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(e.getMember()),
-                            "antiswear.notice", e.getAuthor().getAsMention(),
-                            WarnUtil.countCases(cr, e.getAuthor().getId()),
-                            managerKomend.getPrefixes(e.getGuild()).get(0))).queue();
+                    boolean deleteSwearMessage = gcCache.get(e.getGuild().getId(), guildDao::get).isDeleteSwearMessage();
+                    if (deleteSwearMessage) {
+                        e.getChannel().sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(e.getMember()),
+                                "antiswear.notice", e.getAuthor().getAsMention(),
+                                WarnUtil.countCases(cr, e.getAuthor().getId()),
+                                managerKomend.getPrefixes(e.getGuild()).get(0))).queue();
+                    } else {
+                        e.getChannel().sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(e.getMember()),
+                                "antiswear.notice", e.getAuthor().getAsMention(),
+                                WarnUtil.countCases(cr, e.getAuthor().getId()),
+                                managerKomend.getPrefixes(e.getGuild()).get(0))).reference(e.getMessage()).queue();
+                    }
                     casesDao.save(cr);
                     WarnUtil.takeAction(guildDao, casesDao, e.getMember(), e.getChannel(),
                             tlumaczenia.getLanguage(e.getGuild()), tlumaczenia, managerKomend);
-                    if (gcCache.get(e.getGuild().getId(), guildDao::get).isDeleteSwearMessage()) {
+                    if (deleteSwearMessage) {
                         try {
                             e.getMessage().delete().complete();
                         } catch (Exception ignored) { }

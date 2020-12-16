@@ -67,7 +67,7 @@ public class BanCommand extends ModerationCommand {
                     .map(e -> e == null ? "" : e).map(Objects::toString).collect(Collectors.joining(uzycieDelim));
         else powod = context.getTranslated("ban.reason.default");
         if (uzytkownik.equals(context.getSender())) {
-            context.send(context.getTranslated("ban.cant.ban.yourself"));
+            context.reply(context.getTranslated("ban.cant.ban.yourself"));
             return false;
         }
         Member uzMem;
@@ -79,17 +79,17 @@ public class BanCommand extends ModerationCommand {
         }
         if (uzMem != null) {
             if (uzMem.isOwner()) {
-                context.send(context.getTranslated("ban.cant.ban.owner"));
+                context.reply(context.getTranslated("ban.cant.ban.owner"));
                 return false;
             }
             if (!context.getMember().canInteract(uzMem)) {
-                context.send(context.getTranslated("ban.cant.interact"));
+                context.reply(context.getTranslated("ban.cant.interact"));
                 return false;
             }
         }
         try {
             context.getGuild().retrieveBanById(uzytkownik.getId()).complete();
-            context.send(context.getTranslated("ban.already.banned"));
+            context.reply(context.getTranslated("ban.already.banned"));
             return false;
         } catch (ErrorResponseException e) {
             // użytkownik nie ma bana
@@ -98,7 +98,7 @@ public class BanCommand extends ModerationCommand {
         try {
             durationResp = DurationUtil.parseDuration(powod);
         } catch (IllegalArgumentException e) {
-            context.send(context.getTranslated("ban.max.duration"));
+            context.reply(context.getTranslated("ban.max.duration"));
             return false;
         }
         powod = durationResp.getTekst();
@@ -116,15 +116,15 @@ public class BanCommand extends ModerationCommand {
         ModLogListener.getKnownCases().put(context.getGuild(), caseList);
         try {
             context.getGuild().ban(uzytkownik, 0, aCase.getReason()).reason(aCase.getReason()).complete();
-            context.send(context.getTranslated("ban.success", UserUtil.formatDiscrim(uzytkownik)));
+            context.reply(context.getTranslated("ban.success", UserUtil.formatDiscrim(uzytkownik)));
         } catch (HierarchyException e) {
             caseList.remove(aCase);
             ModLogListener.getKnownCases().put(context.getGuild(), caseList);
-            context.send(context.getTranslated("ban.failed.hierarchy"));
+            context.reply(context.getTranslated("ban.failed.hierarchy"));
         } catch (Exception e) {
             caseList.remove(aCase);
             ModLogListener.getKnownCases().put(context.getGuild(), caseList);
-            context.send(context.getTranslated("ban.failed"));
+            context.reply(context.getTranslated("ban.failed"));
         }
         return true;
     }

@@ -36,7 +36,7 @@ public class ShellCommand extends Command {
 
     @Override
     public boolean execute(@NotNull @Nonnull CommandContext context) {
-        context.send("<a:loading:503651397049516053> Wykonuję...", message -> {
+        context.reply("<a:loading:503651397049516053> Wykonuję...", message -> {
             try {
                 Process process = new ProcessBuilder
                         (Arrays.asList(System.getenv("SHELL"), "-c", String.join(" ", context.getRawArgs())))

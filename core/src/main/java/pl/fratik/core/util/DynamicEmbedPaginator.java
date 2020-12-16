@@ -109,9 +109,9 @@ public class DynamicEmbedPaginator implements EmbedPaginator {
     }
 
     @Override
-    public void create(MessageChannel channel) {
+    public void create(MessageChannel channel, String referenceMessageId) {
         try {
-            channel.sendMessage(render(1)).override(true).queue(msg -> {
+            channel.sendMessage(render(1)).referenceById(referenceMessageId).override(true).queue(msg -> {
                 message = msg;
                 messageId = msg.getIdLong();
                 if (pages.size() != 1) {

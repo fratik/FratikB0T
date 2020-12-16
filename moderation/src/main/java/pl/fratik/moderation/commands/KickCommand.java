@@ -59,19 +59,19 @@ public class KickCommand extends ModerationCommand {
                     .map(e -> e == null ? "" : e).map(Objects::toString).collect(Collectors.joining(uzycieDelim));
         else powod = context.getTranslated("kick.reason.default");
         if (uzytkownik.equals(context.getMember())) {
-            context.send(context.getTranslated("kick.cant.kick.yourself"));
+            context.reply(context.getTranslated("kick.cant.kick.yourself"));
             return false;
         }
         if (uzytkownik.isOwner()) {
-            context.send(context.getTranslated("kick.cant.kick.owner"));
+            context.reply(context.getTranslated("kick.cant.kick.owner"));
             return false;
         }
         if (!context.getMember().canInteract(uzytkownik)) {
-            context.send(context.getTranslated("kick.cant.interact"));
+            context.reply(context.getTranslated("kick.cant.interact"));
             return false;
         }
         if (!context.getGuild().getSelfMember().canInteract(uzytkownik)) {
-            context.send(context.getTranslated("kick.bot.cant.interact"));
+            context.reply(context.getTranslated("kick.bot.cant.interact"));
             return false;
         }
         Case aCase = new CaseBuilder().setUser(uzytkownik.getUser()).setGuild(context.getGuild())
@@ -84,15 +84,15 @@ public class KickCommand extends ModerationCommand {
         ModLogListener.getKnownCases().put(context.getGuild(), caseList);
         try {
             context.getGuild().kick(uzytkownik).reason(aCase.getReason()).complete();
-            context.send(context.getTranslated("kick.success", UserUtil.formatDiscrim(uzytkownik)));
+            context.reply(context.getTranslated("kick.success", UserUtil.formatDiscrim(uzytkownik)));
         } catch (HierarchyException e) {
             caseList.remove(aCase);
             ModLogListener.getKnownCases().put(context.getGuild(), caseList);
-            context.send(context.getTranslated("kick.failed.hierarchy"));
+            context.reply(context.getTranslated("kick.failed.hierarchy"));
         } catch (Exception e) {
             caseList.remove(aCase);
             ModLogListener.getKnownCases().put(context.getGuild(), caseList);
-            context.send(context.getTranslated("kick.failed"));
+            context.reply(context.getTranslated("kick.failed"));
         }
         return true;
     }

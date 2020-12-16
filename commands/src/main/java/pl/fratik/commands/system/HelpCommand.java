@@ -109,7 +109,7 @@ public class HelpCommand extends Command {
                 }
             });
             eb.setDescription(String.join("\n", opis));
-            context.send(eb.build());
+            context.reply(eb.build());
             return true;
         }
         ArrayList<String> opis = new ArrayList<>();
@@ -129,7 +129,7 @@ public class HelpCommand extends Command {
                                 .replace("_", "\\_")
                                 .replace("`", "\\`"))));
         eb.setDescription(String.join("\n", opis));
-        context.send(eb.build());
+        context.reply(eb.build());
         return true;
     }
 

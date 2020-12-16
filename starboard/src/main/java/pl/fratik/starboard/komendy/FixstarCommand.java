@@ -45,7 +45,7 @@ public class FixstarCommand extends Command {
     @Override
     public boolean execute(@NotNull CommandContext context) {
         starManager.fixStars((Message) context.getArgs()[0], starDataDao.get(context.getGuild()));
-        context.send(context.getTranslated("fixstar.success"));
+        context.reply(context.getTranslated("fixstar.success"));
         return true;
     }
 }

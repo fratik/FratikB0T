@@ -19,6 +19,7 @@ package pl.fratik.core.util;
 
 import io.sentry.Sentry;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.exceptions.InsufficientPermissionException;
 import pl.fratik.core.Globals;
@@ -31,56 +32,32 @@ import pl.fratik.core.tlumaczenia.Tlumaczenia;
 public class CommonErrors {
     private CommonErrors() {}
 
-    public static void noPermissionUser(CommandContext context) {
-        context.send("Nie masz uprawnień do użycia tej komendy!");
-    }
-
     public static void noPermissionBot(CommandContext context, Throwable e) {
         Sentry.getContext().setUser(new io.sentry.event.User(context.getSender().getId(), UserUtil.formatDiscrim(context.getSender()), null, null));
         Sentry.capture(e);
         Sentry.clearContext();
-        context.send("Bot nie ma wystarczających uprawnień do użycia tej komendy!");
-    }
-
-    public static void noUserFound(CommandContext context, String user) {
-        context.send(String.format("Użytkownik %s nie znaleziony!", user));
-    }
-
-    public static void devOnly(CommandContext context) {
-        context.send("Ta komenda jest nie dla Ciebie!");
+        context.reply("Bot nie ma wystarczających uprawnień do użycia tej komendy!");
     }
 
     public static void exception(CommandContext context, Throwable err) {
         if (Globals.production) {
-            context.send("Wystąpił błąd!");
+            context.reply("Wystąpił błąd!");
         } else {
-            context.send("Wystąpił błąd! ```\n" + err + "```");
+            context.reply("Wystąpił błąd! ```\n" + err + "```");
         }
     }
 
-    public static void notANumber(CommandContext context) {
-        context.send("Argument musi być prawidłową liczbą!");
-    }
-
-    public static void noBanFound(CommandContext context, String arg) {
-        context.send(String.format("Nie znaleziono bana %s", arg));
-    }
-
     public static void cooldown(CommandContext context) {
-        context.send("Poczekaj chwilę zanim użyjesz ponownie tej komendy!");
-    }
-
-    public static void owner(CommandContext context) {
-        context.send("Ten użytkownik jest właścicielem serwera!");
+        context.reply("Poczekaj chwilę zanim użyjesz ponownie tej komendy!");
     }
 
     public static void usage(CommandContext context) {
         usage(context.getBaseEmbed(null), context.getTlumaczenia(), context.getLanguage(), context.getPrefix(),
-                context.getCommand(), context.getMessageChannel(), context.getCustomPermLevel());
+                context.getCommand(), context.getMessageChannel(), context.getCustomPermLevel(), context.getMessage());
     }
 
     public static void usage(EmbedBuilder baseEmbed, Tlumaczenia tlumaczenia, Language language, String prefix,
-                             Command command, MessageChannel channel, PermLevel customPermLevel) {
+                             Command command, MessageChannel channel, PermLevel customPermLevel, Message refMessage) {
         baseEmbed.setDescription(tlumaczenia.get(language, "generic.usage") + "\n" + prefix +
                 CommonUtil.resolveName(command, tlumaczenia, language) + " " +
                 tlumaczenia.get(language,command.getName().toLowerCase() + ".help.uzycie") + "");
@@ -101,10 +78,11 @@ public class CommonErrors {
                 plvl.getNum(), tlumaczenia.get(language, plvl.getLanguageKey()));
         baseEmbed.addField(tlumaczenia.get(language, "generic.command.permlevel"), plvlval, false);
         try {
-            channel.sendMessage(baseEmbed.build()).queue();
+            channel.sendMessage(baseEmbed.build()).reference(refMessage).queue();
         } catch (InsufficientPermissionException e) {
             channel.sendMessage(tlumaczenia.get(language, "generic.usage") + "\n" + prefix + command.getName() +
-                    " " + tlumaczenia.get(language,command.getName().toLowerCase() + ".help.uzycie") + "").queue();
+                    " " + tlumaczenia.get(language,command.getName().toLowerCase() + ".help.uzycie") + "")
+                    .reference(refMessage).queue();
         }
     }
 }

@@ -65,12 +65,12 @@ public class StarRankingCommand extends Command {
         List<FutureTask<EmbedBuilder>> pages = new LinkedList<>();
         StarsData std = starDataDao.get(context.getGuild());
         if (std.getStarboardChannel() == null || std.getStarboardChannel().isEmpty()) {
-            context.send(context.getTranslated("starranking.no.channel"));
+            context.reply(context.getTranslated("starranking.no.channel"));
             return false;
         }
         TextChannel stdch = context.getShardManager().getTextChannelById(std.getStarboardChannel());
         if (stdch == null) {
-            context.send(context.getTranslated("starranking.no.channel"));
+            context.reply(context.getTranslated("starranking.no.channel"));
             return false;
         }
         List<StarData> starDataList = new ArrayList<>(std.getStarData().values());

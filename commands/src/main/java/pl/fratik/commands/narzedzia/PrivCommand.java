@@ -63,30 +63,30 @@ public class PrivCommand extends Command {
         String tresc = Arrays.stream(Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length))
                 .map(o -> o == null ? "" : o.toString()).collect(Collectors.joining(uzycieDelim));
         if (sender.equals(doKogo)) {
-            context.send(context.getTranslated("priv.same.recipient"));
+            context.reply(context.getTranslated("priv.same.recipient"));
             return false;
         }
         if (privDao.isZgloszone(sender.getId())) {
-            context.send(context.getTranslated("priv.reported"));
+            context.reply(context.getTranslated("priv.reported"));
             return false;
         }
         UserConfig uc = userDao.get(sender);
         if (!uc.isPrivWlaczone()) {
-            context.send(context.getTranslated("priv.off"));
+            context.reply(context.getTranslated("priv.off"));
             return false;
         }
         if (uc.isPrivBlacklist()) {
-            context.send(context.getTranslated("priv.blacklist"));
+            context.reply(context.getTranslated("priv.blacklist"));
             return false;
         }
         if (uc.getPrivIgnored().contains(doKogo.getId())) {
-            context.send(context.getTranslated("priv.ignored"));
+            context.reply(context.getTranslated("priv.ignored"));
             return false;
         }
         try {
             sender.openPrivateChannel().complete();
         } catch (Exception e) {
-            context.send(context.getTranslated("priv.cant.receive.dm"));
+            context.reply(context.getTranslated("priv.cant.receive.dm"));
             return false;
         }
         PrivateChannel ch;
@@ -98,7 +98,7 @@ public class PrivCommand extends Command {
             if (!uc2.isPrivWlaczone()) throw new KurwaException();
             if (uc2.isPrivBlacklist()) throw new KurwaException();
         } catch (Exception e) {
-            context.send(context.getTranslated("priv.cant.send.dm"));
+            context.reply(context.getTranslated("priv.cant.send.dm"));
             return false;
         }
         String id = StringUtil.generateId();
@@ -107,9 +107,9 @@ public class PrivCommand extends Command {
                     "priv.message", sender.getAsTag(), sender.getId(), tresc,
                     Ustawienia.instance.prefix, sender.getId(), Ustawienia.instance.prefix, id)).complete();
             privDao.save(new Priv(id, sender.getId(), doKogo.getId(), tresc, null));
-            context.send(context.getTranslated("priv.success"));
+            context.reply(context.getTranslated("priv.success"));
         } catch (Exception e) {
-            context.send(context.getTranslated("priv.cant.send.dm"));
+            context.reply(context.getTranslated("priv.cant.send.dm"));
         }
         return true;
     }

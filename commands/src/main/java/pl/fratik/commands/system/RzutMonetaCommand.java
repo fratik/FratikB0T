@@ -45,7 +45,7 @@ public class RzutMonetaCommand extends Command {
             default:
                 moneta = Moneta.ORZEL; //prosty fallback
         }
-        context.send(context.getTranslated("rzutmoneta.response", context.getSender().getAsMention(), context.getTranslated("rzutmoneta." + moneta.name().toLowerCase())));
+        context.reply(context.getTranslated("rzutmoneta.response", context.getSender().getAsMention(), context.getTranslated("rzutmoneta." + moneta.name().toLowerCase())));
         return true;
     }
 

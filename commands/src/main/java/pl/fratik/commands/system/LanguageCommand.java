@@ -61,13 +61,13 @@ public class LanguageCommand extends Command {
                 tekst.add(str);
             }
             eb.setDescription(String.join("\n", tekst));
-            context.send(eb.build());
+            context.reply(eb.build());
             return true;
         }
         UserConfig uc = userDao.get(context.getSender());
         uc.setLanguage((Language) context.getArgs()[0]);
         userDao.save(uc);
-        context.send(context.getTranslated("language.change.success", ((Language) context.getArgs()[0]).getLocalized()));
+        context.reply(context.getTranslated("language.change.success", ((Language) context.getArgs()[0]).getLocalized()));
         return true;
     }
 }

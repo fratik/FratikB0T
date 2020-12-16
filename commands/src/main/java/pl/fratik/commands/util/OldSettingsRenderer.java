@@ -93,7 +93,7 @@ public class OldSettingsRenderer implements SettingsRenderer {
             builder.append("2. ").append(ctx.getTranslated("ustawienia.server.ustawienia")).append("\n");
         builder.append("\n0. ").append(ctx.getTranslated("ustawienia.footer"));
         builder.append("```");
-        ctx.send(builder.toString(), message -> {
+        ctx.reply(builder.toString(), message -> {
             MessageWaiter waiter = new MessageWaiter(eventWaiter, ctx);
             waiter.setTimeoutHandler(() -> onTimeout(message));
             waiter.setMessageHandler(event -> {

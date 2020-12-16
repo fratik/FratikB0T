@@ -32,7 +32,7 @@ public class PomocCommand extends Command {
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
-        context.send(context.getTranslated("pomoc.ambiguous.command", context.getPrefix(),
+        context.reply(context.getTranslated("pomoc.ambiguous.command", context.getPrefix(),
                 context.getPrefix(), context.getPrefix()));
         return true;
     }

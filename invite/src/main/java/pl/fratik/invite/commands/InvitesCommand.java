@@ -95,7 +95,7 @@ public class InvitesCommand extends AbstractInvitesCommand {
                         dao.getLeaveInvites(), dao.getTotalInvites()
                 ), false);
 
-        context.send(eb.build());
+        context.reply(eb.build());
         return true;
     }
 
@@ -106,7 +106,7 @@ public class InvitesCommand extends AbstractInvitesCommand {
         try {
             int zaprszenie = Integer.parseInt(context.getRawArgs()[0]);
             if (zaprszenie > 1000 || zaprszenie <= 0) {
-                context.send(context.getTranslated("invites.badnumber"));
+                context.reply(context.getTranslated("invites.badnumber"));
                 return false;
             }
             Role rola = (Role) context.getArgs()[1];
@@ -115,13 +115,13 @@ public class InvitesCommand extends AbstractInvitesCommand {
             if (gc.getRoleZaZaproszenia() == null) gc.setRoleZaZaproszenia(new HashMap<>());
 
             if (!context.getGuild().getSelfMember().getRoles().get(0).canInteract(rola)) {
-                context.send(context.getTranslated("invites.badrole"));
+                context.reply(context.getTranslated("invites.badrole"));
                 return false;
             }
 
             gc.getRoleZaZaproszenia().put(zaprszenie, rola.getId());
             guildDao.save(gc);
-            context.send(context.getTranslated("invites.set.success"));
+            context.reply(context.getTranslated("invites.set.success"));
             return true;
         } catch (IndexOutOfBoundsException | NumberFormatException e) {
             CommonErrors.usage(context);
@@ -135,7 +135,7 @@ public class InvitesCommand extends AbstractInvitesCommand {
         if (!checkEnabled(context)) return false;
         GuildConfig gc = guildDao.get(context.getGuild());
         if (gc.getRoleZaZaproszenia() == null || gc.getRoleZaZaproszenia().isEmpty()) {
-            context.send(context.getTranslated("invites.list.empty"));
+            context.reply(context.getTranslated("invites.list.empty"));
             return false;
         }
         StringBuilder sb = new StringBuilder();
@@ -159,10 +159,10 @@ public class InvitesCommand extends AbstractInvitesCommand {
         }
         if (sb.length() != 0) pages.add(renderEmbed(context, sb, sorted, now));
         if (pages.isEmpty()) {
-            context.send(context.getTranslated("invites.list.empty"));
+            context.reply(context.getTranslated("invites.list.empty"));
             return false;
         }
-        if (pages.size() == 1) context.send(pages.get(0).build());
+        if (pages.size() == 1) context.reply(pages.get(0).build());
         else new ClassicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(), context.getTlumaczenia(), eventBus).create(context.getTextChannel());
         return true;
     }
@@ -187,17 +187,17 @@ public class InvitesCommand extends AbstractInvitesCommand {
         Role rola = (Role) managerArgumentow.getArguments().get("role").execute((String) context.getArgs()[0],
                 context.getTlumaczenia(), context.getLanguage(), context.getGuild());
         if (rola == null) {
-            context.send(context.getTranslated("sklep.sprzedaj.invalidrole"));
+            context.reply(context.getTranslated("sklep.sprzedaj.invalidrole"));
             return false;
         }
         GuildConfig gc = guildDao.get(context.getGuild().getId());
         if (gc.getRoleZaZaproszenia() == null || gc.getRoleZaZaproszenia().isEmpty() || !gc.getRoleZaZaproszenia().containsValue(rola.getId())) {
-            context.send(context.getTranslated("invites.cannotdeleterole"));
+            context.reply(context.getTranslated("invites.cannotdeleterole"));
             return false;
         }
         gc.getRoleZaZaproszenia().entrySet().removeIf(a -> a.getValue().equals(rola.getId()));
         guildDao.save(gc);
-        context.send(context.getTranslated("invites.successdelete"));
+        context.reply(context.getTranslated("invites.successdelete"));
         return true;
     }
 

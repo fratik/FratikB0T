@@ -55,10 +55,10 @@ public class UstawPowitanieCommand extends Command {
         if (context.getMessage().getContentRaw().contains("--delete")) {
             String usunieto = gc.getPowitania().remove(((GuildChannel) context.getArgs()[0]).getId());
             if (usunieto == null) {
-                context.send(context.getTranslated("ustawpowitanie.delete.failure"));
+                context.reply(context.getTranslated("ustawpowitanie.delete.failure"));
                 return false;
             }
-            context.send(context.getTranslated("ustawpowitanie.delete.success"));
+            context.reply(context.getTranslated("ustawpowitanie.delete.success"));
             guildDao.save(gc);
             return true;
         }
@@ -71,7 +71,7 @@ public class UstawPowitanieCommand extends Command {
         }
         gc.getPowitania().put(((GuildChannel) context.getArgs()[0]).getId(), tekst);
         guildDao.save(gc);
-        context.send(context.getTranslated("ustawpowitanie.response"));
+        context.reply(context.getTranslated("ustawpowitanie.response"));
         return true;
     }
 }

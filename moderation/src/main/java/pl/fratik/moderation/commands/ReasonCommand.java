@@ -66,20 +66,20 @@ public class ReasonCommand extends CaseEditingCommand {
         CaseRow caseRow = casesDao.get(context.getGuild());
         if (caseRow.getCases().size() < caseId || (caseRow.getCases().size() >= caseId - 1 &&
                 caseRow.getCases().get(caseId - 1) == null)) {
-            context.send(context.getTranslated("reason.invalid.case"));
+            context.reply(context.getTranslated("reason.invalid.case"));
             return false;
         }
         DurationUtil.Response durationResp;
         try {
             durationResp = DurationUtil.parseDuration(reason);
         } catch (IllegalArgumentException e) {
-            context.send(context.getTranslated("reason.max.duration"));
+            context.reply(context.getTranslated("reason.max.duration"));
             return false;
         }
         String powod = durationResp.getTekst();
         Instant akcjaDo = durationResp.getDoKiedy();
         if (powod.equals("")) {
-            context.send(context.getTranslated("reason.reason.empty"));
+            context.reply(context.getTranslated("reason.reason.empty"));
             return false;
         }
         Case aCase = caseRow.getCases().get(caseId - 1);

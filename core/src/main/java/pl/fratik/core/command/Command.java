@@ -124,7 +124,7 @@ public abstract class Command {
         }
 
         if (!context.isDirect() && !context.getGuild().getSelfMember().hasPermission(context.getTextChannel(), permissions)) {
-            context.send(context.getTranslated("generic.no.botpermission", permissions.stream().map((Permission::getName)).collect(Collectors.joining(", "))));
+            context.reply(context.getTranslated("generic.no.botpermission", permissions.stream().map((Permission::getName)).collect(Collectors.joining(", "))));
             return false;
         }
 

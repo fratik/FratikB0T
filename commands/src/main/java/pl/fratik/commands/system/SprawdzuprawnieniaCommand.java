@@ -61,7 +61,7 @@ public class SprawdzuprawnieniaCommand extends Command {
         else kanal = context.getTextChannel();
         Member sm = context.getGuild().getSelfMember();
         if (!sm.hasPermission(context.getTextChannel(), Permission.MESSAGE_EMBED_LINKS)) {
-            context.send(context.getTranslated("sprawdzuprawnienia.no.embed.perms"));
+            context.reply(context.getTranslated("sprawdzuprawnienia.no.embed.perms"));
             return false;
         }
         EmbedBuilder eb = new EmbedBuilder();
@@ -97,7 +97,7 @@ public class SprawdzuprawnieniaCommand extends Command {
         int procent = calculatePrecent(sm, kanal);
         eb.setFooter(procent + "%", null);
         eb.setColor(Color.decode(procent >= 50 ? "#00ff00" : procent >= 25 ? "#ffff00" : "#ff0000")); // NOSONAR
-        context.send(eb.build());
+        context.reply(eb.build());
         return true;
     }
 

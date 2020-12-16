@@ -49,7 +49,7 @@ public class HugCommand extends Command {
     public boolean execute(@NotNull CommandContext context) {
         User user = (User) context.getArgs()[0];
         if (context.getSender().getId().equals(user.getId())){
-            context.send(context.getTranslated("hug.selfhug"));
+            context.reply(context.getTranslated("hug.selfhug"));
             return false;
         }
         try {
@@ -62,13 +62,13 @@ public class HugCommand extends Command {
                             + "?size=2048", "UTF-8"),
                     Ustawienia.instance.apiKeys.get("image-server"));
             if (zdjecie == null || !zdjecie.getBoolean("success")) {
-                context.send("Wystąpił błąd ze zdobyciem zdjęcia!");
+                context.reply("Wystąpił błąd ze zdobyciem zdjęcia!");
                 return false;
             }
             byte[] img = NetworkUtil.getBytesFromBufferArray(zdjecie.getJSONObject("image").getJSONArray("data"));
-            context.getMessageChannel().sendFile(img, "hug.png").queue();
+            context.getMessageChannel().sendFile(img, "hug.png").reference(context.getMessage()).queue();
         } catch (IOException | NullPointerException e) {
-            context.send(context.getTranslated("image.server.fail"));
+            context.reply(context.getTranslated("image.server.fail"));
         }
 
         return true;

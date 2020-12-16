@@ -62,7 +62,7 @@ public class GsrCommand extends Command {
 
     @Override
     public boolean execute(@NotNull @Nonnull CommandContext context) {
-        context.send(context.getTranslated("generic.loading"), message -> {
+        context.reply(context.getTranslated("generic.loading"), message -> {
             Map<String, Integer> licznikAlboCo = MapUtil.sortByValueAsc(LicznikPunktow.getAllGuildPunkty());
             List<EmbedBuilder> embedy = new ArrayList<>();
             licznikAlboCo.forEach((id, poziom) -> {

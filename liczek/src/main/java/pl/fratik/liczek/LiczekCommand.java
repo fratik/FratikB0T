@@ -41,15 +41,15 @@ public class LiczekCommand extends Command {
     public boolean info(CommandContext context) {
         GuildConfig gc = guildDao.get(context.getGuild());
         if (gc.getLiczekKanal() == null || gc.getLiczekKanal().isEmpty()) {
-            context.send(context.getTranslated("liczek.not.configured"));
+            context.reply(context.getTranslated("liczek.not.configured"));
             return false;
         }
         TextChannel txt = context.getGuild().getTextChannelById(gc.getLiczekKanal());
         if (txt == null) {
-            context.send(context.getTranslated("liczek.channel.removed"));
+            context.reply(context.getTranslated("liczek.channel.removed"));
             return false;
         }
-        context.send(context.getTranslated("liczek.info", txt.getAsMention()));
+        context.reply(context.getTranslated("liczek.info", txt.getAsMention()));
         return true;
     }
 
@@ -57,12 +57,12 @@ public class LiczekCommand extends Command {
     public boolean remove(CommandContext context) {
         GuildConfig gc = guildDao.get(context.getGuild());
         if (gc.getLiczekKanal() == null || gc.getLiczekKanal().isEmpty()) {
-            context.send(context.getTranslated("liczek.not.channel.found"));
+            context.reply(context.getTranslated("liczek.not.channel.found"));
             return false;
         }
         gc.setLiczekKanal("");
         guildDao.save(gc);
-        context.send(context.getTranslated("liczek.success.remove"));
+        context.reply(context.getTranslated("liczek.success.remove"));
         return true;
     }
 
@@ -77,12 +77,12 @@ public class LiczekCommand extends Command {
             return false;
         }
         if (txt == null) {
-            context.send(context.getTranslated("liczek.not.channel.found"));
+            context.reply(context.getTranslated("liczek.not.channel.found"));
             return false;
         }
         gc.setLiczekKanal(txt.getId());
         guildDao.save(gc);
-        context.send(context.getTranslated("liczek.success.save", txt.getAsMention()));
+        context.reply(context.getTranslated("liczek.success.save", txt.getAsMention()));
         return true;
     }
 

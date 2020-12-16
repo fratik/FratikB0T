@@ -41,21 +41,21 @@ public class VolumeCommand extends MusicCommand {
     @Override
     public boolean execute(@NotNull CommandContext context) {
         if (!hasFullDjPerms(context.getMember(), context.getShardManager(), guildDao)) {
-            context.send(context.getTranslated("volume.dj"));
+            context.reply(context.getTranslated("volume.dj"));
             return false;
         }
         ManagerMuzykiSerwera mms = managerMuzyki.getManagerMuzykiSerwera(context.getGuild());
         if (context.getArgs().length == 0 || context.getArgs()[0] == null) {
-            context.send(context.getTranslated("volume.get", mms.getVolume() + "%"));
+            context.reply(context.getTranslated("volume.get", mms.getVolume() + "%"));
             return false;
         }
         Integer glosnosc = (Integer) context.getArgs()[0];
         if (glosnosc < 1 || glosnosc > 150) {
-            context.send(context.getTranslated("volume.limit"));
+            context.reply(context.getTranslated("volume.limit"));
             return false;
         }
         mms.setVolume(glosnosc);
-        context.send(context.getTranslated("volume.success", ((Integer) context.getArgs()[0]).toString() + "%"));
+        context.reply(context.getTranslated("volume.success", ((Integer) context.getArgs()[0]).toString() + "%"));
         return true;
     }
 }

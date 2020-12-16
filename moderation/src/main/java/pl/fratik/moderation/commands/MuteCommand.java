@@ -68,19 +68,19 @@ public class MuteCommand extends ModerationCommand {
                     .map(e -> e == null ? "" : e).map(Objects::toString).collect(Collectors.joining(uzycieDelim));
         else powod = context.getTranslated("mute.reason.default");
         if (uzytkownik.equals(context.getMember())) {
-            context.send(context.getTranslated("mute.cant.mute.yourself"));
+            context.reply(context.getTranslated("mute.cant.mute.yourself"));
             return false;
         }
         if (uzytkownik.getUser().isBot()) {
-            context.send(context.getTranslated("mute.no.bot"));
+            context.reply(context.getTranslated("mute.no.bot"));
             return false;
         }
         if (uzytkownik.isOwner()) {
-            context.send(context.getTranslated("mute.cant.mute.owner"));
+            context.reply(context.getTranslated("mute.cant.mute.owner"));
             return false;
         }
         if (!context.getMember().canInteract(uzytkownik)) {
-            context.send(context.getTranslated("mute.cant.interact"));
+            context.reply(context.getTranslated("mute.cant.interact"));
             return false;
         }
         //#region ustawianie roli
@@ -100,14 +100,14 @@ public class MuteCommand extends ModerationCommand {
         }
         //#endregion ustawianie roli
         if (uzytkownik.getRoles().contains(rola)) {
-            context.send(context.getTranslated("mute.already.muted"));
+            context.reply(context.getTranslated("mute.already.muted"));
             return false;
         }
         DurationUtil.Response durationResp;
         try {
             durationResp = DurationUtil.parseDuration(powod);
         } catch (IllegalArgumentException e) {
-            context.send(context.getTranslated("mute.max.duration"));
+            context.reply(context.getTranslated("mute.max.duration"));
             return false;
         }
         powod = durationResp.getTekst();
@@ -123,11 +123,11 @@ public class MuteCommand extends ModerationCommand {
         ModLogListener.getKnownCases().put(context.getGuild(), caseList);
         try {
             context.getGuild().addRoleToMember(uzytkownik, rola).complete();
-            context.send(context.getTranslated("mute.success", UserUtil.formatDiscrim(uzytkownik)));
+            context.reply(context.getTranslated("mute.success", UserUtil.formatDiscrim(uzytkownik)));
         } catch (Exception ignored) {
             caseList.remove(aCase);
             ModLogListener.getKnownCases().put(context.getGuild(), caseList);
-            context.send(context.getTranslated("mute.fail"));
+            context.reply(context.getTranslated("mute.fail"));
         }
         return true;
     }
