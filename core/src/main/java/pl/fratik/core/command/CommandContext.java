@@ -26,6 +26,7 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import pl.fratik.core.Ustawienia;
 import pl.fratik.core.entity.ArgsMissingException;
@@ -168,6 +169,12 @@ public class CommandContext {
         return reply(message, true);
     }
 
+    private boolean isUnknownMessage(Throwable e) {
+        if (!(e instanceof ErrorResponseException)) return false;
+        ErrorResponseException h = (ErrorResponseException) e;
+        return h.getErrorCode() == 400 && h.getMeaning().equals("{\"message_reference\":[\"Unknown message\"]}");
+    }
+
     public Message reply(CharSequence message, boolean checkUrl) {
         if (checkUrl && URLPATTERN.matcher(message).matches()) {
             Exception blad = new Exception("Odpowiedź zawiera link!");
@@ -177,12 +184,22 @@ public class CommandContext {
                     .withExtra("wiadomosc", message).withSentryInterface(new ExceptionInterface(blad)));
             Sentry.clearContext();
         }
-        return event.getChannel().sendMessage(message).reference(getMessage()).complete();
+        try {
+            return event.getChannel().sendMessage(message).reference(getMessage()).complete();
+        } catch (ErrorResponseException e) {
+            if (isUnknownMessage(e)) return event.getChannel().sendMessage(message).complete();
+            throw e;
+        }
     }
 
     //    @Deprecated
     public Message reply(MessageEmbed message) {
-        return event.getChannel().sendMessage(message).reference(getMessage()).complete();
+        try {
+            return event.getChannel().sendMessage(message).reference(getMessage()).complete();
+        } catch (ErrorResponseException e) {
+            if (isUnknownMessage(e)) return event.getChannel().sendMessage(message).complete();
+            throw e;
+        }
     }
 
     public void reply(CharSequence message, Consumer<Message> callback) {
@@ -194,11 +211,15 @@ public class CommandContext {
                     .withExtra("wiadomosc", message).withSentryInterface(new ExceptionInterface(blad)));
             Sentry.clearContext();
         }
-        event.getChannel().sendMessage(message).reference(getMessage()).queue(callback);
+        event.getChannel().sendMessage(message).reference(getMessage()).queue(callback, e -> {
+            if (isUnknownMessage(e)) event.getChannel().sendMessage(message).queue(callback);
+        });
     }
 
     public void reply(MessageEmbed message, Consumer<Message> callback) {
-        event.getChannel().sendMessage(message).reference(getMessage()).queue(callback);
+        event.getChannel().sendMessage(message).reference(getMessage()).queue(callback, e -> {
+            if (isUnknownMessage(e)) event.getChannel().sendMessage(message).queue(callback);
+        });
     }
 
     public boolean checkSensitive(String input) {
