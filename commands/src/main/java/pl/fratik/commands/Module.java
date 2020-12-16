@@ -83,7 +83,6 @@ public class Module implements Modul {
             commands.add(new StarcatchCommand());
             commands.add(new HugCommand());
             commands.add(new GraficznaCommand("startouch", "/api/image/startouch", "avatarURL", false));
-            commands.add(new GraficznaCommand("facepalm", "/api/image/facepalm", "avatarURL", false));
             commands.add(new GraficznaCommand("slap", "/api/image/slap", "avatarURL", true));
             commands.add(new GraficznaCommand("rip", "/api/image/rip", "avatarURL", false));
             commands.add(new GraficznaCommand("sleep", "/api/image/sleep", "avatarURL", false));
