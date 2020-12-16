@@ -25,6 +25,7 @@ import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.message.GenericMessageEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.MessageUpdateEvent;
+import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import pl.fratik.core.cache.Cache;
 import pl.fratik.core.cache.RedisCacheManager;
@@ -83,6 +84,17 @@ public class LinkListener {
         String content = e.getMessage().getContentRaw();
         Matcher matcher = CommonUtil.URL_PATTERN.matcher(content);
         if (!matcher.find()) return;
+        try {
+            Thread.sleep(1250); // poczekaj na antiinvite/inne boty
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            return;
+        }
+        try {
+            e.getChannel().retrieveMessageById(e.getMessageId()).complete();
+        } catch (ErrorResponseException err) {
+            //wiadomość nie istnieje; została usunięta przez inny bot/listener
+        }
         synchronized (e.getGuild()) {
             Case c = new CaseBuilder(e.getGuild()).setUser(e.getAuthor().getId()).setKara(Kara.WARN)
                     .setTimestamp(Instant.now()).createCase();
