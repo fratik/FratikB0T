@@ -154,7 +154,7 @@ public class DiscordBlackJack {
     }
 
     private void reveal() {
-        if (embedMessage == null) embedMessage = context.send(generateEmbed());
+        if (embedMessage == null) embedMessage = context.reply(generateEmbed());
         else embedMessage.editMessage(generateEmbed()).complete();
     }
 
@@ -239,6 +239,6 @@ public class DiscordBlackJack {
         gameOver=true;
         winnerHand = playerHand;
         endReveal();
-        playerMoney -= playerBet;
+        playerMoney += playerBet;
     }
 }

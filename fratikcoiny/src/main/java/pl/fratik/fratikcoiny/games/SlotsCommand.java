@@ -74,7 +74,7 @@ public class SlotsCommand extends Command {
         eb.setTitle(context.getTranslated("slots.embed.title"));
         eb.setDescription(results.visualize());
         eb.appendDescription("\n\n");
-        mc.setFratikCoiny(mc.getFratikCoiny() - zaklad + results.totalPoints() * 10);
+        mc.setFratikCoiny(mc.getFratikCoiny() - zaklad + results.totalPoints() * 10L);
         String emote = Objects.requireNonNull(context.getShardManager().getEmoteById(Ustawienia.instance.emotki.fratikCoin)).getAsMention();
         if (results.winCount() == 0) {
             eb.appendDescription(context.getTranslated("slots.embed.desc.lost", context.getSender().getAsTag()));
@@ -85,7 +85,7 @@ public class SlotsCommand extends Command {
                     mc.getFratikCoiny(), emote));
             eb.setColor(Color.green);
         }
-        context.send(eb.build());
+        context.reply(eb.build());
         memberDao.save(mc);
         return true;
     }
