@@ -22,7 +22,8 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 import com.google.common.eventbus.EventBus;
-import com.google.gson.JsonObject;
+import com.google.gson.*;
+import com.google.gson.annotations.JsonAdapter;
 import com.google.gson.annotations.SerializedName;
 import com.google.gson.reflect.TypeToken;
 import com.scienjus.client.PixivParserClient;
@@ -50,6 +51,7 @@ import pl.fratik.core.util.NetworkUtil;
 
 import javax.security.auth.login.LoginException;
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.util.*;
 import java.util.concurrent.FutureTask;
 import java.util.stream.Collectors;
@@ -515,7 +517,8 @@ public class Rule34Command extends NsfwCommand {
         public static class PahealPostData {
             private int offset;
             private int count;
-            @SerializedName("post")
+            @SerializedName("tag")
+            @JsonAdapter(value = PahealPostAdapter.class)
             private List<PahealPost> posts;
 
             @Data
@@ -548,5 +551,19 @@ public class Rule34Command extends NsfwCommand {
     @AllArgsConstructor
     public static class E621Wrapper {
         private final List<E621Post> posts;
+    }
+
+    private static class PahealPostAdapter implements JsonDeserializer<List<PahealPostsRoot.PahealPostData.PahealPost>> {
+        @Override
+        public List<PahealPostsRoot.PahealPostData.PahealPost> deserialize(JsonElement json, Type t, JsonDeserializationContext ctx) throws JsonParseException {
+            if (json.isJsonArray()) {
+                List<PahealPostsRoot.PahealPostData.PahealPost> h = new ArrayList<>();
+                for (JsonElement el : json.getAsJsonArray()) {
+                     h.add(ctx.deserialize(el, PahealPostsRoot.PahealPostData.PahealPost.class));
+                }
+                return h;
+            }
+            return Collections.singletonList(ctx.deserialize(json.getAsJsonObject(), PahealPostsRoot.PahealPostData.PahealPost.class));
+        }
     }
 }
