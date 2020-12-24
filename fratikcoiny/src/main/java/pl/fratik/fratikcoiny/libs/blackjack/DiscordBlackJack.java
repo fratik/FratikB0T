@@ -68,14 +68,7 @@ public class DiscordBlackJack {
         while(!gameOver){
             askPlayer();
         }
-        return new BlackjackResult(winnerHand.equals(playerHand), getWonHajs());
-    }
-
-    private long getWonHajs() {
-        long hajs = playerMoney;
-        if (winnerHand.equals(playerHand)) hajs += playerBet;
-        else hajs -= playerBet;
-        return hajs;
+        return new BlackjackResult(winnerHand.equals(playerHand), playerMoney);
     }
 
     public void askBet() {
@@ -86,33 +79,43 @@ public class DiscordBlackJack {
         CountDownLatch latch = new CountDownLatch(1);
         MessageWaiter waiter = new MessageWaiter(eventWaiter, context);
         waiter.setMessageHandler(e -> {
-            e.getMessage().delete().queue(null, a->{});
-            roundCount++;
-            if (e.getMessage().getContentRaw().equalsIgnoreCase("hit") && wszystkieAkcjeEnum().contains(Akcje.HIT)) {
-                theDeck.deal(playerHand);
-                if (playerHand.getNetValue() > 21) {
-                    dealerWins();
+            try {
+                try {
+                    e.getMessage().delete().queue(null, a -> {});
+                } catch (Exception err) {
+                    // brak uprawnień
                 }
-                else {
-                    reveal();
+                List<Akcje> akcje = wszystkieAkcjeEnum();
+                roundCount++;
+                if (e.getMessage().getContentRaw().equalsIgnoreCase("hit") && akcje.contains(Akcje.HIT)) {
+                    theDeck.deal(playerHand);
+                    if (playerHand.getNetValue() > 21) {
+                        dealerWins();
+                    } else {
+                        reveal();
+                    }
                 }
-            }
-            if (e.getMessage().getContentRaw().equalsIgnoreCase("stand") && wszystkieAkcjeEnum().contains(Akcje.STAND)) {
-                while (!gameOver) {
-                    dealerDraws();
+                if (e.getMessage().getContentRaw().equalsIgnoreCase("stand") && akcje.contains(Akcje.STAND)) {
+                    while (!gameOver) {
+                        dealerDraws();
+                    }
                 }
+                if (e.getMessage().getContentRaw().equalsIgnoreCase("surrender") && akcje.contains(Akcje.SURRENDER)) {
+                    surrender();
+                }
+            } finally {
+                latch.countDown();
             }
-            if (e.getMessage().getContentRaw().equalsIgnoreCase("surrender") && wszystkieAkcjeEnum().contains(Akcje.SURRENDER)) {
-                surrender();
-            }
-            latch.countDown();
             // TODO: 2019-04-05 logika innych, zabieranie/dodawanie coinow, etc
         });
         waiter.setTimeoutHandler(() -> {
-            context.send(context.getTranslated("blackjack.end.of.time"));
-            gameOver = true;
-            dealerWins(false);
-            latch.countDown();
+            try {
+                context.send(context.getTranslated("blackjack.end.of.time"));
+                gameOver = true;
+                dealerWins(false);
+            } finally {
+                latch.countDown();
+            }
         });
         waiter.create();
         try {
@@ -151,7 +154,7 @@ public class DiscordBlackJack {
     }
 
     private void reveal() {
-        if (embedMessage == null) embedMessage = context.send(generateEmbed());
+        if (embedMessage == null) embedMessage = context.reply(generateEmbed());
         else embedMessage.editMessage(generateEmbed()).complete();
     }
 
@@ -236,6 +239,6 @@ public class DiscordBlackJack {
         gameOver=true;
         winnerHand = playerHand;
         endReveal();
-        playerMoney -= playerBet;
+        playerMoney += playerBet;
     }
 }
