@@ -174,6 +174,7 @@ public class OgloszenieCommand extends Command {
         eb.setTimestamp(msg.isEdited() ? msg.getTimeEdited() : msg.getTimeCreated());
         if (msg.getMember() != null) eb.setColor(msg.getMember().getColor());
         else eb.setColor(UserUtil.getPrimColor(msg.getAuthor()));
+        if (!message.getAttachments().isEmpty() eb.setImage(message.getAttachments().get(0).getUrl());
         return eb;
     }
 
