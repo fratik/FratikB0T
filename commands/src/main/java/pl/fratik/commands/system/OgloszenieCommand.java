@@ -40,6 +40,7 @@ import pl.fratik.core.event.PluginMessageEvent;
 import pl.fratik.core.manager.ManagerKomend;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
+import pl.fratik.core.util.CommonUtil;
 import pl.fratik.core.util.UserUtil;
 
 import java.util.List;
@@ -169,6 +170,7 @@ public class OgloszenieCommand extends Command {
         eb.setAuthor(UserUtil.formatDiscrim(msg.getAuthor()), null,
                 msg.getAuthor().getEffectiveAvatarUrl().replace(".webp", ".png"));
         eb.setTitle(t.get(jezyk, "ogloszenie.title"));
+        eb.setImage(CommonUtil.getImageUrl(msg));
         eb.setDescription(parseContent(msg.getContentRaw(), g,
                 UserUtil.getPermlevel(msg.getAuthor(), shardManager) == PermLevel.BOTOWNER, jezyk));
         eb.setTimestamp(msg.isEdited() ? msg.getTimeEdited() : msg.getTimeCreated());
