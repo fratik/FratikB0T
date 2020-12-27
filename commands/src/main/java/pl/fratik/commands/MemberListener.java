@@ -120,7 +120,8 @@ class MemberListener {
                     }
                     if (invitedBy != null) {
                         tagCnt = tagCnt.replaceAll("(\\{\\{invitedBy}})|(\\{\\{invitedBy-user}})", invitedBy.getAsTag())
-                                .replace("{{invitedBy-mention}}", invitedBy.getAsMention());
+                                .replace("{{invitedBy-mention}}", invitedBy.getAsMention()).replace("{{inviteCount}}",
+                                        String.valueOf(inv.getTotalInvites() - inv.getLeaveInvites()));
                     } else {
                         tagCnt = "";
                     }
