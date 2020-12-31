@@ -17,6 +17,8 @@
 
 package pl.fratik.tags;
 
+import club.minnced.discord.webhook.send.AllowedMentions;
+import club.minnced.discord.webhook.send.WebhookMessageBuilder;
 import com.google.common.eventbus.Subscribe;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.*;
@@ -74,7 +76,9 @@ class TagsManager {
         if (managerKomend.getRegistered().stream().anyMatch(c -> c.getName().equalsIgnoreCase(tag.getName()) ||
                 Arrays.asList(c.getAliases(tlumaczenia)).contains(tag.getName()))) return;
         try {
-            webhookManager.send(tag.getContent(), e.getTextChannel());
+            SelfUser su = e.getJDA().getSelfUser();
+            webhookManager.send(new WebhookMessageBuilder().setContent(tag.getContent()).setAvatarUrl(su.getAvatarUrl())
+                    .setAllowedMentions(AllowedMentions.none()).setUsername(su.getName()).build(), e.getTextChannel());
         } catch (Exception err) {
             e.getChannel().sendMessage(generateEmbed(tag, tlumaczenia.getLanguage(e.getMember()), e.getGuild())).queue();
         }
