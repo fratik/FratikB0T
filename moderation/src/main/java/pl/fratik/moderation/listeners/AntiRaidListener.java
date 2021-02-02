@@ -125,7 +125,7 @@ public class AntiRaidListener {
             Matcher supermarketMatch = PING_REGEX.matcher(lastC.get(i));
             if (supermarketMatch.matches()) pingiNaWiadomosc++;
         }
-        double czulosc = 100 - (getAntiRaidCzulosc(e.getGuild()) / 100d);
+        double czulosc = getAntiRaidCzulosc(e.getGuild()) / 100d;
         List<Double> proc = procentyRoznicy.stream().filter(v -> v >= czulosc).collect(Collectors.toList());
         if (proc.size() >= 3) {
             boolean success;
@@ -191,7 +191,7 @@ public class AntiRaidListener {
             Matcher supermarketMatch = PING_REGEX.matcher(lastC.get(i));
             if (supermarketMatch.matches()) pingiNaWiadomosc++;
         }
-        double czulosc = 100 - (getAntiRaidCzulosc(e.getGuild()) / 100d);
+        double czulosc = getAntiRaidCzulosc(e.getGuild()) / 100d;
         List<Double> proc = procentyRoznicy.stream().filter(v -> v >= czulosc).collect(Collectors.toList());
         if (proc.size() >= 2) {
             boolean success;
