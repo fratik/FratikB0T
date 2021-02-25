@@ -80,7 +80,7 @@ public class NetworkUtil {
                 return null;
             }
         };
-        if (cache) return ciCache.get(encodeURIComponent(url), unused -> getter.get());
+        if (cache && ciCache != null) return ciCache.get(encodeURIComponent(url), unused -> getter.get());
         else return getter.get();
     }
 

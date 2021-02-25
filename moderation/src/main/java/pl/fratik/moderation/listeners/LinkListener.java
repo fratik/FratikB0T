@@ -95,9 +95,13 @@ public class LinkListener {
         if (mediaAllowed(e.getTextChannel())) {
             boolean isMedia = true;
             Function<String, Boolean> checkContent = url -> {
-                NetworkUtil.ContentInformation ci = NetworkUtil.contentInformation(url);
-                if (ci != null && ci.getCode() == 200)
-                    return ci.getContentType().startsWith("image/") || ci.getContentType().startsWith("video/");
+                try {
+                    NetworkUtil.ContentInformation ci = NetworkUtil.contentInformation(url);
+                    if (ci != null && ci.getCode() == 200)
+                        return ci.getContentType().startsWith("image/") || ci.getContentType().startsWith("video/");
+                } catch (Exception err) {
+                    // niżej
+                }
                 return false;
             };
             do {

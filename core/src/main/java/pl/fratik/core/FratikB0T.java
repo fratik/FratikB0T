@@ -55,10 +55,7 @@ import pl.fratik.core.service.FratikB0TService;
 import pl.fratik.core.service.ScheduleService;
 import pl.fratik.core.service.StatusService;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
-import pl.fratik.core.util.EventBusErrorHandler;
-import pl.fratik.core.util.EventWaiter;
-import pl.fratik.core.util.GuildUtil;
-import pl.fratik.core.util.UserUtil;
+import pl.fratik.core.util.*;
 import pl.fratik.core.webhook.WebhookManager;
 
 import java.io.*;
@@ -269,6 +266,7 @@ class FratikB0T {
                 UserUtil.setTimeZoneCache(redisCacheManager.new CacheRetriever<String>(){}.getCache());
                 GuildUtil.setGbanCache(redisCacheManager.new CacheRetriever<GbanData>(){}.getCache());
                 GuildUtil.setTimeZoneCache(redisCacheManager.new CacheRetriever<String>(){}.getCache());
+                NetworkUtil.setUpContentInformationCache(redisCacheManager);
                 Tlumaczenia.setShardManager(shardManager);
                 Tlumaczenia tlumaczenia = new Tlumaczenia(userDao, guildDao, redisCacheManager);
                 managerKomend = new ManagerKomendImpl(shardManager, guildDao, userDao,
