@@ -133,6 +133,7 @@ public class GuildConfig implements DatabaseEntity {
     private Boolean deleteLinkMessage = false;
     private Boolean cytujFbot = false;
     private Boolean publikujReakcja = false;
+    private Boolean antiLinkMediaAllowed = true;
 
     // TODO: 09/04/2020 można to zrobić dla każdego Boolean'a, ale to już kwestia kosmetyki kodu chyba
     public boolean isResetujOstrzezeniaPrzyBanie() {
@@ -161,6 +162,10 @@ public class GuildConfig implements DatabaseEntity {
 
     public Boolean isAntiLink() {
         return antiLink != null && antiLink;
+    }
+
+    public Boolean isAntiLinkMediaAllowed() {
+        return antiLinkMediaAllowed == null || antiLinkMediaAllowed;
     }
 
     public List<String> getLinkchannels() {

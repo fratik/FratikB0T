@@ -17,11 +17,14 @@
 
 package pl.fratik.core.util;
 
+import lombok.Data;
 import lombok.Getter;
 import okhttp3.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import pl.fratik.core.Statyczne;
+import pl.fratik.core.cache.Cache;
+import pl.fratik.core.cache.RedisCacheManager;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -29,6 +32,7 @@ import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Supplier;
 
 public class NetworkUtil {
     private NetworkUtil() {}
@@ -37,6 +41,11 @@ public class NetworkUtil {
     private static final String UA = "User-Agent";
     private static final String AUTH = "Authorization";
     @Getter private static final OkHttpClient client = new OkHttpClient();
+    private static Cache<ContentInformation> ciCache;
+
+    public static void setUpContentInformationCache(RedisCacheManager rcm) {
+        ciCache = rcm.new CacheRetriever<ContentInformation>(){}.getCache();
+    }
 
     public static byte[] download(String url, String authorization) throws IOException {
         try (Response res = downloadResponse(url, authorization)) {
@@ -59,8 +68,20 @@ public class NetworkUtil {
         return client.newCall(req.build()).execute();
     }
 
-    public static Response headRequest(String url) throws IOException {
-        return client.newCall(new Request.Builder().head().header(UA, USER_AGENT).url(url).build()).execute();
+    public static ContentInformation contentInformation(String url) {
+        return contentInformation(url, true);
+    }
+
+    public static ContentInformation contentInformation(String url, boolean cache) {
+        final Supplier<ContentInformation> getter = () -> {
+            try (final Response resp = client.newCall(new Request.Builder().head().header(UA, USER_AGENT).url(url).build()).execute()) {
+                return new ContentInformation(resp.code(), resp.header("Content-Type"), resp.header("Content-Length"));
+            } catch (IOException e) {
+                return null;
+            }
+        };
+        if (cache) return ciCache.get(encodeURIComponent(url), unused -> getter.get());
+        else return getter.get();
     }
 
     public static Response postRequest(String url, MediaType type, String content, String authorization)  throws IOException {
@@ -193,6 +214,13 @@ public class NetworkUtil {
         }
 
         return result;
+    }
+
+    @Data
+    public static class ContentInformation {
+        private final int code;
+        private final String contentType;
+        private final String contentLength;
     }
 }
 

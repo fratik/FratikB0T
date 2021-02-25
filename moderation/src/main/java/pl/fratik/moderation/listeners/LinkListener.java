@@ -35,6 +35,7 @@ import pl.fratik.core.entity.Kara;
 import pl.fratik.core.manager.ManagerKomend;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.CommonUtil;
+import pl.fratik.core.util.NetworkUtil;
 import pl.fratik.moderation.entity.Case;
 import pl.fratik.moderation.entity.CaseBuilder;
 import pl.fratik.moderation.entity.CaseRow;
@@ -45,6 +46,7 @@ import pl.fratik.moderation.utils.WarnUtil;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.time.Instant;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 
 public class LinkListener {
@@ -90,6 +92,22 @@ public class LinkListener {
             Thread.currentThread().interrupt();
             return;
         }
+        if (mediaAllowed(e.getTextChannel())) {
+            boolean isMedia = true;
+            Function<String, Boolean> checkContent = url -> {
+                NetworkUtil.ContentInformation ci = NetworkUtil.contentInformation(url);
+                if (ci != null && ci.getCode() == 200)
+                    return ci.getContentType().startsWith("image/") || ci.getContentType().startsWith("video/");
+                return false;
+            };
+            do {
+                if (!checkContent.apply(matcher.group())) {
+                    isMedia = false;
+                    break;
+                }
+            } while (matcher.find());
+            if (isMedia) return;
+        }
         try {
             e.getChannel().retrieveMessageById(e.getMessageId()).complete();
         } catch (ErrorResponseException err) {
@@ -130,6 +148,10 @@ public class LinkListener {
     private boolean isAntilink(TextChannel channel) {
         return gcCache.get(channel.getGuild().getId(), guildDao::get).isAntiLink() &&
                 !gcCache.get(channel.getGuild().getId(), guildDao::get).getLinkchannels().contains(channel.getId());
+    }
+
+    private boolean mediaAllowed(TextChannel channel) {
+        return gcCache.get(channel.getGuild().getId(), guildDao::get).isAntiLinkMediaAllowed();
     }
 
     private String getModLogChan(Guild guild) {
