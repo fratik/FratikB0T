@@ -86,31 +86,34 @@ public class LinkListener {
         String content = e.getMessage().getContentRaw();
         Matcher matcher = CommonUtil.URL_PATTERN.matcher(content);
         if (!matcher.find()) return;
-        try {
-            Thread.sleep(1250); // poczekaj na antiinvite/inne boty
-        } catch (InterruptedException ie) {
-            Thread.currentThread().interrupt();
-            return;
-        }
-        if (mediaAllowed(e.getTextChannel())) {
-            boolean isMedia = true;
-            Function<String, Boolean> checkContent = url -> {
-                try {
-                    NetworkUtil.ContentInformation ci = NetworkUtil.contentInformation(url);
-                    if (ci != null && ci.getCode() == 200)
-                        return ci.getContentType().startsWith("image/") || ci.getContentType().startsWith("video/");
-                } catch (Exception err) {
-                    // niżej
-                }
-                return false;
-            };
-            do {
-                if (!checkContent.apply(matcher.group())) {
+        boolean isInviteOnly = true;
+        final boolean mediaAllowed = mediaAllowed(e.getTextChannel());
+        boolean isMedia = mediaAllowed;
+        do {
+            String text = matcher.group();
+            if (!AntiInviteListener.containsInvite(text)) {
+                isInviteOnly = false;
+            }
+            if (mediaAllowed) {
+                Function<String, Boolean> checkContent = url -> {
+                    try {
+                        NetworkUtil.ContentInformation ci = NetworkUtil.contentInformation(url);
+                        if (ci != null && ci.getCode() == 200)
+                            return ci.getContentType().startsWith("image/") || ci.getContentType().startsWith("video/");
+                    } catch (Exception err) {
+                        // niżej
+                    }
+                    return false;
+                };
+                if (!checkContent.apply(text)) {
                     isMedia = false;
-                    break;
                 }
-            } while (matcher.find());
-            if (isMedia) return;
+            }
+        } while (matcher.find());
+        if (isMedia || isInviteOnly) {
+            //media? nie reaguj (jeżeli mediaAllowed = false - isMedia = false)
+            //zaproszenie? również nie, antiinvite ogarnie (lub nie, jeśli wyłączony)
+            return;
         }
         try {
             e.getChannel().retrieveMessageById(e.getMessageId()).complete();
@@ -118,6 +121,11 @@ public class LinkListener {
             //wiadomość nie istnieje; została usunięta przez inny bot/listener
         }
         synchronized (e.getGuild()) {
+            if (gcCache.get(e.getGuild().getId(), guildDao::get).isDeleteLinkMessage()) {
+                try {
+                    e.getMessage().delete().complete();
+                } catch (Exception ignored) { }
+            }
             Case c = new CaseBuilder(e.getGuild()).setUser(e.getAuthor().getId()).setKara(Kara.WARN)
                     .setTimestamp(Instant.now()).createCase();
             c.setIssuerId(e.getJDA().getSelfUser());
@@ -141,11 +149,6 @@ public class LinkListener {
             casesDao.save(cr);
             WarnUtil.takeAction(guildDao, casesDao, e.getMember(), e.getChannel(),
                     tlumaczenia.getLanguage(e.getGuild()), tlumaczenia, managerKomend);
-            if (gcCache.get(e.getGuild().getId(), guildDao::get).isDeleteLinkMessage()) {
-                try {
-                    e.getMessage().delete().complete();
-                } catch (Exception ignored) { }
-            }
         }
     }
 
