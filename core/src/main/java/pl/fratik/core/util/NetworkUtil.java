@@ -20,8 +20,11 @@ package pl.fratik.core.util;
 import lombok.Data;
 import lombok.Getter;
 import okhttp3.*;
+import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 import pl.fratik.core.Statyczne;
 import pl.fratik.core.cache.Cache;
 import pl.fratik.core.cache.RedisCacheManager;
@@ -30,8 +33,11 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 public class NetworkUtil {
@@ -74,10 +80,45 @@ public class NetworkUtil {
 
     public static ContentInformation contentInformation(String url, boolean cache) {
         final Supplier<ContentInformation> getter = () -> {
-            try (final Response resp = client.newCall(new Request.Builder().head().header(UA, USER_AGENT).url(url).build()).execute()) {
-                return new ContentInformation(resp.code(), resp.header("Content-Type"), resp.header("Content-Length"));
+            AtomicReference<ContentInformation> ci = new AtomicReference<>();
+            OkHttpClient client = new OkHttpClient.Builder(NetworkUtil.client).eventListener(new EventListener() {
+                @Override
+                public void responseHeadersEnd(@NotNull Call call, @NotNull Response response) {
+                    // sprawdź content-type zanim zaczniesz bawić się body
+                    String cntype = response.header("Content-Type");
+                    if (response.isRedirect()) return;
+                    if (cntype != null && !cntype.startsWith("text/html")) {
+                        // jeżeli content-type nie jest "text/html", przerywamy żądanie - nie potrzebujemy body
+                        ci.set(new ContentInformation(response.code(), cntype, response.header("Content-Length")));
+                        call.cancel();
+                    }
+                }
+            }).build();
+            Call call = client.newCall(new Request.Builder().header(UA, USER_AGENT).url(url).build());
+            call.timeout().timeout(5, TimeUnit.SECONDS); // przyczyna chyba oczywista
+            try (final Response resp = call.execute()) {
+                ContentInformation ogCi = new ContentInformation(resp.code(), resp.header("Content-Type"), resp.header("Content-Length"));
+                ResponseBody body = resp.body();
+                if (body == null || body.contentType() == null) throw new IOException();
+                Document doc;
+                try {
+                    //noinspection ConstantConditions
+                    doc = Jsoup.parse(body.byteStream(), body.contentType().charset(StandardCharsets.UTF_8).name(), "");
+                } catch (Exception e) {
+                    return ogCi; // nieprawidłowy dokument HTML? zwróć dane o odpowiedzi z nim
+                }
+                String type = doc.head().getElementsByTag("meta").stream().filter(el -> el.attr("property").equals("og:type"))
+                        .findFirst().map(el -> el.attr("content")).orElse("website");
+                if (!type.startsWith("video")) return ogCi; //gify / filmy są oznaczane jako video, nie ma typu na zdjęcia
+                String imageUrl = doc.head().getElementsByTag("meta").stream().filter(el -> el.attr("property").equals("og:image"))
+                        .findFirst().map(el -> el.attr("content")).orElse(null);
+                String videoUrl = doc.head().getElementsByTag("meta").stream().filter(el -> el.attr("property").equals("og:video") ||
+                        el.attr("property").equals("og:video:url")).findFirst().map(el -> el.attr("content")).orElse(null);
+                if (imageUrl != null && imageUrl.contains(".gif")) return contentInformation(imageUrl, cache);
+                else if (videoUrl != null) return contentInformation(videoUrl, cache);
+                return ogCi;
             } catch (IOException e) {
-                return null;
+                return ci.get();
             }
         };
         if (cache && ciCache != null) return ciCache.get(encodeURIComponent(url), unused -> getter.get());
