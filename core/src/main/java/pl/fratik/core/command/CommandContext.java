@@ -24,6 +24,7 @@ import io.sentry.event.interfaces.ExceptionInterface;
 import lombok.Getter;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
@@ -185,6 +186,8 @@ public class CommandContext {
             Sentry.clearContext();
         }
         try {
+            if (!event.isFromGuild() || !event.getGuild().getSelfMember().hasPermission(event.getTextChannel(),
+                    Permission.MESSAGE_HISTORY)) return event.getChannel().sendMessage(message).complete();
             return event.getChannel().sendMessage(message).reference(getMessage()).complete();
         } catch (ErrorResponseException e) {
             if (isUnknownMessage(e)) return event.getChannel().sendMessage(message).complete();
