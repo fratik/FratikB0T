@@ -80,6 +80,7 @@ class FratikB0T {
     private ServiceManager glownyService;
     private ServiceManager statusService;
     private ServiceManager scheduleService;
+    private EventWaiter eventWaiter;
 
     private static final File cfg = new File("config.json");
     private static boolean shutdownThreadRegistered = false;
@@ -222,7 +223,7 @@ class FratikB0T {
                 GuildDao guildDao = new GuildDao(mbd, eventBus);
                 GbanDao gbanDao = new GbanDao(mbd, eventBus);
                 ScheduleDao scheduleDao = new ScheduleDao(mbd, eventBus);
-                EventWaiter eventWaiter = new EventWaiter();
+                this.eventWaiter = new EventWaiter(Executors.newSingleThreadScheduledExecutor(), false);
                 WebhookManager webhookManager = new WebhookManager(guildDao);
                 while (shardManager.getShards().stream().noneMatch(s -> {
                     try {
@@ -341,6 +342,7 @@ class FratikB0T {
                     logger.debug("Gotowe!");
                 } catch (TimeoutException ignored) {/*lul*/}
             }
+            if (eventWaiter != null) eventWaiter.shutdown();
             if (mbd != null) {
                 logger.debug("Zamykam bazę danych...");
                 mbd.shutdown();
