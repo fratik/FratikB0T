@@ -29,6 +29,7 @@ import net.dv8tion.jda.api.events.message.MessageBulkDeleteEvent;
 import net.dv8tion.jda.api.events.message.MessageDeleteEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.MessageUpdateEvent;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.Ustawienia;
 import pl.fratik.core.cache.Cache;
@@ -42,6 +43,7 @@ import pl.fratik.core.util.StringUtil;
 import pl.fratik.core.util.UserUtil;
 import pl.fratik.moderation.commands.PurgeCommand;
 import pl.fratik.moderation.entity.*;
+import redis.clients.jedis.exceptions.JedisException;
 
 import javax.annotation.CheckReturnValue;
 import java.time.Instant;
@@ -60,58 +62,67 @@ public class LogListener {
 
     @Setter private static Tlumaczenia tlumaczenia;
     private final Cache<List<LogMessage>> cache;
+    private final Cache<GuildConfig> gcCache;
     @Getter private final List<String> znaneAkcje = new ArrayList<>();
 
-    private final Cache<GuildConfig> gcCache;
+    private static final Logger log = LoggerFactory.getLogger(LogListener.class);
 
     public LogListener(GuildDao guildDao, PurgeDao purgeDao, RedisCacheManager redisCacheManager) {
         this.guildDao = guildDao;
         this.purgeDao = purgeDao;
-        cache = redisCacheManager.new CacheRetriever<List<LogMessage>>(){}.getCache(900);
+        cache = redisCacheManager.new CacheRetriever<List<LogMessage>>(){}.setCanHandleErrors(true).getCache(900);
         gcCache = redisCacheManager.new CacheRetriever<GuildConfig>(){}.getCache();
     }
 
     @Subscribe
     public void onMessage(MessageReceivedEvent messageReceivedEvent) {
         if (!messageReceivedEvent.isFromGuild()) return;
-        List<LogMessage> messages = cache.get(messageReceivedEvent.getTextChannel().getId(), c -> new ArrayList<>());
-        if (messages == null) throw new IllegalStateException("messages == null mimo compute'owania");
-        if (messages.size() > 100) messages.remove(0);
-        messages.add(new LogMessage(messageReceivedEvent.getMessage()));
-        cache.put(messageReceivedEvent.getTextChannel().getId(), messages);
+        try {
+            List<LogMessage> messages = cache.get(messageReceivedEvent.getTextChannel().getId(), c -> new ArrayList<>());
+            if (messages == null) throw new IllegalStateException("messages == null mimo compute'owania");
+            if (messages.size() > 100) messages.remove(0);
+            messages.add(new LogMessage(messageReceivedEvent.getMessage()));
+            cache.put(messageReceivedEvent.getTextChannel().getId(), messages);
+        } catch (JedisException e) {
+            log.error("Redis nie odpowiada prawidłowo!", e);
+        }
     }
 
     @Subscribe
     public void onMessageEdit(MessageUpdateEvent messageUpdateEvent) {
         if (!messageUpdateEvent.isFromGuild()) return;
-        List<LogMessage> messages = cache.get(messageUpdateEvent.getTextChannel().getId(), c -> new ArrayList<>());
-        if (messages == null) throw new IllegalStateException("messages == null mimo compute'owania");
-        Message m = findMessage(messageUpdateEvent.getTextChannel(), messageUpdateEvent.getMessageId(), false, messages);
-        if (m == null) {
-            if (messages.size() > 100) messages.remove(0);
-            messages.add(new LogMessage(messageUpdateEvent.getMessage()));
-            znaneAkcje.remove(messageUpdateEvent.getMessageId());
-            return;
+        try {
+            List<LogMessage> messages = cache.get(messageUpdateEvent.getTextChannel().getId(), c -> new ArrayList<>());
+            if (messages == null) throw new IllegalStateException("messages == null mimo compute'owania");
+            Message m = findMessage(messageUpdateEvent.getTextChannel(), messageUpdateEvent.getMessageId(), false, messages);
+            if (m == null) {
+                if (messages.size() > 100) messages.remove(0);
+                messages.add(new LogMessage(messageUpdateEvent.getMessage()));
+                znaneAkcje.remove(messageUpdateEvent.getMessageId());
+                return;
+            }
+            messages.set(messages.indexOf(m), new LogMessage(messageUpdateEvent.getMessage()));
+            cache.put(messageUpdateEvent.getTextChannel().getId(), messages);
+            if (znaneAkcje.contains(messageUpdateEvent.getMessageId())) {
+                znaneAkcje.remove(messageUpdateEvent.getMessageId());
+                return;
+            }
+            TextChannel channel = getChannel(messageUpdateEvent.getGuild());
+            if (channel == null || !channel.canTalk()) {
+                return;
+            }
+            if (messageUpdateEvent.getMessage().getContentRaw().equals(m.getContentRaw())) {
+                //zmieniony embed/attachment, ignoruj
+                return;
+            }
+            if (messageUpdateEvent.getMessage().getContentRaw().length() >= 1024 || m.getContentRaw().length() >= 1024) {
+                return;
+            }
+            MessageEmbed embed = generateEmbed(LogType.EDIT, messageUpdateEvent.getMessage(), null, m.getContentRaw(), false);
+            try {channel.sendMessage(embed).queue();} catch (Exception ignored) {/*lul*/}
+        } catch (JedisException e) {
+            log.error("Redis nie odpowiada prawidłowo!", e);
         }
-        messages.set(messages.indexOf(m), new LogMessage(messageUpdateEvent.getMessage()));
-        cache.put(messageUpdateEvent.getTextChannel().getId(), messages);
-        if (znaneAkcje.contains(messageUpdateEvent.getMessageId())) {
-            znaneAkcje.remove(messageUpdateEvent.getMessageId());
-            return;
-        }
-        TextChannel channel = getChannel(messageUpdateEvent.getGuild());
-        if (channel == null || !channel.canTalk()) {
-            return;
-        }
-        if (messageUpdateEvent.getMessage().getContentRaw().equals(m.getContentRaw())) {
-            //zmieniony embed/attachment, ignoruj
-            return;
-        }
-        if (messageUpdateEvent.getMessage().getContentRaw().length() >= 1024 || m.getContentRaw().length() >= 1024) {
-            return;
-        }
-        MessageEmbed embed = generateEmbed(LogType.EDIT, messageUpdateEvent.getMessage(), null, m.getContentRaw(), false);
-        try {channel.sendMessage(embed).queue();} catch (Exception ignored) {/*lul*/}
     }
 
     @Subscribe
@@ -202,11 +213,15 @@ public class LogListener {
     }
 
     public void pushMessage(Message msg) {
-        List<LogMessage> kesz = Objects.requireNonNull(cache.get(msg.getTextChannel().getId(), c -> new ArrayList<>()));
-        if (kesz.stream().map(ISnowflake::getId).anyMatch(o -> o.equals(msg.getId())))
-            return;
-        kesz.add(new LogMessage(msg));
-        cache.put(msg.getTextChannel().getId(), kesz);
+        try {
+            List<LogMessage> kesz = Objects.requireNonNull(cache.get(msg.getTextChannel().getId(), c -> new ArrayList<>()));
+            if (kesz.stream().map(ISnowflake::getId).anyMatch(o -> o.equals(msg.getId())))
+                return;
+            kesz.add(new LogMessage(msg));
+            cache.put(msg.getTextChannel().getId(), kesz);
+        } catch (JedisException e) {
+            log.error("Redis nie odpowiada prawidłowo!", e);
+        }
     }
 
     private LogMessage findMessage(TextChannel channel, String id) {
@@ -214,8 +229,13 @@ public class LogListener {
     }
 
     private LogMessage findMessage(TextChannel channel, String id, boolean delete) {
-        List<LogMessage> kesz = Objects.requireNonNull(cache.get(channel.getId(), c -> new ArrayList<>()));
-        return findMessage(channel, id, delete, kesz);
+        try {
+            List<LogMessage> kesz = Objects.requireNonNull(cache.get(channel.getId(), c -> new ArrayList<>()));
+            return findMessage(channel, id, delete, kesz);
+        } catch (JedisException e) {
+            log.error("Redis nie odpowiada prawidłowo!", e);
+            return null;
+        }
     }
 
     private LogMessage findMessage(TextChannel channel, String id, boolean delete, List<LogMessage> kesz) {
@@ -227,6 +247,8 @@ public class LogListener {
                     cache.put(channel.getId(), kesz);
                     return m;
                 }
+        } catch (JedisException e) {
+            log.error("Redis nie odpowiada prawidłowo!", e);
         } catch (Exception ignored) {
             /*lul*/
         }

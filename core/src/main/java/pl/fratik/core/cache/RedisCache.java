@@ -18,6 +18,7 @@
 package pl.fratik.core.cache;
 
 import com.google.common.reflect.TypeToken;
+import redis.clients.jedis.exceptions.JedisException;
 
 import javax.annotation.Nonnull;
 import java.util.LinkedHashMap;
@@ -27,22 +28,51 @@ import java.util.function.Function;
 public class RedisCache<V> implements Cache<V> {
     private final RedisCacheManager rcm;
     private final int expiry;
+    private final boolean canHandleErrors;
     private TypeToken<V> holds;
 
-    public RedisCache(RedisCacheManager rcm, TypeToken<V> holds, int expiry) {
+    public RedisCache(RedisCacheManager rcm, TypeToken<V> holds, int expiry, boolean canHandleErrors) {
         this.rcm = rcm;
         this.holds = holds;
         this.expiry = expiry;
+        this.canHandleErrors = canHandleErrors;
+    }
+
+    private V get0(String key) {
+        try {
+            return rcm.get(key, holds);
+        } catch (JedisException ex) {
+            if (canHandleErrors) throw ex;
+            return null;
+        }
+    }
+
+    private V get0(String key, Function<? super String, ? extends V> mappingFunction, int expiry) {
+        try {
+            return rcm.get(key, holds, mappingFunction, expiry);
+        } catch (JedisException ex) {
+            if (canHandleErrors) throw ex;
+            else return mappingFunction.apply(key);
+        }
+    }
+
+    private V getRaw0(String dbkey) {
+        try {
+            return rcm.getRaw(dbkey, holds);
+        } catch (JedisException ex) {
+            if (canHandleErrors) throw ex;
+            return null;
+        }
     }
 
     @Override
     public V getIfPresent(@Nonnull Object key) {
-        return rcm.get(key.toString(), holds);
+        return get0(key.toString());
     }
 
     @Override
     public V get(@Nonnull String key, @Nonnull Function<? super String, ? extends V> mappingFunction) {
-        return rcm.get(key, holds, mappingFunction, expiry);
+        return get0(key, mappingFunction, expiry);
     }
 
     @Override
@@ -50,7 +80,7 @@ public class RedisCache<V> implements Cache<V> {
         Map<String, V> map = new LinkedHashMap<>();
         for (Object obj : keys) {
             String str = obj.toString();
-            V v = rcm.get(str, holds);
+            V v = get0(str);
             if (v != null) map.put(str, v);
         }
         return map;
@@ -60,7 +90,7 @@ public class RedisCache<V> implements Cache<V> {
         Map<String, V> map = new LinkedHashMap<>();
         for (Object obj : keys) {
             String str = obj.toString();
-            V v = rcm.getRaw(str, holds);
+            V v = getRaw0(str);
             if (v != null) map.put(str, v);
         }
         return map;
@@ -68,17 +98,30 @@ public class RedisCache<V> implements Cache<V> {
 
     @Override
     public void put(@Nonnull String key, @Nonnull V value) {
-        rcm.put(key, holds, value, expiry);
+        try {
+            rcm.put(key, holds, value, expiry);
+        } catch (JedisException ex) {
+            if (canHandleErrors) throw ex;
+        }
     }
 
     @Override
     public void putAll(@Nonnull Map<? extends String, ? extends V> map) {
-        rcm.putAll(holds, map, expiry);
+        try {
+            rcm.putAll(holds, map, expiry);
+        } catch (JedisException ex) {
+            if (canHandleErrors) throw ex;
+        }
     }
 
     @Override
     public long getTTL(@Nonnull Object key) {
-        return rcm.ttl(key, holds);
+        try {
+            return rcm.ttl(key, holds);
+        } catch (JedisException ex) {
+            if (canHandleErrors) throw ex;
+            return -1;
+        }
     }
 
     @Override
@@ -88,16 +131,28 @@ public class RedisCache<V> implements Cache<V> {
 
     @Override
     public void invalidate(@Nonnull Object key) {
-        rcm.invalidate(key, holds);
+        try {
+            rcm.invalidate(key, holds);
+        } catch (JedisException ex) {
+            if (canHandleErrors) throw ex;
+        }
     }
 
     @Override
     public void invalidateAll(@Nonnull Iterable<?> keys) {
-        rcm.invalidateAll(keys, holds);
+        try {
+            rcm.invalidateAll(keys, holds);
+        } catch (JedisException ex) {
+            if (canHandleErrors) throw ex;
+        }
     }
 
     private void invalidateAllRaw(@Nonnull Iterable<?> dbKeys) {
-        rcm.invalidateAllRaw(dbKeys);
+        try {
+            rcm.invalidateAllRaw(dbKeys);
+        } catch (JedisException ex) {
+            if (canHandleErrors) throw ex;
+        }
     }
 
     @Override

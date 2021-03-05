@@ -44,6 +44,7 @@ import pl.fratik.core.util.TimeUtil;
 import pl.fratik.core.util.UserUtil;
 import pl.fratik.punkty.entity.PunktyDao;
 import pl.fratik.punkty.entity.PunktyRow;
+import redis.clients.jedis.exceptions.JedisException;
 
 import java.io.IOException;
 import java.util.*;
@@ -87,13 +88,18 @@ public class LicznikPunktow {
         instance = this; //NOSONAR
         this.tlumaczenia = tlumaczenia;
         threadPool.scheduleWithFixedDelay(this::emptyCache, 5, 5, TimeUnit.MINUTES);
-        cache = redisCacheManager.new CacheRetriever<ConcurrentHashMap<String, Integer>>(){}.getCache(-1);
+        cache = redisCacheManager.new CacheRetriever<ConcurrentHashMap<String, Integer>>(){}.setCanHandleErrors(true).getCache(-1);
         gcCache = redisCacheManager.new CacheRetriever<GuildConfig>(){}.getCache();
         ucCache = redisCacheManager.new CacheRetriever<UserConfig>(){}.getCache();
     }
 
     public static int getPunkty(Member member) {
-        ConcurrentHashMap<String, Integer> mapa = LicznikPunktow.cache.getIfPresent(member.getGuild().getId());
+        ConcurrentHashMap<String, Integer> mapa;
+        try {
+            mapa = LicznikPunktow.cache.getIfPresent(member.getGuild().getId());
+        } catch (JedisException ex) {
+            mapa = null;
+        }
         if (mapa == null || mapa.get(member.getUser().getId()) == null) {
             PunktyRow pkt = LicznikPunktow.instance.punktyDao.get(member);
             return pkt.getPunkty();
@@ -102,7 +108,12 @@ public class LicznikPunktow {
     }
 
     private static int getPunkty(String userId, String guildId) {
-        ConcurrentHashMap<String, Integer> mapa = LicznikPunktow.cache.getIfPresent(guildId);
+        ConcurrentHashMap<String, Integer> mapa;
+        try {
+            mapa = LicznikPunktow.cache.getIfPresent(guildId);
+        } catch (JedisException e) {
+            mapa = null;
+        }
         if (mapa == null || mapa.get(userId) == null) {
             PunktyRow pkt = LicznikPunktow.instance.punktyDao.get(userId + "-" + guildId);
             return pkt.getPunkty();
@@ -127,7 +138,12 @@ public class LicznikPunktow {
         Map<String, Integer> dbDane = LicznikPunktow.instance.punktyDao.getTotalPoints(user);
         Map<String, Integer> sumaKoncowa = new HashMap<>();
         dbDane.forEach((idS, pkt) -> {
-            ConcurrentHashMap<String, Integer> daneZcache = LicznikPunktow.cache.getIfPresent(idS);
+            ConcurrentHashMap<String, Integer> daneZcache;
+            try {
+                daneZcache = LicznikPunktow.cache.getIfPresent(idS);
+            } catch (JedisException e) {
+                daneZcache = null;
+            }
             if (daneZcache == null || daneZcache.get(user.getId()) == null) {
                 sumaKoncowa.put(idS, pkt);
                 return;
@@ -158,92 +174,96 @@ public class LicznikPunktow {
     @Subscribe
     @AllowConcurrentEvents
     public void onMessage(MessageReceivedEvent event) {
-        if (event.getChannel().getType() != ChannelType.TEXT || !event.isFromGuild()) {
-            log.debug("Kanał gdzie {} napisał nie jest kanałem tekstowym, nie liczę punktu", event.getAuthor());
-            return;
-        }
-        if (lock) {
-            log.debug("Lock włączony, nie podliczam punktów dla {} na {}", event.getAuthor(), event.getGuild());
-            return;
-        }
-        if (event.getAuthor().isBot() || UserUtil.isGbanned(event.getAuthor()) || getCooldown(event.getMember()) ||
-                !punktyWlaczone(event.getGuild()) || getNoLvlChannelChange(event.getGuild())
-                .contains(event.getChannel().getId())) {
-            if (UserUtil.isGbanned(event.getAuthor())) log.debug("{} jest zgbanowany, nie liczę punktu",
-                    event.getAuthor());
-            else if (event.getAuthor().isBot()) log.debug("{} jest botem, nie liczę punktu", event.getAuthor());
-            else if (getCooldown(event.getMember()))
-                log.debug("{} ({}) jest na cooldownie!", event.getAuthor(), event.getGuild());
-            else if (!punktyWlaczone(event.getGuild()))
-                log.debug("Punkty na serwerze {} są wyłączone", event.getGuild());
-            else if (getNoLvlChannelChange(event.getGuild()).contains(event.getChannel().getId())) {
-                log.debug("Naliczanie punktow na kanale {} ({}) jest wylaczone", event.getChannel(),
-                        event.getGuild());
+        try {
+            if (event.getChannel().getType() != ChannelType.TEXT || !event.isFromGuild()) {
+                log.debug("Kanał gdzie {} napisał nie jest kanałem tekstowym, nie liczę punktu", event.getAuthor());
+                return;
             }
-            return;
-        }
-        synchronized (this) {
-            ConcurrentHashMap<String, Integer> mapa = cache.getIfPresent(event.getGuild().getId());
-            if (mapa == null) {
-                log.debug("Nie znaleziono HashMapy dla {} w cache, biorę z DB", event.getAuthor());
-                PunktyRow pkt = punktyDao.get(event.getMember());
-                int punkty = pkt.getPunkty();
-                ConcurrentHashMap<String, Integer> hmap = new ConcurrentHashMap<>();
-                hmap.put(event.getAuthor().getId(), punkty);
-                log.debug("Wstawiam do cache: {} -> {} -> {}", event.getGuild(), event.getAuthor(), punkty);
-                cache.put(event.getGuild().getId(), hmap);
-                mapa = hmap;
+            if (lock) {
+                log.debug("Lock włączony, nie podliczam punktów dla {} na {}", event.getAuthor(), event.getGuild());
+                return;
             }
-            Integer punktyRaw = mapa.get(event.getAuthor().getId());
-            int punkty = 0;
-            if (punktyRaw == null) {
-                log.debug("Nie znaleziono w hashmapie danych dla {}, biorę z DB", event.getAuthor());
-                PunktyRow pkt = punktyDao.get(event.getMember());
-                punkty = pkt.getPunkty();
-                mapa.put(event.getAuthor().getId(), punkty);
-                log.debug("Wstawiam do cache: {} -> {} -> {}", event.getGuild(), event.getAuthor(), punkty);
-                cache.put(event.getGuild().getId(), mapa);
-            }
-            if (punktyRaw != null) punkty = punktyRaw;
-            int lvlOld = calculateLvl(punkty, 0);
-            int przyrost = 1;
-            if (!event.getMessage().getAttachments().isEmpty())
-                przyrost = getPktFromFileSize(event.getMessage().getAttachments().get(0).getSize());
-            Matcher matcher = URLPATTERN.matcher(event.getMessage().getContentRaw());
-            if (matcher.find()) {
-                String url = matcher.group();
-                try {
-                    String rawHeader;
-                    if (url.startsWith("http")) {
-                        NetworkUtil.ContentInformation ci = NetworkUtil.contentInformation(url);
-                        if (ci == null || ci.getCode() != 200) {
-                            throw new IOException("null");
-                        }
-                        rawHeader = ci.getContentLength();
-                    } else {
-                        log.debug("{} ({}): znaleziono url {}, ignoruje przez brak protokołu", event.getAuthor(), event.getGuild(), url);
-                        rawHeader = null;
-                    }
-                    if (rawHeader == null) {
-                        log.debug("{} ({}): znaleziono url {}, content-length nieznany", event.getAuthor(), event.getGuild(), url);
-                    } else {
-                        log.debug("{} ({}): znaleziono url {}, content-length: {}", event.getAuthor(), event.getGuild(), url, rawHeader);
-                        int byteLength = Integer.parseInt(rawHeader);
-                        przyrost = getPktFromFileSize(byteLength);
-                    }
-                } catch (NumberFormatException | IOException e) {
-                    log.debug("{} ({}): znaleziono url {}, nie udało się połączyć", event.getAuthor(), event.getGuild(), url);
+            if (event.getAuthor().isBot() || UserUtil.isGbanned(event.getAuthor()) || getCooldown(event.getMember()) ||
+                    !punktyWlaczone(event.getGuild()) || getNoLvlChannelChange(event.getGuild())
+                    .contains(event.getChannel().getId())) {
+                if (UserUtil.isGbanned(event.getAuthor())) log.debug("{} jest zgbanowany, nie liczę punktu",
+                        event.getAuthor());
+                else if (event.getAuthor().isBot()) log.debug("{} jest botem, nie liczę punktu", event.getAuthor());
+                else if (getCooldown(event.getMember()))
+                    log.debug("{} ({}) jest na cooldownie!", event.getAuthor(), event.getGuild());
+                else if (!punktyWlaczone(event.getGuild()))
+                    log.debug("Punkty na serwerze {} są wyłączone", event.getGuild());
+                else if (getNoLvlChannelChange(event.getGuild()).contains(event.getChannel().getId())) {
+                    log.debug("Naliczanie punktow na kanale {} ({}) jest wylaczone", event.getChannel(),
+                            event.getGuild());
                 }
+                return;
             }
-            log.debug("{} na serwerze {} ma {} + {} punktów (lvl {}), zapisuje do cache",
-                    event.getAuthor(), event.getGuild(), punkty, przyrost, calculateLvl(punkty, przyrost));
-            mapa.put(event.getAuthor().getId(), punkty + przyrost);
-            cache.put(event.getGuild().getId(), mapa);
-            if (lvlOld != calculateLvl(punkty, przyrost))
-                eventBus.post(new LvlupEvent(event.getMember(), punkty + przyrost, lvlOld, calculateLvl(punkty, przyrost),
-                        event.getChannel()));
-            setCooldown(event.getMember(), true);
-            threadPool.schedule(() -> setCooldown(event.getMember(), false), 5, TimeUnit.SECONDS);
+            synchronized (this) {
+                ConcurrentHashMap<String, Integer> mapa = cache.getIfPresent(event.getGuild().getId());
+                if (mapa == null) {
+                    log.debug("Nie znaleziono HashMapy dla {} w cache, biorę z DB", event.getAuthor());
+                    PunktyRow pkt = punktyDao.get(event.getMember());
+                    int punkty = pkt.getPunkty();
+                    ConcurrentHashMap<String, Integer> hmap = new ConcurrentHashMap<>();
+                    hmap.put(event.getAuthor().getId(), punkty);
+                    log.debug("Wstawiam do cache: {} -> {} -> {}", event.getGuild(), event.getAuthor(), punkty);
+                    cache.put(event.getGuild().getId(), hmap);
+                    mapa = hmap;
+                }
+                Integer punktyRaw = mapa.get(event.getAuthor().getId());
+                int punkty = 0;
+                if (punktyRaw == null) {
+                    log.debug("Nie znaleziono w hashmapie danych dla {}, biorę z DB", event.getAuthor());
+                    PunktyRow pkt = punktyDao.get(event.getMember());
+                    punkty = pkt.getPunkty();
+                    mapa.put(event.getAuthor().getId(), punkty);
+                    log.debug("Wstawiam do cache: {} -> {} -> {}", event.getGuild(), event.getAuthor(), punkty);
+                    cache.put(event.getGuild().getId(), mapa);
+                }
+                if (punktyRaw != null) punkty = punktyRaw;
+                int lvlOld = calculateLvl(punkty, 0);
+                int przyrost = 1;
+                if (!event.getMessage().getAttachments().isEmpty())
+                    przyrost = getPktFromFileSize(event.getMessage().getAttachments().get(0).getSize());
+                Matcher matcher = URLPATTERN.matcher(event.getMessage().getContentRaw());
+                if (matcher.find()) {
+                    String url = matcher.group();
+                    try {
+                        String rawHeader;
+                        if (url.startsWith("http")) {
+                            NetworkUtil.ContentInformation ci = NetworkUtil.contentInformation(url);
+                            if (ci == null || ci.getCode() != 200) {
+                                throw new IOException("null");
+                            }
+                            rawHeader = ci.getContentLength();
+                        } else {
+                            log.debug("{} ({}): znaleziono url {}, ignoruje przez brak protokołu", event.getAuthor(), event.getGuild(), url);
+                            rawHeader = null;
+                        }
+                        if (rawHeader == null) {
+                            log.debug("{} ({}): znaleziono url {}, content-length nieznany", event.getAuthor(), event.getGuild(), url);
+                        } else {
+                            log.debug("{} ({}): znaleziono url {}, content-length: {}", event.getAuthor(), event.getGuild(), url, rawHeader);
+                            int byteLength = Integer.parseInt(rawHeader);
+                            przyrost = getPktFromFileSize(byteLength);
+                        }
+                    } catch (NumberFormatException | IOException e) {
+                        log.debug("{} ({}): znaleziono url {}, nie udało się połączyć", event.getAuthor(), event.getGuild(), url);
+                    }
+                }
+                log.debug("{} na serwerze {} ma {} + {} punktów (lvl {}), zapisuje do cache",
+                        event.getAuthor(), event.getGuild(), punkty, przyrost, calculateLvl(punkty, przyrost));
+                mapa.put(event.getAuthor().getId(), punkty + przyrost);
+                cache.put(event.getGuild().getId(), mapa);
+                if (lvlOld != calculateLvl(punkty, przyrost))
+                    eventBus.post(new LvlupEvent(event.getMember(), punkty + przyrost, lvlOld, calculateLvl(punkty, przyrost),
+                            event.getChannel()));
+                setCooldown(event.getMember(), true);
+                threadPool.schedule(() -> setCooldown(event.getMember(), false), 5, TimeUnit.SECONDS);
+            }
+        } catch (JedisException ex) {
+            log.error("Redis nie odpowiada - nie można zapisać punktów!", ex);
         }
     }
 
@@ -396,11 +416,14 @@ public class LicznikPunktow {
             cache.invalidateAll();
             log.debug("Gotowe! Zajęło {}.", TimeUtil.getDurationBreakdown(
                     TimeUnit.MILLISECONDS.convert(System.nanoTime() - start, TimeUnit.NANOSECONDS), true));
+        } catch (JedisException ex) {
+            log.error("Redis nie odpowiada - nie można zapisać punktów!", ex);
         } catch (Exception e) {
             log.error("Wystąpił błąd przy zrzucaniu punktów", e);
             Sentry.capture(e);
+        } finally {
+            lock = false;
         }
-        lock = false;
     }
 
     private void setCooldown(Member member, boolean set) {

@@ -233,11 +233,16 @@ public class RedisCacheManager {
     }
 
     public abstract class CacheRetriever<T> {
+        private boolean canHandleErrors = false;
         public RedisCache<T> getCache() {
             return getCache(300);
         }
         public RedisCache<T> getCache(int expiry) {
-            return new RedisCache<>(RedisCacheManager.this, new TypeToken<T>(getClass()) {}, expiry);
+            return new RedisCache<>(RedisCacheManager.this, new TypeToken<T>(getClass()) {}, expiry, canHandleErrors);
+        }
+        public CacheRetriever<T> setCanHandleErrors(boolean canHandleErrors) {
+            this.canHandleErrors = canHandleErrors;
+            return this;
         }
     }
 

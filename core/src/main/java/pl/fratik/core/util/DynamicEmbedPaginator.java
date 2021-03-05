@@ -25,6 +25,7 @@ import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
 import net.dv8tion.jda.api.exceptions.PermissionException;
+import net.dv8tion.jda.api.requests.restaction.MessageAction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.event.PluginMessageEvent;
@@ -111,7 +112,9 @@ public class DynamicEmbedPaginator implements EmbedPaginator {
     @Override
     public void create(MessageChannel channel, String referenceMessageId) {
         try {
-            channel.sendMessage(render(1)).referenceById(referenceMessageId).override(true).queue(msg -> {
+            MessageAction action = channel.sendMessage(render(1));
+            if (referenceMessageId != null) action = action.referenceById(referenceMessageId);
+            action.override(true).queue(msg -> {
                 message = msg;
                 messageId = msg.getIdLong();
                 if (pages.size() != 1) {
