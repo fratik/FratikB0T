@@ -134,6 +134,9 @@ public class GuildConfig implements DatabaseEntity {
     private Boolean cytujFbot = false;
     private Boolean publikujReakcja = false;
     private Boolean antiLinkMediaAllowed = true;
+    private Boolean antiLinkIgnoreAdmins = false;
+    @ConfigField(holdsEntity = ConfigField.Entities.ROLE)
+    private List<String> antiLinkIgnoreRoles = new ArrayList<>();
 
     // TODO: 09/04/2020 można to zrobić dla każdego Boolean'a, ale to już kwestia kosmetyki kodu chyba
     public boolean isResetujOstrzezeniaPrzyBanie() {
@@ -166,6 +169,10 @@ public class GuildConfig implements DatabaseEntity {
 
     public Boolean isAntiLinkMediaAllowed() {
         return antiLinkMediaAllowed == null || antiLinkMediaAllowed;
+    }
+
+    public Boolean isAntiLinkIgnoreAdmins() {
+        return antiLinkIgnoreAdmins == null || antiLinkIgnoreAdmins;
     }
 
     public List<String> getLinkchannels() {

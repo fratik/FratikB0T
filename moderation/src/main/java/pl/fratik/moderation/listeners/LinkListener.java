@@ -30,6 +30,7 @@ import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import pl.fratik.core.cache.Cache;
 import pl.fratik.core.cache.RedisCacheManager;
+import pl.fratik.core.command.PermLevel;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Kara;
@@ -38,6 +39,7 @@ import pl.fratik.core.manager.implementation.ManagerModulowImpl;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.CommonUtil;
 import pl.fratik.core.util.NetworkUtil;
+import pl.fratik.core.util.UserUtil;
 import pl.fratik.moderation.entity.Case;
 import pl.fratik.moderation.entity.CaseBuilder;
 import pl.fratik.moderation.entity.CaseRow;
@@ -89,6 +91,13 @@ public class LinkListener {
         if (!e.getTextChannel().canTalk()) return;
         if (!isAntilink(e.getTextChannel())) return;
         if (!e.getGuild().getSelfMember().canInteract(e.getMember())) return;
+        GuildConfig guildConfig = gcCache.get(e.getGuild().getId(), guildDao::get);
+        if (guildConfig.isAntiLinkIgnoreAdmins() &&
+                UserUtil.getPermlevel(e.getMember(), guildDao, shardManager, PermLevel.OWNER).getNum() > 0) return;
+        if (guildConfig.getAntiLinkIgnoreRoles() != null) {
+            for (String id : guildConfig.getAntiLinkIgnoreRoles())
+                if (e.getMember().getRoles().stream().anyMatch(r -> r.getId().equals(id))) return;
+        }
         StringBuilder wiad = new StringBuilder();
         String content = e.getMessage().getContentRaw();
         Matcher matcher = CommonUtil.URL_PATTERN.matcher(content);
@@ -146,7 +155,7 @@ public class LinkListener {
             // nic
         }
         synchronized (e.getGuild()) {
-            if (gcCache.get(e.getGuild().getId(), guildDao::get).isDeleteLinkMessage()) {
+            if (guildConfig.isDeleteLinkMessage()) {
                 try {
                     e.getMessage().delete().complete();
                 } catch (Exception ignored) { }
@@ -178,8 +187,8 @@ public class LinkListener {
     }
 
     private boolean isAntilink(TextChannel channel) {
-        return gcCache.get(channel.getGuild().getId(), guildDao::get).isAntiLink() &&
-                !gcCache.get(channel.getGuild().getId(), guildDao::get).getLinkchannels().contains(channel.getId());
+        GuildConfig guildConfig = gcCache.get(channel.getGuild().getId(), guildDao::get);
+        return guildConfig.isAntiLink() && !guildConfig.getLinkchannels().contains(channel.getId());
     }
 
     private boolean mediaAllowed(TextChannel channel) {
