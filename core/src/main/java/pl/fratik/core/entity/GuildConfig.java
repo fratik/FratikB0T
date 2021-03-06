@@ -172,7 +172,7 @@ public class GuildConfig implements DatabaseEntity {
     }
 
     public Boolean isAntiLinkIgnoreAdmins() {
-        return antiLinkIgnoreAdmins == null || antiLinkIgnoreAdmins;
+        return antiLinkIgnoreAdmins != null && antiLinkIgnoreAdmins;
     }
 
     public List<String> getLinkchannels() {
