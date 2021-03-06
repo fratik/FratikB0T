@@ -100,7 +100,7 @@ public class Module implements Modul {
         modLogListener = new ModLogListener(guildDao, shardManager, casesDao);
         logListener = new LogListener(guildDao, purgeDao, redisCacheManager);
         przeklenstwaListener = new PrzeklenstwaListener(guildDao, tlumaczenia, managerKomend, shardManager, casesDao, redisCacheManager);
-        linkListener = new LinkListener(guildDao, tlumaczenia, managerKomend, shardManager, casesDao, redisCacheManager);
+        linkListener = new LinkListener(guildDao, tlumaczenia, managerKomend, shardManager, casesDao, redisCacheManager, eventBus);
         autobanListener = new AutobanListener(guildDao, tlumaczenia);
         antiInviteListener = new AntiInviteListener(guildDao, tlumaczenia, managerKomend, shardManager, casesDao, redisCacheManager);
         antiRaidListener = new AntiRaidListener(guildDao, shardManager, eventBus, tlumaczenia, redisCacheManager, managerKomend);

@@ -18,6 +18,7 @@
 package pl.fratik.moderation.listeners;
 
 import com.google.common.eventbus.AllowConcurrentEvents;
+import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.Permission;
@@ -33,6 +34,7 @@ import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Kara;
 import pl.fratik.core.manager.ManagerKomend;
+import pl.fratik.core.manager.implementation.ManagerModulowImpl;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.CommonUtil;
 import pl.fratik.core.util.NetworkUtil;
@@ -46,6 +48,7 @@ import pl.fratik.moderation.utils.WarnUtil;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.time.Instant;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 
@@ -57,13 +60,16 @@ public class LinkListener {
     private final ShardManager shardManager;
     private final CasesDao casesDao;
     private final Cache<GuildConfig> gcCache;
-    public LinkListener(GuildDao guildDao, Tlumaczenia tlumaczenia, ManagerKomend managerKomend, ShardManager shardManager, CasesDao casesDao, RedisCacheManager redisCacheManager) {
+    private final EventBus eventBus;
+
+    public LinkListener(GuildDao guildDao, Tlumaczenia tlumaczenia, ManagerKomend managerKomend, ShardManager shardManager, CasesDao casesDao, RedisCacheManager redisCacheManager, EventBus eventBus) {
         this.guildDao = guildDao;
         this.tlumaczenia = tlumaczenia;
         this.managerKomend = managerKomend;
         this.shardManager = shardManager;
         this.casesDao = casesDao;
         gcCache = redisCacheManager.new CacheRetriever<GuildConfig>(){}.getCache();
+        this.eventBus = eventBus;
     }
 
     @Subscribe
@@ -83,6 +89,7 @@ public class LinkListener {
         if (!e.getTextChannel().canTalk()) return;
         if (!isAntilink(e.getTextChannel())) return;
         if (!e.getGuild().getSelfMember().canInteract(e.getMember())) return;
+        StringBuilder wiad = new StringBuilder();
         String content = e.getMessage().getContentRaw();
         Matcher matcher = CommonUtil.URL_PATTERN.matcher(content);
         if (!matcher.find()) return;
@@ -91,24 +98,32 @@ public class LinkListener {
         boolean isMedia = mediaAllowed;
         do {
             String text = matcher.group();
-            if (!AntiInviteListener.containsInvite(text)) {
-                isInviteOnly = false;
-            }
+            boolean containsInvite = AntiInviteListener.containsInvite(text);
+            if (!containsInvite) isInviteOnly = false;
+            Boolean media = null;
+            AtomicReference<String> contentType = new AtomicReference<>();
             if (mediaAllowed) {
                 Function<String, Boolean> checkContent = url -> {
                     try {
                         NetworkUtil.ContentInformation ci = NetworkUtil.contentInformation(url);
-                        if (ci != null && ci.getCode() == 200)
+                        if (ci != null && ci.getCode() == 200) {
+                            contentType.set(ci.getContentType());
                             return ci.getContentType().startsWith("image/") || ci.getContentType().startsWith("video/");
+                        }
                     } catch (Exception err) {
                         // niżej
                     }
                     return false;
                 };
-                if (!checkContent.apply(text)) {
+                media = checkContent.apply(text); // nigdy null
+                if (!media) {
                     isMedia = false;
                 }
             }
+            wiad.append(text).append("zaproszenie? ").append(containsInvite ? "tak" : "nie").append(" media? ");
+            if (media != null) wiad.append(media ? "tak (" + contentType.get() + ")" : "nie");
+            else wiad.append("[nie sprawdzane]");
+            wiad.append("\n");
         } while (matcher.find());
         if (isMedia || isInviteOnly) {
             //media? nie reaguj (jeżeli mediaAllowed = false - isMedia = false)
@@ -119,6 +134,16 @@ public class LinkListener {
             e.getChannel().retrieveMessageById(e.getMessageId()).complete();
         } catch (ErrorResponseException err) {
             //wiadomość nie istnieje; została usunięta przez inny bot/listener
+        }
+        try {
+            // Dlaczego linki są logowane? Po dzisiejszej (6.03.21) prośbie o pomoc, gdzie w nie wiadomo jakiej
+            //wiadomości został wykryty link, uznaliśmy logowanie za potrzebne by móc dostosować logikę wykrywania linków
+            wiad.setLength(wiad.length() - 1);
+            Object logEvent = ManagerModulowImpl.moduleClassLoader.loadClass("pl.fratik.logs.GenericLogEvent")
+                    .getDeclaredConstructor(String.class, String.class).newInstance("antilink", wiad.toString());
+            eventBus.post(logEvent);
+        } catch (Exception err) {
+            // nic
         }
         synchronized (e.getGuild()) {
             if (gcCache.get(e.getGuild().getId(), guildDao::get).isDeleteLinkMessage()) {

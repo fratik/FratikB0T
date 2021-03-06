@@ -54,10 +54,10 @@ public class CommonUtil {
     private CommonUtil() {}
 
     public static final Pattern ID_REGEX = Pattern.compile("\\d{17,18}");
-    public static final Pattern URL_PATTERN = Pattern.compile("[(http(s)?)://(www\\.)?a-zA-Z0-9@:-]{2,256}\\." +
-            "[a-z]{2,24}\\b([-a-zA-Z0-9@:%_\\+.~#?&//=]*)", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
-    private static final Pattern IMAGE_PATTERN = Pattern.compile("[(http(s)?)://(www\\.)?a-zA-Z0-9@:-]{2,256}" +
-            "\\.[a-z]{2,24}\\b([-a-zA-Z0-9@:%_\\+.~#?&//=]*\\.(a?png|jpe?g|gif|webp|tiff|svg))", Pattern.CASE_INSENSITIVE);
+    public static final Pattern URL_PATTERN = Pattern.compile("(http(s)?)://(www\\.)?([a-zA-Z0-9@:-]{1,256}\\.)+" +
+            "([a-z]{2,24})\\b([-a-zA-Z0-9@:%_+.~#?&/=]*)", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+    private static final Pattern IMAGE_PATTERN = Pattern.compile("(http(s)?)://(www\\.)?([a-zA-Z0-9@:-]{1,256}\\.)+" +
+            "([a-z]{2,24})\\b([-a-zA-Z0-9@:%_+.~#?&/=]*\\.(a?png|jpe?g|gif|webp|tiff|svg))", Pattern.CASE_INSENSITIVE);
     private static final String BLOCK = "\u2589\uFE0F";
 
     public static boolean checkCooldown(Map<Guild, Long> cooldowns, CommandContext context, long time) {
