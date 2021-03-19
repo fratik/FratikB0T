@@ -19,7 +19,9 @@ package pl.fratik.api.internale;
 
 import io.undertow.server.HttpServerExchange;
 
+import java.util.ArrayList;
 import java.util.Deque;
+import java.util.List;
 import java.util.Optional;
 
 public interface QueryParams {
@@ -27,6 +29,14 @@ public interface QueryParams {
     default Optional<String> queryParam(HttpServerExchange exchange, String name) {
         return Optional.ofNullable(exchange.getQueryParameters().get(name))
                 .map(Deque::getFirst);
+    }
+
+    default List<String> queryParams(HttpServerExchange exchange, String name) {
+        try {
+            return new ArrayList<>(exchange.getQueryParameters().get(name));
+        } catch (NullPointerException e) {
+            return null;
+        }
     }
 
     default Optional<Long> queryParamAsLong(HttpServerExchange exchange, String name) {
