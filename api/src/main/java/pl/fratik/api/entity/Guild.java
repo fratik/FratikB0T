@@ -31,6 +31,20 @@ public class Guild {
     private final int voiceChannels;
     private final long createdTimestamp;
 
+    public Guild(net.dv8tion.jda.api.entities.Guild guild) {
+        this(guild.getName(), guild.getId(),
+                guild.getIconId(),
+                !guild.getSelfMember().getRoles().isEmpty() ?
+                        new pl.fratik.api.entity.Role(guild.getSelfMember().getRoles().get(0).getName(),
+                                guild.getSelfMember().getRoles().get(0).getId(),
+                                guild.getSelfMember().getRoles().get(0).getPermissionsRaw(),
+                                guild.getSelfMember().getRoles().get(0).getPositionRaw(),
+                                guild.getSelfMember().getRoles().get(0).isManaged()) : null,
+                guild.getMemberCount(),
+                guild.getRoles().size(), guild.getTextChannels().size(), guild.getVoiceChannels().size(),
+                guild.getTimeCreated().toInstant().toEpochMilli());
+    }
+
     public Guild(String name, String id, String icon, Role myHighestRole, int members, int roles, int textChannels, int voiceChannels, long createdTimestamp) {
         this.name = name;
         this.id = id;

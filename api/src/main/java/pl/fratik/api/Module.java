@@ -40,7 +40,6 @@ import io.undertow.websockets.core.WebSockets;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.User;
@@ -126,30 +125,16 @@ public class Module implements Modul {
                     .stream().map(pl.fratik.api.entity.Language::new).collect(Collectors.toList())));
         });
         routes.get("/api/guilds", ex -> {
-            String userId = Exchange.queryParams().queryParam(ex, "userId").orElse(null);
-            List<pl.fratik.api.entity.Guild> guilds = new ArrayList<>();
-            for (Guild guild : shardManager.getGuilds()) {
-                if (userId != null) {
-                    Member member;
-                    try {
-                        member = guild.retrieveMemberById(userId).complete();
-                    } catch (ErrorResponseException e) {
-                        if (e.getErrorResponse() == ErrorResponse.UNKNOWN_MEMBER) member = null;
-                        else throw e;
-                    }
-                    if (member == null || !member.hasPermission(Permission.MANAGE_SERVER)) continue;
+            List<String> ids = Exchange.queryParams().queryParams(ex, "id");
+            Map<String, pl.fratik.api.entity.Guild> guilds = new HashMap<>();
+            if (ids == null || ids.isEmpty()) { // plz nie
+                for (Guild guild : shardManager.getGuilds())
+                    guilds.put(guild.getId(), new pl.fratik.api.entity.Guild(guild));
+            } else {
+                for (String id : ids) {
+                    Guild guild = shardManager.getGuildById(id);
+                    guilds.put(id, guild == null ? null : new pl.fratik.api.entity.Guild(guild));
                 }
-                guilds.add(new pl.fratik.api.entity.Guild(guild.getName(), guild.getId(),
-                        guild.getIconId(),
-                        !guild.getSelfMember().getRoles().isEmpty() ?
-                                new pl.fratik.api.entity.Role(guild.getSelfMember().getRoles().get(0).getName(),
-                                        guild.getSelfMember().getRoles().get(0).getId(),
-                                        guild.getSelfMember().getRoles().get(0).getPermissionsRaw(),
-                                        guild.getSelfMember().getRoles().get(0).getPositionRaw(),
-                                        guild.getSelfMember().getRoles().get(0).isManaged()) : null,
-                        guild.getMemberCount(),
-                        guild.getRoles().size(), guild.getTextChannels().size(), guild.getVoiceChannels().size(),
-                        guild.getTimeCreated().toInstant().toEpochMilli()));
             }
            Exchange.body().sendJson(ex, guilds);
         });
