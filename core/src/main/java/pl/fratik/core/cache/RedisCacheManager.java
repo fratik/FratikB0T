@@ -64,12 +64,12 @@ public class RedisCacheManager {
         this.jedisPool = jedisPool;
     }
 
-    public <T> T get(String key, TypeToken<T> holds, Function<? super String, ? extends T> mappingFunction) {
-        return get(key, holds, mappingFunction, 300);
+    public <T> T get(String key, TypeToken<T> holds, String customName, Function<? super String, ? extends T> mappingFunction) {
+        return get(key, holds, customName, mappingFunction, 300);
     }
 
-    public <T> T get(String key, TypeToken<T> holds) {
-        return getRaw(getDbkey(key, holds), holds);
+    public <T> T get(String key, TypeToken<T> holds, String customName) {
+        return getRaw(getDbkey(key, holds, customName), holds);
     }
 
     public <T> T getRaw(String dbkey, TypeToken<T> holds) {
@@ -80,9 +80,9 @@ public class RedisCacheManager {
         }
     }
 
-    public <T> T get(String key, TypeToken<T> holds, Function<? super String, ? extends T> mappingFunction, int expiry) {
+    public <T> T get(String key, TypeToken<T> holds, String customName, Function<? super String, ? extends T> mappingFunction, int expiry) {
         try (Jedis jedis = jedisPool.getResource()) {
-            String dbkey = getDbkey(key, holds);
+            String dbkey = getDbkey(key, holds, customName);
             String dane = jedis.get(dbkey);
             if (dane == null) {
                 T v = mappingFunction.apply(key);
@@ -100,14 +100,14 @@ public class RedisCacheManager {
         }
     }
 
-    public <T> void putAll(TypeToken<T> holds, Map<? extends String, ? extends T> map) {
-        putAll(holds, map, 300);
+    public <T> void putAll(TypeToken<T> holds, String customName, Map<? extends String, ? extends T> map) {
+        putAll(holds, customName, map, 300);
     }
 
-    public <T> void putAll(TypeToken<T> holds, Map<? extends String, ? extends T> map, int expiry) {
+    public <T> void putAll(TypeToken<T> holds, String customName, Map<? extends String, ? extends T> map, int expiry) {
         try (Jedis jedis = jedisPool.getResource()) {
             for (Map.Entry<? extends String, ? extends T> ent : map.entrySet()) {
-                String dbkey = getDbkey(ent.getKey(), holds);
+                String dbkey = getDbkey(ent.getKey(), holds, customName);
                 jedis.set(dbkey, GsonUtil.toJSON(ent.getValue()));
                 if (expiry > 0) {
                     scheduleAsync(() -> {
@@ -120,13 +120,13 @@ public class RedisCacheManager {
         }
     }
 
-    public <T> void put(String key, TypeToken<T> holds, T value) {
-        put(key, holds, value, 300);
+    public <T> void put(String key, TypeToken<T> holds, String customName, T value) {
+        put(key, holds, customName, value, 300);
     }
 
-    public <T> void put(String key, TypeToken<T> holds, T value, int expiry) {
+    public <T> void put(String key, TypeToken<T> holds, String customName, T value, int expiry) {
         try (Jedis jedis = jedisPool.getResource()) {
-            String dbkey = getDbkey(key, holds);
+            String dbkey = getDbkey(key, holds, customName);
             jedis.set(dbkey, GsonUtil.toJSON(value));
             if (expiry > 0) {
                 scheduleAsync(() -> {
@@ -142,24 +142,24 @@ public class RedisCacheManager {
         executor.execute(r);
     }
 
-    public <T> void invalidate(Object key, Class<T> holds) {
+    public <T> void invalidate(Object key, Class<T> holds, String customName) {
         try (Jedis jedis = jedisPool.getResource()) {
-            String dbkey = getDbkey(key, holds);
+            String dbkey = getDbkey(key, holds, customName);
             jedis.del(dbkey);
         }
     }
 
-    public <T> void invalidate(Object key, TypeToken<T> holds) {
+    public <T> void invalidate(Object key, TypeToken<T> holds, String customName) {
         try (Jedis jedis = jedisPool.getResource()) {
-            String dbkey = getDbkey(key, holds);
+            String dbkey = getDbkey(key, holds, customName);
             jedis.del(dbkey);
         }
     }
 
-    public <T> void invalidateAll(Iterable<?> keys, TypeToken<T> holds) {
+    public <T> void invalidateAll(Iterable<?> keys, TypeToken<T> holds, String customName) {
         List<String> str = new ArrayList<>();
         for (Object key : keys) {
-            String dbkey = getDbkey(key, holds);
+            String dbkey = getDbkey(key, holds, customName);
             str.add(dbkey);
         }
         invalidateAllRaw(str);
@@ -175,20 +175,22 @@ public class RedisCacheManager {
         }
     }
 
-    public <T> long ttl(Object key, TypeToken<T> holds) {
+    public <T> long ttl(Object key, TypeToken<T> holds, String customName) {
         try (Jedis jedis = jedisPool.getResource()) {
-            String dbkey = getDbkey(key, holds);
+            String dbkey = getDbkey(key, holds, customName);
             return jedis.ttl(dbkey);
         }
     }
 
     @NotNull
-    private <T> String getDbkey(Object key, Class<T> holds) {
-        return PREFIX + "::" + holds.getSimpleName() + ":" + key;
+    private <T> String getDbkey(Object key, Class<T> holds, String customName) {
+        final StringBuilder sb = new StringBuilder(PREFIX + "::" + holds.getSimpleName() + ":");
+        if (customName != null) sb.append(':').append(customName).append(':');
+        return sb.append(key).toString();
     }
 
     @NotNull
-    private <T> String getDbkey(Object key, TypeToken<T> holds) {
+    private <T> String getDbkey(Object key, TypeToken<T> holds, String customName) {
         StringBuilder tak = new StringBuilder(PREFIX + "::" + holds.getRawType().getSimpleName());
         if (holds.getType() instanceof ParameterizedType) {
             Type[] args = ((ParameterizedType) holds.getType()).getActualTypeArguments();
@@ -196,7 +198,8 @@ public class RedisCacheManager {
                 for (Type t : args) tak.append(":").append(resolveTypeSimpleName(t));
             }
         }
-        return tak.append(":").append(key).toString();
+        if (customName != null) tak.append("::").append(customName);
+        return tak.append(':').append(key).toString();
     }
 
     private String resolveTypeSimpleName(Type t) {
@@ -214,14 +217,14 @@ public class RedisCacheManager {
         return t.getTypeName();
     }
 
-    public List<String> scanAll(TypeToken<?> holds) {
-        return scanAll("*", holds);
+    public List<String> scanAll(TypeToken<?> holds, String customName) {
+        return scanAll("*", holds, customName);
     }
 
-    public List<String> scanAll(String pattern, TypeToken<?> holds) {
+    public List<String> scanAll(String pattern, TypeToken<?> holds, String customName) {
         List<String> keys = new ArrayList<>();
         try (Jedis jedis = jedisPool.getResource()) {
-            String match = getDbkey(pattern, holds);
+            String match = getDbkey(pattern, holds, customName);
             String cursor = "0";
             do {
                 ScanResult<String> xd = jedis.scan(cursor, new ScanParams().match(match));
@@ -233,12 +236,22 @@ public class RedisCacheManager {
     }
 
     public abstract class CacheRetriever<T> {
+        private final String customName;
         private boolean canHandleErrors = false;
+
+        public CacheRetriever() {
+            this(null);
+        }
+
+        public CacheRetriever(String customName) {
+            this.customName = customName;
+        }
+
         public RedisCache<T> getCache() {
             return getCache(300);
         }
         public RedisCache<T> getCache(int expiry) {
-            return new RedisCache<>(RedisCacheManager.this, new TypeToken<T>(getClass()) {}, expiry, canHandleErrors);
+            return new RedisCache<>(RedisCacheManager.this, new TypeToken<T>(getClass()) {}, expiry, canHandleErrors, customName);
         }
         public CacheRetriever<T> setCanHandleErrors(boolean canHandleErrors) {
             this.canHandleErrors = canHandleErrors;
@@ -262,7 +275,7 @@ public class RedisCacheManager {
         }
         try {
             field.setAccessible(true);
-            invalidate(field.get(de), de.getClass());
+            invalidate(field.get(de), de.getClass(), null);
         } catch (Exception ex) {
             LoggerFactory.getLogger(getClass()).warn("wielki błąd", ex);
         }

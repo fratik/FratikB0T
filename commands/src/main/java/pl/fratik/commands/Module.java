@@ -133,7 +133,7 @@ public class Module implements Modul {
         commands.add(new GlobaladminiCommand(eventWaiter, eventBus));
         commands.add(new PasswordCommand());
         if (Ustawienia.instance.apiKeys.get("hypixelToken") != null) {
-            commands.add(new HypixelCommand());
+            commands.add(new HypixelCommand(redisCacheManager));
         }
         commands.add(new McstatusCommand());
         commands.add(new SelfieCommand());

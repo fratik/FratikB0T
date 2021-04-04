@@ -29,18 +29,20 @@ public class RedisCache<V> implements Cache<V> {
     private final RedisCacheManager rcm;
     private final int expiry;
     private final boolean canHandleErrors;
+    private final String customName;
     private TypeToken<V> holds;
 
-    public RedisCache(RedisCacheManager rcm, TypeToken<V> holds, int expiry, boolean canHandleErrors) {
+    public RedisCache(RedisCacheManager rcm, TypeToken<V> holds, int expiry, boolean canHandleErrors, String customName) {
         this.rcm = rcm;
         this.holds = holds;
         this.expiry = expiry;
         this.canHandleErrors = canHandleErrors;
+        this.customName = customName;
     }
 
     private V get0(String key) {
         try {
-            return rcm.get(key, holds);
+            return rcm.get(key, holds, customName);
         } catch (JedisException ex) {
             if (canHandleErrors) throw ex;
             return null;
@@ -49,7 +51,7 @@ public class RedisCache<V> implements Cache<V> {
 
     private V get0(String key, Function<? super String, ? extends V> mappingFunction, int expiry) {
         try {
-            return rcm.get(key, holds, mappingFunction, expiry);
+            return rcm.get(key, holds, customName, mappingFunction, expiry);
         } catch (JedisException ex) {
             if (canHandleErrors) throw ex;
             else return mappingFunction.apply(key);
@@ -99,7 +101,7 @@ public class RedisCache<V> implements Cache<V> {
     @Override
     public void put(@Nonnull String key, @Nonnull V value) {
         try {
-            rcm.put(key, holds, value, expiry);
+            rcm.put(key, holds, customName, value, expiry);
         } catch (JedisException ex) {
             if (canHandleErrors) throw ex;
         }
@@ -108,7 +110,7 @@ public class RedisCache<V> implements Cache<V> {
     @Override
     public void putAll(@Nonnull Map<? extends String, ? extends V> map) {
         try {
-            rcm.putAll(holds, map, expiry);
+            rcm.putAll(holds, customName, map, expiry);
         } catch (JedisException ex) {
             if (canHandleErrors) throw ex;
         }
@@ -117,7 +119,7 @@ public class RedisCache<V> implements Cache<V> {
     @Override
     public long getTTL(@Nonnull Object key) {
         try {
-            return rcm.ttl(key, holds);
+            return rcm.ttl(key, holds, customName);
         } catch (JedisException ex) {
             if (canHandleErrors) throw ex;
             return -1;
@@ -126,13 +128,13 @@ public class RedisCache<V> implements Cache<V> {
 
     @Override
     public void invalidateAll() {
-        invalidateAllRaw(rcm.scanAll(holds));
+        invalidateAllRaw(rcm.scanAll(holds, customName));
     }
 
     @Override
     public void invalidate(@Nonnull Object key) {
         try {
-            rcm.invalidate(key, holds);
+            rcm.invalidate(key, holds, customName);
         } catch (JedisException ex) {
             if (canHandleErrors) throw ex;
         }
@@ -141,7 +143,7 @@ public class RedisCache<V> implements Cache<V> {
     @Override
     public void invalidateAll(@Nonnull Iterable<?> keys) {
         try {
-            rcm.invalidateAll(keys, holds);
+            rcm.invalidateAll(keys, holds, customName);
         } catch (JedisException ex) {
             if (canHandleErrors) throw ex;
         }
@@ -157,6 +159,6 @@ public class RedisCache<V> implements Cache<V> {
 
     @Override
     public Map<String, V> asMap() {
-        return getAllPresentRaw(rcm.scanAll(holds));
+        return getAllPresentRaw(rcm.scanAll(holds, customName));
     }
 }
