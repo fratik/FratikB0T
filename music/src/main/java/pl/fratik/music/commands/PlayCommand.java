@@ -37,6 +37,7 @@ import pl.fratik.music.managers.SearchManager;
 import pl.fratik.music.utils.SpotifyUtil;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
@@ -96,22 +97,40 @@ public class PlayCommand extends MusicCommand {
         }
         String url = (String) context.getArgs()[0];
         if (!URLPATTERN.matcher(url).matches()) {
+            List<String> iteml = new ArrayList<>();
 
-            if (spotifyUtil.isSpotifyLink(url)) {
-                if (spotifyUtil.isTrack(url)) {
-                    try {
-                        Track track = spotifyUtil.getTrackFromUrl(url);
-                        if (track == null) {
-                            context.send(context.getTranslated("play.spotify.search.nofound"));
-                            return false;
-                        }
-                        url = track.getArtists()[0].getName() + " " + track.getName();
-                    } catch (Exception e) {
-                        context.send(context.getTranslated("play.spotify.search.errror"));
+            if (spotifyUtil.isTrack(url)) {
+                try {
+                    Track track = spotifyUtil.getTrackFromUrl(url);
+                    if (track == null) {
+                        context.send(context.getTranslated("play.spotify.search.nofound"));
                         return false;
                     }
+                    url = track.getArtists()[0].getName() + " " + track.getName();
+                    context.send(url);
+                } catch (Exception e) {
+                    context.send(context.getTranslated("play.spotify.search.error"));
+                    return false;
                 }
+            } else if (spotifyUtil.isAlbum(url)) {
+                try {
+                    Album album = spotifyUtil.getAlbumFromUrl(url);
+                    if (album == null) {
+                        context.send(context.getTranslated("play.spotify.search.nofound"));
+                        return false;
+                    }
 
+                    TrackSimplified[] items = album.getTracks().getItems();
+                    for (int i = 0; i < items.length; i++) {
+                        if (i > 10) break;
+                        TrackSimplified t = items[i];
+                        iteml.add(t.getArtists()[0].getName() + " " + t.getName());
+                    }
+                    // TODO: Ładuj później te piosenki
+                } catch (Exception e) {
+                    context.send(context.getTranslated("play.spotify.search.error"));
+                    return false;
+                }
             }
 
             SearchManager.SearchResult wynik = searchManager.searchYouTube(url);

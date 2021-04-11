@@ -19,7 +19,6 @@ package pl.fratik.music.utils;
 
 import com.wrapper.spotify.SpotifyApi;
 import com.wrapper.spotify.exceptions.SpotifyWebApiException;
-import com.wrapper.spotify.model_objects.AbstractModelObject;
 import com.wrapper.spotify.model_objects.credentials.ClientCredentials;
 import com.wrapper.spotify.model_objects.specification.Album;
 import com.wrapper.spotify.model_objects.specification.Track;
@@ -30,7 +29,6 @@ import java.io.IOException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class SpotifyUtil {
@@ -46,10 +44,6 @@ public class SpotifyUtil {
     public SpotifyUtil(SpotifyApi api) {
         this.api = api;
         refreshAccessToken();
-    }
-
-    public boolean isSpotifyLink(String url) {
-        return isTrack(url) || isAlbum(url);
     }
 
     public boolean isTrack(String url) {
