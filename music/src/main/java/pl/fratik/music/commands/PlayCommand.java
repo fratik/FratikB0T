@@ -18,10 +18,15 @@
 package pl.fratik.music.commands;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
+import com.wrapper.spotify.exceptions.SpotifyWebApiException;
+import com.wrapper.spotify.model_objects.specification.Album;
+import com.wrapper.spotify.model_objects.specification.Track;
+import com.wrapper.spotify.model_objects.specification.TrackSimplified;
 import lavalink.client.io.Link;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.GuildVoiceState;
 import net.dv8tion.jda.api.entities.VoiceChannel;
+import org.apache.hc.core5.http.ParseException;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.entity.GuildDao;
@@ -29,8 +34,11 @@ import pl.fratik.core.entity.Uzycie;
 import pl.fratik.music.managers.ManagerMuzykiSerwera;
 import pl.fratik.music.managers.NowyManagerMuzyki;
 import pl.fratik.music.managers.SearchManager;
+import pl.fratik.music.utils.SpotifyUtil;
 
+import java.io.IOException;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -40,15 +48,17 @@ public class PlayCommand extends MusicCommand {
     private final NowyManagerMuzyki managerMuzyki;
     private final SearchManager searchManager;
     private final GuildDao guildDao;
+    private final SpotifyUtil spotifyUtil;
 
     private static final Pattern URLPATTERN = Pattern.compile("(https?://(?:www\\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]\\." +
             "[^\\s]{2,}|www\\.[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]\\.[^\\s]{2,}|https?://(?:www\\.|(?!www))[a-zA-Z0-9]" +
             "\\.[^\\s]{2,}|www\\.[a-zA-Z0-9]\\.[^\\s]{2,})");
 
-    public PlayCommand(NowyManagerMuzyki managerMuzyki, SearchManager searchManager, GuildDao guildDao) {
+    public PlayCommand(NowyManagerMuzyki managerMuzyki, SearchManager searchManager, GuildDao guildDao, SpotifyUtil spotifyUtil) {
         this.managerMuzyki = managerMuzyki;
         this.searchManager = searchManager;
         this.guildDao = guildDao;
+        this.spotifyUtil = spotifyUtil;
         name = "play";
         uzycie = new Uzycie("utwor", "string", true);
         aliases = new String[] {"odtworz", "p", "add"};
@@ -84,8 +94,27 @@ public class PlayCommand extends MusicCommand {
             context.reply(context.getTranslated("play.use.pause"));
             return false;
         }
-        if (!URLPATTERN.matcher((String) context.getArgs()[0]).matches()) {
-            SearchManager.SearchResult wynik = searchManager.searchYouTube((String) context.getArgs()[0]);
+        String url = (String) context.getArgs()[0];
+        if (!URLPATTERN.matcher(url).matches()) {
+
+            if (spotifyUtil.isSpotifyLink(url)) {
+                if (spotifyUtil.isTrack(url)) {
+                    try {
+                        Track track = spotifyUtil.getTrackFromUrl(url);
+                        if (track == null) {
+                            context.send(context.getTranslated("play.spotify.search.nofound"));
+                            return false;
+                        }
+                        url = track.getArtists()[0].getName() + " " + track.getName();
+                    } catch (Exception e) {
+                        context.send(context.getTranslated("play.spotify.search.errror"));
+                        return false;
+                    }
+                }
+
+            }
+
+            SearchManager.SearchResult wynik = searchManager.searchYouTube(url);
             if (wynik == null || wynik.getEntries().isEmpty()) {
                 context.reply(context.getTranslated("play.no.results"));
                 return false;

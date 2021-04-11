@@ -20,6 +20,7 @@ package pl.fratik.music;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import com.google.inject.Inject;
+import com.wrapper.spotify.SpotifyApi;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.sharding.ShardManager;
@@ -42,6 +43,7 @@ import pl.fratik.music.entity.QueueDao;
 import pl.fratik.music.managers.NowyManagerMuzyki;
 import pl.fratik.music.managers.SearchManager;
 import pl.fratik.music.serializer.QueueDeserializer;
+import pl.fratik.music.utils.SpotifyUtil;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -87,9 +89,22 @@ public class Module implements Modul {
         QueueDeserializer.setManagerMuzyki(managerMuzyki);
         QueueDeserializer.setShardManager(shardManager);
 
+        SpotifyUtil spotifyUtil = null;
+
+        String cliendId = Ustawienia.instance.apiKeys.get("spotifyId");
+        String clientSecret = Ustawienia.instance.apiKeys.get("spotifySecret");
+
+        if (cliendId != null && clientSecret != null) {
+            SpotifyApi spotifyApi = new SpotifyApi.Builder()
+                    .setClientId(cliendId)
+                    .setClientSecret(cliendId)
+                    .build();
+            spotifyUtil = new SpotifyUtil(spotifyApi);
+        }
+
         commands = new ArrayList<>();
 
-        commands.add(new PlayCommand(managerMuzyki, searchManager, guildDao));
+        commands.add(new PlayCommand(managerMuzyki, searchManager, guildDao, spotifyUtil));
         commands.add(new SkipCommand(managerMuzyki, guildDao, redisCacheManager));
         commands.add(new YoutubeCommand(managerMuzyki, searchManager, eventWaiter, guildDao));
         commands.add(new VolumeCommand(managerMuzyki, guildDao));
