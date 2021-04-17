@@ -33,6 +33,7 @@ import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.util.CommonUtil;
+import pl.fratik.core.util.GsonUtil;
 import pl.fratik.music.managers.ManagerMuzykiSerwera;
 import pl.fratik.music.managers.NowyManagerMuzyki;
 import pl.fratik.music.managers.SearchManager;
@@ -105,7 +106,6 @@ public class PlayCommand extends MusicCommand {
                         return false;
                     }
                     url = track.getArtists()[0].getName() + " " + track.getName();
-                    context.send(url);
                 } catch (Exception e) {
                     e.printStackTrace();
                     context.send(context.getTranslated("play.spotify.search.error", e.getMessage()));
@@ -125,6 +125,8 @@ public class PlayCommand extends MusicCommand {
                         TrackSimplified t = items[i];
                         iteml.add(t.getArtists()[0].getName() + " " + t.getName());
                     }
+                    context.send(GsonUtil.toJSON(iteml));
+                    return false;
                     // TODO: Ładuj później te piosenki
                 } catch (Exception e) {
                     context.send(context.getTranslated("play.spotify.search.error"));
