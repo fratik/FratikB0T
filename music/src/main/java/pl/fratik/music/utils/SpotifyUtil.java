@@ -24,11 +24,13 @@ import com.wrapper.spotify.model_objects.specification.Album;
 import com.wrapper.spotify.model_objects.specification.Track;
 import lombok.Getter;
 import org.apache.hc.core5.http.ParseException;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class SpotifyUtil {
@@ -54,12 +56,18 @@ public class SpotifyUtil {
         return PLAYLIST_REGEX.matcher(url).matches();
     }
 
+    @Nullable
     public Track getTrackFromUrl(String url) throws ParseException, SpotifyWebApiException, IOException {
-        return getApi().getTrack(TRACK_REGEX.matcher(url).group(2)).build().execute();
+        Matcher reg = TRACK_REGEX.matcher(url);
+        if (reg.find()) return getApi().getTrack(reg.group(2)).build().execute();
+        else return null;
     }
 
+    @Nullable
     public Album getAlbumFromUrl(String url) throws ParseException, SpotifyWebApiException, IOException {
-        return getApi().getAlbum(PLAYLIST_REGEX.matcher(url).group(2)).build().execute();
+        Matcher reg = PLAYLIST_REGEX.matcher(url);
+        if (reg.find()) return getApi().getAlbum(reg.group(2)).build().execute();
+        else return null;
     }
 
     private void refreshAccessToken() {
