@@ -104,6 +104,7 @@ public class PlayCommand extends MusicCommand {
                 }
             } else if (spotifyUtil.isAlbum(url)) {
                 try {
+                    context.getTextChannel().sendTyping().queue();
                     Paging<PlaylistTrack> album = spotifyUtil.getPlaylistFromUrl(url);
                     if (album == null) {
                         context.send(context.getTranslated("play.spotify.search.nofound"));
@@ -116,12 +117,10 @@ public class PlayCommand extends MusicCommand {
                     int i = 0;
                     for (PlaylistTrack item : items) {
                         try {
-                            if (i > 10) break;
-                            String[] split = item.getTrack().getUri().split(":");
-                            String id = split[split.length - 1];
-                            Track track = spotifyUtil.getApi().getTrack(id).build().execute();
+                            Track track = (Track) item.getTrack();
                             iteml.add(track.getArtists()[0].getName() + " " + track.getName());
                             i++;
+                            if (i > 10) break;
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -132,7 +131,7 @@ public class PlayCommand extends MusicCommand {
                         return false;
                     }
 
-                    AtomicInteger dodanePiosenki = new AtomicInteger(0);
+                    int dodanePiosenki = 0;
 
                     if (!mms.isConnected()) {
                         mms.setAnnounceChannel(context.getTextChannel());
@@ -142,19 +141,18 @@ public class PlayCommand extends MusicCommand {
                         SearchManager.SearchResult res = searchManager.searchYouTube(s);
                         if (res.getEntries().isEmpty()) continue;
                         try {
-                            managerMuzyki.getAudioTracksAsync(res.getEntries().get(0).getUrl(), audioTrackList -> {
-                                if (audioTrackList.isEmpty()) return;
-                                mms.addToQueue(context.getSender(), audioTrackList.get(0), context.getLanguage(), null);
-                                dodanePiosenki.getAndIncrement();
-                                if (!mms.isPlaying()) mms.play();
-                                else context.getTextChannel().sendMessage(context.getTranslated("play.queued",
-                                        audioTrackList.get(0).getInfo().title)).reference(context.getMessage()).queue();
-                            });
+                            List<AudioTrack> result = managerMuzyki.getAudioTracks(res.getEntries().get(0).getUrl());
+                            if (result.isEmpty()) continue;
+                            AudioTrack piosenka = result.get(0);
+                            dodanePiosenki++;
+                            mms.addToQueue(context.getSender(), piosenka, context.getLanguage(), null);
                         } catch (Exception ignored) { }
                     }
-                    int get = dodanePiosenki.get();
-                    if (get == 0) mms.disconnect();
-                    context.reply(context.getTranslated("play.queued.multiple", get));
+                    if (dodanePiosenki == 0) mms.disconnect();
+                    else {
+                        if (!mms.isPlaying()) mms.play();
+                    }
+                    context.reply(context.getTranslated("play.queued.multiple", dodanePiosenki));
                     return true;
 
                 } catch (Exception e) {
