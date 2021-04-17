@@ -27,10 +27,12 @@ import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.GuildVoiceState;
 import net.dv8tion.jda.api.entities.VoiceChannel;
 import org.apache.hc.core5.http.ParseException;
+import org.apache.hc.core5.http.nio.command.CommandSupport;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Uzycie;
+import pl.fratik.core.util.CommonUtil;
 import pl.fratik.music.managers.ManagerMuzykiSerwera;
 import pl.fratik.music.managers.NowyManagerMuzyki;
 import pl.fratik.music.managers.SearchManager;
@@ -50,10 +52,6 @@ public class PlayCommand extends MusicCommand {
     private final SearchManager searchManager;
     private final GuildDao guildDao;
     private final SpotifyUtil spotifyUtil;
-
-    private static final Pattern URLPATTERN = Pattern.compile("(https?://(?:www\\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]\\." +
-            "[^\\s]{2,}|www\\.[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]\\.[^\\s]{2,}|https?://(?:www\\.|(?!www))[a-zA-Z0-9]" +
-            "\\.[^\\s]{2,}|www\\.[a-zA-Z0-9]\\.[^\\s]{2,})");
 
     public PlayCommand(NowyManagerMuzyki managerMuzyki, SearchManager searchManager, GuildDao guildDao, SpotifyUtil spotifyUtil) {
         this.managerMuzyki = managerMuzyki;
@@ -96,7 +94,7 @@ public class PlayCommand extends MusicCommand {
             return false;
         }
         String url = (String) context.getArgs()[0];
-        if (!URLPATTERN.matcher(url).matches()) {
+        if (CommonUtil.URL_PATTERN.matcher(url).matches()) {
             List<String> iteml = new ArrayList<>();
 
             if (spotifyUtil.isTrack(url)) {
