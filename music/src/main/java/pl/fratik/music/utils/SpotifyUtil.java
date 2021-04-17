@@ -20,8 +20,7 @@ package pl.fratik.music.utils;
 import com.wrapper.spotify.SpotifyApi;
 import com.wrapper.spotify.exceptions.SpotifyWebApiException;
 import com.wrapper.spotify.model_objects.credentials.ClientCredentials;
-import com.wrapper.spotify.model_objects.specification.Album;
-import com.wrapper.spotify.model_objects.specification.Track;
+import com.wrapper.spotify.model_objects.specification.*;
 import lombok.Getter;
 import org.apache.hc.core5.http.ParseException;
 import org.jetbrains.annotations.Nullable;
@@ -36,7 +35,7 @@ import java.util.regex.Pattern;
 public class SpotifyUtil {
 
     private static final Pattern TRACK_REGEX = Pattern.compile("^(https://open.spotify.com/track/)([a-zA-Z0-9]+)(.*)$");
-    private static final Pattern PLAYLIST_REGEX = Pattern.compile("^(https://open.spotify.com/playlist/)([a-zA-Z0-9]+)(.*)$");
+    private static final Pattern ALBUM_REGEX = Pattern.compile("^(https://open.spotify.com/playlist/)([a-zA-Z0-9]+)(.*)$");
 
     private final ScheduledExecutorService ses = Executors.newScheduledThreadPool(1);
 
@@ -53,7 +52,7 @@ public class SpotifyUtil {
     }
 
     public boolean isAlbum(String url) {
-        return PLAYLIST_REGEX.matcher(url).matches();
+        return ALBUM_REGEX.matcher(url).matches();
     }
 
     @Nullable
@@ -64,9 +63,9 @@ public class SpotifyUtil {
     }
 
     @Nullable
-    public Album getAlbumFromUrl(String url) throws ParseException, SpotifyWebApiException, IOException {
-        Matcher reg = PLAYLIST_REGEX.matcher(url);
-        if (reg.find()) return getApi().getAlbum(reg.group(2)).build().execute();
+    public Paging<PlaylistTrack> getPlaylistFromUrl(String url) throws ParseException, SpotifyWebApiException, IOException {
+        Matcher reg = ALBUM_REGEX.matcher(url);
+        if (reg.find()) return getApi().getPlaylistsItems(reg.group(2)).build().execute();
         else return null;
     }
 

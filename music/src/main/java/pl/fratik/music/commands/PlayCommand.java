@@ -19,9 +19,8 @@ package pl.fratik.music.commands;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.wrapper.spotify.exceptions.SpotifyWebApiException;
-import com.wrapper.spotify.model_objects.specification.Album;
-import com.wrapper.spotify.model_objects.specification.Track;
-import com.wrapper.spotify.model_objects.specification.TrackSimplified;
+import com.wrapper.spotify.model_objects.IPlaylistItem;
+import com.wrapper.spotify.model_objects.specification.*;
 import lavalink.client.io.Link;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.GuildVoiceState;
@@ -40,11 +39,9 @@ import pl.fratik.music.managers.SearchManager;
 import pl.fratik.music.utils.SpotifyUtil;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class PlayCommand extends MusicCommand {
@@ -113,23 +110,35 @@ public class PlayCommand extends MusicCommand {
                 }
             } else if (spotifyUtil.isAlbum(url)) {
                 try {
-                    Album album = spotifyUtil.getAlbumFromUrl(url);
+                    Paging<PlaylistTrack> album = spotifyUtil.getPlaylistFromUrl(url);
                     if (album == null) {
                         context.send(context.getTranslated("play.spotify.search.nofound"));
                         return false;
                     }
 
-                    TrackSimplified[] items = album.getTracks().getItems();
-                    for (int i = 0; i < items.length; i++) {
-                        if (i > 10) break;
-                        TrackSimplified t = items[i];
-                        iteml.add(t.getArtists()[0].getName() + " " + t.getName());
+                    List<PlaylistTrack> items = Arrays.stream(album.getItems())
+                            .filter(s -> !s.getIsLocal())
+                            .collect(Collectors.toList());
+                    int i = 0;
+                    for (PlaylistTrack item : items) {
+                        try {
+                            if (i > 10) break;
+                            String[] split = item.getTrack().getUri().split(":");
+                            String id = split[split.length - 1];
+                            Track track = spotifyUtil.getApi().getTrack(id).build().execute();
+                            iteml.add(track.getArtists()[0].getName() + " " + track.getName());
+                            i++;
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                     }
+
                     context.send(GsonUtil.toJSON(iteml));
                     return false;
                     // TODO: Ładuj później te piosenki
                 } catch (Exception e) {
-                    context.send(context.getTranslated("play.spotify.search.error"));
+                    e.printStackTrace();
+                    context.send(context.getTranslated("play.spotify.search.error", e.getMessage()));
                     return false;
                 }
             }
@@ -157,8 +166,7 @@ public class PlayCommand extends MusicCommand {
             if (audioTrackList.size() == 1) {
                 AudioTrack at = audioTrackList.get(0);
                 mms.addToQueue(context.getSender(), at, context.getLanguage(), null);
-            }
-            else {
+            } else {
                 for (AudioTrack at : audioTrackList) mms.addToQueue(context.getSender(), at, context.getLanguage());
                 context.reply(context.getTranslated("play.queued.playlist", audioTrackList.size()));
             }
