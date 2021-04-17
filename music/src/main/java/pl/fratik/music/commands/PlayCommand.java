@@ -144,6 +144,7 @@ public class PlayCommand extends MusicCommand {
                         try {
                             managerMuzyki.getAudioTracksAsync(res.getEntries().get(0).getUrl(), audioTrackList -> {
                                 if (audioTrackList.isEmpty()) return;
+                                mms.addToQueue(context.getSender(), audioTrackList.get(0), context.getLanguage(), null);
                                 dodanePiosenki.getAndIncrement();
                                 if (!mms.isPlaying()) mms.play();
                                 else context.getTextChannel().sendMessage(context.getTranslated("play.queued",
@@ -153,7 +154,7 @@ public class PlayCommand extends MusicCommand {
                     }
                     int get = dodanePiosenki.get();
                     if (get == 0) mms.disconnect();
-                    context.reply(context.getTranslated("play.queued.multiple", get + 1));
+                    context.reply(context.getTranslated("play.queued.multiple", get));
                     return true;
 
                 } catch (Exception e) {
