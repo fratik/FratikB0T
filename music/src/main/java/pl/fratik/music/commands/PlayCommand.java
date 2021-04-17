@@ -18,29 +18,23 @@
 package pl.fratik.music.commands;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
-import com.wrapper.spotify.exceptions.SpotifyWebApiException;
-import com.wrapper.spotify.model_objects.IPlaylistItem;
 import com.wrapper.spotify.model_objects.specification.*;
 import lavalink.client.io.Link;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.GuildVoiceState;
 import net.dv8tion.jda.api.entities.VoiceChannel;
-import org.apache.hc.core5.http.ParseException;
-import org.apache.hc.core5.http.nio.command.CommandSupport;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.util.CommonUtil;
-import pl.fratik.core.util.GsonUtil;
 import pl.fratik.music.managers.ManagerMuzykiSerwera;
 import pl.fratik.music.managers.NowyManagerMuzyki;
 import pl.fratik.music.managers.SearchManager;
 import pl.fratik.music.utils.SpotifyUtil;
 
-import java.io.IOException;
 import java.util.*;
-import java.util.regex.Pattern;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -133,9 +127,29 @@ public class PlayCommand extends MusicCommand {
                         }
                     }
 
-                    context.send(GsonUtil.toJSON(iteml));
-                    return false;
-                    // TODO: Ładuj później te piosenki
+                    if (iteml.isEmpty()) {
+                        context.send(context.getTranslated("play.spotify.playlistsearch.nofound"));
+                        return false;
+                    }
+
+                    AtomicInteger dodanePiosenki = new AtomicInteger();
+
+                    for (String s : iteml) {
+                        SearchManager.SearchResult res = searchManager.searchYouTube(s);
+                        if (res.getEntries().isEmpty()) continue;
+                        try {
+                            managerMuzyki.getAudioTracksAsync(res.getEntries().get(0).getUrl(), audioTrackList -> {
+                                if (audioTrackList.isEmpty()) return;
+                                dodanePiosenki.getAndIncrement();
+                                if (!mms.isPlaying()) mms.play();
+                                else context.getTextChannel().sendMessage(context.getTranslated("play.queued",
+                                        audioTrackList.get(0).getInfo().title)).reference(context.getMessage()).queue();
+                            });
+                        } catch (Exception ignored) { }
+                    }
+                    context.reply(context.getTranslated("play.queued.multiple", dodanePiosenki.get()));
+                    return true;
+
                 } catch (Exception e) {
                     e.printStackTrace();
                     context.send(context.getTranslated("play.spotify.search.error", e.getMessage()));
@@ -176,4 +190,5 @@ public class PlayCommand extends MusicCommand {
         });
         return true;
     }
+
 }
