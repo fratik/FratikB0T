@@ -107,7 +107,8 @@ public class PlayCommand extends MusicCommand {
                     url = track.getArtists()[0].getName() + " " + track.getName();
                     context.send(url);
                 } catch (Exception e) {
-                    context.send(context.getTranslated("play.spotify.search.error"));
+                    e.printStackTrace();
+                    context.send(context.getTranslated("play.spotify.search.error", e.getMessage()));
                     return false;
                 }
             } else if (spotifyUtil.isAlbum(url)) {

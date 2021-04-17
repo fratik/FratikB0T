@@ -97,7 +97,7 @@ public class Module implements Modul {
         if (cliendId != null && clientSecret != null) {
             SpotifyApi spotifyApi = new SpotifyApi.Builder()
                     .setClientId(cliendId)
-                    .setClientSecret(cliendId)
+                    .setClientSecret(clientSecret)
                     .build();
             spotifyUtil = new SpotifyUtil(spotifyApi);
         }
