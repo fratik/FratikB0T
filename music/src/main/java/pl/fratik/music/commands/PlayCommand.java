@@ -132,8 +132,12 @@ public class PlayCommand extends MusicCommand {
                         return false;
                     }
 
-                    AtomicInteger dodanePiosenki = new AtomicInteger();
+                    AtomicInteger dodanePiosenki = new AtomicInteger(0);
 
+                    if (!mms.isConnected()) {
+                        mms.setAnnounceChannel(context.getTextChannel());
+                        mms.connect(kanal);
+                    }
                     for (String s : iteml) {
                         SearchManager.SearchResult res = searchManager.searchYouTube(s);
                         if (res.getEntries().isEmpty()) continue;
@@ -147,7 +151,9 @@ public class PlayCommand extends MusicCommand {
                             });
                         } catch (Exception ignored) { }
                     }
-                    context.reply(context.getTranslated("play.queued.multiple", dodanePiosenki.get()));
+                    int get = dodanePiosenki.get();
+                    if (get == 0) mms.disconnect();
+                    context.reply(context.getTranslated("play.queued.multiple", get + 1));
                     return true;
 
                 } catch (Exception e) {
