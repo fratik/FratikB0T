@@ -17,13 +17,19 @@
 
 package pl.fratik.music.utils;
 
+import com.neovisionaries.i18n.CountryCode;
 import com.wrapper.spotify.SpotifyApi;
 import com.wrapper.spotify.exceptions.SpotifyWebApiException;
+import com.wrapper.spotify.model_objects.AbstractModelObject;
 import com.wrapper.spotify.model_objects.credentials.ClientCredentials;
 import com.wrapper.spotify.model_objects.specification.*;
+import com.wrapper.spotify.requests.data.AbstractDataRequest;
+import com.wrapper.spotify.requests.data.albums.GetAlbumRequest;
 import lombok.Getter;
 import org.apache.hc.core5.http.ParseException;
 import org.jetbrains.annotations.Nullable;
+import pl.fratik.core.tlumaczenia.Language;
+import pl.fratik.core.tlumaczenia.Tlumaczenia;
 
 import java.io.IOException;
 import java.util.concurrent.Executors;
@@ -35,7 +41,9 @@ import java.util.regex.Pattern;
 public class SpotifyUtil {
 
     private static final Pattern TRACK_REGEX = Pattern.compile("^(https://open.spotify.com/track/)([a-zA-Z0-9]+)(.*)$");
-    private static final Pattern ALBUM_REGEX = Pattern.compile("^(https://open.spotify.com/playlist/)([a-zA-Z0-9]+)(.*)$");
+    private static final Pattern PLAYLIST_REGEX = Pattern.compile("^(https://open.spotify.com/playlist/)([a-zA-Z0-9]+)(.*)$");
+    private static final Pattern ALBUM_REGEX = Pattern.compile("^(https://open.spotify.com/album/)([a-zA-Z0-9]+)(.*)$");
+    private static final Pattern ARTISTS_REGEX = Pattern.compile("^(https://open.spotify.com/artist/)([a-zA-Z0-9]+)(.*)$");
 
     private final ScheduledExecutorService ses = Executors.newScheduledThreadPool(1);
 
@@ -51,22 +59,57 @@ public class SpotifyUtil {
         return TRACK_REGEX.matcher(url).matches();
     }
 
+    public boolean isPlaylist(String url) {
+        return PLAYLIST_REGEX.matcher(url).matches();
+    }
+
     public boolean isAlbum(String url) {
         return ALBUM_REGEX.matcher(url).matches();
     }
 
-    @Nullable
-    public Track getTrackFromUrl(String url) throws ParseException, SpotifyWebApiException, IOException {
+    public boolean isArtists(String url) {
+        return ARTISTS_REGEX.matcher(url).matches();
+    }
+
+    public Track getTrackFromUrl(String url) throws ParseException, IOException {
         Matcher reg = TRACK_REGEX.matcher(url);
-        if (reg.find()) return getApi().getTrack(reg.group(2)).build().execute();
+        if (reg.find()) return e(getApi().getTrack(reg.group(2)));
         else return null;
     }
 
-    @Nullable
-    public Paging<PlaylistTrack> getPlaylistFromUrl(String url) throws ParseException, SpotifyWebApiException, IOException {
-        Matcher reg = ALBUM_REGEX.matcher(url);
-        if (reg.find()) return getApi().getPlaylistsItems(reg.group(2)).build().execute();
+    public Paging<PlaylistTrack> getPlaylistFromUrl(String url) throws ParseException, IOException {
+        Matcher reg = PLAYLIST_REGEX.matcher(url);
+        if (reg.find()) return e(getApi().getPlaylistsItems(reg.group(2)));
         else return null;
+    }
+
+    public Album getAlbumFromUrl(String url) throws IOException, ParseException {
+        Matcher m = ALBUM_REGEX.matcher(url);
+        if (m.find()) return e(getApi().getAlbum(m.group(2)));
+        else return null;
+    }
+
+    public Track[] getArtistsTracks(String url, @Nullable Language lang) throws IOException, ParseException {
+        Matcher m = ARTISTS_REGEX.matcher(url);
+        CountryCode code = CountryCode.PL;
+
+        if (lang != null) {
+            try {
+                code = CountryCode.getByAlpha2Code(lang.getAlpha2());
+            } catch (Exception ignored) { }
+        }
+
+        if (m.find()) return e(getApi().getArtistsTopTracks(m.group(2), code));
+        else return null;
+    }
+
+    private <T, V extends AbstractDataRequest.Builder<T, ?>> T e(AbstractDataRequest.Builder<T, V> e) throws IOException, ParseException {
+        try {
+            return e.build().execute();
+        } catch (SpotifyWebApiException ex) {
+            ex.printStackTrace();
+            return null;
+        }
     }
 
     private void refreshAccessToken() {

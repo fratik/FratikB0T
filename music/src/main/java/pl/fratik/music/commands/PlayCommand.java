@@ -18,21 +18,25 @@
 package pl.fratik.music.commands;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
+import com.wrapper.spotify.exceptions.SpotifyWebApiException;
 import com.wrapper.spotify.model_objects.specification.*;
 import lavalink.client.io.Link;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.GuildVoiceState;
 import net.dv8tion.jda.api.entities.VoiceChannel;
+import org.apache.hc.core5.http.ParseException;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.util.CommonUtil;
+import pl.fratik.core.util.NetworkUtil;
 import pl.fratik.music.managers.ManagerMuzykiSerwera;
 import pl.fratik.music.managers.NowyManagerMuzyki;
 import pl.fratik.music.managers.SearchManager;
 import pl.fratik.music.utils.SpotifyUtil;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -89,38 +93,21 @@ public class PlayCommand extends MusicCommand {
         if (CommonUtil.URL_PATTERN.matcher(url).matches()) {
             List<String> iteml = new ArrayList<>();
 
-            if (spotifyUtil.isTrack(url)) {
-                try {
+            try {
+                if (spotifyUtil.isTrack(url)) {
                     Track track = spotifyUtil.getTrackFromUrl(url);
-                    if (track == null) {
-                        context.send(context.getTranslated("play.spotify.search.nofound"));
-                        return false;
-                    }
                     url = track.getArtists()[0].getName() + " " + track.getName();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    context.send(context.getTranslated("play.spotify.search.error", e.getMessage()));
-                    return false;
-                }
-            } else if (spotifyUtil.isAlbum(url)) {
-                try {
+                } else if (spotifyUtil.isPlaylist(url)) {
                     context.getTextChannel().sendTyping().queue();
                     Paging<PlaylistTrack> album = spotifyUtil.getPlaylistFromUrl(url);
-                    if (album == null) {
-                        context.send(context.getTranslated("play.spotify.search.nofound"));
-                        return false;
-                    }
-
                     List<PlaylistTrack> items = Arrays.stream(album.getItems())
                             .filter(s -> !s.getIsLocal())
                             .collect(Collectors.toList());
-                    int i = 0;
+
                     for (PlaylistTrack item : items) {
                         try {
                             Track track = (Track) item.getTrack();
                             iteml.add(track.getArtists()[0].getName() + " " + track.getName());
-                            i++;
-                            if (i > 10) break;
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -130,36 +117,47 @@ public class PlayCommand extends MusicCommand {
                         context.send(context.getTranslated("play.spotify.playlistsearch.nofound"));
                         return false;
                     }
-
-                    int dodanePiosenki = 0;
-
-                    if (!mms.isConnected()) {
-                        mms.setAnnounceChannel(context.getTextChannel());
-                        mms.connect(kanal);
+                } else if (spotifyUtil.isAlbum(url)) {
+                    Album album = spotifyUtil.getAlbumFromUrl(url);
+                    for (TrackSimplified item : album.getTracks().getItems()) {
+                        iteml.add(item.getArtists()[0].getName() + " " + item.getName());
                     }
-                    for (String s : iteml) {
-                        SearchManager.SearchResult res = searchManager.searchYouTube(s);
-                        if (res.getEntries().isEmpty()) continue;
-                        try {
-                            List<AudioTrack> result = managerMuzyki.getAudioTracks(res.getEntries().get(0).getUrl());
-                            if (result.isEmpty()) continue;
-                            AudioTrack piosenka = result.get(0);
-                            dodanePiosenki++;
-                            mms.addToQueue(context.getSender(), piosenka, context.getLanguage(), null);
-                        } catch (Exception ignored) { }
+                } else if (spotifyUtil.isArtists(url)) {
+                    Track[] tracks = spotifyUtil.getArtistsTracks(url, context.getLanguage());
+                    for (Track track : tracks) {
+                        iteml.add(track.getArtists()[0].getName() + " " + track.getName());
                     }
-                    if (dodanePiosenki == 0) mms.disconnect();
-                    else {
-                        if (!mms.isPlaying()) mms.play();
-                    }
-                    context.reply(context.getTranslated("play.queued.multiple", dodanePiosenki));
-                    return true;
-
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    context.send(context.getTranslated("play.spotify.search.error", e.getMessage()));
-                    return false;
                 }
+            } catch (NullPointerException nul) {
+                context.send(context.getTranslated("play.spotify.search.nofound"));
+                return false;
+            } catch (Exception e) {
+                e.printStackTrace();
+                context.send(context.getTranslated("play.spotify.search.error", e.getMessage()));
+                return false;
+            }
+
+            if (!iteml.isEmpty()) {
+                int dodanePiosenki = 0;
+                if (!mms.isConnected()) {
+                    mms.setAnnounceChannel(context.getTextChannel());
+                    mms.connect(kanal);
+                }
+                for (String s : iteml) {
+                    try {
+                        List<AudioTrack> result = managerMuzyki.getAudioTracks("ytsearch:" + NetworkUtil.decodeURIComponent(s));
+                        if (result.isEmpty()) continue;
+                        AudioTrack piosenka = result.get(0);
+                        dodanePiosenki++;
+                        mms.addToQueue(context.getSender(), piosenka, context.getLanguage(), null);
+                    } catch (Exception ignored) { }
+                }
+                if (dodanePiosenki == 0) mms.disconnect();
+                else {
+                    if (!mms.isPlaying()) mms.play();
+                }
+                context.reply(context.getTranslated("play.queued.multiple", dodanePiosenki));
+                return true;
             }
 
             SearchManager.SearchResult wynik = searchManager.searchYouTube(url);
