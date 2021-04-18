@@ -132,7 +132,7 @@ public abstract class Command {
     }
 
     public String[] getAliases(Tlumaczenia tlumaczenia) {
-        List<String> aliases = new ArrayList<>(Arrays.asList(getAliases()));;
+        List<String> aliases = new ArrayList<>(Arrays.asList(getAliases()));
         for (Language lang : Language.values()) {
             String dodatkowe = tlumaczenia.get(lang, getName() + ".help.name").toLowerCase();
             if (!dodatkowe.isEmpty()) Arrays.stream(dodatkowe.split("\\|")).skip(1).forEach(aliases::add);

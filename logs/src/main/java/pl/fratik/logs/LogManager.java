@@ -55,7 +55,7 @@ class LogManager {
     private final GuildDao guildDao;
     private final Tlumaczenia tlumaczenia;
     private boolean triggeredConnectEvent;
-    private Map<String, WebhookClient> webhooki;
+    private final Map<String, WebhookClient> webhooki;
 
     LogManager(ShardManager shardManager, GuildDao guildDao, Tlumaczenia tlumaczenia) {
         triggeredConnectEvent = false;

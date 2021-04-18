@@ -46,16 +46,16 @@ public class DynamicEmbedPaginator implements EmbedPaginator {
     private static final String SHUFFLE_EMOJI = "\uD83D\uDD00";
     private static final String TRASH_EMOJI = "\uD83D\uDDD1";
 
-    private EventWaiter eventWaiter;
-    private List<FutureTask<EmbedBuilder>> pages;
+    private final EventWaiter eventWaiter;
+    private final List<FutureTask<EmbedBuilder>> pages;
     private final EventBus eventBus;
     private int pageNo = 1;
     private volatile Message message;
     private Message doKtorej;
     private long messageId = 0;
-    private long userId;
-    private Language language;
-    private Tlumaczenia tlumaczenia;
+    private final long userId;
+    private final Language language;
+    private final Tlumaczenia tlumaczenia;
     private boolean customFooter;
     private boolean enableShuffle;
     private boolean enableDelett;
@@ -296,15 +296,15 @@ public class DynamicEmbedPaginator implements EmbedPaginator {
             throw new RuntimeException(e);
         }
         if (!customFooter) {
-            eb.setFooter(String.format("%s/%s", String.valueOf(page), String.valueOf(pages.size())), null);
-            if (loading) eb.setFooter(String.format("%s/%s", String.valueOf(page), String.valueOf(pages.size()))
+            eb.setFooter(String.format("%s/%s", page, pages.size()), null);
+            if (loading) eb.setFooter(String.format("%s/%s", page, pages.size())
                     + " ⌛", null);
         }
         else {
             String stopka = Objects.requireNonNull(eb.build().getFooter(),
                     "stopka jest null mimo customFooter").getText();
             if (stopka == null) throw new NullPointerException("tekst stopki jest null mimo customFooter");
-            eb.setFooter(String.format(stopka, String.valueOf(page), String.valueOf(pages.size())), null);
+            eb.setFooter(String.format(stopka, page, pages.size()), null);
             //noinspection ConstantConditions (ustawiamy ją wyżej)
             stopka = eb.build().getFooter().getText();
             if (loading) //noinspection ConstantConditions (ustawiamy tekst wyżej)

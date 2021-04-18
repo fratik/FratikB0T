@@ -29,8 +29,8 @@ public class EndpointUsers implements Endpoint<Arguments, OsuUser> {
 	}
 
 	public static class Arguments {
-		private Map<String, String> arguments;
-		private GameMode mode;
+		private final Map<String, String> arguments;
+		private final GameMode mode;
 
 		public Arguments(ArgumentsBuilder builder) {
 			Objects.requireNonNull(builder);

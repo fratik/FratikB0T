@@ -1,8 +1,8 @@
 package com.oopsjpeg.osu4j.backend;
 
 public class UserInfo {
-	private String userID;
-	private boolean isTextualID;
+	private final String userID;
+	private final boolean isTextualID;
 
 	private UserInfo(String userID, boolean isTextual) {
 		this.userID = userID;

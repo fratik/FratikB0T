@@ -583,7 +583,7 @@ public class ModLogListener {
 
     public enum ModLogMode {
         MODLOG,
-        DATABASE;
+        DATABASE
     }
     @Getter
     private class ModeResolver {

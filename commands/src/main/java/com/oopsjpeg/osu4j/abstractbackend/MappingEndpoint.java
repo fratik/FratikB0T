@@ -6,7 +6,7 @@ import java.util.Objects;
 import java.util.function.Function;
 
 public class MappingEndpoint<A, R> implements Endpoint<A, R> {
-	private EndpointProxy<A, R, ?, ?> proxy;
+	private final EndpointProxy<A, R, ?, ?> proxy;
 
 	public <B, S> MappingEndpoint(Endpoint<B, S> actualEndpoint, Function<A, B> argumentMap, Function<S, R> resultMap) {
 		this.proxy = new EndpointProxy<>(actualEndpoint, argumentMap, resultMap);
@@ -18,9 +18,9 @@ public class MappingEndpoint<A, R> implements Endpoint<A, R> {
 	}
 
 	private static class EndpointProxy<A, R, B, S> {
-		private Endpoint<B, S> actualBackend;
-		private Function<A, B> argumentMapper;
-		private Function<S, R> resultMapper;
+		private final Endpoint<B, S> actualBackend;
+		private final Function<A, B> argumentMapper;
+		private final Function<S, R> resultMapper;
 
 		public EndpointProxy(Endpoint<B, S> actualBackend, Function<A, B> argumentMap, Function<S, R> resultMap) {
 			this.actualBackend = Objects.requireNonNull(actualBackend);

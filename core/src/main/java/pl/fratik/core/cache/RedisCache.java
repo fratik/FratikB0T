@@ -30,7 +30,7 @@ public class RedisCache<V> implements Cache<V> {
     private final int expiry;
     private final boolean canHandleErrors;
     private final String customName;
-    private TypeToken<V> holds;
+    private final TypeToken<V> holds;
 
     public RedisCache(RedisCacheManager rcm, TypeToken<V> holds, int expiry, boolean canHandleErrors, String customName) {
         this.rcm = rcm;

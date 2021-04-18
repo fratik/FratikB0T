@@ -10,7 +10,7 @@ public class SimpleItemCache<T> implements Cache<T> {
 	private final Object resultLock = this;
 	private volatile T cached;
 	private volatile boolean isCached;
-	private List<SimpleMappedItemCache<?>> children = new ArrayList<>();
+	private final List<SimpleMappedItemCache<?>> children = new ArrayList<>();
 
 	public SimpleItemCache() {
 	}
@@ -64,7 +64,7 @@ public class SimpleItemCache<T> implements Cache<T> {
 
 	private class SimpleMappedItemCache<R> implements MappedCache<T, R> {
 		private R result;
-		private Function<T, R> remapping;
+		private final Function<T, R> remapping;
 
 		public SimpleMappedItemCache(Function<T, R> remapping) {
 			this.remapping = Objects.requireNonNull(remapping);

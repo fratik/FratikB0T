@@ -91,7 +91,7 @@ public class PixivParserClient {
      * http请求发送端
      * send to pixiv
      */
-    private CloseableHttpClient client;
+    private final CloseableHttpClient client;
 
     /**
      * 设置用户名
@@ -517,9 +517,9 @@ public class PixivParserClient {
 
     private static class DownloadTask implements Runnable {
 
-        private Work work;
+        private final Work work;
 
-        private DownloadCallback callback;
+        private final DownloadCallback callback;
 
         public DownloadTask(Work work, DownloadCallback callback) {
             this.work = work;

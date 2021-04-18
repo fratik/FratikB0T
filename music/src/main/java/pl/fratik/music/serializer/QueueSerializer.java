@@ -78,15 +78,15 @@ public class QueueSerializer extends StdSerializer<Queue> {
     static class ParsedQueue {
 
         private final String id;
-        private List<ParsedPiosenka> piosenki;
-        private boolean autoZapisane;
-        private String announceChannel;
-        private ParsedPiosenka aktualnaPiosenka;
-        private long aktualnaPozycja;
-        private boolean pauza;
-        private RepeatMode repeatMode;
-        private String voiceChannel;
-        private int volume;
+        private final List<ParsedPiosenka> piosenki;
+        private final boolean autoZapisane;
+        private final String announceChannel;
+        private final ParsedPiosenka aktualnaPiosenka;
+        private final long aktualnaPozycja;
+        private final boolean pauza;
+        private final RepeatMode repeatMode;
+        private final String voiceChannel;
+        private final int volume;
 
         ParsedQueue(String id, List<Piosenka> piosenki, boolean autoZapisane, //NOSONAR
                     MessageChannel announceChannel, Piosenka aktualnaPiosenka, long aktualnaPozycja,

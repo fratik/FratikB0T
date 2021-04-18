@@ -55,7 +55,7 @@ public class StarboardListener {
     private final List<String> toIgnore = new ArrayList<>();
     private static final String SMSGSEP = " \\| ";
 
-    private Cache<StarsData> stdCache;
+    private final Cache<StarsData> stdCache;
 
     StarboardListener(StarDataDao starDataDao, Tlumaczenia tlumaczenia, StarManager starManager, ExecutorService executor, RedisCacheManager redisCacheManager) {
         this.starDataDao = starDataDao;

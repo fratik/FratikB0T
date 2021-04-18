@@ -33,7 +33,7 @@ public class OsuUser extends OsuElement {
 	private final CountryCode country;
 	private final int ppCountryRank;
 	private final List<Event> events;
-	private long totalSecondsPlayed;
+	private final long totalSecondsPlayed;
 
 	private final GameMode mode;
 

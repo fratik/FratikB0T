@@ -137,8 +137,8 @@ public class OsuMatch extends OsuElement {
 		private final TeamType teamType;
 		private final GameMod[] mods;
 		private final List<Score> scores;
-		private ZonedDateTime startTime;
-		private ZonedDateTime endTime;
+		private final ZonedDateTime startTime;
+		private final ZonedDateTime endTime;
 
 		public Game(JsonObject obj) {
 			super(OsuMatch.this.getAPI());

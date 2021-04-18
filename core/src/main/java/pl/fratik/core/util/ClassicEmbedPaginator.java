@@ -50,9 +50,9 @@ public class ClassicEmbedPaginator implements EmbedPaginator {
     private Message message;
     private Message doKtorej;
     private long messageId = 0;
-    private long userId;
-    private Language language;
-    private Tlumaczenia tlumaczenia;
+    private final long userId;
+    private final Language language;
+    private final Tlumaczenia tlumaczenia;
     private boolean customFooter;
     private static final String PMSTO = "moderation";
     private static final String PMZAADD = "znaneAkcje-add:";
@@ -180,10 +180,10 @@ public class ClassicEmbedPaginator implements EmbedPaginator {
 
     private MessageEmbed render(int page) {
         EmbedBuilder pageEmbed = pages.get(page - 1);
-        if (!customFooter) pageEmbed.setFooter(String.format("%s/%s", String.valueOf(page), String.valueOf(pages.size())), null);
+        if (!customFooter) pageEmbed.setFooter(String.format("%s/%s", page, pages.size()), null);
         else pageEmbed.setFooter(String.format(Objects.requireNonNull(Objects.requireNonNull(pageEmbed.build().getFooter(),
                 "stopka jest null mimo customFooter").getText(), "text jest null mimo customFooter"),
-                String.valueOf(page), String.valueOf(pages.size())), null);
+                page, pages.size()), null);
         return pageEmbed.build();
     }
 
