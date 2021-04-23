@@ -20,6 +20,7 @@ package pl.fratik.music.commands;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.wrapper.spotify.exceptions.SpotifyWebApiException;
 import com.wrapper.spotify.model_objects.specification.*;
+import io.sentry.Sentry;
 import lavalink.client.io.Link;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.GuildVoiceState;
@@ -109,7 +110,7 @@ public class PlayCommand extends MusicCommand {
                             Track track = (Track) item.getTrack();
                             iteml.add(track.getArtists()[0].getName() + " " + track.getName());
                         } catch (Exception e) {
-                            e.printStackTrace();
+                            Sentry.capture(e);
                         }
                     }
 
@@ -132,7 +133,7 @@ public class PlayCommand extends MusicCommand {
                 context.send(context.getTranslated("play.spotify.search.nofound"));
                 return false;
             } catch (Exception e) {
-                e.printStackTrace();
+                Sentry.capture(e);
                 context.send(context.getTranslated("play.spotify.search.error", e.getMessage()));
                 return false;
             }
@@ -145,7 +146,7 @@ public class PlayCommand extends MusicCommand {
                 }
                 for (String s : iteml) {
                     try {
-                        List<AudioTrack> result = managerMuzyki.getAudioTracks("ytsearch:" + NetworkUtil.decodeURIComponent(s));
+                        List<AudioTrack> result = managerMuzyki.getAudioTracks("ytsearch:" + s);
                         if (result.isEmpty()) continue;
                         AudioTrack piosenka = result.get(0);
                         dodanePiosenki++;

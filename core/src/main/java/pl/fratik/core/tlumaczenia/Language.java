@@ -17,7 +17,9 @@
 
 package pl.fratik.core.tlumaczenia;
 
+import com.neovisionaries.i18n.CountryCode;
 import lombok.Getter;
+import net.dv8tion.jda.api.requests.restaction.MessageAction;
 import pl.fratik.core.entity.Emoji;
 
 import java.util.Locale;
@@ -36,6 +38,11 @@ public enum Language {
     private final String emoji;
     @Getter private final Locale locale;
     @Getter private final boolean checked;
+
+    /**
+     * Używane do uzyskiwania regionu dla Spotify API
+     * @see CountryCode#getByAlpha2Code(String) 
+     */
     @Getter private final String alpha2;
 
     Language(String shortName, String localized, String emoji, Locale locale, boolean checked, String alpha2) {
