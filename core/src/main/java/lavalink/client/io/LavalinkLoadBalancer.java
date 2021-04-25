@@ -32,9 +32,9 @@ import java.util.List;
 @SuppressWarnings("WeakerAccess")
 public class LavalinkLoadBalancer {
 
-    private Lavalink lavalink;
+    private final Lavalink lavalink;
     //private Map<String, Optional<LavalinkSocket>> socketMap = new ConcurrentHashMap<>();
-    private List<PenaltyProvider> penaltyProviders = new ArrayList<>();
+    private final List<PenaltyProvider> penaltyProviders = new ArrayList<>();
 
     LavalinkLoadBalancer(Lavalink lavalink) {
         this.lavalink = lavalink;
@@ -115,7 +115,7 @@ public class LavalinkLoadBalancer {
     @SuppressWarnings("unused")
     public static class Penalties {
 
-        private LavalinkSocket socket;
+        private final LavalinkSocket socket;
         private final long guild;
         private int playerPenalty = 0;
         private int cpuPenalty = 0;

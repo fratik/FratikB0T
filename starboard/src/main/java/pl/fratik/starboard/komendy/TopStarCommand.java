@@ -96,7 +96,7 @@ public class TopStarCommand extends Command {
                         .append(StarboardListener.getStarEmoji(entry.getValue())).append("\n");
                 if (i != 0 && (i + 1) % 10 == 0) {
                     pages.add(new EmbedBuilder().setColor(new Color(255, 172, 51))
-                            .setDescription(sb.toString().substring(0, sb.length() - 1))
+                            .setDescription(sb.substring(0, sb.length() - 1))
                             .setTitle(context.getTranslated("topstar.embed.header")));
                     i = -1;
                     sb = new StringBuilder();
@@ -109,7 +109,7 @@ public class TopStarCommand extends Command {
         }
         if (!sb.toString().isEmpty()) {
             pages.add(new EmbedBuilder().setColor(new Color(255, 172, 51))
-                    .setDescription(sb.toString().substring(0, sb.length() - 1))
+                    .setDescription(sb.substring(0, sb.length() - 1))
                     .setTitle(context.getTranslated("topstar.embed.header")));
         }
         if (pages.isEmpty()) {

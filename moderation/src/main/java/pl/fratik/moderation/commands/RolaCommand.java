@@ -116,8 +116,7 @@ public class RolaCommand extends ModerationCommand {
     }
 
     private static boolean filtr(Role r, GuildConfig gc) {
-        if (gc.getUzytkownicyMogaNadacSobieTeRange().contains(r.getId())) { return true; }
-        return false;
+        return gc.getUzytkownicyMogaNadacSobieTeRange().contains(r.getId());
     }
 
 }

@@ -9,7 +9,7 @@ import java.util.Objects;
  * @author WorldSEnder
  */
 public final class OsuToken {
-	private String token;
+	private final String token;
 
 	public OsuToken(String token) {
 		this.token = verifyToken(token);

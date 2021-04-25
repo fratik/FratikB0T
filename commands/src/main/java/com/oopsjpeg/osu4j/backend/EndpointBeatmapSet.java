@@ -21,7 +21,7 @@ public class EndpointBeatmapSet extends MappingEndpoint<Arguments, OsuBeatmapSet
 	}
 
 	public static class Arguments {
-		private EndpointBeatmaps.Arguments actualArguments;
+		private final EndpointBeatmaps.Arguments actualArguments;
 
 		public Arguments(int setID) {
 			this.actualArguments = new EndpointBeatmaps.ArgumentsBuilder().setBeatmapID(setID).build();

@@ -30,7 +30,7 @@ public class EndpointMatches implements Endpoint<Arguments, OsuMatch> {
 	}
 
 	public static class Arguments {
-		private Map<String, String> arguments;
+		private final Map<String, String> arguments;
 
 		public Arguments(ArgumentsBuilder builder) {
 			Objects.requireNonNull(builder);

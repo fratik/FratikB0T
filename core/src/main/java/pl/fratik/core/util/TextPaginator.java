@@ -43,7 +43,7 @@ class TextPaginator {
     private int pageNo = 1;
     private Message message;
     private long messageId = 0;
-    private long userId;
+    private final long userId;
     private final Language language;
     private final Tlumaczenia tlumaczenia;
 

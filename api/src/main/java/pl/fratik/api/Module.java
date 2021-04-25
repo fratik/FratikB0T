@@ -710,8 +710,8 @@ public class Module implements Modul {
 
     @AllArgsConstructor
     private static class WscWrapper {
-        private WebSocketChannel ch;
-        private String userId;
+        private final WebSocketChannel ch;
+        private final String userId;
     }
 
     private enum Status {

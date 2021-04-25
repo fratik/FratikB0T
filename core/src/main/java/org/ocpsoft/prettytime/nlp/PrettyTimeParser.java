@@ -41,7 +41,7 @@ import java.util.Map.Entry;
 public class PrettyTimeParser
 {
 
-    private Parser parser;
+    private final Parser parser;
     private final Map<String, String> translations = new HashMap<>();
 
     private static final String[] tensNames = {
