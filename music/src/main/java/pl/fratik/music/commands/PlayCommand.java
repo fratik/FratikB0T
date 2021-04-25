@@ -18,28 +18,25 @@
 package pl.fratik.music.commands;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
-import com.wrapper.spotify.exceptions.SpotifyWebApiException;
 import com.wrapper.spotify.model_objects.specification.*;
 import io.sentry.Sentry;
+import io.sentry.event.User;
 import lavalink.client.io.Link;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.GuildVoiceState;
 import net.dv8tion.jda.api.entities.VoiceChannel;
-import org.apache.hc.core5.http.ParseException;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.util.CommonUtil;
-import pl.fratik.core.util.NetworkUtil;
+import pl.fratik.core.util.UserUtil;
 import pl.fratik.music.managers.ManagerMuzykiSerwera;
 import pl.fratik.music.managers.NowyManagerMuzyki;
 import pl.fratik.music.managers.SearchManager;
 import pl.fratik.music.utils.SpotifyUtil;
 
-import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -133,8 +130,12 @@ public class PlayCommand extends MusicCommand {
                 context.send(context.getTranslated("play.spotify.search.nofound"));
                 return false;
             } catch (Exception e) {
+                Sentry.getContext().setUser(new User(context.getSender().getId(),
+                        UserUtil.formatDiscrim(context.getSender()), null, null));
+                Sentry.getContext().addExtra("url", url);
                 Sentry.capture(e);
-                context.send(context.getTranslated("play.spotify.search.error", e.getMessage()));
+                Sentry.clearContext();
+                context.send(context.getTranslated("play.spotify.search.error"));
                 return false;
             }
 

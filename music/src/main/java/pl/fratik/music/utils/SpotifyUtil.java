@@ -26,6 +26,7 @@ import com.wrapper.spotify.model_objects.specification.Paging;
 import com.wrapper.spotify.model_objects.specification.PlaylistTrack;
 import com.wrapper.spotify.model_objects.specification.Track;
 import com.wrapper.spotify.requests.data.AbstractDataRequest;
+import io.sentry.Sentry;
 import lombok.Getter;
 import org.apache.hc.core5.http.ParseException;
 import org.jetbrains.annotations.Nullable;
@@ -45,7 +46,11 @@ public class SpotifyUtil {
     private static final Pattern ALBUM_REGEX = Pattern.compile("^(https://open.spotify.com/album/)([a-zA-Z0-9]+)(.*)$");
     private static final Pattern ARTISTS_REGEX = Pattern.compile("^(https://open.spotify.com/artist/)([a-zA-Z0-9]+)(.*)$");
 
-    private final ScheduledExecutorService ses = Executors.newScheduledThreadPool(1);
+    private static final ScheduledExecutorService ses = Executors.newScheduledThreadPool(1);
+
+    static {
+        Runtime.getRuntime().addShutdownHook(new Thread(ses::shutdown));
+    }
 
     @Getter
     private final SpotifyApi api;
@@ -107,18 +112,22 @@ public class SpotifyUtil {
         try {
             return e.build().execute();
         } catch (SpotifyWebApiException ex) {
-            ex.printStackTrace();
+            Sentry.capture(ex);
             return null;
         }
     }
+
+    private static int failedTries = 0;
 
     private void refreshAccessToken() {
         try {
             ClientCredentials cr = api.clientCredentials().build().execute();
             api.setAccessToken(cr.getAccessToken());
-            ses.schedule(this::refreshAccessToken, cr.getExpiresIn(), TimeUnit.SECONDS);
+            ses.schedule(this::refreshAccessToken, cr.getExpiresIn() - 120, TimeUnit.SECONDS);
+            failedTries = 0;
         } catch (Exception e) {
-            ses.schedule(this::refreshAccessToken, 60, TimeUnit.SECONDS);
+            failedTries++;
+            if (failedTries <= 5) ses.schedule(this::refreshAccessToken, 60, TimeUnit.SECONDS);
         }
 
     }
