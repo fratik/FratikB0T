@@ -81,7 +81,7 @@ public class PlayCommand extends MusicCommand {
             context.reply(context.getTranslated("play.no.permissions"));
             return false;
         }
-        String identifier;
+        String identifier = null;
         ManagerMuzykiSerwera mms = managerMuzyki.getManagerMuzykiSerwera(context.getGuild());
         if (mms.isPaused()) {
             context.reply(context.getTranslated("play.use.pause"));
@@ -94,7 +94,12 @@ public class PlayCommand extends MusicCommand {
             try {
                 if (spotifyUtil.isTrack(url)) {
                     Track track = spotifyUtil.getTrackFromUrl(url);
-                    url = track.getArtists()[0].getName() + " " + track.getName();
+                    SearchManager.SearchResult wynik = searchManager.searchYouTube(track.getArtists()[0].getName() + " " + track.getName());
+                    if (wynik == null || wynik.getEntries().isEmpty()) {
+                        context.reply(context.getTranslated("play.no.results"));
+                        return false;
+                    }
+                    identifier = wynik.getEntries().get(0).getUrl();
                 } else if (spotifyUtil.isPlaylist(url)) {
                     context.getTextChannel().sendTyping().queue();
                     Paging<PlaylistTrack> album = spotifyUtil.getPlaylistFromUrl(url);
@@ -161,15 +166,14 @@ public class PlayCommand extends MusicCommand {
                 context.reply(context.getTranslated("play.queued.multiple", dodanePiosenki));
                 return true;
             }
-
+            if (identifier == null) identifier = url; // jeżeli SpotifyUtil nic nie wykryje, spróbuj po linku
+        } else {
             SearchManager.SearchResult wynik = searchManager.searchYouTube(url);
             if (wynik == null || wynik.getEntries().isEmpty()) {
                 context.reply(context.getTranslated("play.no.results"));
                 return false;
             }
             identifier = wynik.getEntries().get(0).getUrl();
-        } else {
-            identifier = (String) context.getArgs()[0];
         }
         if (!mms.isConnected()) {
             mms.setAnnounceChannel(context.getTextChannel());
