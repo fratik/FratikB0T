@@ -180,7 +180,7 @@ public class PlayCommand extends MusicCommand {
                 mms.disconnect();
                 return;
             }
-            if (audioTrackList.size() == 1) {
+            if (audioTrackList.size() == 1 || identifier.startsWith("ytsearch:")) {
                 AudioTrack at = audioTrackList.get(0);
                 mms.addToQueue(context.getSender(), at, context.getLanguage(), null);
             } else {
