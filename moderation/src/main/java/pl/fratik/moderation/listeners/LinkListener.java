@@ -129,7 +129,7 @@ public class LinkListener {
                     isMedia = false;
                 }
             }
-            wiad.append(text).append("zaproszenie? ").append(containsInvite ? "tak" : "nie").append(" media? ");
+            wiad.append(text).append(" zaproszenie? ").append(containsInvite ? "tak" : "nie").append(" media? ");
             if (media != null) wiad.append(media ? "tak (" + contentType.get() + ")" : "nie");
             else wiad.append("[nie sprawdzane]");
             wiad.append("\n");
