@@ -168,7 +168,7 @@ public class PlayCommand extends MusicCommand {
                 }
                 identifier = wynik.getEntries().get(0).getUrl();
             }
-        } else identifier = url;
+        } else identifier = "ytsearch:" + url;
         if (!mms.isConnected()) {
             mms.setAnnounceChannel(context.getTextChannel());
             mms.connect(kanal);
