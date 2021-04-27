@@ -160,16 +160,15 @@ public class PlayCommand extends MusicCommand {
                 context.reply(context.getTranslated("play.queued.multiple", dodanePiosenki));
                 return true;
             }
-
-            SearchManager.SearchResult wynik = searchManager.searchYouTube(url);
-            if (wynik == null || wynik.getEntries().isEmpty()) {
-                context.reply(context.getTranslated("play.no.results"));
-                return false;
+            else {
+                SearchManager.SearchResult wynik = searchManager.searchYouTube(url);
+                if (wynik == null || wynik.getEntries().isEmpty()) {
+                    context.reply(context.getTranslated("play.no.results"));
+                    return false;
+                }
+                identifier = wynik.getEntries().get(0).getUrl();
             }
-            identifier = wynik.getEntries().get(0).getUrl();
-        } else {
-            identifier = (String) context.getArgs()[0];
-        }
+        } else identifier = url;
         if (!mms.isConnected()) {
             mms.setAnnounceChannel(context.getTextChannel());
             mms.connect(kanal);
