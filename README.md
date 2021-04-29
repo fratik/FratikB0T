@@ -47,7 +47,7 @@ java -jar <zbudowany rdzeń>.jar <token>
 Po pierwszym uruchomieniu bot utworzy plik `config.json`, należy go ustawić.
 
 ## Specjalne podziękowania
-Rdzeń wzorowany na [Kyoko v2](https://github.com/KyokoBot/kyoko/tree/kyoko-v2).  
+Rdzeń wzorowany na Kyoko v2.  
 Dashboard (Open Source wkrótce) dla wersji 3 stworzony przez [SebeeDev](https://github.com/SebeeDev). 
 
 ## Serwer Discord
