@@ -32,6 +32,7 @@ Użyj `gradlew.bat jar` (Windows) / `./gradlew jar` (Linux/macOS), a pluginy mag
 - Java (w produkcji używane OpenJDK w wersji 8)
 - PostgreSQL (9/10/11 działają)
 - [Lavalink](https://github.com/Frederikam/Lavalink)
+- [Redis](https://redis.io/)
 - klucze API: (opcjonalne)
     - image-server: https://api.fratikbot.pl oraz klucz lub ~~(Open Source wkrótce)~~ [self-hosted](https://github.com/fratik/FratikB0T-API)
     - yt/yt2: osobne klucze do YouTube API, używane w wyszukiwaniu utworów/zdobywaniu miniatur
