@@ -32,6 +32,7 @@ Użyj `gradlew.bat jar` (Windows) / `./gradlew jar` (Linux/macOS), a pluginy mag
 - Java (w produkcji używane OpenJDK w wersji 8)
 - PostgreSQL (9/10/11 działają)
 - [Lavalink](https://github.com/Frederikam/Lavalink)
+- [Redis](https://redis.io/)
 - klucze API: (opcjonalne)
     - image-server: https://api.fratikbot.pl oraz klucz lub ~~(Open Source wkrótce)~~ [self-hosted](https://github.com/fratik/FratikB0T-API)
     - yt/yt2: osobne klucze do YouTube API, używane w wyszukiwaniu utworów/zdobywaniu miniatur
@@ -47,7 +48,7 @@ java -jar <zbudowany rdzeń>.jar <token>
 Po pierwszym uruchomieniu bot utworzy plik `config.json`, należy go ustawić.
 
 ## Specjalne podziękowania
-Rdzeń wzorowany na [Kyoko v2](https://github.com/KyokoBot/kyoko/tree/kyoko-v2).  
+Rdzeń wzorowany na Kyoko v2.  
 Dashboard (Open Source wkrótce) dla wersji 3 stworzony przez [SebeeDev](https://github.com/SebeeDev). 
 
 ## Serwer Discord
