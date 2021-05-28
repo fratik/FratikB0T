@@ -47,7 +47,7 @@ public class KickCommand extends ModerationCommand {
         hmap.put("powod", "string");
         hmap.put("[...]", "string");
         uzycie = new Uzycie(hmap, new boolean[] {true, false, false});
-        aliases = new String[] {"wyrzuc", "wywalgo", "kickmen", "kopnij", "aidzpan", "wykoptypa", "wykop.pl"};
+        aliases = new String[] {"wyrzuc", "wywalgo", "kickmen", "kopnij", "aidzpan", "wykoptypa", "wykop.pl", "won"};
     }
 
     @Override

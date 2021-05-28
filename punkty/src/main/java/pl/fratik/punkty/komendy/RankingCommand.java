@@ -112,6 +112,10 @@ public class RankingCommand extends Command {
     public boolean fratikcoin(@NotNull CommandContext context) {
         List<MemberConfig> mc = new ArrayList<>();
         List<MemberConfig> mcAa = memberDao.getAll();
+        if (mcAa.isEmpty()) {
+            context.reply(context.getTranslated("ranking.fratikcoin.empty"));
+            return false;
+        }
         mcAa.sort(Comparator.comparingLong(MemberConfig::getFratikCoiny).reversed());
         for (MemberConfig c : mcAa) {
             if (c.getGuildId().equals(context.getGuild().getId())) mc.add(c);
