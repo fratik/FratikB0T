@@ -45,7 +45,7 @@ public class InviteCommand extends Command {
         String dc = Ustawienia.instance.botGuildInvite;
 
         EmbedBuilder eb = new EmbedBuilder();
-        eb.setAuthor(UserUtil.formatDiscrim(context.getEvent().getJDA().getSelfUser()), null, context.getEvent().getJDA().getSelfUser().getEffectiveAvatarUrl().replace(".webp", ".png"));
+        eb.setAuthor(UserUtil.formatDiscrim(context.getEvent().getJDA().getSelfUser()), null, UserUtil.getAvatarUrl(context.getEvent().getJDA().getSelfUser()));
         eb.setColor(UserUtil.getPrimColor(context.getMember().getUser()));
         eb.setDescription(context.getTranslated("invite.description"));
         eb.addField(context.getTranslated("invite.addbot"), context.getTranslated("generic.click", invite), true);

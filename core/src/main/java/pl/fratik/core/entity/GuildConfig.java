@@ -119,6 +119,7 @@ public class GuildConfig implements DatabaseEntity {
     @ConfigField(dontDisplayInSettings = true)
     private Map<String, String> pozegnania = new HashMap<>();
     private Boolean wysylajOgloszenia = false;
+    private Boolean powitanieWEmbedzie = true;
     @ConfigField(dontDisplayInSettings = true)
     private String liczekKanal = "";
     private Map<String, Webhook> webhooki = new HashMap<>();
@@ -182,6 +183,10 @@ public class GuildConfig implements DatabaseEntity {
 
     public boolean isDeleteLinkMessage() {
         return deleteLinkMessage != null && deleteLinkMessage;
+    }
+
+    public boolean isPowitanieWEmbedzie() {
+        return powitanieWEmbedzie != null && powitanieWEmbedzie;
     }
 
     @Transient

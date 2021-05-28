@@ -41,7 +41,7 @@ public class DashboardCommand extends Command {
     public boolean execute(@NotNull CommandContext context) {
         EmbedBuilder eb = new EmbedBuilder();
         eb.setAuthor(UserUtil.formatDiscrim(context.getEvent().getJDA().getSelfUser()), null,
-                context.getEvent().getJDA().getSelfUser().getEffectiveAvatarUrl().replace(".webp", ".png"));
+                UserUtil.getAvatarUrl(context.getEvent().getJDA().getSelfUser()));
         eb.addField(context.getTranslated("dashboard.embed.page"), context.getTranslated("generic.click",
                 Ustawienia.instance.botUrl), true);
         eb.addField(context.getTranslated("dashboard.embed.managepage"), context.getTranslated("generic.click",
