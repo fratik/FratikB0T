@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,7 +41,7 @@ import java.util.Map.Entry;
 public class PrettyTimeParser
 {
 
-    private Parser parser;
+    private final Parser parser;
     private final Map<String, String> translations = new HashMap<>();
 
     private static final String[] tensNames = {

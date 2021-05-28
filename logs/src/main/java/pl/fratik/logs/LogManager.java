@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,7 +34,7 @@ import pl.fratik.core.event.DatabaseUpdateEvent;
 import pl.fratik.core.event.LvlupEvent;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
-import pl.fratik.core.util.DurationUtil;
+import pl.fratik.core.util.CommonUtil;
 import pl.fratik.core.util.NetworkUtil;
 import pl.fratik.core.util.UserUtil;
 
@@ -55,7 +55,7 @@ class LogManager {
     private final GuildDao guildDao;
     private final Tlumaczenia tlumaczenia;
     private boolean triggeredConnectEvent;
-    private Map<String, WebhookClient> webhooki;
+    private final Map<String, WebhookClient> webhooki;
 
     LogManager(ShardManager shardManager, GuildDao guildDao, Tlumaczenia tlumaczenia) {
         triggeredConnectEvent = false;
@@ -77,17 +77,17 @@ class LogManager {
         executor.submit(() -> {
             WebhookClient cl = getWebhook(webhook);
             if (e.getContext().getGuild() != null)
-                cl.send(String.format("%s(%s) [%s] %s[%s] %s[%s]", e.getContext().getCommand().getName(),
-                        String.join(",", e.getContext().getRawArgs()), DurationUtil.humanReadableFormatMillis(e.getTime()),
+                cl.send(String.format("%s(%s) %s[%s] %s[%s]", e.getContext().getCommand().getName(),
+                        String.join(",", e.getContext().getRawArgs()),
                         e.getContext().getSender().getName(), e.getContext().getSender().getId(),
                         e.getContext().getGuild().getName(), e.getContext().getGuild().getId()));
             else
-                cl.send(String.format("%s(%s) [%s] %s[%s] Direct Messages", e.getContext().getCommand().getName(),
-                        String.join(",", e.getContext().getRawArgs()), DurationUtil.humanReadableFormatMillis(e.getTime()),
+                cl.send(String.format("%s(%s) %s[%s] Direct Messages", e.getContext().getCommand().getName(),
+                        String.join(",", e.getContext().getRawArgs()),
                         e.getContext().getSender().getName(), e.getContext().getSender().getId()));
         });
         if (webhookGa == null) return;
-        if (UserUtil.isGadm(e.getContext().getMember(), shardManager)) {
+        if (UserUtil.isGadm(e.getContext().getSender(), shardManager)) {
             if (e.getContext().getGuild() == null) return;
             PermLevel pLevel = UserUtil.getPermlevel(e.getContext().getMember(), guildDao, shardManager,
                     PermLevel.OWNER);
@@ -100,24 +100,30 @@ class LogManager {
                         e.getContext().getGuild().getId(), pLevel.getNum(),
                         tlumaczenia.get(Language.DEFAULT, pLevel.getLanguageKey())));
             });
-            if (webhookGaLvl == null) return;
             PermLevel cmdLvl = e.getContext().getCommand().getPermLevel();
-            if (pLevel.getNum() >= cmdLvl.getNum()) return;
+            if (webhookGaLvl == null || cmdLvl.getNum() >= 5 || pLevel.getNum() >= cmdLvl.getNum()) return;
             executor.submit(() -> {
                 WebhookClient cl = getWebhook(webhookGaLvl);
                 cl.send(String.format("%s[%s] użył komendy %s(%s) na serwerze %s[%s] i tym samym nadużył swoich uprawnień.  " +
-                                "Jego permisje na serwerze to %s(%s), a komenda wymaga permisji %s(%s).",
+                                "Jego permisje na serwerze to %s(%s), a komenda wymaga permisji %s (%s) Serwer %s.",
                         e.getContext().getSender().getAsTag(), e.getContext().getSender().getId(),
                         e.getContext().getCommand().getName(), String.join(",", e.getContext().getRawArgs()),
                         e.getContext().getGuild().getName(), e.getContext().getGuild().getId(),
                         pLevel.getNum(), tlumaczenia.get(Language.DEFAULT, pLevel.getLanguageKey()),
-                        cmdLvl.getNum(), tlumaczenia.get(Language.DEFAULT, cmdLvl.getLanguageKey())));
+                        cmdLvl.getNum(), tlumaczenia.get(Language.DEFAULT, cmdLvl.getLanguageKey()),
+                        CommonUtil.isPomoc(shardManager, e.getContext().getGuild()) ?
+                                "ma prośbę o pomoc." : "nie ma prośby o pomoc."));
             });
         }
     }
 
     private WebhookClient getWebhook(String webhook) {
-        return webhooki.getOrDefault(webhook, new WebhookClientBuilder(webhook).setHttpClient(NetworkUtil.getClient()).build());
+        WebhookClient tak = webhooki.get(webhook);
+        if (tak == null) {
+            tak = new WebhookClientBuilder(webhook).setHttpClient(NetworkUtil.getClient()).build();
+            webhooki.put(webhook, tak);
+        }
+        return tak;
     }
 
     @Subscribe
@@ -153,8 +159,8 @@ class LogManager {
         executor.submit(() -> {
             WebhookClient cl = getWebhook(webhook);
             Member owner = e.getGuild().getOwner();
-            if (owner == null) cl.send(String.format("Opuszczono %s (ID: %s)", e.getGuild().getName(),
-                    e.getGuild().getId()));
+            if (owner == null) cl.send(String.format("Opuszczono %s (ID: %s, właściciel [%s])", e.getGuild().getName(),
+                    e.getGuild().getId(), e.getGuild().getOwnerId()));
             else cl.send(String.format("Opuszczono %s (ID: %s, właściciel(ka): %s[%s])", e.getGuild().getName(),
                     e.getGuild().getId(), owner.getUser().getAsTag(), e.getGuild().getOwnerId()));
         });

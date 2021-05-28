@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,12 +46,12 @@ public class RepeatCommand extends MusicCommand {
     @Override
     public boolean execute(@NotNull CommandContext context) {
         if (!hasFullDjPerms(context.getMember(), context.getShardManager(), guildDao)) {
-            context.send(context.getTranslated("repeat.dj"));
+            context.reply(context.getTranslated("repeat.dj"));
             return false;
         }
         ManagerMuzykiSerwera mms = managerMuzyki.getManagerMuzykiSerwera(context.getGuild());
         mms.setRepeatMode((RepeatMode) context.getArgs()[0]);
-        context.send(context.getTranslated("repeat.set"));
+        context.reply(context.getTranslated("repeat.set"));
         return true;
     }
 

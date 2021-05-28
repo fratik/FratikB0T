@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,8 +17,7 @@
 
 package pl.fratik.starboard;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
+import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.Subscribe;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
@@ -28,8 +27,8 @@ import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
 import net.dv8tion.jda.api.events.message.react.MessageReactionRemoveAllEvent;
 import net.dv8tion.jda.api.events.message.react.MessageReactionRemoveEvent;
-import pl.fratik.core.entity.GuildConfig;
-import pl.fratik.core.event.DatabaseUpdateEvent;
+import pl.fratik.core.cache.Cache;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.CommonUtil;
@@ -56,17 +55,18 @@ public class StarboardListener {
     private final List<String> toIgnore = new ArrayList<>();
     private static final String SMSGSEP = " \\| ";
 
-    private final Cache<Guild, TextChannel> starChannelCache = Caffeine.newBuilder().expireAfterWrite(5, TimeUnit.MINUTES)
-            .maximumSize(100).build();
+    private final Cache<StarsData> stdCache;
 
-    StarboardListener(StarDataDao starDataDao, Tlumaczenia tlumaczenia, StarManager starManager, ExecutorService executor) {
+    StarboardListener(StarDataDao starDataDao, Tlumaczenia tlumaczenia, StarManager starManager, ExecutorService executor, RedisCacheManager redisCacheManager) {
         this.starDataDao = starDataDao;
         this.tlumaczenia = tlumaczenia;
         this.starManager = starManager;
         this.executor = executor;
+        stdCache = redisCacheManager.new CacheRetriever<StarsData>(){}.getCache();
     }
 
     @Subscribe
+    @AllowConcurrentEvents
     public void starAddEvent(MessageReactionAddEvent event) {
         executor.submit(() -> {
             if (!event.isFromGuild()) return;
@@ -88,11 +88,29 @@ public class StarboardListener {
                             .queue(m -> m.delete().queueAfter(15, TimeUnit.SECONDS));
                     return;
                 }
+                if (event.getTextChannel().isNSFW() && !getChannel(event.getGuild()).isNSFW()) {
+                    Language l = tlumaczenia.getLanguage(message.getMember());
+                    toIgnore.add(event.getMessageId());
+                    event.getReaction().removeReaction(event.getUser()).queue(null, throwableConsumer);
+                    event.getChannel().sendMessage(tlumaczenia.get(l, "starboard.nsfw", event.getUser().getAsMention()))
+                            .queue(m -> m.delete().queueAfter(15, TimeUnit.SECONDS));
+                    return;
+                }
                 if (event.getUser().equals(message.getAuthor())) {
                     Language l = tlumaczenia.getLanguage(message.getMember());
                     toIgnore.add(event.getMessageId());
                     event.getReaction().removeReaction(event.getUser()).queue(null, throwableConsumer);
                     event.getChannel().sendMessage(tlumaczenia.get(l, "starboard.cant.star.yourself", event.getUser().getAsMention()))
+                            .queue(m -> m.delete().queueAfter(15, TimeUnit.SECONDS));
+                    return;
+                }
+                StarsData std = stdCache.get(message.getGuild().getId(), starDataDao::get);
+                if (std.getBlacklista() == null) std.setBlacklista(new ArrayList<>());
+                if (std.getBlacklista().contains(event.getUser().getId())) {
+                    Language l = tlumaczenia.getLanguage(message.getMember());
+                    toIgnore.add(event.getMessageId());
+                    event.getReaction().removeReaction(event.getUser()).queue(null, throwableConsumer);
+                    event.getChannel().sendMessage(tlumaczenia.get(l, "starboard.blacklisted", event.getUser().getAsMention()))
                             .queue(m -> m.delete().queueAfter(15, TimeUnit.SECONDS));
                     return;
                 }
@@ -121,6 +139,15 @@ public class StarboardListener {
                     toIgnore.add(event.getMessageId());
                     event.getReaction().removeReaction(event.getUser()).queue(null, throwableConsumer);
                     event.getChannel().sendMessage(tlumaczenia.get(l, "starboard.cant.star.yourself", event.getUser().getAsMention()))
+                            .queue(m -> m.delete().queueAfter(5, TimeUnit.SECONDS));
+                    return;
+                }
+                if (starsData.getBlacklista() == null) starsData.setBlacklista(new ArrayList<>());
+                if (starsData.getBlacklista().contains(event.getUser().getId())) {
+                    Language l = tlumaczenia.getLanguage(msg.getMember());
+                    toIgnore.add(event.getMessageId());
+                    event.getReaction().removeReaction(event.getUser()).queue(null, throwableConsumer);
+                    event.getChannel().sendMessage(tlumaczenia.get(l, "starboard.blacklisted", event.getUser().getAsMention()))
                             .queue(m -> m.delete().queueAfter(5, TimeUnit.SECONDS));
                     return;
                 }
@@ -247,7 +274,8 @@ public class StarboardListener {
         if (content.length() != 0) eb.addField(tlumaczenia.get(l, "starboard.embed.message"), content, true);
         String link = CommonUtil.getImageUrl(message);
         if (link != null) eb.setImage(link);
-        eb.addField(tlumaczenia.get(l, "starboard.embed.jump"), "[\\[link\\]](" + message.getJumpUrl() + ")", false);
+        eb.addField(tlumaczenia.get(l, "starboard.embed.jump"), String.format("[\\[%s\\]](%s)",
+                tlumaczenia.get(l, "starboard.embed.jump.to"), message.getJumpUrl()), false);
         eb.setTimestamp(message.getTimeCreated());
         return eb.build();
     }
@@ -265,23 +293,14 @@ public class StarboardListener {
     }
 
     private TextChannel getChannel(Guild guild) {
-        return starChannelCache.get(guild, g -> {
-            StarsData std = starDataDao.get(guild);
-            if (!std.getStarboardChannel().isEmpty()) return g.getTextChannelById(std.getStarboardChannel());
-            return null;
-        });
-    }
-
-    @Subscribe
-    public void onDatabaseUpdate(DatabaseUpdateEvent event) {
-        if (event.getEntity() instanceof GuildConfig) {
-            for (Guild guild : starChannelCache.asMap().keySet()) {
-                if (((GuildConfig) event.getEntity()).getGuildId().equals(guild.getId())) {
-                    starChannelCache.invalidate(guild);
-                    return;
-                }
-            }
+        StarsData std = stdCache.get(guild.getId(), starDataDao::get);
+        String id = null;
+        if (!std.getStarboardChannel().isEmpty()) {
+            TextChannel kanal = guild.getTextChannelById(std.getStarboardChannel());
+            if (kanal == null) id = null;
+            else id = kanal.getId();
         }
+        if (id == null) return null;
+        return guild.getTextChannelById(id);
     }
-
 }

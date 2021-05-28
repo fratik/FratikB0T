@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -48,7 +48,7 @@ public class StarboardCommand extends Command {
             if (std.getStarboardChannel() != null) {
                 std.setStarboardChannel(null);
                 starDataDao.save(std);
-                context.send(context.getTranslated("starboard.unset"));
+                context.reply(context.getTranslated("starboard.unset"));
                 return true;
             } else {
                 CommonErrors.usage(context);
@@ -57,11 +57,11 @@ public class StarboardCommand extends Command {
         }
         TextChannel kanal = (TextChannel) context.getArgs()[0];
         if (!StarManager.checkPermissions(kanal)) {
-            context.send(context.getTranslated("starboard.noperms"));
+            context.reply(context.getTranslated("starboard.noperms"));
             return false;
         }
         std.setStarboardChannel(kanal.getId());
-        context.send(context.getTranslated("starboard.success"));
+        context.reply(context.getTranslated("starboard.success"));
         starDataDao.save(std);
         return true;
     }

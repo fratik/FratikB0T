@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -47,6 +47,7 @@ import pl.fratik.music.entity.QueueDao;
 import pl.fratik.music.entity.RepeatMode;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ScheduledExecutorService;
@@ -57,6 +58,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class NowyManagerMuzykiSerwera implements ManagerMuzykiSerwera {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NowyManagerMuzykiSerwera.class);
+    private final NowyManagerMuzyki nowyManagerMuzyki;
     private final Guild guild;
     private final JdaLavalink lavaClient;
     private final Tlumaczenia tlumaczenia;
@@ -76,8 +78,10 @@ public class NowyManagerMuzykiSerwera implements ManagerMuzykiSerwera {
     private boolean paused;
     private JdaLink link;
     private ScheduledFuture<?> future;
+    private Listener lisner;
 
-    NowyManagerMuzykiSerwera(Guild guild, JdaLavalink lavaClient, Tlumaczenia tlumaczenia, QueueDao queueDao, GuildDao guildDao, ScheduledExecutorService executorService) {
+    NowyManagerMuzykiSerwera(NowyManagerMuzyki nowyManagerMuzyki, Guild guild, JdaLavalink lavaClient, Tlumaczenia tlumaczenia, QueueDao queueDao, GuildDao guildDao, ScheduledExecutorService executorService) {
+        this.nowyManagerMuzyki = nowyManagerMuzyki;
         this.guild = guild;
         this.lavaClient = lavaClient;
         this.tlumaczenia = tlumaczenia;
@@ -137,7 +141,7 @@ public class NowyManagerMuzykiSerwera implements ManagerMuzykiSerwera {
                 Thread.sleep(5);
                 czekam++;
                 if (czekam == 1000) {
-                    LOGGER.error("{}: Nie udało się połączyć po 5s!", guild.getId());
+                    LOGGER.error("{}: Nie udało się połączyć po 5s!", guild.getId());
                     announceChannel.sendMessage("Nie udało się połączyć po 5s! Anuluje!").queue();
                     kolejka.clear();
                     player = null;
@@ -159,12 +163,15 @@ public class NowyManagerMuzykiSerwera implements ManagerMuzykiSerwera {
         paused = false;
         aktualnaPiosenka = null;
         shutdown = true;
+        if (lisner != null) player.removeListener(lisner);
+        lisner = null;
         if (player.getPlayingTrack() != null) player.stopTrack();
         link.disconnect();
         kolejka.clear();
         player = null;
         link.resetPlayer();
         init = false;
+        nowyManagerMuzyki.destroy(guild.getId());
     }
 
     @Override
@@ -245,7 +252,7 @@ public class NowyManagerMuzykiSerwera implements ManagerMuzykiSerwera {
                     Thread.sleep(5);
                     czekam++;
                     if (czekam == 1000) {
-                        LOGGER.error("{}: Nie udało się połączyć po 5s!", guild.getId());
+                        LOGGER.error("{}: Nie udało się połączyć po 5s!", guild.getId());
                         announceChannel.sendMessage("Nie udało się połączyć po 5s! Anuluje!").queue();
                         disconnect();
                         return;
@@ -272,24 +279,27 @@ public class NowyManagerMuzykiSerwera implements ManagerMuzykiSerwera {
         queueDao.save(queue);
         kolejka.clear();
         disconnect();
-        link.destroy();
     }
 
     @Override
     public void patchVoiceServerUpdate(VoiceDispatchInterceptor.VoiceServerUpdate e) {
         shutdown = false;
-        player.addListener(new Listener(this));
+        if (lisner == null) lisner = new Listener(this);
+        player.addListener(lisner);
         init = true;
     }
 
     @Override
     public void nodeDisconnected() {
-        if (announceChannel == null) return;
         exception = true;
         try {
             Thread.sleep(1200);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+        }
+        if (announceChannel == null || aktualnaPiosenka == null) {
+            exception = false;
+            return;
         }
         announceChannel.sendMessage(tlumaczenia.get(aktualnaPiosenka.getRequesterLanguage(),
                 "play.song.error.node.disconnected")).queue();
@@ -300,9 +310,10 @@ public class NowyManagerMuzykiSerwera implements ManagerMuzykiSerwera {
                 Thread.sleep(100);
                 nod = link.getNode(false);
                 if (tries.getAndAdd(1) >= 600) {
-                    //poddaję się
-                    announceChannel.sendMessage(tlumaczenia.get(aktualnaPiosenka.getRequesterLanguage(),
-                            "play.song.error.node.disconnected.cant.found")).queue();
+                    //poddaję się
+                    if (announceChannel != null)
+                        announceChannel.sendMessage(tlumaczenia.get(aktualnaPiosenka.getRequesterLanguage(),
+                                "play.song.error.node.disconnected.cant.found")).queue();
                     exception = false;
                     disconnect();
                     break;
@@ -331,6 +342,14 @@ public class NowyManagerMuzykiSerwera implements ManagerMuzykiSerwera {
         }
     }
 
+    @Override
+    public void shuffleQueue() {
+        ArrayList<Piosenka> piosenki = new ArrayList<>(getKolejka());
+        kolejka.clear();
+        Collections.shuffle(piosenki);
+        kolejka.addAll(piosenki);
+    }
+
     static class Listener extends PlayerEventListenerAdapter {
 
         private final NowyManagerMuzykiSerwera mms;
@@ -343,7 +362,7 @@ public class NowyManagerMuzykiSerwera implements ManagerMuzykiSerwera {
         public void onTrackStart(IPlayer player, AudioTrack track) {
             if (mms.repeatMode != RepeatMode.OFF) return;
             mms.announceChannel.sendMessage(new MessageBuilder(mms.tlumaczenia.get(mms.getAktualnaPiosenka().getRequesterLanguage(), "play.playing",
-                    mms.getAktualnaPiosenka().getAudioTrack().getInfo().title, mms.getAktualnaPiosenka().getRequester())).stripMentions(mms.guild).build()).queue();
+                    mms.getAktualnaPiosenka().getAudioTrack().getInfo().title, mms.getAktualnaPiosenka().getRequester())).build()).queue();
             try {
                 String muzycznyKanal = mms.guildDao.get(mms.guild).getKanalMuzyczny();
                 TextChannel ch = mms.guild.getTextChannelById(muzycznyKanal);

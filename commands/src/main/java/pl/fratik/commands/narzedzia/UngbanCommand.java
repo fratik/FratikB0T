@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,6 +42,7 @@ public class UngbanCommand extends Command {
         permLevel = PermLevel.GADMIN;
         uzycie = new Uzycie("podmiot", "string", true);
         uzycieDelim = " ";
+        allowPermLevelChange = false;
     }
 
     @Override
@@ -55,7 +56,7 @@ public class UngbanCommand extends Command {
         if (user != null) gdata = gbanDao.get(user);
         if (gdata == null) throw new IllegalStateException("gdata == null");
         if (!gdata.isGbanned()) {
-            context.send(context.getTranslated("ungban.no.gban"));
+            context.reply(context.getTranslated("ungban.no.gban"));
             return false;
         }
         if (user != null) {
@@ -65,7 +66,7 @@ public class UngbanCommand extends Command {
             gdata.setName(null);
             gdata.setReason(null);
             gbanDao.save(gdata);
-            context.send(context.getTranslated("ungban.success.user", UserUtil.formatDiscrim(user)));
+            context.reply(context.getTranslated("ungban.success.user", UserUtil.formatDiscrim(user)));
             return true;
         }
         gdata.setGbanned(false);
@@ -74,7 +75,7 @@ public class UngbanCommand extends Command {
         gdata.setName(null);
         gdata.setReason(null);
         gbanDao.save(gdata);
-        context.send(context.getTranslated("ungban.success.guild", guild));
+        context.reply(context.getTranslated("ungban.success.guild", guild));
         return true;
     }
 }

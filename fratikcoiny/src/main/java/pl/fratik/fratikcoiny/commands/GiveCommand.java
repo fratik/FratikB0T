@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,6 +44,7 @@ public class GiveCommand extends Command {
         uzycie = new Uzycie(hmap, new boolean[] {true, true});
         uzycieDelim = " ";
         aliases = new String[] {"daj", "dk", "dajmukase", "dajmutrochekasy", "dajmumojakase", "pay"};
+        allowPermLevelChange = false;
     }
 
     @Override
@@ -53,18 +54,18 @@ public class GiveCommand extends Command {
         MemberConfig od = memberDao.get(context.getMember());
         MemberConfig kurwaDo = memberDao.get(komu);
         if (od.getFratikCoiny() < ile) {
-            context.send(context.getTranslated("give.no.money"));
+            context.reply(context.getTranslated("give.no.money"));
             return false;
         }
         if (context.getSender().getId().contains(komu.getUser().getId())) {
-            context.send(context.getTranslated("give.no.self"));
+            context.reply(context.getTranslated("give.no.self"));
             return false;
         }
         od.setFratikCoiny(od.getFratikCoiny() - ile);
         kurwaDo.setFratikCoiny(kurwaDo.getFratikCoiny() + ile);
         memberDao.save(od);
         memberDao.save(kurwaDo);
-        context.send(context.getTranslated("give.success"));
+        context.reply(context.getTranslated("give.success"));
         return true;
     }
 }

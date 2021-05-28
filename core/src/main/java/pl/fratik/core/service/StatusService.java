@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,14 +22,15 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.OnlineStatus;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.SelfUser;
 import net.dv8tion.jda.api.sharding.ShardManager;
+import pl.fratik.core.Globals;
 import pl.fratik.core.Statyczne;
 import pl.fratik.core.Ustawienia;
 
 import java.text.SimpleDateFormat;
+import java.util.Collections;
 import java.util.Date;
-import java.util.Objects;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -37,7 +38,8 @@ public class StatusService extends AbstractScheduledService {
 
     private static ShardManager shardManager;
     private int last = 0;
-    private static Activity customGame;
+    private static int customLast = 0;
+    private static Activity[] customGames;
     private static OnlineStatus customStatus;
 
     @SuppressWarnings("squid:S3010")
@@ -48,50 +50,26 @@ public class StatusService extends AbstractScheduledService {
     @Override
     protected void runOneIteration() {
         Ustawienia ustawienia = Ustawienia.instance;
-        if (customGame != null && customStatus != null) shardManager.setPresence(customStatus, customGame);
+        if ((customGames != null && customGames.length != 0) && customStatus != null) {
+            if (customLast >= customGames.length) customLast = 0;
+            shardManager.setPresence(customStatus, customGames[customLast]);
+            customLast++;
+        }
         else if (!checkDates()) setPresence(ustawienia);
     }
 
     private boolean checkDates() {
         SimpleDateFormat sdf = new SimpleDateFormat("ddMM");
         String data = sdf.format(new Date());
-        SelfUser selfUser = Objects.requireNonNull(shardManager.getShardById(0)).getSelfUser();
         int rok = Integer.parseInt(new SimpleDateFormat("yyyy").format(new Date()));
-        if (data.equals("1201")) {
-            if (!(selfUser.getName().startsWith("\uD83C\uDF89 ") && selfUser.getName().endsWith(" \uD83C\uDF89")))
-                selfUser.getManager().setName("\uD83C\uDF89 " + selfUser.getName() + " \uD83C\uDF89").complete();
-            shardManager.setActivity(Activity.watching("fratika świętującego swoje " + (rok - 2005) + " urodziny!"));
-            return true;
-        }
-        if (data.equals("1301")) {
-            if (selfUser.getName().startsWith("\uD83C\uDF89 ") && selfUser.getName().endsWith(" \uD83C\uDF89"))
-                selfUser.getManager().setName(selfUser.getName().replace("\uD83C\uDF89 ", "")
-                        .replace(" \uD83C\uDF89", "")).complete();
-            return false;
-        }
-        if (data.equals("2207")) {
-            if (!(selfUser.getName().startsWith("\uD83C\uDF89 ") && selfUser.getName().endsWith(" \uD83C\uDF89")))
-                selfUser.getManager().setName("\uD83C\uDF89 " + selfUser.getName() + " \uD83C\uDF89").complete();
-            shardManager.setActivity(Activity.watching("siebie świętującego swoje " + (rok - 2017) + " urodziny!"));
-            return true;
-        }
-        if (data.equals("2307")) {
-            if (selfUser.getName().startsWith("\uD83C\uDF89 ") && selfUser.getName().endsWith(" \uD83C\uDF89"))
-                selfUser.getManager().setName(selfUser.getName().replace("\uD83C\uDF89 ", "")
-                        .replace(" \uD83C\uDF89", "")).complete();
-            return false;
-        }
         if (data.equals("2412")) {
-            if (!(selfUser.getName().startsWith("\uD83C\uDF84 ") && selfUser.getName().endsWith(" \uD83C\uDF84")))
-                selfUser.getManager().setName("\uD83C\uDF84 " + selfUser.getName() + " \uD83C\uDF84").complete();
             shardManager.setActivity(Activity.playing("Wesołych świąt!"));
             return true;
         }
-        if (data.equals("2712")) {
-            if (selfUser.getName().startsWith("\uD83C\uDF84 ") && selfUser.getName().endsWith(" \uD83C\uDF84"))
-                selfUser.getManager().setName(selfUser.getName().replace("\uD83C\uDF84 ", "")
-                        .replace(" \uD83C\uDF84", "")).complete();
-            return false;
+        if (Globals.clientId != 338359366891732993L) return false;
+        if (data.equals("2207")) {
+            shardManager.setActivity(Activity.watching("siebie świętującego swoje " + (rok - 2017) + " urodziny!"));
+            return true;
         }
         return false;
     }
@@ -118,7 +96,7 @@ public class StatusService extends AbstractScheduledService {
         AtomicInteger res = new AtomicInteger();
         shardManager.getShards().forEach(jda -> {
             for (Guild g : jda.getGuilds()) {
-                res.addAndGet(g.getMembers().size());
+                res.addAndGet(g.getMemberCount());
             }
         });
         return res.intValue();
@@ -127,20 +105,38 @@ public class StatusService extends AbstractScheduledService {
     private int fetchUserCount(JDA jda) {
         AtomicInteger res = new AtomicInteger();
         for (Guild g : jda.getGuilds()) {
-            res.addAndGet(g.getMembers().size());
+            res.addAndGet(g.getMemberCount());
         }
         return res.intValue();
     }
 
     public static void setCustomGame(Activity customGame) {
-        if (customGame == null) setCustomPresence(null, null);
-        else setCustomPresence(OnlineStatus.ONLINE, customGame);
+        setCustomPresence(OnlineStatus.ONLINE, customGame);
+    }
+
+    public static void setCustomGames(List<Activity> customGame) {
+        setCustomPresences(OnlineStatus.ONLINE, customGame);
+    }
+
+    public static void setCustomGames(Activity... customGame) {
+        setCustomPresences(OnlineStatus.ONLINE, customGame);
     }
 
     public static void setCustomPresence(OnlineStatus status, Activity customGame) {
-        StatusService.customGame = customGame;
+        setCustomPresences(status, customGame == null ? null : Collections.singletonList(customGame));
+    }
+
+    public static void setCustomPresences(OnlineStatus status, List<Activity> customGame) {
+        setCustomPresences(status, customGame == null ? null : customGame.toArray(new Activity[0]));
+    }
+
+    public static void setCustomPresences(OnlineStatus status, Activity... customGames) {
+        if (customGames == null) customGames = new Activity[0];
         StatusService.customStatus = status;
-        shardManager.setPresence(status, customGame);
+        StatusService.customGames = customGames.length == 0 || (customGames.length == 1 && customGames[0] == null) ? null : customGames;
+        customLast = 0;
+        shardManager.setPresence(status == null ? OnlineStatus.ONLINE : status, customGames.length > 0 ? customGames[0] : null);
+        customLast++;
     }
 
     @Override

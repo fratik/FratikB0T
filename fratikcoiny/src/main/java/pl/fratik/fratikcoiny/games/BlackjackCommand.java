@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,18 +46,19 @@ public class BlackjackCommand extends Command {
         uzycie = new Uzycie("zakład", "long", true);
         aliases = new String[] {"bj", "zagrajwblackjack", "zagrajwbj"};
         permissions.add(Permission.MESSAGE_EXT_EMOJI);
+        allowPermLevelChange = false;
     }
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
         if (locki.contains(context.getSender().getId())) {
-            context.send(context.getTranslated("blackjack.in.progress"));
+            context.reply(context.getTranslated("blackjack.in.progress"));
             return false;
         }
         MemberConfig mc = memberDao.get(context.getMember());
         long zaklad = (Long) context.getArgs()[0];
-        if (mc.getFratikCoiny() < zaklad) {
-            context.send(context.getTranslated("blackjack.no.money"));
+        if (zaklad == 0 || mc.getFratikCoiny() < zaklad) {
+            context.reply(context.getTranslated("blackjack.no.money"));
             return false;
         }
         locki.add(context.getSender().getId());

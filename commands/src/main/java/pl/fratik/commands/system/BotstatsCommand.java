@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,8 +46,9 @@ public class BotstatsCommand extends Command {
         category = CommandCategory.SYSTEM;
         permLevel = PermLevel.EVERYONE;
         this.shardManager = shardManager;
-        aliases = new String[] {"cosobocie", "statyfratikb0ta"};
+        aliases = new String[] {"statyfratikb0ta", "botinfo"};
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
+        allowPermLevelChange = false;
     }
 
     @Override
@@ -80,7 +81,7 @@ public class BotstatsCommand extends Command {
                 // nic XD
             }
         }
-        context.send(eb.build());
+        context.reply(eb.build());
         return true;
     }
 

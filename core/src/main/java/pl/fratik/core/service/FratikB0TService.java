@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,7 +27,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.entity.GbanDao;
 import pl.fratik.core.entity.GuildDao;
-import pl.fratik.core.manager.*;
+import pl.fratik.core.manager.ManagerBazyDanych;
+import pl.fratik.core.manager.ManagerKomend;
+import pl.fratik.core.manager.ManagerModulow;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.EventWaiter;
 import pl.fratik.core.util.GuildUtil;

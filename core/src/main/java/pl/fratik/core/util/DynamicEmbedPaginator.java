@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@ import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
 import net.dv8tion.jda.api.exceptions.PermissionException;
+import net.dv8tion.jda.api.requests.restaction.MessageAction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.event.PluginMessageEvent;
@@ -45,22 +46,23 @@ public class DynamicEmbedPaginator implements EmbedPaginator {
     private static final String SHUFFLE_EMOJI = "\uD83D\uDD00";
     private static final String TRASH_EMOJI = "\uD83D\uDDD1";
 
-    private EventWaiter eventWaiter;
-    private List<FutureTask<EmbedBuilder>> pages;
+    private final EventWaiter eventWaiter;
+    private final List<FutureTask<EmbedBuilder>> pages;
     private final EventBus eventBus;
     private int pageNo = 1;
-    private Message message;
+    private volatile Message message;
     private Message doKtorej;
     private long messageId = 0;
-    private long userId;
-    private Language language;
-    private Tlumaczenia tlumaczenia;
+    private final long userId;
+    private final Language language;
+    private final Tlumaczenia tlumaczenia;
     private boolean customFooter;
     private boolean enableShuffle;
     private boolean enableDelett;
     private long timeout = 30;
     private boolean loading = true;
     private boolean ended = false;
+    private boolean preload = true;
     private static final String PMSTO = "moderation";
     private static final String PMZAADD = "znaneAkcje-add:";
     private static final ExecutorService mainExecutor = Executors.newFixedThreadPool(4);
@@ -71,6 +73,11 @@ public class DynamicEmbedPaginator implements EmbedPaginator {
     }
 
     public DynamicEmbedPaginator(EventWaiter eventWaiter, List<FutureTask<EmbedBuilder>> pages, User user, Language language, Tlumaczenia tlumaczenia, EventBus eventBus) {
+        this(eventWaiter, pages, user, language, tlumaczenia, eventBus, true);
+    }
+
+    public DynamicEmbedPaginator(EventWaiter eventWaiter, List<FutureTask<EmbedBuilder>> pages, User user, Language language, Tlumaczenia tlumaczenia, EventBus eventBus, boolean preload) {
+        this.preload = preload;
         this.eventWaiter = eventWaiter;
         this.pages = pages;
         this.eventBus = eventBus;
@@ -78,43 +85,36 @@ public class DynamicEmbedPaginator implements EmbedPaginator {
         this.userId = user.getIdLong();
         this.language = language;
         this.tlumaczenia = tlumaczenia;
-        mainExecutor.submit(() -> {
-            LOGGER.debug("Zaczynam pobieranie stron...");
-            ExecutorService executor = Executors.newFixedThreadPool(2, r -> {
-                SecurityManager s = System.getSecurityManager();
-                ThreadGroup group = (s != null) ? s.getThreadGroup() :
-                        Thread.currentThread().getThreadGroup();
-                Thread t = new Thread(group, r,
-                        "PageLoader-" + userId + "-" + messageId + "-" + pages.size() + "-pages" ,
-                        0);
-                if (t.isDaemon())
-                    t.setDaemon(false);
-                if (t.getPriority() != Thread.NORM_PRIORITY)
-                    t.setPriority(Thread.NORM_PRIORITY);
-                return t;
-            });
-            pages.forEach(executor::execute);
-            while (!pages.stream().allMatch(FutureTask::isDone)) {
-                try {
-                    if (ended) {
-                        pages.forEach(f -> f.cancel(true));
-                        break;
+        if (this.preload) {
+            mainExecutor.submit(() -> {
+                LOGGER.debug("Zaczynam pobieranie stron...");
+                ExecutorService executor = Executors.newFixedThreadPool(2, new NamedThreadFactory("PageLoader-" +
+                        userId + "-" + messageId + "-" + pages.size() + "-pages"));
+                pages.forEach(executor::execute);
+                while (!pages.stream().allMatch(FutureTask::isDone)) {
+                    try {
+                        if (ended) {
+                            pages.forEach(f -> f.cancel(true));
+                            break;
+                        }
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
                     }
-                    Thread.sleep(100);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
                 }
-            }
-            executor.shutdownNow();
-            setLoading(false);
-            LOGGER.debug("Gotowe!");
-        });
+                loaded();
+                executor.shutdownNow();
+                LOGGER.debug("Gotowe!");
+            });
+        } else loading = false;
     }
 
     @Override
-    public void create(MessageChannel channel) {
+    public void create(MessageChannel channel, String referenceMessageId) {
         try {
-            channel.sendMessage(render(1)).override(true).queue(msg -> {
+            MessageAction action = channel.sendMessage(render(1));
+            if (referenceMessageId != null) action = action.referenceById(referenceMessageId);
+            action.override(true).queue(msg -> {
                 message = msg;
                 messageId = msg.getIdLong();
                 if (pages.size() != 1) {
@@ -259,8 +259,9 @@ public class DynamicEmbedPaginator implements EmbedPaginator {
     }
 
     private MessageEmbed render(int page) {
-        Future<EmbedBuilder> pageEmbed = pages.get(page - 1);
+        FutureTask<EmbedBuilder> pageEmbed = pages.get(page - 1);
         EmbedBuilder eb;
+        if (!pageEmbed.isDone()) mainExecutor.submit(pageEmbed);
         try {
             if (page == 1) {
                 if (pageEmbed.get() == null) throw new IllegalStateException("pEmbed == null");
@@ -295,15 +296,15 @@ public class DynamicEmbedPaginator implements EmbedPaginator {
             throw new RuntimeException(e);
         }
         if (!customFooter) {
-            eb.setFooter(String.format("%s/%s", String.valueOf(page), String.valueOf(pages.size())), null);
-            if (loading) eb.setFooter(String.format("%s/%s", String.valueOf(page), String.valueOf(pages.size()))
+            eb.setFooter(String.format("%s/%s", page, pages.size()), null);
+            if (loading) eb.setFooter(String.format("%s/%s", page, pages.size())
                     + " ⌛", null);
         }
         else {
             String stopka = Objects.requireNonNull(eb.build().getFooter(),
                     "stopka jest null mimo customFooter").getText();
             if (stopka == null) throw new NullPointerException("tekst stopki jest null mimo customFooter");
-            eb.setFooter(String.format(stopka, String.valueOf(page), String.valueOf(pages.size())), null);
+            eb.setFooter(String.format(stopka, page, pages.size()), null);
             //noinspection ConstantConditions (ustawiamy ją wyżej)
             stopka = eb.build().getFooter().getText();
             if (loading) //noinspection ConstantConditions (ustawiamy tekst wyżej)
@@ -353,9 +354,12 @@ public class DynamicEmbedPaginator implements EmbedPaginator {
         return this;
     }
 
-    private void setLoading(boolean loading) {
-        this.loading = loading;
-        if (message != null) message.editMessage(render(pageNo)).override(true).queue();
+    private void loaded() {
+        this.loading = false;
+        long waitUntil = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(5);
+        //noinspection StatementWithEmptyBody
+        while (message == null && System.currentTimeMillis() < waitUntil); // czekamy aż będzie wiadomość, max 5s
+        message.editMessage(render(pageNo)).override(true).queue();
     }
 
     private static class LoadingException extends RuntimeException {

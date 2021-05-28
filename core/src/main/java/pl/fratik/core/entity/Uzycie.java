@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,11 +37,7 @@ public class Uzycie {
     }
 
     public Uzycie(String key, String value) {
-        if (managerArgumentow == null) throw new RuntimeException("managerArgumentów nie może być null!");
-        Argument arg = managerArgumentow.getArguments().get(value);
-        if (arg == null) throw new IllegalArgumentException(NIZNAR + value);
-
-        arguments.put(key, new ParsedArgument(arg, false, false));
+        this(key, value, false);
     }
 
     public Uzycie(String key, String value, boolean required) {

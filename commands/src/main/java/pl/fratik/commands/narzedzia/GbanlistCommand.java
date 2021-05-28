@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -57,13 +57,14 @@ public class GbanlistCommand extends Command {
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         permissions.add(Permission.MESSAGE_MANAGE);
         permissions.add(Permission.MESSAGE_ADD_REACTION);
+        allowPermLevelChange = false;
     }
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
         List<GbanData> gdataList = gbanDao.getAll();
         List<FutureTask<EmbedBuilder>> pages = new ArrayList<>();
-        Message m = context.send(context.getTranslated("generic.loading"));
+        Message m = context.reply(context.getTranslated("generic.loading"));
         for (GbanData gdata : gdataList) {
             if (!gdata.isGbanned()) continue;
             pages.add(new FutureTask<>(() -> {
@@ -100,7 +101,7 @@ public class GbanlistCommand extends Command {
             }));
         }
         if (pages.isEmpty()) {
-            context.send(context.getTranslated("gbanlist.empty"));
+            context.reply(context.getTranslated("gbanlist.empty"));
             return false;
         }
         new DynamicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(), context.getTlumaczenia(), eventBus).create(m);

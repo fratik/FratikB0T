@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,12 +25,13 @@ import pl.fratik.core.command.CommandContext;
 public class DonateCommand extends Command {
     public DonateCommand() {
         name = "donate";
-        category = CommandCategory.SYSTEM;
+        category = CommandCategory.BASIC;
+        allowPermLevelChange = false;
     }
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
-        context.send(context.getTranslated("donate.plz"));
+        context.reply(context.getTranslated("donate.plz"));
         return true;
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,19 +17,21 @@
 
 package pl.fratik.core.tlumaczenia;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.base.Charsets;
 import com.google.common.eventbus.Subscribe;
 import io.sentry.Sentry;
 import io.sentry.event.Event;
 import io.sentry.event.EventBuilder;
 import lombok.Getter;
+import lombok.Setter;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.sharding.ShardManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pl.fratik.core.cache.Cache;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.UserConfig;
@@ -43,21 +45,21 @@ import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.TimeUnit;
 
 public class Tlumaczenia {
     private final UserDao userDao;
     private final GuildDao guildDao;
     private final Logger logger;
     @Getter private Map<Language, Properties> languages;
-    private final Cache<String, Language> languageCache;
+    private final Cache<Language> languageCache;
     private static final String NOTTRA = " nie jest przetłumaczone!";
+    @Getter @Setter private static ShardManager shardManager;
 
-    public Tlumaczenia(UserDao userDao, GuildDao guildDao) {
+    public Tlumaczenia(UserDao userDao, GuildDao guildDao, RedisCacheManager redisCacheManager) {
         this.userDao = userDao;
         this.guildDao = guildDao;
         logger = LoggerFactory.getLogger(getClass());
-        languageCache = Caffeine.newBuilder().expireAfterWrite(5, TimeUnit.MINUTES).maximumSize(1000).build();
+        languageCache = redisCacheManager.new CacheRetriever<Language>(){}.getCache();
     }
 
     public void loadMessages() {
@@ -91,41 +93,39 @@ public class Tlumaczenia {
 
     public String get(Language l, String key) {
         String property;
-        if (languages.containsKey(l))
-            property = languages.get(l).getProperty(key, languages.get(Language.POLISH).getProperty(key, key));
-        else property = languages.get(Language.POLISH).getProperty(key, key);
+        if (languages.containsKey(l)) {
+            property = languages.get(l).getProperty(key);
+            if (property == null) {
+                property = languages.get(Language.POLISH).getProperty(key, key);
+                if (property.equals(languages.get(Language.POLISH)
+                        .getProperty("translation.empty", "translation.empty")))
+                    property = "";
+            }
+        } else {
+            property = languages.get(Language.POLISH).getProperty(key, key);
+            if (property.equals(languages.get(Language.POLISH)
+                    .getProperty("translation.empty", "translation.empty"))) property = "";
+        }
         if (property.equals(key))
             Sentry.capture(new EventBuilder().withLevel(Event.Level.WARNING).withMessage(key + NOTTRA).build());
         if (property.equals(languages.getOrDefault(l, languages.get(Language.POLISH))
                 .getProperty("translation.empty", languages.get(Language.POLISH)
-                .getProperty("translation.empty", "translation.empty")))) {
+                .getProperty("translation.empty", "translation.empty"))) ||
+                property.equals(languages.get(Language.POLISH)
+                        .getProperty("translation.empty", "translation.empty"))) {
             property = "";
         }
         return property;
     }
 
     public String get(Language l, String key, String ...toReplace) {
-        String property;
-        if (languages.containsKey(l))
-            property = languages.get(l).getProperty(key, languages.get(Language.POLISH).getProperty(key, key));
-        else property = languages.get(Language.POLISH).getProperty(key, key);
-        if (property.equals(key))
-            Sentry.capture(new EventBuilder().withLevel(Event.Level.WARNING).withMessage(key + NOTTRA).build());
-        return String.format(property, (Object[]) toReplace);
+        return String.format(get(l, key), (Object[]) toReplace);
     }
 
     public String get(Language l, String key, Object ...toReplace) {
-        String property;
-        if (languages.containsKey(l))
-            property = languages.get(l).getProperty(key, languages.get(Language.POLISH).getProperty(key, key));
-        else property = languages.get(Language.POLISH).getProperty(key, key);
-        if (property.equals(key))
-            Sentry.capture(new EventBuilder().withLevel(Event.Level.WARNING).withMessage(key + NOTTRA).build());
         ArrayList<String> parsedArray = new ArrayList<>();
-        for (Object k : toReplace) {
-            parsedArray.add(k.toString());
-        }
-        return String.format(property, parsedArray.toArray());
+        for (Object k : toReplace) parsedArray.add(k.toString());
+        return String.format(get(l, key), parsedArray.toArray());
     }
 
     public Language getLanguage(Guild guild) {

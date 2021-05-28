@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -70,11 +70,21 @@ public class UserArgument extends Argument {
     @Override
     public User execute(String argument, Tlumaczenia tlumaczenia, Language language) {
         try {
-            if (shardManager.getUserById(argument) != null)
-                return shardManager.getUserById(argument);
+            try { //NOSONAR
+                if (shardManager.retrieveUserById(argument).complete() != null)
+                    return shardManager.retrieveUserById(argument).complete();
+            } catch (Exception e1) {
+                // nic
+            }
             Matcher matcher = MENTION_REGEX.matcher(argument);
             if (matcher.matches()) {
-                return shardManager.retrieveUserById(matcher.group()).complete();
+                return shardManager.retrieveUserById(matcher.group(1)).complete();
+            }
+            Matcher matcher1 = TAG_REGEX.matcher(argument);
+            if (matcher1.matches()) {
+                List<User> ul = shardManager.getUsers().stream().filter(u -> u.getAsTag().equals(matcher1.group(1)))
+                        .collect(Collectors.toList());
+                if (ul.size() == 1) return ul.get(0);
             }
         } catch (Exception ignored) {
             /*lul*/

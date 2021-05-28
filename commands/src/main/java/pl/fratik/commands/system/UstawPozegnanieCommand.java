@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@ import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
+import pl.fratik.core.command.PermLevel;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Uzycie;
@@ -38,13 +39,13 @@ public class UstawPozegnanieCommand extends Command {
         this.guildDao = guildDao;
         name = "ustawpozegnanie";
         category = CommandCategory.SYSTEM;
+        permLevel = PermLevel.ADMIN;
         LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
         hmap.put("kanalDoPozegnan", "channel");
         hmap.put("tekst", "string");
         hmap.put("[...]", "string");
         uzycie = new Uzycie(hmap, new boolean[] {true, false, false});
         uzycieDelim = " ";
-        aliases = new String[] {"ustawpozegnanie"};
     }
 
     @Override
@@ -54,23 +55,23 @@ public class UstawPozegnanieCommand extends Command {
         if (context.getMessage().getContentRaw().contains("--delete")) {
             String usunieto = gc.getPozegnania().remove(((GuildChannel) context.getArgs()[0]).getId());
             if (usunieto == null) {
-                context.send(context.getTranslated("ustawpozegnanie.delete.failure"));
+                context.reply(context.getTranslated("ustawpozegnanie.delete.failure"));
                 return false;
             }
-            context.send(context.getTranslated("ustawpozegnanie.delete.success"));
+            context.reply(context.getTranslated("ustawpozegnanie.delete.success"));
             guildDao.save(gc);
             return true;
         }
         if (context.getArgs().length > 1 && context.getArgs()[1] != null)
             tekst = Arrays.stream(Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length))
-                    .map(Object::toString).collect(Collectors.joining(uzycieDelim));
+                    .map(o -> o == null ? "" : o.toString()).collect(Collectors.joining(uzycieDelim));
         else {
             CommonErrors.usage(context);
             return false;
         }
         gc.getPozegnania().put(((GuildChannel) context.getArgs()[0]).getId(), tekst);
         guildDao.save(gc);
-        context.send(context.getTranslated("ustawpozegnanie.response"));
+        context.reply(context.getTranslated("ustawpozegnanie.response"));
         return true;
     }
 }

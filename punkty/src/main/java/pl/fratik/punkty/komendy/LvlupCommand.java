@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,12 +39,13 @@ public class LvlupCommand extends Command {
         name = "lvlup";
         aliases = new String[] {"pktNaPoziom", "getPoziom", "zaIleLevelUp", "kiedyNastepnyPoziom", "ilePunktowNaPoziom"};
         category = CommandCategory.POINTS;
+        allowPermLevelChange = false;
     }
 
     @Override
     public boolean execute(@NotNull @Nonnull CommandContext context) {
         if (!licznik.punktyWlaczone(context.getGuild())) {
-            context.send(context.getTranslated("punkty.off"));
+            context.reply(context.getTranslated("punkty.off"));
             return false;
         }
         Member mem = context.getMember();
@@ -76,7 +77,7 @@ public class LvlupCommand extends Command {
         }
 
         if (lvl != null && lvl > 1000) {
-            context.send(context.getTranslated("lvlup.integer.toobig"));
+            context.reply(context.getTranslated("lvlup.integer.toobig"));
             return false;
         }
 
@@ -87,14 +88,14 @@ public class LvlupCommand extends Command {
         String zostalo = NumberFormat.getNumberInstance(context.getLanguage().getLocale()).format(zostaloRaw);
 
         if (!context.getMember().equals(mem)) {
-            if (zostaloRaw <= 0) context.send(context.getTranslated("lvlup.response.lower.his", lvl,
+            if (zostaloRaw <= 0) context.reply(context.getTranslated("lvlup.response.lower.his", lvl,
                     UserUtil.formatDiscrim(mem), kalkulejted));
-            else context.send(context.getTranslated("lvlup.response.higher.his", lvl, UserUtil.formatDiscrim(mem),
+            else context.reply(context.getTranslated("lvlup.response.higher.his", lvl, UserUtil.formatDiscrim(mem),
                     kalkulejted, zostalo));
             return true;
         }
-        if (zostaloRaw <= 0) context.send(context.getTranslated("lvlup.response.lower.self", lvl, kalkulejted));
-        else context.send(context.getTranslated("lvlup.response.higher.self", lvl, kalkulejted, zostalo));
+        if (zostaloRaw <= 0) context.reply(context.getTranslated("lvlup.response.lower.self", lvl, kalkulejted));
+        else context.reply(context.getTranslated("lvlup.response.higher.self", lvl, kalkulejted, zostalo));
         return true;
     }
 }

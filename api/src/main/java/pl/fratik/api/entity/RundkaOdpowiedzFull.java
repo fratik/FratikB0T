@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,6 +35,12 @@ public class RundkaOdpowiedzFull implements RundkaOdpowiedz {
     private final Boolean aktywnoscFdev;
     private final String dlaczegoGa;
     private final String dlaczegoWybrac;
+    private final String roleZaPoziom;
+    private final String naprawaStarboard;
+    private final Integer znajomosc;
+    private final String problemPodczasPopa;
+    private final String coRobiLanguage;
+    private final String wylaczeniePunktow;
     private String messageId;
     private Oceny oceny;
 }

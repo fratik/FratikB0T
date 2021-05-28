@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,12 +31,13 @@ public class RzutKosciaCommand extends Command {
         name = "rzutkoscia";
         category = CommandCategory.FUN;
         aliases = new String[] {"rzutk", "kostka", "rk", "rool", "roll"};
+        allowPermLevelChange = false;
     }
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
-        context.send(context.getTranslated("rzutkoscia.response", "\uD83D\uDC4C", context.getSender().getAsMention(),
-                String.valueOf(random.nextInt(6) + 1)));
+        context.reply(context.getTranslated("rzutkoscia.response", context.getSender().getAsMention(),
+                String.valueOf(random.nextInt(6) + 1), "\uD83D\uDC4C"));
         return true;
     }
 }

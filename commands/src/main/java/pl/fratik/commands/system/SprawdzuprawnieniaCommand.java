@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,6 +40,7 @@ public class SprawdzuprawnieniaCommand extends Command {
         uzycie = new Uzycie("kanal", "channel", false);
         aliases = new String[] {"sprawdzpermy"};
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
+        allowPermLevelChange = false;
     }
 
     private static final List<Permission> perms;
@@ -57,10 +58,10 @@ public class SprawdzuprawnieniaCommand extends Command {
     public boolean execute(@NotNull CommandContext context) {
         TextChannel kanal;
         if (context.getArgs().length == 1 && context.getArgs()[0] != null) kanal = (TextChannel) context.getArgs()[0];
-        else kanal = context.getChannel();
+        else kanal = context.getTextChannel();
         Member sm = context.getGuild().getSelfMember();
-        if (!sm.hasPermission(context.getChannel(), Permission.MESSAGE_EMBED_LINKS)) {
-            context.send(context.getTranslated("sprawdzuprawnienia.no.embed.perms"));
+        if (!sm.hasPermission(context.getTextChannel(), Permission.MESSAGE_EMBED_LINKS)) {
+            context.reply(context.getTranslated("sprawdzuprawnienia.no.embed.perms"));
             return false;
         }
         EmbedBuilder eb = new EmbedBuilder();
@@ -96,7 +97,7 @@ public class SprawdzuprawnieniaCommand extends Command {
         int procent = calculatePrecent(sm, kanal);
         eb.setFooter(procent + "%", null);
         eb.setColor(Color.decode(procent >= 50 ? "#00ff00" : procent >= 25 ? "#ffff00" : "#ff0000")); // NOSONAR
-        context.send(eb.build());
+        context.reply(eb.build());
         return true;
     }
 

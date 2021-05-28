@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,9 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import pl.fratik.core.entity.DatabaseEntity;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Table("starboard")
@@ -44,6 +46,7 @@ public class StarsData implements DatabaseEntity {
     private String starboardChannel = "";
     private String starEmoji = "\u2b50";
     private int starThreshold = 1;
+    private List<String> blacklista = new ArrayList<>();
 
     @Override
     @JsonIgnore

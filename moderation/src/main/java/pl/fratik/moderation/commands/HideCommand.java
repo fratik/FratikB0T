@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -51,18 +51,18 @@ public class HideCommand extends ModerationCommand {
         GuildConfig gc = guildDao.get(context.getGuild());
         if (gc.getAdminRole() == null || gc.getAdminRole().equals("") || (gc.getAdminRole() != null &&
                 !gc.getAdminRole().equals("") && context.getGuild().getRoleById(gc.getAdminRole()) == null)) {
-            context.send(context.getTranslated("hide.no.adminrole", managerKomend.getPrefixes(context.getGuild()).get(0)));
+            context.reply(context.getTranslated("hide.no.adminrole", managerKomend.getPrefixes(context.getGuild()).get(0)));
             return false;
         }
         Role adminRole = context.getGuild().getRoleById(gc.getAdminRole());
         if (adminRole == null) {
-            context.send(context.getTranslated("hide.no.adminrole", managerKomend.getPrefixes(context.getGuild()).get(0)));
+            context.reply(context.getTranslated("hide.no.adminrole", managerKomend.getPrefixes(context.getGuild()).get(0)));
             return false;
         }
-        PermissionOverrideAction overrides = context.getChannel().upsertPermissionOverride(context.getGuild().getPublicRole());
+        PermissionOverrideAction overrides = context.getTextChannel().upsertPermissionOverride(context.getGuild().getPublicRole());
         if (overrides.getDeniedPermissions().contains(Permission.VIEW_CHANNEL)) {
-            PermissionOverrideAction publicOverrides = context.getChannel().putPermissionOverride(context.getGuild().getPublicRole());
-            PermissionOverrideAction adminOverrides = context.getChannel().putPermissionOverride(adminRole);
+            PermissionOverrideAction publicOverrides = context.getTextChannel().putPermissionOverride(context.getGuild().getPublicRole());
+            PermissionOverrideAction adminOverrides = context.getTextChannel().putPermissionOverride(adminRole);
             List<Permission> publicDeny = Lists.newArrayList(publicOverrides.getDeniedPermissions());
             List<Permission> adminAllow = Lists.newArrayList(adminOverrides.getAllowedPermissions());
             publicDeny.remove(Permission.VIEW_CHANNEL);
@@ -70,13 +70,13 @@ public class HideCommand extends ModerationCommand {
             try {
                 publicOverrides.setDeny(publicDeny).complete();
                 adminOverrides.setAllow(adminAllow).complete();
-                context.send(context.getTranslated("hide.unhide.success"));
+                context.reply(context.getTranslated("hide.unhide.success"));
             } catch (Exception e) {
-                context.send(context.getTranslated("hide.unhide.fail"));
+                context.reply(context.getTranslated("hide.unhide.fail"));
             }
         } else {
-            PermissionOverrideAction publicOverrides = context.getChannel().putPermissionOverride(context.getGuild().getPublicRole());
-            PermissionOverrideAction adminOverrides = context.getChannel().putPermissionOverride(adminRole);
+            PermissionOverrideAction publicOverrides = context.getTextChannel().putPermissionOverride(context.getGuild().getPublicRole());
+            PermissionOverrideAction adminOverrides = context.getTextChannel().putPermissionOverride(adminRole);
             List<Permission> publicDeny = Lists.newArrayList(publicOverrides.getDeniedPermissions());
             List<Permission> adminAllow = Lists.newArrayList(adminOverrides.getAllowedPermissions());
             publicDeny.add(Permission.VIEW_CHANNEL);
@@ -84,9 +84,9 @@ public class HideCommand extends ModerationCommand {
             try {
                 publicOverrides.setDeny(publicDeny).complete();
                 adminOverrides.setAllow(adminAllow).complete();
-                context.send(context.getTranslated("hide.hide.success"));
+                context.reply(context.getTranslated("hide.hide.success"));
             } catch (Exception e) {
-                context.send(context.getTranslated("hide.hide.fail"));
+                context.reply(context.getTranslated("hide.hide.fail"));
             }
         }
         return true;

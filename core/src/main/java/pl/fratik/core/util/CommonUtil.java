@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,11 +20,16 @@ package pl.fratik.core.util;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageActivity;
+import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.sharding.ShardManager;
 import net.dv8tion.jda.internal.entities.AbstractMessage;
 import org.json.JSONObject;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.Ustawienia;
+import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandContext;
+import pl.fratik.core.tlumaczenia.Language;
+import pl.fratik.core.tlumaczenia.Tlumaczenia;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -33,6 +38,8 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.URLEncoder;
 import java.util.List;
 import java.util.*;
@@ -45,6 +52,13 @@ import java.util.regex.Pattern;
 public class CommonUtil {
 
     private CommonUtil() {}
+
+    public static final Pattern ID_REGEX = Pattern.compile("\\d{17,18}");
+    public static final Pattern URL_PATTERN = Pattern.compile("(http(s)?)://(www\\.)?([a-zA-Z0-9@:-]{1,256}\\.)+" +
+            "([a-z]{2,24})\\b([-a-zA-Z0-9@:%_+.~#?&/=]*)", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+    private static final Pattern IMAGE_PATTERN = Pattern.compile("(http(s)?)://(www\\.)?([a-zA-Z0-9@:-]{1,256}\\.)+" +
+            "([a-z]{2,24})\\b([-a-zA-Z0-9@:%_+.~#?&/=]*\\.(a?png|jpe?g|gif|webp|tiff|svg))", Pattern.CASE_INSENSITIVE);
+    private static final String BLOCK = "\u2589\uFE0F";
 
     public static boolean checkCooldown(Map<Guild, Long> cooldowns, CommandContext context, long time) {
         if (cooldowns != null) {
@@ -131,7 +145,7 @@ public class CommonUtil {
             JSONObject zdjecie = NetworkUtil.getJson(Ustawienia.instance.apiUrls.get("image-server") +
                             "/api/image/primColor?imageURL=" + URLEncoder.encode(url, "UTF-8"),
                     Ustawienia.instance.apiKeys.get("image-server"));
-            if (zdjecie == null) return new Color(114, 137, 218);
+            if (zdjecie == null) return null;
             int r = -1;
             int g = -1;
             int b = -1;
@@ -174,10 +188,60 @@ public class CommonUtil {
     }
 
     public static String getImageUrl(Message msg) {
-        Matcher matcher = Pattern.compile("[(http(s)?)://(www\\.)?a-zA-Z0-9@:%._\\+~#=]{2,256}\\.[a-z]{2,6" +
-                "}\\b([-a-zA-Z0-9@:%_\\+.~#?&//=]*)", Pattern.CASE_INSENSITIVE | Pattern.DOTALL).matcher(msg.getContentRaw());
-        if (matcher.matches()) return matcher.group();
-        if (!msg.getAttachments().isEmpty()) return msg.getAttachments().get(0).getUrl();
+        Matcher matcher = IMAGE_PATTERN.matcher(msg.getContentRaw());
+        if (matcher.find()) return matcher.group();
+        if (!msg.getAttachments().isEmpty() && msg.getAttachments().get(0).isImage())
+            return msg.getAttachments().get(0).getUrl();
         return null;
+    }
+
+    public static double round(double value, int scale, RoundingMode mode) {
+        BigDecimal bd = BigDecimal.valueOf(value);
+        bd = bd.setScale(scale, mode);
+        return bd.doubleValue();
+    }
+
+    public static String resolveName(Command cmd, Tlumaczenia t, Language l) {
+        String raw = t.get(l, cmd.getName() + ".help.name");
+        if (raw.isEmpty()) return cmd.getName();
+        else {
+            String[] aliasy = raw.toLowerCase().split("\\|");
+            if (aliasy[0].isEmpty()) return cmd.getName();
+            else return aliasy[0].trim();
+        }
+    }
+
+    public static boolean isPomoc(ShardManager shardManager, Guild g) {
+        TextChannel kanal = Objects.requireNonNull(shardManager.getGuildById(Ustawienia.instance.botGuild))
+                .getTextChannelById(Ustawienia.instance.popChannel);
+        if (kanal == null) throw new NullPointerException("nieprawidłowy popChannel");
+        List<Message> wiads = kanal.getHistory().retrievePast(50).complete();
+        for (Message mess : wiads) {
+            if (mess.getEmbeds().isEmpty()) continue;
+            //noinspection ConstantConditions
+            String id = mess.getEmbeds().get(0).getFooter().getText().split(" \\| ")[1];
+            if (id.equals(g.getId())) {
+                return true;
+            }
+        } return false;
+    }
+
+    private static String append(int ii) {
+        if (ii == 0) return "";
+        StringBuilder s2 = new StringBuilder();
+        for (int i = 1; i < ii; i++) { s2.append(BLOCK); }
+        return BLOCK + s2;
+    }
+
+    public static String generateProgressBar(int procent, boolean showPrecentage) {
+        int niebieskie = (int) (CommonUtil.round(procent, -1, RoundingMode.HALF_UP) / 10);
+        int biale = 10;
+        if (niebieskie != 10) {
+            biale -= niebieskie;
+        } else biale = 0;
+        String format = "[%s](%s)%s";
+        if (showPrecentage) format += " %s%%";
+        if (!showPrecentage) return String.format(format, append(niebieskie), Ustawienia.instance.botUrl, append(biale));
+        else return String.format(format, append(niebieskie), Ustawienia.instance.botUrl, append(biale), procent);
     }
 }

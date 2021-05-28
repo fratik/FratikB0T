@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,6 +39,7 @@ public class PowiadomOPomocyCommand extends Command {
         aliases = new String[] {"powiadompop"};
         category = CommandCategory.SYSTEM;
         permLevel = PermLevel.GADMIN;
+        allowPermLevelChange = false;
     }
 
     @Override
@@ -48,11 +49,11 @@ public class PowiadomOPomocyCommand extends Command {
         Member mem = fdev.getMember(context.getSender());
         if (Objects.requireNonNull(mem).getRoles().contains(rola)) {
             fdev.removeRoleFromMember(mem, Objects.requireNonNull(rola)).complete();
-            context.send(context.getTranslated("powiadomopomocy.success.removed"));
+            context.reply(context.getTranslated("powiadomopomocy.success.removed"));
             return false;
         }
         fdev.addRoleToMember(mem, Objects.requireNonNull(rola)).complete();
-        context.send(context.getTranslated("powiadomopomocy.success"));
+        context.reply(context.getTranslated("powiadomopomocy.success"));
         return true;
     }
 }

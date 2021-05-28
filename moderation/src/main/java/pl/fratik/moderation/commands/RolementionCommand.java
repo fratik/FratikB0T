@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@ package pl.fratik.moderation.commands;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Role;
+import net.dv8tion.jda.api.requests.restaction.MessageAction;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.command.PermLevel;
@@ -45,6 +46,7 @@ public class RolementionCommand extends ModerationCommand {
         hmap.put("[...]", "string");
         uzycie = new Uzycie(hmap, new boolean[] {true, false, false});
         uzycieDelim = " ";
+        aliases = new String[] {"mentionrole"};
     }
 
     @Override
@@ -56,10 +58,13 @@ public class RolementionCommand extends ModerationCommand {
                     .map(e -> e == null ? "" : e).map(Objects::toString).collect(Collectors.joining(uzycieDelim));
         else tekst = null;
         if (!context.getGuild().getSelfMember().canInteract(rola)) {
-            context.send(context.getTranslated("rolemention.hierarchy"));
+            context.reply(context.getTranslated("rolemention.hierarchy"));
             return false;
         }
         context.getMessage().delete().queue();
+
+        MessageAction msg = context.getTextChannel().sendMessage(rola.getAsMention()).mentionRoles(rola.getIdLong());
+
         if (tekst != null) {
             EmbedBuilder eb = new EmbedBuilder();
             eb.setAuthor(UserUtil.formatDiscrim(context.getSender()), null, context.getSender()
@@ -70,14 +75,11 @@ public class RolementionCommand extends ModerationCommand {
             else eb.setColor(UserUtil.getPrimColor(context.getSender()));
             boolean state = rola.isMentionable();
             rola.getManager().setMentionable(true).complete();
-            context.getChannel().sendMessage(rola.getAsMention()).embed(eb.build()).complete();
+            msg.embed(eb.build()).complete();
             rola.getManager().setMentionable(state).complete();
             return true;
         }
-        boolean state = rola.isMentionable();
-        rola.getManager().setMentionable(true).complete();
-        context.getChannel().sendMessage(rola.getAsMention()).complete();
-        rola.getManager().setMentionable(state).complete();
+        msg.complete();
         return true;
     }
 

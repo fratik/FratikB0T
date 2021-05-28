@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -51,11 +51,11 @@ public class SyncCommand extends Command {
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
-        Message message = context.send(context.getTranslated("sync.synchronizing"));
+        Message message = context.reply(context.getTranslated("sync.synchronizing"));
         GuildConfig gc = guildDao.get(context.getGuild());
         AtomicInteger udaloSieDla = new AtomicInteger();
         ArrayList<User> nieUdaloSie = new ArrayList<>();
-        for (Member member : context.getGuild().getMembers()) {
+        for (Member member : context.getGuild().loadMembers().get()) {
             int poziom = LicznikPunktow.calculateLvl(LicznikPunktow.getPunkty(member));
             List<Role> roleList = new ArrayList<>();
             gc.getRoleZaPoziomy().forEach((lvl, id) -> {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,6 +43,7 @@ public class ChooseCommand extends Command {
         hmap.put("[...]", STRINGARGTYPE);
         uzycie = new Uzycie(hmap, new boolean[] {true, true, false});
         aliases = new String[] {"chose", "wybierz", "choisi", "choisis", "losuj", "wylosuj", "losowanie", "pomozwybrac"};
+        allowPermLevelChange = false;
     }
 
     @Override
@@ -53,7 +54,7 @@ public class ChooseCommand extends Command {
             return false;
         }
         String odp = (String) odpowiedzi[random.nextInt(odpowiedzi.length)];
-        context.send(context.getTranslated("choose.choosing", "\uD83E\uDD14", StringUtil.escapeMarkdown(odp.trim())));
+        context.reply(context.getTranslated("choose.choosing", "\uD83E\uDD14", StringUtil.escapeMarkdown(odp.trim())));
         return true;
     }
 }

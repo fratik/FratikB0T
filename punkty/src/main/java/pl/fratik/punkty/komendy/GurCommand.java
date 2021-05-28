@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -52,12 +52,13 @@ public class GurCommand extends Command {
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         permissions.add(Permission.MESSAGE_MANAGE);
         permissions.add(Permission.MESSAGE_ADD_REACTION);
+        allowPermLevelChange = false;
     }
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
-        Message message = context.send(context.getTranslated("generic.loading"));
-        Map<String, Integer> licznikAlboCo = MapUtil.sortByValue(LicznikPunktow.getAllUserPunkty());
+        Message message = context.reply(context.getTranslated("generic.loading"));
+        Map<String, Integer> licznikAlboCo = MapUtil.sortByValueAsc(LicznikPunktow.getAllUserPunkty());
         List<EmbedBuilder> embedy = new ArrayList<>();
         licznikAlboCo.forEach((id, poziom) -> {
             EmbedBuilder eb = new EmbedBuilder();

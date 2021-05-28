@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -51,7 +51,7 @@ public class ZglosCommand extends ModerationCommand {
         hmap.put("powod", "string");
         hmap.put("[...]", "string");
         uzycie = new Uzycie(hmap, new boolean[] {true, true, false});
-        aliases = new String[] {"report"};
+        allowPermLevelChange = false;
     }
 
     @Override
@@ -59,6 +59,7 @@ public class ZglosCommand extends ModerationCommand {
         Member uzytkownik = (Member) context.getArgs()[0];
         String powod = Arrays.stream(Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length))
                 .map(e -> e == null ? "" : e).map(Objects::toString).collect(Collectors.joining(uzycieDelim));
+        context.getMessage().delete().queue();
         if (powod.isEmpty()) {
             context.send(context.getTranslated("zglos.no.reason"));
             return false;
@@ -89,18 +90,17 @@ public class ZglosCommand extends ModerationCommand {
             context.send(context.getTranslated("zglos.invalid.admin.channel"));
             return false;
         }
-        context.getMessage().delete().queue();
         try {
             channel.sendMessage(context.getTranslated("zglos.admin.message",
                     UserUtil.formatDiscrim(context.getSender()), context.getSender().getId(), powod,
                     UserUtil.formatDiscrim(uzytkownik), uzytkownik.getUser().getId(),
                     context.getPrefix(), uzytkownik.getUser().getId())).complete();
         } catch (Exception e) {
-            context.getChannel().sendMessage(context.getTranslated("zglos.failure"))
+            context.getTextChannel().sendMessage(context.getTranslated("zglos.failure"))
                     .queueAfter(5, TimeUnit.SECONDS);
             return false;
         }
-        context.getChannel().sendMessage(context.getTranslated("zglos.confirmation"))
+        context.getTextChannel().sendMessage(context.getTranslated("zglos.confirmation"))
                 .queueAfter(5, TimeUnit.SECONDS);
         return true;
     }

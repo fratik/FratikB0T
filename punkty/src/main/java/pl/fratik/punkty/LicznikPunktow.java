@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,8 +17,7 @@
 
 package pl.fratik.punkty;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
+import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import io.sentry.Sentry;
@@ -28,11 +27,12 @@ import net.dv8tion.jda.api.sharding.ShardManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.Ustawienia;
+import pl.fratik.core.cache.Cache;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.UserConfig;
 import pl.fratik.core.entity.UserDao;
-import pl.fratik.core.event.DatabaseUpdateEvent;
 import pl.fratik.core.event.LvlupEvent;
 import pl.fratik.core.event.PluginMessageEvent;
 import pl.fratik.core.manager.ManagerKomend;
@@ -44,6 +44,7 @@ import pl.fratik.core.util.TimeUtil;
 import pl.fratik.core.util.UserUtil;
 import pl.fratik.punkty.entity.PunktyDao;
 import pl.fratik.punkty.entity.PunktyRow;
+import redis.clients.jedis.exceptions.JedisException;
 
 import java.io.IOException;
 import java.util.*;
@@ -73,9 +74,10 @@ public class LicznikPunktow {
             "[^\\s]{2,}|www\\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\\.[^\\s]{2,}|https?://(?:www\\.|(?!www))[a-zA-Z0-9]" +
             "\\.[^\\s]{2,}|www\\.[a-zA-Z0-9]\\.[^\\s]{2,})");
     private final Random random = new Random();
-    private static final Cache<String, ConcurrentHashMap<String, Integer>> cache = Caffeine.newBuilder().build();
-    private static final Cache<String, Boolean> punktyWlaczoneCache = Caffeine.newBuilder().build();
-    LicznikPunktow(GuildDao guildDao, UserDao userDao, PunktyDao punktyDao, ManagerKomend managerKomend, EventBus eventBus, Tlumaczenia tlumaczenia, ShardManager shardManager) {
+    private static Cache<ConcurrentHashMap<String, Integer>> cache;
+    private final Cache<GuildConfig> gcCache;
+    private final Cache<UserConfig> ucCache;
+    LicznikPunktow(GuildDao guildDao, UserDao userDao, PunktyDao punktyDao, ManagerKomend managerKomend, EventBus eventBus, Tlumaczenia tlumaczenia, ShardManager shardManager, RedisCacheManager redisCacheManager) {
         this.guildDao = guildDao;
         this.userDao = userDao;
         this.punktyDao = punktyDao;
@@ -86,10 +88,18 @@ public class LicznikPunktow {
         instance = this; //NOSONAR
         this.tlumaczenia = tlumaczenia;
         threadPool.scheduleWithFixedDelay(this::emptyCache, 5, 5, TimeUnit.MINUTES);
+        cache = redisCacheManager.new CacheRetriever<ConcurrentHashMap<String, Integer>>(){}.setCanHandleErrors(true).getCache(-1);
+        gcCache = redisCacheManager.new CacheRetriever<GuildConfig>(){}.getCache();
+        ucCache = redisCacheManager.new CacheRetriever<UserConfig>(){}.getCache();
     }
 
     public static int getPunkty(Member member) {
-        ConcurrentHashMap<String, Integer> mapa = LicznikPunktow.cache.getIfPresent(member.getGuild().getId());
+        ConcurrentHashMap<String, Integer> mapa;
+        try {
+            mapa = LicznikPunktow.cache.getIfPresent(member.getGuild().getId());
+        } catch (JedisException ex) {
+            mapa = null;
+        }
         if (mapa == null || mapa.get(member.getUser().getId()) == null) {
             PunktyRow pkt = LicznikPunktow.instance.punktyDao.get(member);
             return pkt.getPunkty();
@@ -98,7 +108,12 @@ public class LicznikPunktow {
     }
 
     private static int getPunkty(String userId, String guildId) {
-        ConcurrentHashMap<String, Integer> mapa = LicznikPunktow.cache.getIfPresent(guildId);
+        ConcurrentHashMap<String, Integer> mapa;
+        try {
+            mapa = LicznikPunktow.cache.getIfPresent(guildId);
+        } catch (JedisException e) {
+            mapa = null;
+        }
         if (mapa == null || mapa.get(userId) == null) {
             PunktyRow pkt = LicznikPunktow.instance.punktyDao.get(userId + "-" + guildId);
             return pkt.getPunkty();
@@ -123,7 +138,12 @@ public class LicznikPunktow {
         Map<String, Integer> dbDane = LicznikPunktow.instance.punktyDao.getTotalPoints(user);
         Map<String, Integer> sumaKoncowa = new HashMap<>();
         dbDane.forEach((idS, pkt) -> {
-            ConcurrentHashMap<String, Integer> daneZcache = LicznikPunktow.cache.getIfPresent(idS);
+            ConcurrentHashMap<String, Integer> daneZcache;
+            try {
+                daneZcache = LicznikPunktow.cache.getIfPresent(idS);
+            } catch (JedisException e) {
+                daneZcache = null;
+            }
             if (daneZcache == null || daneZcache.get(user.getId()) == null) {
                 sumaKoncowa.put(idS, pkt);
                 return;
@@ -134,7 +154,7 @@ public class LicznikPunktow {
     }
 
     public static Map<String, Integer> getAllUserPunkty() {
-        Map<String, Integer> dbDane = MapUtil.sortByValue(LicznikPunktow.instance.punktyDao.getAllUserPunkty());
+        Map<String, Integer> dbDane = MapUtil.sortByValueAsc(LicznikPunktow.instance.punktyDao.getAllUserPunkty());
         Map<String, Integer> fajnal = new HashMap<>();
         dbDane.forEach((id, pkt) -> {
             if (fajnal.size() != 10) fajnal.put(id, pkt);
@@ -143,7 +163,7 @@ public class LicznikPunktow {
     }
 
     public static Map<String, Integer> getAllGuildPunkty() {
-        Map<String, Integer> dbDane = MapUtil.sortByValue(LicznikPunktow.instance.punktyDao.getAllGuildPunkty());
+        Map<String, Integer> dbDane = MapUtil.sortByValueAsc(LicznikPunktow.instance.punktyDao.getAllGuildPunkty());
         Map<String, Integer> fajnal = new HashMap<>();
         dbDane.forEach((id, pkt) -> {
             if (fajnal.size() != 10) fajnal.put(id, pkt);
@@ -152,94 +172,112 @@ public class LicznikPunktow {
     }
 
     @Subscribe
+    @AllowConcurrentEvents
     public void onMessage(MessageReceivedEvent event) {
-        if (lock) {
-            log.debug("Lock włączony, nie podliczam punktów dla {} na {}", event.getAuthor(), event.getGuild());
-            return;
-        }
-        if (event.getAuthor().isBot() || event.getChannel().getType() != ChannelType.TEXT || !event.isFromGuild() ||
-                UserUtil.isGbanned(event.getAuthor()) || getCooldown(event.getMember()) ||
-                !punktyWlaczone(event.getGuild())) {
-            if (UserUtil.isGbanned(event.getAuthor())) log.debug("{} jest zgbanowany, nie liczę punktu",
-                    event.getAuthor());
-            else if (event.getAuthor().isBot()) log.debug("{} jest botem, nie liczę punktu", event.getAuthor());
-            else if (event.getChannel().getType() != ChannelType.TEXT || !event.isFromGuild())
+        try {
+            if (event.getChannel().getType() != ChannelType.TEXT || !event.isFromGuild()) {
                 log.debug("Kanał gdzie {} napisał nie jest kanałem tekstowym, nie liczę punktu", event.getAuthor());
-            else if (getCooldown(event.getMember()))
-                log.debug("{} ({}) jest na cooldownie!", event.getAuthor(), event.getGuild());
-            else if (!punktyWlaczone(event.getGuild()))
-                log.debug("Punkty na serwerze {} są wyłączone", event.getGuild());
-            return;
-        }
-        ConcurrentHashMap<String, Integer> mapa = cache.getIfPresent(event.getGuild().getId());
-        if (mapa == null) {
-            log.debug("Nie znaleziono HashMapy dla {} w cache, biorę z DB", event.getAuthor());
-            PunktyRow pkt = punktyDao.get(event.getMember());
-            int punkty = pkt.getPunkty();
-            ConcurrentHashMap<String, Integer> hmap = new ConcurrentHashMap<>();
-            hmap.put(event.getAuthor().getId(), punkty);
-            log.debug("Wstawiam do cache: {} -> {} -> {}", event.getGuild(), event.getAuthor(), punkty);
-            cache.put(event.getGuild().getId(), hmap);
-            mapa = hmap;
-        }
-        Integer punktyRaw = mapa.get(event.getAuthor().getId());
-        int punkty = 0;
-        if (punktyRaw == null) {
-            log.debug("Nie znaleziono w hashmapie danych dla {}, biorę z DB", event.getAuthor());
-            PunktyRow pkt = punktyDao.get(event.getMember());
-            punkty = pkt.getPunkty();
-            mapa.put(event.getAuthor().getId(), punkty);
-            log.debug("Wstawiam do cache: {} -> {} -> {}", event.getGuild(), event.getAuthor(), punkty);
-            cache.put(event.getGuild().getId(), mapa);
-        }
-        if (punktyRaw != null) punkty = punktyRaw;
-        int lvlOld = calculateLvl(punkty, 0);
-        int przyrost = 1;
-        if (!event.getMessage().getAttachments().isEmpty())
-            przyrost = getPktFromFileSize(event.getMessage().getAttachments().get(0).getSize());
-        Matcher matcher = URLPATTERN.matcher(event.getMessage().getContentRaw());
-        if (matcher.find()) {
-            String url = matcher.group();
-            try {
-                String rawHeader;
-                if (url.startsWith("http")) rawHeader = NetworkUtil.headRequest(url).header("Content-Length");
-                else {
-                    log.debug("{} ({}): znaleziono url {}, ignoruje przez brak protokołu", event.getAuthor(), event.getGuild(), url);
-                    rawHeader = null;
-                }
-                if (rawHeader == null) {
-                    log.debug("{} ({}): znaleziono url {}, content-length nieznany", event.getAuthor(), event.getGuild(), url);
-                } else {
-                    log.debug("{} ({}): znaleziono url {}, content-length: {}", event.getAuthor(), event.getGuild(), url, rawHeader);
-                    int byteLength = Integer.parseInt(rawHeader);
-                    przyrost = getPktFromFileSize(byteLength);
-                }
-            } catch (IOException e) {
-                log.debug("{} ({}): znaleziono url {}, nie udało się połączyć", event.getAuthor(), event.getGuild(), url);
+                return;
             }
+            if (lock) {
+                log.debug("Lock włączony, nie podliczam punktów dla {} na {}", event.getAuthor(), event.getGuild());
+                return;
+            }
+            if (event.getAuthor().isBot() || UserUtil.isGbanned(event.getAuthor()) || getCooldown(event.getMember()) ||
+                    !punktyWlaczone(event.getGuild()) || getNoLvlChannelChange(event.getGuild())
+                    .contains(event.getChannel().getId())) {
+                if (UserUtil.isGbanned(event.getAuthor())) log.debug("{} jest zgbanowany, nie liczę punktu",
+                        event.getAuthor());
+                else if (event.getAuthor().isBot()) log.debug("{} jest botem, nie liczę punktu", event.getAuthor());
+                else if (getCooldown(event.getMember()))
+                    log.debug("{} ({}) jest na cooldownie!", event.getAuthor(), event.getGuild());
+                else if (!punktyWlaczone(event.getGuild()))
+                    log.debug("Punkty na serwerze {} są wyłączone", event.getGuild());
+                else if (getNoLvlChannelChange(event.getGuild()).contains(event.getChannel().getId())) {
+                    log.debug("Naliczanie punktow na kanale {} ({}) jest wylaczone", event.getChannel(),
+                            event.getGuild());
+                }
+                return;
+            }
+            synchronized (this) {
+                ConcurrentHashMap<String, Integer> mapa = cache.getIfPresent(event.getGuild().getId());
+                if (mapa == null) {
+                    log.debug("Nie znaleziono HashMapy dla {} w cache, biorę z DB", event.getAuthor());
+                    PunktyRow pkt = punktyDao.get(event.getMember());
+                    int punkty = pkt.getPunkty();
+                    ConcurrentHashMap<String, Integer> hmap = new ConcurrentHashMap<>();
+                    hmap.put(event.getAuthor().getId(), punkty);
+                    log.debug("Wstawiam do cache: {} -> {} -> {}", event.getGuild(), event.getAuthor(), punkty);
+                    cache.put(event.getGuild().getId(), hmap);
+                    mapa = hmap;
+                }
+                Integer punktyRaw = mapa.get(event.getAuthor().getId());
+                int punkty = 0;
+                if (punktyRaw == null) {
+                    log.debug("Nie znaleziono w hashmapie danych dla {}, biorę z DB", event.getAuthor());
+                    PunktyRow pkt = punktyDao.get(event.getMember());
+                    punkty = pkt.getPunkty();
+                    mapa.put(event.getAuthor().getId(), punkty);
+                    log.debug("Wstawiam do cache: {} -> {} -> {}", event.getGuild(), event.getAuthor(), punkty);
+                    cache.put(event.getGuild().getId(), mapa);
+                }
+                if (punktyRaw != null) punkty = punktyRaw;
+                int lvlOld = calculateLvl(punkty, 0);
+                int przyrost = 1;
+                if (!event.getMessage().getAttachments().isEmpty())
+                    przyrost = getPktFromFileSize(event.getMessage().getAttachments().get(0).getSize());
+                Matcher matcher = URLPATTERN.matcher(event.getMessage().getContentRaw());
+                if (matcher.find()) {
+                    String url = matcher.group();
+                    try {
+                        String rawHeader;
+                        if (url.startsWith("http")) {
+                            NetworkUtil.ContentInformation ci = NetworkUtil.contentInformation(url);
+                            if (ci == null || ci.getCode() != 200) {
+                                throw new IOException("null");
+                            }
+                            rawHeader = ci.getContentLength();
+                        } else {
+                            log.debug("{} ({}): znaleziono url {}, ignoruje przez brak protokołu", event.getAuthor(), event.getGuild(), url);
+                            rawHeader = null;
+                        }
+                        if (rawHeader == null) {
+                            log.debug("{} ({}): znaleziono url {}, content-length nieznany", event.getAuthor(), event.getGuild(), url);
+                        } else {
+                            log.debug("{} ({}): znaleziono url {}, content-length: {}", event.getAuthor(), event.getGuild(), url, rawHeader);
+                            int byteLength = Integer.parseInt(rawHeader);
+                            przyrost = getPktFromFileSize(byteLength);
+                        }
+                    } catch (NumberFormatException | IOException e) {
+                        log.debug("{} ({}): znaleziono url {}, nie udało się połączyć", event.getAuthor(), event.getGuild(), url);
+                    }
+                }
+                log.debug("{} na serwerze {} ma {} + {} punktów (lvl {}), zapisuje do cache",
+                        event.getAuthor(), event.getGuild(), punkty, przyrost, calculateLvl(punkty, przyrost));
+                mapa.put(event.getAuthor().getId(), punkty + przyrost);
+                cache.put(event.getGuild().getId(), mapa);
+                if (lvlOld != calculateLvl(punkty, przyrost))
+                    eventBus.post(new LvlupEvent(event.getMember(), punkty + przyrost, lvlOld, calculateLvl(punkty, przyrost),
+                            event.getChannel()));
+                setCooldown(event.getMember(), true);
+                threadPool.schedule(() -> setCooldown(event.getMember(), false), 5, TimeUnit.SECONDS);
+            }
+        } catch (JedisException ex) {
+            log.error("Redis nie odpowiada - nie można zapisać punktów!", ex);
         }
-        log.debug("{} na serwerze {} ma {} + {} punktów (lvl {}), zapisuje do cache",
-                event.getAuthor(), event.getGuild(), punkty, przyrost, calculateLvl(punkty, przyrost));
-        mapa.put(event.getAuthor().getId(), punkty + przyrost);
-        cache.put(event.getGuild().getId(), mapa);
-        if (lvlOld != calculateLvl(punkty, przyrost))
-            eventBus.post(new LvlupEvent(event.getMember(), punkty + przyrost, lvlOld, calculateLvl(punkty, przyrost),
-                    event.getChannel()));
-        setCooldown(event.getMember(), true);
-        threadPool.schedule(() -> setCooldown(event.getMember(), false), 5, TimeUnit.SECONDS);
     }
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean punktyWlaczone(Guild guild) {
-        Boolean chuj = punktyWlaczoneCache.get(guild.getId(), id -> guildDao.get(guild).getPunktyWlaczone());
+        Boolean chuj = gcCache.get(guild.getId(), guildDao::get).getPunktyWlaczone();
         if (chuj == null) return true;
         return chuj;
     }
 
-    @Subscribe
-    private void onDatabaseUpdateEvent(DatabaseUpdateEvent e) {
-        if (!(e.getEntity() instanceof GuildConfig)) return;
-        punktyWlaczoneCache.invalidate(((GuildConfig) e.getEntity()).getGuildId());
+    private List<String> getNoLvlChannelChange(Guild guild) {
+        List<String> list = guildDao.get(guild).getNolvlchannelchange();
+        if (list == null) return Collections.emptyList();
+        return list;
     }
 
     private int getPktFromFileSize(double sizeInBytes) {
@@ -258,11 +296,12 @@ public class LicznikPunktow {
     }
 
     @Subscribe
+    @AllowConcurrentEvents
     public void handleLvlup(LvlupEvent event) {
         log.debug("{} na serwerze {} osiągnął poziom {}!",
                 event.getMember().getUser(), event.getMember().getGuild(), event.getLevel());
-        GuildConfig gc = guildDao.get(event.getMember().getGuild());
-        UserConfig uc = userDao.get(event.getMember().getUser());
+        GuildConfig gc = gcCache.get(event.getMember().getGuild().getId(), guildDao::get);
+        UserConfig uc = ucCache.get(event.getMember().getUser().getId(), userDao::get);
         List<String> prefixesRaw = managerKomend.getPrefixes(event.getMember().getGuild());
         String prefix;
         if (!prefixesRaw.isEmpty()) prefix = prefixesRaw.get(0);
@@ -273,17 +312,36 @@ public class LicznikPunktow {
         else rola = null;
         if (rola == null) {
             Language l = tlumaczenia.getLanguage(event.getMember());
-            try {
-                String channelId = gc.getLvlupMessagesCustomChannel();
-                MessageChannel ch = null;
-                if (channelId != null && !channelId.isEmpty()) ch = shardManager.getTextChannelById(channelId);
-                if (ch == null) ch = event.getChannel();
-                if (event.getChannel().equals(ch) && !uc.isLvlupMessages()) return;
-                ch.sendMessage(tlumaczenia.get(l,
-                        "generic.lvlup", event.getMember().getUser().getName(), event.getLevel(), prefix))
-                        .queue(null, kurwa -> {});
-            } catch (Exception e) {
-                //brak permów
+            if (!uc.isLvlUpOnDM()) {
+                try {
+                    String channelId = gc.getLvlupMessagesCustomChannel();
+                    MessageChannel ch = null;
+                    if (channelId != null && !channelId.isEmpty()) ch = shardManager.getTextChannelById(channelId);
+                    if (ch == null) ch = event.getChannel();
+                    if (!uc.isLvlupMessages() || !gc.isLvlUpNotify()) return;
+                    if (gc.getLvlUpMessage() != null && !gc.getLvlUpMessage().isEmpty())  {
+                        ch.sendMessage(gc.getLvlUpMessage()
+                                .replaceAll("\\{\\{mention}}", event.getMember().getUser().getAsMention())
+                                .replaceAll("\\{\\{user}}", UserUtil.formatDiscrim(event.getMember()))
+                                .replaceAll("\\{\\{level}}", String.valueOf(event.getLevel()))
+                                .replaceAll("\\{\\{guild}}", event.getMember().getGuild().getName()))
+                                .queue(null, kurwa -> {});
+                    } else {
+                        ch.sendMessage(tlumaczenia.get(l,
+                                "generic.lvlup.channel", event.getMember().getUser().getName(),
+                                event.getLevel(), prefix)).queue(null, kurwa -> {});
+                    }
+                } catch (Exception e) {
+                    /*lul*/
+                }
+            } else if (uc.isLvlupMessages() && gc.isLvlUpNotify()) {
+                try {
+                    event.getMember().getUser().openPrivateChannel().queue(e -> e.sendMessage(tlumaczenia.get(l,
+                            "generic.lvlup.dm", event.getLevel(), event.getMember().getGuild().getName(), prefix)
+                    ).complete());
+                } catch (Exception e) {
+                    // lol
+                }
             }
             return;
         }
@@ -291,19 +349,23 @@ public class LicznikPunktow {
             event.getMember().getGuild()
                     .addRoleToMember(event.getMember(), rola)
                     .queue(ignored -> {
+                        if (event.getChannel() instanceof TextChannel && !((TextChannel) event.getChannel()).canTalk())
+                            return;
                         Language l = tlumaczenia.getLanguage(event.getMember());
-                        if (uc.isLvlupMessages()) event.getChannel().sendMessage(tlumaczenia.get(l,
+                        event.getChannel().sendMessage(tlumaczenia.get(l,
                                 "generic.lvlup.withrole", event.getMember().getUser().getName(),
                                 rola.getName(), event.getLevel())).queue();
                     }, throwable -> {
+                        if (event.getChannel() instanceof TextChannel && !((TextChannel) event.getChannel()).canTalk())
+                            return;
                         Language l = tlumaczenia.getLanguage(event.getMember());
-                        if (uc.isLvlupMessages()) event.getChannel().sendMessage(tlumaczenia.get(l,
+                        event.getChannel().sendMessage(tlumaczenia.get(l,
                                 "generic.lvlup.withrole.failed", event.getMember().getUser().getName(),
                                 rola.getName(), event.getLevel())).queue();
                     });
         } catch (Exception e) {
             Language l = tlumaczenia.getLanguage(event.getMember());
-            if (uc.isLvlupMessages()) event.getChannel().sendMessage(tlumaczenia.get(l,
+            event.getChannel().sendMessage(tlumaczenia.get(l,
                     "generic.lvlup.withrole.failed", event.getMember().getUser().getName(),
                     rola.getName(), event.getLevel())).queue();
         }
@@ -324,17 +386,17 @@ public class LicznikPunktow {
                 return;
             }
             log.debug("Zrzucam cache do DB, {} członków do zrzucenia...", cache.asMap().size());
-            cache.asMap().forEach((tmpGuild, map) -> {
-                Guild guild = shardManager.getGuildById(tmpGuild);
+            cache.asMap().forEach((key, map) -> {
+                String[] keysplitted = key.split(":");
+                Guild guild = shardManager.getGuildById(keysplitted[keysplitted.length - 1]);
                 if (guild == null) return;
                 AtomicInteger pktSerwera = new AtomicInteger();
                 log.debug("Zrzucam {} danych z serwera {}...", map.size(), guild);
                 map.forEach((id, pkt) -> {
                     pktSerwera.addAndGet(pkt);
-                    if (guild.getMemberById(id) == null) return;
                     PunktyRow punktyRow = punktyDao.get(id + "-" + guild.getId());
                     punktySerwera.merge(guild, pkt - punktyRow.getPunkty(), Integer::sum);
-                    punktyUzytkownika.merge(shardManager.getUserById(id), pkt - punktyRow.getPunkty(), Integer::sum);
+                    punktyUzytkownika.merge(shardManager.retrieveUserById(id).complete(), pkt - punktyRow.getPunkty(), Integer::sum);
                     punktyRow.setPunkty(pkt);
                     punktyDao.save(punktyRow);
                 });
@@ -354,11 +416,14 @@ public class LicznikPunktow {
             cache.invalidateAll();
             log.debug("Gotowe! Zajęło {}.", TimeUtil.getDurationBreakdown(
                     TimeUnit.MILLISECONDS.convert(System.nanoTime() - start, TimeUnit.NANOSECONDS), true));
+        } catch (JedisException ex) {
+            log.error("Redis nie odpowiada - nie można zapisać punktów!", ex);
         } catch (Exception e) {
             log.error("Wystąpił błąd przy zrzucaniu punktów", e);
             Sentry.capture(e);
+        } finally {
+            lock = false;
         }
-        lock = false;
     }
 
     private void setCooldown(Member member, boolean set) {
@@ -396,13 +461,13 @@ public class LicznikPunktow {
         if (e.getMessage().startsWith("Module-getPunkty:")) {
             String[] id = e.getMessage().replace("Module-getPunkty:", "").split("-");
             if (id.length != 2) {
-                LoggerFactory.getLogger(getClass()).warn("Wiadomość niezrozumiała!");
+                LoggerFactory.getLogger(getClass()).warn("Wiadomość niezrozumiała!");
                 return;
             }
             e.setResponse(getPunkty(id[0], id[1]));
             return;
         }
-        LoggerFactory.getLogger(getClass()).warn("Wiadomość niezrozumiała!");
+        LoggerFactory.getLogger(getClass()).warn("Wiadomość niezrozumiała!");
     }
 
     public void setLock(boolean lock) {

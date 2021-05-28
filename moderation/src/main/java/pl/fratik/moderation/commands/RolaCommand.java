@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,8 +41,9 @@ public class RolaCommand extends ModerationCommand {
         name = "rola";
         category = CommandCategory.MODERATION;
         uzycie = new Uzycie("rola", "role");
-        aliases = new String[] {"ranga", "rola", "dodajrange", "usunrange", "dodajrole", "usunrole", "dajrole", "wezrole", "dajrange", "wezrange", "proszerole"};
+        aliases = new String[] {"ranga"};
         permissions.add(Permission.MANAGE_ROLES);
+        allowPermLevelChange = false;
     }
 
     @Override
@@ -53,21 +54,33 @@ public class RolaCommand extends ModerationCommand {
         }
         Role rola = (Role) context.getArgs()[0];
         GuildConfig gc = guildDao.get(context.getGuild());
+
         if (!gc.getUzytkownicyMogaNadacSobieTeRange().contains(rola.getId())) {
-            context.send(context.getTranslated("rola.not.defined"));
+            context.reply(context.getTranslated("rola.not.defined"));
             return false;
+        }
+
+        Integer maxRolesSize = gc.getMaxRoliDoSamododania();
+        if (maxRolesSize == null) maxRolesSize = 10;
+
+        if (maxRolesSize > 0) {
+            int memberRolesSize = (int) context.getMember().getRoles().stream().filter(r -> filtr(r, gc)).count();
+            if (memberRolesSize >= maxRolesSize) {
+                context.reply(context.getTranslated("rola.maxroles", maxRolesSize, memberRolesSize, context.getPrefix()));
+                return false;
+            }
         }
         try {
             context.getGuild().addRoleToMember(context.getMember(), rola).complete();
-            context.send(context.getTranslated("rola.success"));
+            context.reply(context.getTranslated("rola.success"));
         } catch (Exception e) {
-            context.send(context.getTranslated("rola.failed"));
+            context.reply(context.getTranslated("rola.failed"));
             return false;
         }
         return true;
     }
 
-    @SubCommand(name="list")
+    @SubCommand(name="list", aliases = "lista")
     public boolean list(@NotNull CommandContext context) {
         ArrayList<String> strArray = new ArrayList<>();
         StringBuilder sb = new StringBuilder();
@@ -86,13 +99,13 @@ public class RolaCommand extends ModerationCommand {
             } else sb.append(rola);
         }
         if (ilosc == 0) {
-            context.send(context.getTranslated("rola.list.noroles"));
+            context.reply(context.getTranslated("rola.list.noroles"));
             return false;
         }
         sb.append("```");
         strArray.add(sb.toString());
         for (String str : strArray) {
-            context.send(str);
+            context.reply(str);
         }
         return true;
     }
@@ -100,6 +113,10 @@ public class RolaCommand extends ModerationCommand {
     @Override
     public PermLevel getPermLevel() {
         return PermLevel.EVERYONE;
+    }
+
+    private static boolean filtr(Role r, GuildConfig gc) {
+        return gc.getUzytkownicyMogaNadacSobieTeRange().contains(r.getId());
     }
 
 }

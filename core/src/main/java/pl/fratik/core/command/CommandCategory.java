@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,5 +18,5 @@
 package pl.fratik.core.command;
 
 public enum CommandCategory {
-    BASIC, FUN, UTILITY, MODERATION, MONEY, MUSIC, IMAGES, SYSTEM, POINTS, TAG, GADM, STARBOARD, NSFW
+    BASIC, FUN, UTILITY, MODERATION, MONEY, MUSIC, IMAGES, SYSTEM, POINTS, TAG, GADM, STARBOARD, NSFW, INVITES
 }

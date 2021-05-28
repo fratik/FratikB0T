@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,6 +43,7 @@ public class MemeCommand extends Command {
         category = CommandCategory.FUN;
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         aliases = new String[] {"memes", "pokazmiswojetowary", "memez"};
+        allowPermLevelChange = false;
     }
 
     @Override
@@ -56,7 +57,7 @@ public class MemeCommand extends Command {
                     .stream().filter(a -> new JSONObject(writeValueAsString(a)).getJSONObject("data")
                             .getString("post_hint").equals("image")).toArray();
         } catch (Exception e) {
-            context.send(context.getTranslated("meme.failed"));
+            context.reply(context.getTranslated("meme.failed"));
             return false;
         }
         JSONObject post = new JSONObject(writeValueAsString(posts[random.nextInt(posts.length)]));
@@ -90,7 +91,7 @@ public class MemeCommand extends Command {
                 post.getJSONObject("data").getString("permalink"));
         eb.setFooter("\uD83D\uDC4D " + post.getJSONObject("data").getInt("ups") + " | \uD83D\uDCAC " +
                 post.getJSONObject("data").getInt("num_comments"), null);
-        context.send(eb.build());
+        context.reply(eb.build());
         return true;
     }
 

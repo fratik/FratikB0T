@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,8 +36,9 @@ public class GlobalstatyCommand extends Command {
         name = "globalstaty";
         category = CommandCategory.POINTS;
         permLevel = PermLevel.EVERYONE;
-        aliases = new String[] {"globalstats", "gs", "globalnestaty", "statsglobal", "statyglobalne", "gp", "globalpunkty", "globalstaty"};
+        aliases = new String[] {"gs", "globalnestaty", "statsglobal", "statyglobalne", "gp", "globalpunkty"};
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
+        allowPermLevelChange = false;
     }
 
     @Override
@@ -51,7 +52,7 @@ public class GlobalstatyCommand extends Command {
         punkty.forEach((idSerwera, ilosc) -> atomicInteger.getAndAdd(ilosc));
         eb.addField(context.getTranslated("globalstaty.embed.points"), String.valueOf(atomicInteger.intValue()), false);
         eb.setTimestamp(Instant.now());
-        context.send(eb.build());
+        context.reply(eb.build());
         return true;
     }
 }

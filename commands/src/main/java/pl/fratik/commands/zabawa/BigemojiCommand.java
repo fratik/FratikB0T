@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,6 +42,8 @@ public class BigemojiCommand extends Command {
         uzycieDelim = " ";
         aliases = new String[] {"bigmoji"};
         permissions.add(Permission.MESSAGE_ATTACH_FILES);
+        allowPermLevelChange = false;
+        allowInDMs = true;
     }
 
     @Override
@@ -58,14 +60,14 @@ public class BigemojiCommand extends Command {
             sb.setLength(sb.length() - 1);
             JSONObject zdjecie = NetworkUtil.getJson(sb.toString(), Ustawienia.instance.apiKeys.get("image-server"));
             if (zdjecie == null || !zdjecie.getBoolean("success")) {
-                context.send(context.getTranslated("image.server.fail"));
+                context.reply(context.getTranslated("image.server.fail"));
                 return false;
             }
             byte[] img = NetworkUtil.getBytesFromBufferArray(zdjecie.getJSONObject("image").getJSONArray("data"));
-            context.getChannel().sendFile(img, "bigemoji.png").queue();
+            context.getMessageChannel().sendFile(img, "bigemoji.png").reference(context.getMessage()).queue();
             return true;
         } catch (Exception e) {
-            context.send(context.getTranslated("image.server.fail"));
+            context.reply(context.getTranslated("image.server.fail"));
             return false;
         }
     }

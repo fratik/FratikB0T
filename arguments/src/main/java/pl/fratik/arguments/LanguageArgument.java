@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@ public class LanguageArgument extends Argument {
         Language[] languages = Language.values();
         for (Language l : languages) {
             if (!l.equals(Language.DEFAULT)) {
-                if (context.getArg().equals(l.getEmoji())) return l;
+                if (context.getArg().equals(l.getEmoji().toString())) return l;
                 if (context.getArg().equalsIgnoreCase(l.getLocalized())) return l;
                 if (context.getArg().equalsIgnoreCase(l.getShortName())) return l;
             }

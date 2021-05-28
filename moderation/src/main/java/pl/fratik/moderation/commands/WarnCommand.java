@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,12 +17,12 @@
 
 package pl.fratik.moderation.commands;
 
-import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.sharding.ShardManager;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
@@ -37,6 +37,7 @@ import pl.fratik.moderation.entity.CaseBuilder;
 import pl.fratik.moderation.entity.CaseRow;
 import pl.fratik.moderation.entity.CasesDao;
 import pl.fratik.moderation.utils.ModLogBuilder;
+import pl.fratik.moderation.utils.ReasonUtils;
 import pl.fratik.moderation.utils.WarnUtil;
 
 import java.time.Instant;
@@ -80,26 +81,24 @@ public class WarnCommand extends ModerationCommand {
                     .map(e -> e == null ? "" : e).map(Objects::toString).collect(Collectors.joining(uzycieDelim));
         else powod = context.getTranslated("warn.reason.default");
         if (uzytkownik.equals(context.getMember())) {
-            context.send(context.getTranslated("warn.cant.warn.yourself"));
+            context.reply(context.getTranslated("warn.cant.warn.yourself"));
             return false;
         }
         if (uzytkownik.getUser().isBot()) {
-            context.send(context.getTranslated("warn.no.bot"));
+            context.reply(context.getTranslated("warn.no.bot"));
             return false;
         }
-        if (context.getGuild().getMemberById(uzytkownik.getUser().getId()) != null) {
-            if (uzytkownik.isOwner()) {
-                context.send(context.getTranslated("warn.cant.warn.owner"));
-                return false;
-            }
-            if (!context.getMember().canInteract(uzytkownik)) {
-                context.send(context.getTranslated("warn.user.cant.interact"));
-                return false;
-            }
-            if (!context.getGuild().getSelfMember().canInteract(uzytkownik)) {
-                context.send(context.getTranslated("warn.bot.cant.interact"));
-                return false;
-            }
+        if (uzytkownik.isOwner()) {
+            context.reply(context.getTranslated("warn.cant.warn.owner"));
+            return false;
+        }
+        if (!context.getMember().canInteract(uzytkownik)) {
+            context.reply(context.getTranslated("warn.user.cant.interact"));
+            return false;
+        }
+        if (!context.getGuild().getSelfMember().canInteract(uzytkownik)) {
+            context.reply(context.getTranslated("warn.bot.cant.interact"));
+            return false;
         }
         GuildConfig gc = guildDao.get(context.getGuild());
         CaseRow caseRow = casesDao.get(context.getGuild());
@@ -107,28 +106,32 @@ public class WarnCommand extends ModerationCommand {
         TemporalAccessor timestamp = Instant.now();
         Case aCase = new CaseBuilder().setUser(uzytkownik.getUser()).setGuild(context.getGuild()).setCaseId(caseId)
                 .setTimestamp(timestamp).setMessageId(null).setKara(Kara.WARN).createCase();
-        aCase.setReason(powod);
+        ReasonUtils.parseFlags(aCase, powod);
         aCase.setIssuerId(context.getSender().getId());
         TextChannel mlog = null;
         if (gc.getModLog() != null && !gc.getModLog().equals("")) mlog = shardManager.getTextChannelById(gc.getModLog());
         if (mlog == null || !context.getGuild().getSelfMember().hasPermission(mlog,
                 Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_WRITE, Permission.MESSAGE_READ)) {
-            context.send(context.getTranslated("warn.success", UserUtil.formatDiscrim(uzytkownik)));
-            context.send(context.getTranslated("warn.nomodlogs", context.getPrefix()));
             caseRow.getCases().add(aCase);
+            context.reply(context.getTranslated("warn.success", UserUtil.formatDiscrim(uzytkownik),
+                    WarnUtil.countCases(caseRow, uzytkownik.getId())));
+            if (!aCase.getFlagi().contains(Case.Flaga.SILENT)) context.send(context.getTranslated("warn.nomodlogs", context.getPrefix()));
             casesDao.save(caseRow);
-            WarnUtil.takeAction(guildDao, casesDao, uzytkownik, context.getChannel(), context.getLanguage(),
+            WarnUtil.takeAction(guildDao, casesDao, uzytkownik, context.getTextChannel(), context.getLanguage(),
                     context.getTlumaczenia(), managerKomend);
             return true;
         }
-        MessageEmbed embed = ModLogBuilder.generate(aCase, context.getGuild(), shardManager,
-                gc.getLanguage(), managerKomend);
-        Message message = mlog.sendMessage(embed).complete();
-        context.send(context.getTranslated("warn.success", UserUtil.formatDiscrim(uzytkownik)));
-        aCase.setMessageId(message.getId());
+        if (!aCase.getFlagi().contains(Case.Flaga.SILENT)) {
+            MessageEmbed embed = ModLogBuilder.generate(aCase, context.getGuild(), shardManager,
+                    gc.getLanguage(), managerKomend, true, false);
+            Message message = mlog.sendMessage(embed).complete();
+            aCase.setMessageId(message.getId());
+        }
         caseRow.getCases().add(aCase);
+        context.reply(context.getTranslated("warn.success", UserUtil.formatDiscrim(uzytkownik),
+                WarnUtil.countCases(caseRow, uzytkownik.getId())));
         casesDao.save(caseRow);
-        WarnUtil.takeAction(guildDao, casesDao, uzytkownik, context.getChannel(), context.getLanguage(),
+        WarnUtil.takeAction(guildDao, casesDao, uzytkownik, context.getTextChannel(), context.getLanguage(),
                 context.getTlumaczenia(), managerKomend);
         return true;
     }

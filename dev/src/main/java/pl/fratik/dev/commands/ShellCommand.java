@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,14 +29,14 @@ import java.util.concurrent.TimeUnit;
 public class ShellCommand extends Command {
     public ShellCommand() {
         name = "shell";
-        type = CommandType.DEBUG;
         permLevel = PermLevel.BOTOWNER;
         category = CommandCategory.SYSTEM;
+        allowPermLevelChange = false;
     }
 
     @Override
     public boolean execute(@NotNull @Nonnull CommandContext context) {
-        context.send("<a:loading:503651397049516053> Wykonuję...", message -> {
+        context.reply("<a:loading:503651397049516053> Wykonuję...", message -> {
             try {
                 Process process = new ProcessBuilder
                         (Arrays.asList(System.getenv("SHELL"), "-c", String.join(" ", context.getRawArgs())))

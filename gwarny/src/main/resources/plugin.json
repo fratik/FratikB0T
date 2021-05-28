@@ -1,8 +1,0 @@
-{
-  "name": "gwarny",
-  "main": "pl.fratik.gwarny.Module",
-  "dependencies": [
-    "arguments"
-  ],
-  "coreVersion": "@core.version@"
-}

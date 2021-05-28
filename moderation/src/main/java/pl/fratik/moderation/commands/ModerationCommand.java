@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,19 +17,11 @@
 
 package pl.fratik.moderation.commands;
 
-import lombok.Setter;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.PermLevel;
-import pl.fratik.core.entity.GuildDao;
-import pl.fratik.core.entity.UserDao;
-import pl.fratik.core.util.EventWaiter;
 
 abstract class ModerationCommand extends Command {
-
-    @Setter private static UserDao userDao;
-    @Setter private static GuildDao guildDao;
-    @Setter private static EventWaiter eventWaiter;
 
     @Override
     public CommandCategory getCategory() {
@@ -41,4 +33,13 @@ abstract class ModerationCommand extends Command {
         return PermLevel.MOD;
     }
 
+    @Override
+    public boolean isIgnoreGaPerm() {
+        return true;
+    }
+
+    @Override
+    public boolean isAllowPermLevelEveryone() {
+        return false;
+    }
 }

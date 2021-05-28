@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -67,8 +67,8 @@ public class ZglosPrivCommand extends Command {
         hmap.put("powod", "string"); //NOSONAR
         hmap.put("[...]", "string"); //NOSONAR
         uzycie = new Uzycie(hmap, new boolean[] {true, true, false});
-        aliases = new String[] {"reportpriv", "reportdm", "reportmsg", "reportpv", "reportprivee"};
         uzycieDelim = " ";
+        allowPermLevelChange = false;
     }
 
     @Override
@@ -89,25 +89,26 @@ public class ZglosPrivCommand extends Command {
         String id = (String) context.getArgs()[0];
         if (context.getArgs().length > 1 && context.getArgs()[1] != null)
             powod = Arrays.stream(Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length))
-                    .map(Object::toString).collect(Collectors.joining(uzycieDelim));
+                    .map(o -> o == null ? "" : o.toString()).collect(Collectors.joining(uzycieDelim));
         if (powod.isEmpty()) {
             CommonErrors.usage(context);
             return false;
         }
         Priv priv = privDao.get(id);
         if (priv == null || !priv.getDoKogo().equals(context.getSender().getId())) {
-            context.send(context.getTranslated("zglospriv.no.priv"));
+            context.reply(context.getTranslated("zglospriv.no.priv"));
             return false;
         }
         if (priv.getZgloszone() != null) {
             if (priv.getZgloszone()) {
-                context.send(context.getTranslated("zglospriv.reported"));
+                context.reply(context.getTranslated("zglospriv.reported"));
                 return false;
             }
-            context.send(context.getTranslated("zglospriv.reported.answered"));
+            context.reply(context.getTranslated("zglospriv.reported.answered"));
             return false;
         }
-        Message msg = context.getChannel().sendMessage(context.getTranslated("zglospriv.confirmation")).complete();
+        Message msg = context.getMessageChannel().sendMessage(context.getTranslated("zglospriv.confirmation"))
+                .reference(context.getMessage()).complete();
         msg.addReaction(POTW).queue();
         msg.addReaction(ODRZ).queue();
         ReactionWaiter waiter = new ReactionWaiter(eventWaiter, context) {
@@ -118,7 +119,7 @@ public class ZglosPrivCommand extends Command {
                                 event.getReactionEmote().getName().equals(ODRZ));
             }
         };
-        Runnable cancel = () -> context.send(context.getTranslated("zglospriv.cancelled"));
+        Runnable cancel = () -> context.reply(context.getTranslated("zglospriv.cancelled"));
         waiter.setTimeoutHandler(cancel);
         String finalPowod = powod;
         waiter.setReactionHandler(e -> {
@@ -152,8 +153,9 @@ public class ZglosPrivCommand extends Command {
                     .complete();
             priv.setZgloszone(true);
             privDao.save(priv);
-            context.send(context.getTranslated("zglospriv.success"));
+            context.reply(context.getTranslated("zglospriv.success"));
         });
+        waiter.create();
         return true;
     }
 
@@ -161,6 +163,7 @@ public class ZglosPrivCommand extends Command {
     private void onReactionAdd(MessageReactionAddEvent e) {
         if (!e.getChannel().getId().equals(Ustawienia.instance.zglosPrivChannel)) return;
         if (e.getReactionEmote().isEmote()) return;
+        if (e.getUser() != null && e.getUser().isBot()) return;
         String s = e.getReactionEmote().getName();
         if (POTW.equals(s)) {
             Message msg = e.getChannel().retrieveMessageById(e.getMessageId()).complete();
@@ -169,10 +172,10 @@ public class ZglosPrivCommand extends Command {
             priv.setZgloszone(false);
             privDao.save(priv);
             msg.delete().queue();
-            Objects.requireNonNull(shardManager.getUserById(priv.getDoKogo())).openPrivateChannel().complete()
-                    .sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(shardManager
-                            .getUserById(priv.getDoKogo())), "zglospriv.response1")).queue();
-        } else if (ODRZ.equals(s)) {
+            shardManager.retrieveUserById(priv.getDoKogo()).complete().openPrivateChannel().complete()
+                    .sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(shardManager.retrieveUserById
+                            (priv.getDoKogo()).complete()), "zglospriv.response1", priv.getId())).queue();
+        } else if ("\u2757".equals(s)) {
             Message msg = e.getChannel().retrieveMessageById(e.getMessageId()).complete();
             if (msg.getEmbeds().isEmpty() || !msg.getAuthor().equals(e.getJDA().getSelfUser())) return;
             Priv priv = privDao.get(Objects.requireNonNull(msg.getEmbeds().get(0).getFooter()).getText());
@@ -184,9 +187,9 @@ public class ZglosPrivCommand extends Command {
                     .complete();
             msg2.delete().queueAfter(1, TimeUnit.MINUTES, woid -> {
                 msg.delete().queue();
-                Objects.requireNonNull(shardManager.getUserById(priv.getDoKogo())).openPrivateChannel().complete()
-                        .sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(shardManager
-                                .getUserById(priv.getDoKogo())), "zglospriv.response2")).queue();
+                shardManager.retrieveUserById(priv.getDoKogo()).complete().openPrivateChannel().complete()
+                        .sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(shardManager.retrieveUserById
+                                (priv.getDoKogo()).complete()), "zglospriv.response2", priv.getId())).queue();
             });
         }
     }

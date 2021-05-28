@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,15 +17,18 @@
 
 package pl.fratik.dev.commands;
 
-import jdk.nashorn.api.scripting.NashornScriptEngineFactory;
-import net.dv8tion.jda.api.sharding.ShardManager;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
+import org.mozilla.javascript.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pl.fratik.core.command.*;
+import pl.fratik.core.command.Command;
+import pl.fratik.core.command.CommandCategory;
+import pl.fratik.core.command.CommandContext;
+import pl.fratik.core.command.PermLevel;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.MemberDao;
 import pl.fratik.core.entity.UserDao;
@@ -37,15 +40,8 @@ import pl.fratik.core.manager.ManagerModulow;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 
 import javax.annotation.Nullable;
-import javax.script.Compilable;
-import javax.script.CompiledScript;
-import javax.script.ScriptEngine;
 import java.awt.*;
-import java.io.InputStreamReader;
-import java.io.Reader;
 import java.util.Arrays;
-
-import static pl.fratik.core.manager.implementation.ManagerModulowImpl.moduleClassLoader;
 
 public class EvalCommand extends Command {
 
@@ -60,10 +56,6 @@ public class EvalCommand extends Command {
     private final UserDao userDao;
     private final MemberDao memberDao;
 
-    private ScriptEngine engine;
-    private boolean lock;
-    private boolean babelEnabled;
-
     public EvalCommand(ManagerKomend managerKomend, ManagerArgumentow managerArgumentow, ManagerBazyDanych managerBazyDanych, ManagerModulow managerModulow, ShardManager shardManager, Tlumaczenia tlumaczenia, GuildDao guildDao, UserDao userDao, MemberDao memberDao) {
         this.managerKomend = managerKomend;
         this.managerArgumentow = managerArgumentow;
@@ -76,14 +68,12 @@ public class EvalCommand extends Command {
         this.memberDao = memberDao;
         name = "eval";
         uzycie = new Uzycie("code", "string", true);
-        type = CommandType.DEBUG;
         category = CommandCategory.SYSTEM;
         permLevel = PermLevel.BOTOWNER;
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
-        Thread sEngineThread = new Thread(this::setupEngine);
-        sEngineThread.setName("Setup Engine Thread");
-        sEngineThread.start();
         aliases = new String[] {"ev"};
+        allowPermLevelChange = false;
+        allowInDMs = true;
     }
 
     @Override
@@ -92,41 +82,54 @@ public class EvalCommand extends Command {
         ebStart.setColor(Color.YELLOW);
         ebStart.addField("\ud83d\udce4 INPUT", codeBlock("js", (String) context.getArgs()[0]), false);
         ebStart.addField("\ud83d\udce5 OUPTUT", "Oczekiwanie...", false);
-        Message message = context.send(ebStart.build());
+        Message message = context.reply(ebStart.build());
         try {
-            if (lock) {
-                message.editMessage("Poczekaj chwilkę, silnik się ładuje..").queue();
-                while (lock) Thread.sleep(100);
-            }
-            if (engine == null) {
-                message.editMessage("Silnik JS nie został załadowany, proszę czekać dłużej \\o/").queue();
-                setupEngine();
-            }
-            engine.put("logger", logger);
-            engine.put("jda", context.getEvent().getJDA());
-            engine.put("context", context);
-            engine.put("managerKomend", managerKomend);
-            engine.put("managerArgumentow", managerArgumentow);
-            engine.put("managerBazyDanych", managerBazyDanych);
-            engine.put("managerModulow", managerModulow);
-            engine.put("shardManager", shardManager);
-            engine.put("tlumaczenia", tlumaczenia);
-            engine.put("guildDao", guildDao);
-            engine.put("userDao", userDao);
-            engine.put("memberDao", memberDao);
+            Context ctx = Context.enter();
+            ctx.setLanguageVersion(Context.VERSION_ES6);
+            ScriptableObject scr = ctx.initStandardObjects();
+            int flags = ScriptableObject.PERMANENT | ScriptableObject.READONLY;
+            scr.defineProperty("logger", logger, flags);
+            scr.defineProperty("managerKomend", managerKomend, flags);
+            scr.defineProperty("managerArgumentow", managerArgumentow, flags);
+            scr.defineProperty("managerBazyDanych", managerBazyDanych, flags);
+            scr.defineProperty("managerModulow", managerModulow, flags);
+            scr.defineProperty("shardManager", shardManager, flags);
+            scr.defineProperty("tlumaczenia", tlumaczenia, flags);
+            scr.defineProperty("guildDao", guildDao, flags);
+            scr.defineProperty("userDao", userDao, flags);
+            scr.defineProperty("memberDao", memberDao, flags);
+            scr.defineProperty("context", context, flags);
             @Nullable Object o;
-            if (babelEnabled) {
-                engine.put("input", context.getArgs()[0]);
-                String s = engine.eval("Babel.transform(input, { presets: ['es2015'] }).code").toString();
-                o = engine.eval(s);
-            } else {
-                o = engine.eval((String) context.getArgs()[0]);
-            }
+            Script eval = ctx.compileString((String) context.getArgs()[0], "<eval>", 1, null);
+            o = eval.exec(ctx, scr);
             String e;
-            if (o != null && o.getClass().isArray()) e = Arrays.toString((Object[]) o);
-            else e = o == null ? "null" : o.toString();
-            if (babelEnabled && e.equals("use strict")) e = "null";
-            if (e.length() > 1000) e = e.substring(1000);
+            if (o instanceof NativeArray) e = Arrays.toString(((NativeArray) o).toArray());
+            else if (o instanceof NativeJavaArray) {
+                NativeJavaArray nja = (NativeJavaArray) o;
+                if (nja.unwrap() instanceof long[]) e = Arrays.toString((long[]) nja.unwrap());
+                else if (nja.unwrap() instanceof int[]) e = Arrays.toString((int[]) nja.unwrap());
+                else if (nja.unwrap() instanceof short[]) e = Arrays.toString((short[]) nja.unwrap());
+                else if (nja.unwrap() instanceof char[]) e = Arrays.toString((char[]) nja.unwrap());
+                else if (nja.unwrap() instanceof byte[]) e = Arrays.toString((byte[]) nja.unwrap());
+                else if (nja.unwrap() instanceof boolean[]) e = Arrays.toString((boolean[]) nja.unwrap());
+                else if (nja.unwrap() instanceof float[]) e = Arrays.toString((float[]) nja.unwrap());
+                else if (nja.unwrap() instanceof double[]) e = Arrays.toString((double[]) nja.unwrap());
+                else e = toString((Object[]) nja.unwrap());
+            }
+            else if (o != null && o.getClass().isArray()) {
+                if (o instanceof long[]) e = Arrays.toString((long[]) o);
+                else if (o instanceof int[]) e = Arrays.toString((int[]) o);
+                else if (o instanceof short[]) e = Arrays.toString((short[]) o);
+                else if (o instanceof char[]) e = Arrays.toString((char[]) o);
+                else if (o instanceof byte[]) e = Arrays.toString((byte[]) o);
+                else if (o instanceof boolean[]) e = Arrays.toString((boolean[]) o);
+                else if (o instanceof float[]) e = Arrays.toString((float[]) o);
+                else if (o instanceof double[]) e = Arrays.toString((double[]) o);
+                else e = toString((Object[]) o);
+            }
+            else e = Undefined.isUndefined(o) || o == null ? "undefined" : (String) Context.jsToJava(o, String.class);
+//            if (babelEnabled && e.equals("use strict")) e = "null";
+            if (e.length() > 1000) e = e.substring(0, 1000);
             if (context.checkSensitive(e)) {
                 logger.info("Output evala:");
                 logger.info(e);
@@ -154,46 +157,18 @@ public class EvalCommand extends Command {
         return true;
     }
 
+    private String toString(Object[] arr) {
+        Object[] arr2 = new Object[arr.length];
+        for (int i = 0; i < arr.length; i++) arr2[i] = Context.jsToJava(arr[i], String.class);
+        return Arrays.toString(arr2);
+    }
+
     private String codeBlock(String text) {
         return codeBlock("", text);
     }
 
     private String codeBlock(String code, String text) {
         return "```" + code + "\n" + text.replaceAll("`", "\u200b`\u200b") + "```";
-    }
-
-    private void setupEngine() {
-        lock = true;
-        engine = new NashornScriptEngineFactory().getScriptEngine(moduleClassLoader);
-
-        if (getClass().getResource("/babel.min.js") != null) {
-            logger.info("Loading Babel...");
-
-            try (Reader r = new InputStreamReader(getClass().getResourceAsStream("/babel.min.js"))) {
-                engine.put("logger", logger);
-                CompiledScript compiled = ((Compilable) engine).compile(r);
-                compiled.eval();
-                babelEnabled = true;
-            } catch (Exception e) {
-                logger.error("Error loading Babel!", e);
-            }
-            logger.info("Loaded Babel!");
-        }
-
-        if (getClass().getResource("/polyfill.min.js") != null) {
-            logger.info("Loading Babel Polyfill...");
-
-            try (Reader r = new InputStreamReader(getClass().getResourceAsStream("/polyfill.min.js"))) {
-                engine.put("logger", logger);
-                CompiledScript compiled = ((Compilable) engine).compile(r);
-                compiled.eval();
-                babelEnabled = true;
-            } catch (Exception e) {
-                logger.error("Error loading Babel Polyfill!", e);
-            }
-            logger.info("Loaded Babel Polyfill!");
-        }
-        lock = false;
     }
 
 }

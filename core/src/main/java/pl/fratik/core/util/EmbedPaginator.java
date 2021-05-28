@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,6 +22,12 @@ import net.dv8tion.jda.api.entities.MessageChannel;
 
 public interface EmbedPaginator {
     void create(Message message);
-    void create(MessageChannel channel);
+    default void create(MessageChannel channel) {
+        create(channel, (Message) null);
+    }
+    default void create(MessageChannel channel, Message referenceMessage) {
+        create(channel, referenceMessage == null ? null : referenceMessage.getId());
+    }
+    void create(MessageChannel channel, String referenceMessageId);
     EmbedPaginator setCustomFooter(boolean customFooter);
 }

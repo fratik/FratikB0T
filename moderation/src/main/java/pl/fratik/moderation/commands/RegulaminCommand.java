@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@ package pl.fratik.moderation.commands;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.utils.MarkdownSanitizer;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
@@ -37,6 +38,7 @@ public class RegulaminCommand extends ModerationCommand {
         category = CommandCategory.MODERATION;
         uzycie = new Uzycie("zasada", "integer", true);
         aliases = new String[] {"zasady", "reg", "zasada"};
+        allowPermLevelChange = false;
     }
 
     @Override
@@ -50,15 +52,22 @@ public class RegulaminCommand extends ModerationCommand {
                kanal = context.getGuild().getTextChannelsByName("zasady", true).get(0);
                if (kanal == null) throw new IllegalStateException();
            } catch (Exception e2) {
-                kanal = context.getGuild().getTextChannels().get(0);
+               try {
+                   kanal = context.getGuild().getTextChannelsByName(context.getTlumaczenia()
+                           .get(context.getTlumaczenia().getLanguage(context.getGuild()), "regulamin.channel.name"),
+                           true).get(0);
+                   if (kanal == null) throw new IllegalStateException();
+               } catch (Exception e3) {
+                   kanal = context.getGuild().getTextChannels().get(0);
+               }
            }
         }
         if (kanal == null) {
-            context.send(context.getTranslated("regulamin.channel.doesnt.exist"));
+            context.reply(context.getTranslated("regulamin.channel.doesnt.exist"));
             return false;
         }
         if (!context.getGuild().getSelfMember().hasPermission(kanal, Permission.MESSAGE_HISTORY)) {
-            context.send(context.getTranslated("regulamin.channel.no.perms"));
+            context.reply(context.getTranslated("regulamin.channel.no.perms"));
             return false;
         }
         List<Message> wiadomosci = kanal.getHistory().retrievePast(100).complete();
@@ -67,23 +76,24 @@ public class RegulaminCommand extends ModerationCommand {
         for (Message wiadomosc : wiadomosci) {
             List<String> punktyTmp = new ArrayList<>();
             Collections.addAll(punktyTmp, wiadomosc.getContentRaw().split("(\\r\\n|\\r|\\n)"));
-            for (String punkt : punktyTmp) {
+            for (String punktR : punktyTmp) {
+                String punkt = MarkdownSanitizer.sanitize(punktR);
                 Matcher matcher = Pattern.compile("(^\\d+)", Pattern.MULTILINE | Pattern.DOTALL).matcher(punkt);
                 if (!matcher.find()) continue;
-                try { punkty.put(Integer.valueOf(matcher.group(1)), punkt); } catch (Exception ignored) {/*lul*/}
+                try { punkty.put(Integer.valueOf(matcher.group(1)), punktR); } catch (Exception ignored) {/*lul*/}
             }
         }
         if ((int) context.getArgs()[0] > punkty.size()) {
-            context.send(context.getTranslated("regulamin.no.rule"));
+            context.reply(context.getTranslated("regulamin.no.rule"));
             return false;
         }
         //noinspection SuspiciousMethodCalls (faktycznie jest to int)
         String tekst = punkty.get(context.getArgs()[0]);
         if (tekst == null) {
-            context.send(context.getTranslated("regulamin.no.rule"));
+            context.reply(context.getTranslated("regulamin.no.rule"));
             return false;
         }
-        context.send(tekst);
+        context.reply(tekst);
         return true;
     }
 
@@ -92,4 +102,8 @@ public class RegulaminCommand extends ModerationCommand {
         return PermLevel.EVERYONE;
     }
 
+    @Override
+    public boolean isAllowPermLevelEveryone() {
+        return true;
+    }
 }

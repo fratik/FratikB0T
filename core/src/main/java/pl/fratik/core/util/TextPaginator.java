@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,7 +43,7 @@ class TextPaginator {
     private int pageNo = 1;
     private Message message;
     private long messageId = 0;
-    private long userId;
+    private final long userId;
     private final Language language;
     private final Tlumaczenia tlumaczenia;
 

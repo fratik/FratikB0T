@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,8 @@ import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 import com.google.common.eventbus.EventBus;
-import com.google.gson.JsonObject;
+import com.google.gson.*;
+import com.google.gson.annotations.JsonAdapter;
 import com.google.gson.annotations.SerializedName;
 import com.google.gson.reflect.TypeToken;
 import com.scienjus.client.PixivParserClient;
@@ -50,6 +51,7 @@ import pl.fratik.core.util.NetworkUtil;
 
 import javax.security.auth.login.LoginException;
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.util.*;
 import java.util.concurrent.FutureTask;
 import java.util.stream.Collectors;
@@ -79,6 +81,7 @@ public class Rule34Command extends NsfwCommand {
             LoggerFactory.getLogger(getClass()).error("Pixiv nie możliwy do użycia - nieprawidłowe dane logowania!");
             pixiv = null;
         }
+        allowPermLevelChange = false;
     }
 
     @Override
@@ -100,7 +103,7 @@ public class Rule34Command extends NsfwCommand {
 
     @Override
     protected boolean execute(@NotNull CommandContext context) {
-        Message loading = context.send(context.getTranslated("generic.loading"));
+        Message loading = context.reply(context.getTranslated("generic.loading"));
         try {
             List<FutureTask<EmbedBuilder>> pages;
             switch ((Sources) context.getArgs()[0]) {
@@ -108,7 +111,7 @@ public class Rule34Command extends NsfwCommand {
                     pages = resolveRule34(context);
                     break;
                 case E621:
-                    pages = resolveE621(context);
+                    pages = resolveE621(context, loading);
                     break;
                 case PIXIV:
                     if (pixiv == null) throw new IOException("gej");
@@ -128,10 +131,10 @@ public class Rule34Command extends NsfwCommand {
                 return false;
             }
             new DynamicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(),
-                    context.getTlumaczenia(), eventBus).setEnableShuffle(true).setEnableDelett(true).setTimeout(60).create(loading);
+                    context.getTlumaczenia(), eventBus).setEnableShuffle(true).setEnableDelett(true).setTimeout(300).create(loading);
             return true;
         } catch (IOException e) {
-            context.send(context.getTranslated("rule34.fail"));
+            context.reply(context.getTranslated("rule34.fail"));
             return false;
         }
     }
@@ -146,7 +149,7 @@ public class Rule34Command extends NsfwCommand {
         }
         return generatePages(context, "https://rule34.xxx/index.php?page=dapi&json=1&s=post&q=index&tags=" +
                 NetworkUtil.encodeURIComponent(Arrays.stream(argi)
-                        .map(Object::toString).collect(Collectors.joining(" "))), "pid", count,
+                        .map(o -> o == null ? "" : o.toString()).collect(Collectors.joining(" "))), "pid", count,
                 100, new TypeToken<List<Rule34Post>>() {});
     }
 
@@ -194,23 +197,53 @@ public class Rule34Command extends NsfwCommand {
         return eb;
     }
 
-    public List<FutureTask<EmbedBuilder>> resolveE621(CommandContext context) throws IOException {
+    public List<FutureTask<EmbedBuilder>> resolveE621(CommandContext context, Message loading) throws IOException {
         Object[] argi = Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length);
-        int count = resolvePostsNumber("https://e621.net/post/index.xml?limit=320&tags=" +
-                NetworkUtil.encodeURIComponent(Arrays.stream(argi).map(Object::toString)
-                        .collect(Collectors.joining(" ")) + " -type:swf"));
-        if (count == 0) {
-            return Collections.emptyList();
+        Map<Integer, List<E621Post>> strony = new HashMap<>();
+        List<FutureTask<EmbedBuilder>> pages = new ArrayList<>();
+        int i = 0;
+        do {
+            if (strony.size() == 5) break;
+            String url;
+            if (strony.isEmpty())
+                url = "https://e621.net/posts.json?limit=320&tags=" +
+                        NetworkUtil.encodeURIComponent(Arrays.stream(argi).map(o -> o == null ? "" : o.toString())
+                                .collect(Collectors.joining(" ")) + " -type:swf ");
+            else {
+                long lastId = -1;
+                for (E621Post post : strony.get(i - 1)) {
+                    if (lastId == -1) lastId = post.getId();
+                    else if (lastId >= post.getId()) lastId = post.getId();
+                }
+                url = "https://e621.net/posts.json?limit=320&page=b" + lastId + "&tags=" +
+                        NetworkUtil.encodeURIComponent(Arrays.stream(argi).map(o -> o == null ? "" : o.toString())
+                                .collect(Collectors.joining(" ")) + " -type:swf ");
+            }
+            strony.put(i, GsonUtil.fromJSON(NetworkUtil.download(url), new TypeToken<E621Wrapper>() {}).getPosts());
+            i++;
+            loading.editMessage(context.getTranslated("rule34.loading", ((i - 1) * 320) + strony.get(i - 1)
+                    .size())).queue();
+        } while (!strony.get(i - 1).isEmpty());
+        if (strony.get(i - 1).isEmpty())
+            strony.remove(i - 1);
+        if (strony.isEmpty()) return Collections.emptyList();
+        int strona = -1;
+        for (int j = 0; j < ((strony.size() - 1) * 320) + strony.get(strony.size() - 1).size(); j++) {
+            if (j % 320 == 0) strona++;
+            int finalStrona = strona;
+            int finalI = j;
+            pages.add(new FutureTask<>(() -> {
+                List<E621Post> posts = strony.get(finalStrona);
+                Post post = posts.get(finalI % 320);
+                return generateEmbed(context, post);
+            }));
         }
-        return generatePages(context, "https://e621.net/post/index.json?limit=320&tags=" +
-                        NetworkUtil.encodeURIComponent(Arrays.stream(argi)
-                                .map(Object::toString).collect(Collectors.joining(" ")) + " -type:swf "
-                        ), "pid", count, 320, new TypeToken<List<E621Post>>() {});
+        return pages;
     }
 
     public List<FutureTask<EmbedBuilder>> resolvePixiv(CommandContext context) {
         Object[] argi = Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length);
-        List<Work> works = pixiv.search(Arrays.stream(argi).map(Object::toString)
+        List<Work> works = pixiv.search(Arrays.stream(argi).map(o -> o == null ? "" : o.toString())
                         .collect(Collectors.joining(" ")));
         if (works.isEmpty()) {
             return Collections.emptyList();
@@ -254,7 +287,7 @@ public class Rule34Command extends NsfwCommand {
     public List<FutureTask<EmbedBuilder>> resolvePaheal(CommandContext context) throws IOException {
         Object[] argi = Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length);
         String url = "https://rule34.paheal.net/api/danbooru/find_posts/index.xml?s=post&tags=" +
-                NetworkUtil.encodeURIComponent(Arrays.stream(argi).map(Object::toString)
+                NetworkUtil.encodeURIComponent(Arrays.stream(argi).map(o -> o == null ? "" : o.toString())
                         .collect(Collectors.joining(" ")));
         PahealPostsRoot root = GsonUtil.GSON.fromJson(XML.toJSONObject(new String(NetworkUtil.download(url))).toString(), PahealPostsRoot.class);
         int count = root.getPosts().getCount();
@@ -286,14 +319,14 @@ public class Rule34Command extends NsfwCommand {
     public List<FutureTask<EmbedBuilder>> resolveDanbooru(CommandContext context) throws IOException {
         Object[] argi = Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length);
         int count = GsonUtil.fromJSON(NetworkUtil.download("https://danbooru.donmai.us/counts/posts.json?tags=" +
-                NetworkUtil.encodeURIComponent(Arrays.stream(argi).map(Object::toString)
+                NetworkUtil.encodeURIComponent(Arrays.stream(argi).map(o -> o == null ? "" : o.toString())
                         .collect(Collectors.joining(" ")))), JsonObject.class).getAsJsonObject("counts")
                 .get("posts").getAsInt();
         if (count == 0) {
             return Collections.emptyList();
         }
         return generatePages(context, "https://danbooru.donmai.us/posts.json?limit=200&tags=" +
-                        NetworkUtil.encodeURIComponent(Arrays.stream(argi).map(Object::toString)
+                        NetworkUtil.encodeURIComponent(Arrays.stream(argi).map(o -> o == null ? "" : o.toString())
                                 .collect(Collectors.joining(" "))), "page", count,
                 200, new TypeToken<List<DanbooruPost>>() {});
     }
@@ -327,7 +360,6 @@ public class Rule34Command extends NsfwCommand {
         }
         String getImageUrl();
         int getScore();
-        String getTags();
         Rating getRating();
         default boolean isBanned() {
             return false;
@@ -337,32 +369,49 @@ public class Rule34Command extends NsfwCommand {
     @Data
     @AllArgsConstructor
     public static class E621Post implements Post {
-        @SerializedName("file_url")
-        private String fileUrl;
-        @SerializedName("sample_url")
-        private String sampleUrl;
-        private int score;
+        private File file;
+        private Sample sample;
+        private Score score;
+        private long id;
         private Rating rating;
-        private String tags;
 
         @Override
         public String getSourceImageUrl() {
-            return fileUrl;
+            return file.getUrl();
         }
 
         @Override
         public String getImageUrl() {
-            return sampleUrl;
+            return sample.getUrl();
         }
 
         @Override
         public int getScore() {
+            return score.getTotal();
+        }
+
+        public Score getScoreObj() {
             return score;
         }
 
-        @Override
-        public String getTags() {
-            return tags;
+        @Data
+        @AllArgsConstructor
+        public static class Score {
+            private final int up;
+            private final int down;
+            private final int total;
+        }
+
+        @Data
+        @AllArgsConstructor
+        public static class File {
+            private final String url;
+        }
+
+        @Data
+        @AllArgsConstructor
+        public static class Sample {
+            private final String url;
         }
     }
 
@@ -388,10 +437,6 @@ public class Rule34Command extends NsfwCommand {
             return score;
         }
 
-        @Override
-        public String getTags() {
-            return tagString;
-        }
     }
 
     @Data
@@ -413,10 +458,6 @@ public class Rule34Command extends NsfwCommand {
             return score;
         }
 
-        @Override
-        public String getTags() {
-            return tags;
-        }
     }
 
     public static class SourcesArgument extends Argument {
@@ -476,7 +517,8 @@ public class Rule34Command extends NsfwCommand {
         public static class PahealPostData {
             private int offset;
             private int count;
-            @SerializedName("post")
+            @SerializedName("tag")
+            @JsonAdapter(value = PahealPostAdapter.class)
             private List<PahealPost> posts;
 
             @Data
@@ -498,15 +540,30 @@ public class Rule34Command extends NsfwCommand {
                 }
 
                 @Override
-                public String getTags() {
-                    return tags;
-                }
-
-                @Override
                 public Rating getRating() {
                     return null;
                 }
             }
+        }
+    }
+
+    @Data
+    @AllArgsConstructor
+    public static class E621Wrapper {
+        private final List<E621Post> posts;
+    }
+
+    private static class PahealPostAdapter implements JsonDeserializer<List<PahealPostsRoot.PahealPostData.PahealPost>> {
+        @Override
+        public List<PahealPostsRoot.PahealPostData.PahealPost> deserialize(JsonElement json, Type t, JsonDeserializationContext ctx) throws JsonParseException {
+            if (json.isJsonArray()) {
+                List<PahealPostsRoot.PahealPostData.PahealPost> h = new ArrayList<>();
+                for (JsonElement el : json.getAsJsonArray()) {
+                     h.add(ctx.deserialize(el, PahealPostsRoot.PahealPostData.PahealPost.class));
+                }
+                return h;
+            }
+            return Collections.singletonList(ctx.deserialize(json.getAsJsonObject(), PahealPostsRoot.PahealPostData.PahealPost.class));
         }
     }
 }

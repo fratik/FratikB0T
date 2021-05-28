@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,6 +27,7 @@ import pl.fratik.core.util.UserUtil;
 import pl.fratik.moderation.entity.Case;
 import pl.fratik.moderation.listeners.ModLogListener;
 import pl.fratik.moderation.entity.CaseBuilder;
+import pl.fratik.moderation.utils.ReasonUtils;
 
 import java.time.Instant;
 import java.util.*;
@@ -60,19 +61,16 @@ public class UnmuteCommand extends ModerationCommand {
                     .map(e -> e == null ? "" : e).map(Objects::toString).collect(Collectors.joining(uzycieDelim));
         else powod = context.getTranslated("unmute.reason.default");
         if (uzytkownik.equals(context.getMember())) {
-            context.send(context.getTranslated("unmute.cant.unmute.yourself"));
+            context.reply(context.getTranslated("unmute.cant.unmute.yourself"));
             return false;
         }
-        Member mem = context.getGuild().getMemberById(uzytkownik.getUser().getId());
-        if (mem != null) {
-            if (mem.isOwner()) {
-                context.send(context.getTranslated("unmute.cant.unmute.owner"));
-                return false;
-            }
-            if (!context.getMember().canInteract(mem)) {
-                context.send(context.getTranslated("unmute.cant.interact"));
-                return false;
-            }
+        if (uzytkownik.isOwner()) {
+            context.reply(context.getTranslated("unmute.cant.unmute.owner"));
+            return false;
+        }
+        if (!context.getMember().canInteract(uzytkownik)) {
+            context.reply(context.getTranslated("unmute.cant.interact"));
+            return false;
         }
         try {
             rola = context.getGuild().getRoleById(gc.getWyciszony());
@@ -86,28 +84,28 @@ public class UnmuteCommand extends ModerationCommand {
             }
         }
         if (rola == null) {
-            context.send(context.getTranslated("unmute.no.mute.role"));
+            context.reply(context.getTranslated("unmute.no.mute.role"));
             return false;
         }
         if (!uzytkownik.getRoles().contains(rola)) {
-            context.send(context.getTranslated("unmute.not.muted"));
+            context.reply(context.getTranslated("unmute.not.muted"));
             return false;
         }
         Case aCase = new CaseBuilder().setUser(uzytkownik.getUser()).setGuild(context.getGuild())
                 .setCaseId(Case.getNextCaseId(context.getGuild())).setTimestamp(Instant.now()).setMessageId(null)
                 .setKara(Kara.UNMUTE).createCase();
         aCase.setIssuerId(context.getSender());
-        aCase.setReason(powod);
+        ReasonUtils.parseFlags(aCase, powod);
         List<Case> caseList = ModLogListener.getKnownCases().getOrDefault(context.getGuild(), new ArrayList<>());
         caseList.add(aCase);
         ModLogListener.getKnownCases().put(context.getGuild(), caseList);
         try {
             context.getGuild().removeRoleFromMember(uzytkownik, rola).complete();
-            context.send(context.getTranslated("unmute.success", UserUtil.formatDiscrim(uzytkownik)));
+            context.reply(context.getTranslated("unmute.success", UserUtil.formatDiscrim(uzytkownik)));
         } catch (Exception ignored) {
             caseList.remove(aCase);
             ModLogListener.getKnownCases().put(context.getGuild(), caseList);
-            context.send(context.getTranslated("unmute.fail"));
+            context.reply(context.getTranslated("unmute.fail"));
         }
         return true;
     }

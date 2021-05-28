@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,6 +46,8 @@ public class ChainCommand extends Command {
         permissions.add(Permission.MESSAGE_ATTACH_FILES);
         cooldown = 5;
         aliases = new String[] {"lozeczko"};
+        allowPermLevelChange = false;
+        allowInDMs = true;
     }
 
     @Override
@@ -58,7 +60,7 @@ public class ChainCommand extends Command {
             obok = context.getSender();
         }
         if (nalozku.getId().equals(obok.getId())) {
-            context.send(context.getTranslated("chain.selfchain"));
+            context.reply(context.getTranslated("chain.selfchain"));
             return false;
         }
         try {
@@ -69,13 +71,13 @@ public class ChainCommand extends Command {
                     URLEncoder.encode(obok.getEffectiveAvatarUrl().replace(".webp", ".png")
                             + "?size=2048", "UTF-8")), Ustawienia.instance.apiKeys.get("image-server"));
             if (zdjecie == null || !zdjecie.getBoolean("success")) {
-                context.send("Wystąpił błąd ze zdobyciem zdjęcia!");
+                context.reply("Wystąpił błąd ze zdobyciem zdjęcia!");
                 return false;
             }
             byte[] img = NetworkUtil.getBytesFromBufferArray(zdjecie.getJSONObject("image").getJSONArray("data"));
-            context.getChannel().sendFile(img, "chain.png").queue();
+            context.getMessageChannel().sendFile(img, "chain.png").reference(context.getMessage()).queue();
         } catch (IOException | NullPointerException e) {
-            context.send(context.getTranslated("image.server.fail"));
+            context.reply(context.getTranslated("image.server.fail"));
         }
 
         return true;

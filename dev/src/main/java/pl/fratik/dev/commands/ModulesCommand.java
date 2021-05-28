@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,6 +41,7 @@ public class ModulesCommand extends Command {
         category = CommandCategory.SYSTEM;
         permLevel = PermLevel.BOTOWNER;
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
+        allowPermLevelChange = false;
     }
 
     @Override
@@ -57,7 +58,7 @@ public class ModulesCommand extends Command {
             else eb.getDescriptionBuilder().append(rtick.getAsMention()).append(" ").append(nazwa);
             eb.getDescriptionBuilder().append("\n");
         }
-        context.send(eb.build());
+        context.reply(eb.build());
         return true;
     }
 }

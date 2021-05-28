@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,30 +36,31 @@ public class SelfieCommand extends Command {
         permLevel = PermLevel.BOTOWNER;
         aliases = new String[] {"ryjfratika"};
         permissions.add(Permission.MESSAGE_ATTACH_FILES);
+        allowPermLevelChange = false;
+        allowInDMs = true;
     }
 
     @SubCommand(name="pc")
     public boolean pc(CommandContext context) {
         String ipUrlPc = Ustawienia.instance.apiUrls.get("networkIpPc");
         if (ipUrlPc == null) throw new SilentExecutionFail();
-        try {
-            HashMap<String, String> xd = new HashMap<>();
-            xd.put("Requester", context.getSender().getAsTag());
-            Response res = NetworkUtil.downloadResponse(ipUrlPc,
-                    Ustawienia.instance.apiKeys.get("networkIpPc"), xd);
+        HashMap<String, String> xd = new HashMap<>();
+        xd.put("Requester", context.getSender().getAsTag());
+        try (Response res = NetworkUtil.downloadResponse(ipUrlPc,
+                Ustawienia.instance.apiKeys.get("networkIpPc"), xd)) {
             if (res.code() == 401) {
-                context.send(context.getTranslated("selfie.invalidpass"));
+                context.reply(context.getTranslated("selfie.invalidpass"));
                 return false;
             }
             if (res.code() == 403) {
-                context.send(context.getTranslated("selfie.rejected"));
+                context.reply(context.getTranslated("selfie.rejected"));
                 return false;
             }
             if (res.body() == null) throw new IOException();
-            context.getChannel().sendFile(res.body().bytes(), "ryjfratika.jpg").queue();
+            context.getMessageChannel().sendFile(res.body().bytes(), "ryjfratika.jpg").reference(context.getMessage()).queue();
             return true;
         } catch (IOException e) {
-            context.send(context.getTranslated("image.server.fail"));
+            context.reply(context.getTranslated("image.server.fail"));
             return false;
         }
     }
@@ -68,24 +69,23 @@ public class SelfieCommand extends Command {
     public boolean mb(CommandContext context) {
         String ipUrlMb = Ustawienia.instance.apiUrls.get("networkIpMb");
         if (ipUrlMb == null) throw new SilentExecutionFail();
-        try {
-            HashMap<String, String> xd = new HashMap<>();
-            xd.put("Requester", context.getSender().getAsTag());
-            Response res = NetworkUtil.downloadResponse(ipUrlMb,
-                    Ustawienia.instance.apiKeys.get("networkIpMb"), xd);
+        HashMap<String, String> xd = new HashMap<>();
+        xd.put("Requester", context.getSender().getAsTag());
+        try (Response res = NetworkUtil.downloadResponse(ipUrlMb,
+                Ustawienia.instance.apiKeys.get("networkIpMb"), xd)) {
             if (res.code() == 401) {
-                context.send(context.getTranslated("selfie.invalidpass"));
+                context.reply(context.getTranslated("selfie.invalidpass"));
                 return false;
             }
             if (res.code() == 403) {
-                context.send(context.getTranslated("selfie.rejected"));
+                context.reply(context.getTranslated("selfie.rejected"));
                 return false;
             }
             if (res.body() == null) throw new IOException();
-            context.getChannel().sendFile(res.body().bytes(), "ryjfratika.jpg").queue();
+            context.getMessageChannel().sendFile(res.body().bytes(), "ryjfratika.jpg").reference(context.getMessage()).queue();
             return true;
         } catch (IOException e) {
-            context.send(context.getTranslated("image.server.fail"));
+            context.reply(context.getTranslated("image.server.fail"));
             return false;
         }
     }

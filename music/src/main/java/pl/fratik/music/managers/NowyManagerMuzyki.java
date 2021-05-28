@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,19 +22,24 @@ import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import io.sentry.Sentry;
+import io.sentry.event.EventBuilder;
+import io.sentry.event.interfaces.ExceptionInterface;
 import lavalink.client.LavalinkUtil;
 import lavalink.client.io.LavalinkSocket;
+import lavalink.client.io.Link;
 import lavalink.client.io.jda.JdaLavalink;
 import lavalink.client.io.jda.JdaLink;
 import lombok.Getter;
 import lombok.Setter;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.events.GenericEvent;
-import net.dv8tion.jda.api.events.guild.GenericGuildEvent;
+import net.dv8tion.jda.api.events.guild.voice.GenericGuildVoiceEvent;
 import net.dv8tion.jda.api.hooks.VoiceDispatchInterceptor;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import okhttp3.Response;
+import okhttp3.ResponseBody;
 import org.jetbrains.annotations.NotNull;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -146,19 +151,26 @@ public class NowyManagerMuzyki {
     }
 
     public ManagerMuzykiSerwera getManagerMuzykiSerwera(Guild guild) {
+        return getManagerMuzykiSerwera(guild, true);
+    }
+
+    public ManagerMuzykiSerwera getManagerMuzykiSerwera(Guild guild, boolean create) {
         if (kolejki.containsKey(guild.getId())) return kolejki.get(guild.getId());
-        ManagerMuzykiSerwera mms = new NowyManagerMuzykiSerwera(guild, lavaClient, tlumaczenia, queueDao, guildDao, executorService);
-        kolejki.put(guild.getId(), mms);
-        return kolejki.get(guild.getId());
+        else if (create) {
+            ManagerMuzykiSerwera mms = new NowyManagerMuzykiSerwera(this, guild, lavaClient, tlumaczenia, queueDao, guildDao, executorService);
+            kolejki.put(guild.getId(), mms);
+            return kolejki.get(guild.getId());
+        } else return null;
     }
 
     public List<AudioTrack> getAudioTracks(String url) {
         Ustawienia.Lavalink.LavalinkNode nod = Ustawienia.instance.lavalink.nodes.get(0);
-        try {
-            Response resp = NetworkUtil.downloadResponse("http://" + nod.address + ":" + nod.restPort +
-                    "/loadtracks?identifier=" + URLEncoder.encode(url, "UTF-8"), nod.password);
-            if (resp.body() == null) throw new NullPointerException("body() null");
-            JSONObject td = new JSONObject(resp.body().string());
+        JSONObject td = null;
+        try (Response resp = NetworkUtil.downloadResponse("http://" + nod.address + ":" + nod.restPort +
+                "/loadtracks?identifier=" + URLEncoder.encode(url, "UTF-8"), nod.password)) {
+            ResponseBody body = resp.body();
+            if (body == null) throw new NullPointerException("body() null");
+            td = new JSONObject(body.string());
             List<AudioTrack> list = new ArrayList<>();
             td.getJSONArray("tracks").forEach(o -> {
                 try {
@@ -168,6 +180,11 @@ public class NowyManagerMuzyki {
                 }
             });
             return list;
+        } catch (JSONException exc) {
+            if (td != null)
+                Sentry.capture(new EventBuilder().withSentryInterface(new ExceptionInterface(exc))
+                        .withMessage(exc.getMessage()).withExtra("JSON", td.toString()));
+            throw exc;
         } catch (IOException exc) {
             throw new IllegalStateException(exc);
         }
@@ -201,10 +218,26 @@ public class NowyManagerMuzyki {
     @Subscribe
     @AllowConcurrentEvents
     public void onEvent(GenericEvent e) {
-        if (e instanceof GenericGuildEvent) {
-            getManagerMuzykiSerwera(((GenericGuildEvent) e).getGuild()).onEvent(e);
+        if (e instanceof GenericGuildVoiceEvent) {
+            ManagerMuzykiSerwera mms = getManagerMuzykiSerwera(((GenericGuildVoiceEvent) e).getGuild(), false);
+            if (mms != null) mms.onEvent(e);
         }
         lavaClient.onEvent(e);
+    }
+
+    public void destroy(String id) {
+        Thread t = new Thread(() -> {
+            try {
+                Thread.sleep(1000);
+                Link link = lavaClient.getExistingLink(id);
+                if (link != null) link.destroy();
+                kolejki.remove(id);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+        }, "Niszczenie-kolejki-" + id);
+        t.start();
     }
 
     static class Vdi implements VoiceDispatchInterceptor {

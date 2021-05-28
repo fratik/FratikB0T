@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,6 +32,8 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.stream.Collectors;
 
+import static pl.fratik.tags.Module.MAX_TAG_NAME_LENGTH;
+
 public class CreateTagCommand extends Command {
     private final TagsDao tagsDao;
     private final ManagerKomend managerKomend;
@@ -55,19 +57,24 @@ public class CreateTagCommand extends Command {
     public boolean execute(@NotNull CommandContext context) {
         String tagName = ((String) context.getArgs()[0]).toLowerCase();
         String content = Arrays.stream(Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length))
-                .map(Object::toString).collect(Collectors.joining(uzycieDelim));
-        Tags tags = tagsDao.get(context.getGuild().getId());
-        if (tags.getTagi().stream().anyMatch(t -> t.getName().equals(tagName))) {
-            context.send(context.getTranslated("createtag.exists"));
+                .map(o -> o == null ? "" : o.toString()).collect(Collectors.joining(uzycieDelim));
+        if (tagName.length() > MAX_TAG_NAME_LENGTH) {
+            context.reply(context.getTranslated("createtag.too.long"));
             return false;
         }
-        if (managerKomend.getRegistered().stream().anyMatch(c -> c.getName().equals(tagName))) {
-            context.send(context.getTranslated("createtag.reserved"));
+        Tags tags = tagsDao.get(context.getGuild().getId());
+        if (tags.getTagi().stream().anyMatch(t -> t.getName().equalsIgnoreCase(tagName))) {
+            context.reply(context.getTranslated("createtag.exists"));
+            return false;
+        }
+        if (managerKomend.getRegistered().stream().anyMatch(c -> c.getName().equalsIgnoreCase(tagName) ||
+                Arrays.asList(c.getAliases(context.getTlumaczenia())).contains(tagName))) {
+            context.reply(context.getTranslated("createtag.reserved"));
             return false;
         }
         tags.getTagi().add(new Tag(tagName, context.getSender().getId(), content));
         tagsDao.save(tags);
-        context.send(context.getTranslated("createtag.success"));
+        context.reply(context.getTranslated("createtag.success"));
         return true;
     }
 }

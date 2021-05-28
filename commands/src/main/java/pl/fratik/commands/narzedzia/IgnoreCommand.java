@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,6 +39,7 @@ public class IgnoreCommand extends Command {
         aliases = new String[] {"ignoruj", "wezgoodemnie"};
         uzycieDelim = " ";
         allowInDMs = true;
+        allowPermLevelChange = false;
     }
 
     @Override
@@ -48,12 +49,12 @@ public class IgnoreCommand extends Command {
         if (uc.getPrivIgnored().contains(ignore.getId())) {
             uc.getPrivIgnored().remove(ignore.getId());
             userDao.save(uc);
-            context.send(context.getTranslated("ignore.unignored"));
+            context.reply(context.getTranslated("ignore.unignored"));
             return false;
         }
         uc.getPrivIgnored().add(ignore.getId());
         userDao.save(uc);
-        context.send(context.getTranslated("ignore.ignored"));
+        context.reply(context.getTranslated("ignore.ignored"));
         return true;
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -60,11 +60,13 @@ public class TopStarCommand extends Command {
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         permissions.add(Permission.MESSAGE_MANAGE);
         permissions.add(Permission.MESSAGE_ADD_REACTION);
+        allowPermLevelChange = false;
     }
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
-        Future<Message> msgFuture = context.getChannel().sendMessage(context.getTranslated("generic.loading")).submit();
+        Future<Message> msgFuture = context.getTextChannel().sendMessage(context.getTranslated("generic.loading"))
+                .reference(context.getMessage()).submit();
         StarsData std = starDataDao.get(context.getGuild());
         Map<String, Integer> stars = new HashMap<>();
         for (StarData sd : std.getStarData().values()) {
@@ -72,7 +74,7 @@ public class TopStarCommand extends Command {
                 stars.put(sd.getAuthor(), stars.getOrDefault(sd.getAuthor(), 0) + sd.getStarredBy().size());
             }
         }
-        stars = MapUtil.sortByValue(stars);
+        stars = MapUtil.sortByValueAsc(stars);
         Message msg;
         try {
             msg = msgFuture.get();
@@ -94,7 +96,7 @@ public class TopStarCommand extends Command {
                         .append(StarboardListener.getStarEmoji(entry.getValue())).append("\n");
                 if (i != 0 && (i + 1) % 10 == 0) {
                     pages.add(new EmbedBuilder().setColor(new Color(255, 172, 51))
-                            .setDescription(sb.toString().substring(0, sb.length() - 1))
+                            .setDescription(sb.substring(0, sb.length() - 1))
                             .setTitle(context.getTranslated("topstar.embed.header")));
                     i = -1;
                     sb = new StringBuilder();
@@ -107,7 +109,7 @@ public class TopStarCommand extends Command {
         }
         if (!sb.toString().isEmpty()) {
             pages.add(new EmbedBuilder().setColor(new Color(255, 172, 51))
-                    .setDescription(sb.toString().substring(0, sb.length() - 1))
+                    .setDescription(sb.substring(0, sb.length() - 1))
                     .setTitle(context.getTranslated("topstar.embed.header")));
         }
         if (pages.isEmpty()) {

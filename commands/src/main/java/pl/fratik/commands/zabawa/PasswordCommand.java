@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,6 +33,7 @@ public class PasswordCommand extends Command {
         aliases = new String[] {"haslo", "wygenerujhaslo"};
         uzycie = new Uzycie("znaki", "integer", false);
         cooldown = 4;
+        allowPermLevelChange = false;
     }
 
     @Override
@@ -42,23 +43,22 @@ public class PasswordCommand extends Command {
             arg = (Integer) context.getArgs()[0];
         else arg = 9;
         if (arg > 32 || arg <= 0) {
-            context.send(context.getTranslated("password.length"));
+            context.reply(context.getTranslated("password.length"));
             return false;
         }
         String haslo;
         haslo = StringUtil.generateId(arg, true, true, true, true);
         if (haslo.isEmpty()) {
-            context.send(context.getTranslated("password.empty", "\uD83E\uDD14"));
+            context.reply(context.getTranslated("password.empty", "\uD83E\uDD14"));
             return false;
         }
         try {
             PrivateChannel c = context.getMember().getUser().openPrivateChannel().complete();
-            c.sendMessage(context.getTranslated("password.msg", "\uD83D\uDD11", "\uD83D\uDD11", haslo))
-                    .complete();
-            context.send(context.getTranslated("password.sent"));
+            c.sendMessage(context.getTranslated("password.msg", "\uD83D\uDD11", "\uD83D\uDD11", haslo)).complete();
+            context.reply(context.getTranslated("password.sent"));
             return true;
         } catch (Exception e) {
-            context.send(context.getTranslated("password.cantmessage"));
+            context.reply(context.getTranslated("password.cantmessage"));
             return false;
         }
     }

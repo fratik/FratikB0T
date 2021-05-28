@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,6 +32,7 @@ public class EmojifyCommand extends Command {
         category = CommandCategory.FUN;
         cooldown = 10;
         uzycie = new Uzycie("tekst", "string", true);
+        allowPermLevelChange = false;
     }
 
     @Override
@@ -40,14 +41,14 @@ public class EmojifyCommand extends Command {
         String res = Arrays.stream(str.split(" ")).map(this::replaceChars)
                 .collect(Collectors.joining("\n"));
         if (!str.matches("^[a-zA-Z ]+$")) {
-            context.send(context.getTranslated("emojify.regex"));
+            context.reply(context.getTranslated("emojify.regex"));
             return false;
         }
         if (res.length() >= 2000) {
-            context.send(context.getTranslated("emojify.toolong"));
+            context.reply(context.getTranslated("emojify.toolong"));
             return false;
         }
-        context.send(res.trim());
+        context.reply(res.trim());
         return true;
     }
 

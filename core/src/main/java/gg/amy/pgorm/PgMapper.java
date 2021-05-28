@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2020 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,6 +17,7 @@
 
 package gg.amy.pgorm;
 
+import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -49,6 +50,7 @@ public class PgMapper<T> {
 
     static {
         MAPPER.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        MAPPER.getFactory().disable(JsonFactory.Feature.USE_THREAD_LOCAL_FOR_BUFFER_RECYCLING);
     }
 
     @Getter
@@ -185,8 +187,11 @@ public class PgMapper<T> {
      * subkey.
      */
     public List<T> loadManyBySubkey(final String subKey, final String subKeyData) {
+        return loadManyBySubkey(subKey, subKeyData, "=");
+    }
+    public List<T> loadManyBySubkey(final String subKey, final String subKeyData, String compareSymbol) {
         final List<T> data = new ArrayList<>();
-        store.sql("SELECT * FROM " + table.value() + " WHERE " + subKey + " = ?;", c -> {
+        store.sql("SELECT * FROM " + table.value() + " WHERE " + subKey + " " + compareSymbol + " ?;", c -> {
             c.setObject(1, subKeyData);
             final ResultSet resultSet = c.executeQuery();
             if(resultSet.isBeforeFirst()) {

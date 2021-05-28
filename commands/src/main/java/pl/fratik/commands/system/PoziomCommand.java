@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,6 +41,7 @@ public class PoziomCommand extends Command {
         uzycie = new Uzycie("osoba", "member");
         this.guildDao = guildDao;
         this.shardManager = shardManager;
+        allowPermLevelChange = false;
     }
 
     @Override
@@ -48,12 +49,12 @@ public class PoziomCommand extends Command {
         Member mem = (Member) context.getArgs()[0];
         if (mem == null) {
             PermLevel pmLvl = UserUtil.getPermlevel(context.getMember(), guildDao, shardManager);
-            context.send(context.getTranslated("poziom.response", context.getSender().getAsMention(),
+            context.reply(context.getTranslated("poziom.response", context.getSender().getAsMention(),
                     String.valueOf(pmLvl.getNum()), context.getTranslated(pmLvl.getLanguageKey())));
             return true;
         } else {
             PermLevel pmLvl = UserUtil.getPermlevel(mem, guildDao, shardManager);
-            context.send(context.getTranslated("poziom.response.someone", UserUtil.formatDiscrim(mem),
+            context.reply(context.getTranslated("poziom.response.someone", UserUtil.formatDiscrim(mem),
                     String.valueOf(pmLvl.getNum()), context.getTranslated(pmLvl.getLanguageKey())));
             return true;
         }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -56,9 +56,9 @@ public class Purge implements DatabaseEntity {
     @Getter
     @AllArgsConstructor
     public static class ResolvedWiadomosc implements Wiadomosc {
-        @NotNull private final String id;
-        @Setter @NotNull private User author;
-        @NotNull private final String content;
+        @Nullable private final String id;
+        @Setter @Nullable private User author;
+        @Nullable private final String content;
         private final long createdAt;
         @Nullable private final Long editedAt;
         private final boolean fake;

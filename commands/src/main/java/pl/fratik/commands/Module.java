@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,11 +20,13 @@ package pl.fratik.commands;
 import com.google.common.eventbus.EventBus;
 import com.google.inject.Inject;
 import net.dv8tion.jda.api.sharding.ShardManager;
+import pl.fratik.commands.entity.BlacklistDao;
 import pl.fratik.commands.entity.PrivDao;
 import pl.fratik.commands.narzedzia.*;
 import pl.fratik.commands.system.*;
 import pl.fratik.commands.zabawa.*;
 import pl.fratik.core.Ustawienia;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.entity.*;
 import pl.fratik.core.manager.ManagerArgumentow;
@@ -34,6 +36,7 @@ import pl.fratik.core.manager.ManagerModulow;
 import pl.fratik.core.moduly.Modul;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.EventWaiter;
+import pl.fratik.core.webhook.WebhookManager;
 
 import java.util.ArrayList;
 
@@ -52,6 +55,8 @@ public class Module implements Modul {
     @Inject private Tlumaczenia tlumaczenia;
     @Inject private ManagerModulow managerModulow;
     @Inject private EventBus eventBus;
+    @Inject private RedisCacheManager redisCacheManager;
+    @Inject private WebhookManager webhookManager;
     private ArrayList<Command> commands;
 
     private MemberListener listener;
@@ -63,21 +68,21 @@ public class Module implements Modul {
     @Override
     public boolean startUp() {
         PrivDao privDao = new PrivDao(managerBazyDanych, eventBus);
+        BlacklistDao blacklistDao = new BlacklistDao(managerBazyDanych, eventBus);
 
         commands = new ArrayList<>();
 
         commands.add(new PingCommand());
-        commands.add(new HelpCommand(managerKomend, guildDao, shardManager));
+        commands.add(new HelpCommand(managerKomend, guildDao, shardManager, redisCacheManager));
         commands.add(new LanguageCommand(userDao));
         commands.add(new UstawieniaCommand(eventWaiter, userDao, guildDao, managerArgumentow, shardManager, tlumaczenia));
         commands.add(new PoziomCommand(guildDao, shardManager));
         commands.add(new BotstatsCommand(shardManager, managerModulow));
         if (Ustawienia.instance.apiUrls.get("image-server") != null && Ustawienia.instance.apiKeys.get("image-server") != null) {
-            commands.add(new GraficznaCommand("blurple", "/api/image/blurple", "avatarURL", false));
+            commands.add(new BlurpleCommand());
             commands.add(new StarcatchCommand());
             commands.add(new HugCommand());
             commands.add(new GraficznaCommand("startouch", "/api/image/startouch", "avatarURL", false));
-            commands.add(new GraficznaCommand("facepalm", "/api/image/facepalm", "avatarURL", false));
             commands.add(new GraficznaCommand("slap", "/api/image/slap", "avatarURL", true));
             commands.add(new GraficznaCommand("rip", "/api/image/rip", "avatarURL", false));
             commands.add(new GraficznaCommand("sleep", "/api/image/sleep", "avatarURL", false));
@@ -87,15 +92,16 @@ public class Module implements Modul {
             commands.add(new GraficznaCommand("roksana", "/api/image/roksana", "avatarURL", false));
             commands.add(new GraficznaCommand("debilizm", "/api/image/debilizm", "avatarURL", false));
             commands.add(new GraficznaCommand("god", "/api/image/god", "avatarURL", false));
+            commands.add(new EatCommand());
             commands.add(new BigemojiCommand());
             commands.add(new ChainCommand());
         }
-        commands.add(new OgloszenieCommand(shardManager, guildDao, eventBus, tlumaczenia, managerKomend));
+        commands.add(new OgloszenieCommand(shardManager, guildDao, eventBus, tlumaczenia, managerKomend, redisCacheManager));
         commands.add(new ServerinfoCommand(userDao, eventBus));
         commands.add(new UserinfoCommand(userDao, shardManager, eventBus));
         commands.add(new KolorCommand());
         commands.add(new DegradCommand(shardManager));
-        commands.add(new CytujCommand(shardManager, eventBus));
+        commands.add(new CytujCommand(shardManager, eventBus, webhookManager, guildDao, userDao, tlumaczenia, redisCacheManager));
         commands.add(new PogodaCommand(userDao));
         commands.add(new McpremiumCommand());
         commands.add(new InviteCommand());
@@ -106,10 +112,9 @@ public class Module implements Modul {
         commands.add(new MemeCommand());
         commands.add(new DashboardCommand());
         commands.add(new DonateCommand());
-        commands.add(new OpuscCommand());
-        commands.add(new BoomCommand(eventWaiter, eventBus, userDao));
+//        commands.add(new BoomCommand(eventWaiter, userDao, redisCacheManager));
         commands.add(new PomocCommand());
-        commands.add(new PopCommand(shardManager, guildDao, eventWaiter, eventBus, tlumaczenia));
+        commands.add(new PopCommand(shardManager, guildDao, eventWaiter, eventBus, tlumaczenia, blacklistDao, redisCacheManager));
         commands.add(new PowiadomOPomocyCommand(shardManager));
         commands.add(new OsiemBallCommand());
         commands.add(new ChooseCommand());
@@ -128,14 +133,23 @@ public class Module implements Modul {
         commands.add(new GlobaladminiCommand(eventWaiter, eventBus));
         commands.add(new PasswordCommand());
         if (Ustawienia.instance.apiKeys.get("hypixelToken") != null) {
-            commands.add(new HypixelCommand());
+            commands.add(new HypixelCommand(redisCacheManager));
         }
         commands.add(new McstatusCommand());
         commands.add(new SelfieCommand());
         commands.add(new EmojiInfoCommand());
+        if (Ustawienia.instance.apiKeys.get("osu") != null)
+            commands.add(new OsuCommand(shardManager, eventWaiter, eventBus));
         commands.add(new Rule34Command(eventWaiter, eventBus, managerArgumentow));
+        commands.add(new CoronastatsCommand(eventWaiter, eventBus));
+        commands.add(new UstawPoziomCommand(guildDao, managerKomend));
+        commands.add(new PoziomyUprawnienCommand());
+        commands.add(new BlacklistPopCommand(blacklistDao));
+        commands.add(new ShipCommand(managerArgumentow));
+        commands.add(new AdministratorzyCommand(guildDao, redisCacheManager));
+        commands.add(new SasinCommand());
 
-        listener = new MemberListener(guildDao);
+        listener = new MemberListener(guildDao, eventBus, redisCacheManager);
         eventBus.register(listener);
 
         commands.forEach(managerKomend::registerCommand);

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,17 +28,18 @@ import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.commands.entity.Blacklist;
+import pl.fratik.commands.entity.BlacklistDao;
 import pl.fratik.core.Globals;
 import pl.fratik.core.Ustawienia;
+import pl.fratik.core.cache.Cache;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.command.*;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.SilentExecutionFail;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
-import pl.fratik.core.util.CommonErrors;
-import pl.fratik.core.util.EventWaiter;
-import pl.fratik.core.util.MessageWaiter;
-import pl.fratik.core.util.UserUtil;
+import pl.fratik.core.util.*;
 
 import java.time.Instant;
 import java.util.List;
@@ -54,14 +55,24 @@ public class PopCommand extends Command {
     private final EventWaiter eventWaiter;
     private final EventBus eventBus;
     private final Tlumaczenia tlumaczenia;
+    private final BlacklistDao blacklistDao;
+    private final Cache<Blacklist> blacklistCache;
     private boolean bypass = false;
 
-    public PopCommand(ShardManager shardManager, GuildDao guildDao, EventWaiter eventWaiter, EventBus eventBus, Tlumaczenia tlumaczenia) {
+    public PopCommand(ShardManager shardManager,
+                      GuildDao guildDao,
+                      EventWaiter eventWaiter,
+                      EventBus eventBus,
+                      Tlumaczenia tlumaczenia,
+                      BlacklistDao blacklistDao,
+                      RedisCacheManager rcm) {
         this.shardManager = shardManager;
         this.guildDao = guildDao;
         this.eventWaiter = eventWaiter;
         this.eventBus = eventBus;
         this.tlumaczenia = tlumaczenia;
+        this.blacklistDao = blacklistDao;
+        blacklistCache = rcm.new CacheRetriever<Blacklist>(){}.getCache();
         name = "pop";
         category = CommandCategory.SYSTEM;
         cooldown = 10; // TODO: 22.02.19 pomoc 2.0
@@ -69,6 +80,7 @@ public class PopCommand extends Command {
         permissions.add(Permission.CREATE_INSTANT_INVITE);
         permissions.add(Permission.MANAGE_ROLES);
         permissions.add(Permission.MANAGE_CHANNEL);
+        allowPermLevelEveryone = false;
     }
 
     @Override
@@ -84,17 +96,31 @@ public class PopCommand extends Command {
     @Override
     public boolean execute(@NotNull CommandContext context) {
         if (!Globals.inFratikDev) throw new IllegalStateException("nie na fdev");
+        Blacklist ubl = blacklistCache.get(context.getSender().getId(), blacklistDao::get);
+        if (ubl.isBlacklisted()) {
+            String tag = context.getShardManager().retrieveUserById(ubl.getExecutor()).complete().getAsTag();
+            context.reply(context.getTranslated("pop.user.blacklisted", tag, ubl.getReason(),
+                    context.getPrefix(), tag));
+            return false;
+        }
+        Blacklist sbl = blacklistCache.get(context.getGuild().getId(), blacklistDao::get);
+        if (sbl.isBlacklisted()) {
+            String tag = context.getShardManager().retrieveUserById(sbl.getExecutor()).complete().getAsTag();
+            context.reply(context.getTranslated("pop.server.blacklisted", tag, sbl.getReason(),
+                    context.getPrefix(), tag));
+            return false;
+        }
         if (context.getGuild().getTimeCreated().toInstant().toEpochMilli() - Instant.now().toEpochMilli() > -1209600000
                 && !bypass) {
-            context.send(context.getTranslated("pop.server.young"));
+            context.reply(context.getTranslated("pop.server.young"));
             return false;
         }
         if (!context.getGuild().getRolesByName(context.getTranslated("pop.role.name"), false).isEmpty()) {
-            context.send(context.getTranslated("pop.inprogress"));
+            context.reply(context.getTranslated("pop.inprogress"));
             return false;
         }
-        if (isPomoc(context.getGuild())) {
-            context.send(context.getTranslated("pop.pomoc.isset"));
+        if (CommonUtil.isPomoc(shardManager, context.getGuild())) {
+            context.reply(context.getTranslated("pop.pomoc.isset"));
             if (UserUtil.isStaff(context.getMember(), shardManager)) {
                 TextChannel kanal = Objects.requireNonNull(shardManager.getGuildById(Ustawienia.instance.botGuild))
                         .getTextChannelById(Ustawienia.instance.popChannel);
@@ -105,7 +131,7 @@ public class PopCommand extends Command {
                     //noinspection ConstantConditions
                     String id = mess.getEmbeds().get(0).getFooter().getText().split(" \\| ")[1];
                     if (id.equals(context.getGuild().getId())) {
-                        context.send(mess.getEmbeds().get(0));
+                        context.reply(mess.getEmbeds().get(0));
                         return false;
                     }
                 }
@@ -113,7 +139,7 @@ public class PopCommand extends Command {
             return false;
         }
         PermLevel permLevel = UserUtil.getPermlevel(context.getMember(), guildDao, shardManager);
-        context.send(context.getTranslated("pop.start"));
+        context.reply(context.getTranslated("pop.start"));
         MessageWaiter mw = new MessageWaiter(eventWaiter, context) {
             @Override
             public void create() {
@@ -122,19 +148,23 @@ public class PopCommand extends Command {
             }
         };
         mw.setMessageHandler(e -> {
-            if (e.getMessage().getContentRaw().length() >= 1000) {
-                context.send(context.getTranslated("pop.max.length"));
+            if (e.getMessage().getContentRaw().trim().equalsIgnoreCase(context.getTranslated("pop.abort"))) {
+                context.reply(context.getTranslated("pop.aborted"));
                 return;
             }
-            if (e.getMessage().getContentRaw().trim().equalsIgnoreCase(context.getTranslated("pop.abort"))) {
-                context.send(context.getTranslated("pop.aborted"));
+            if (e.getMessage().getContentRaw().length() < 15) {
+                context.reply(context.getTranslated("pop.min.length"));
+                return;
+            }
+            if (e.getMessage().getContentRaw().length() >= 1000) {
+                context.reply(context.getTranslated("pop.max.length"));
                 return;
             }
             Role role = context.getGuild().createRole().setColor(decode("#f11515"))
                     .setName(context.getTranslated("pop.role.name")).setMentionable(false).complete();
-            context.getChannel().createPermissionOverride(role)
+            context.getTextChannel().createPermissionOverride(role)
                     .setAllow(Permission.MESSAGE_WRITE, Permission.VIEW_CHANNEL).complete();
-            Invite invite = context.getChannel().createInvite().setMaxAge(86400).setMaxUses(5)
+            Invite invite = context.getTextChannel().createInvite().setMaxAge(86400).setMaxUses(5)
                     .reason(context.getTranslated("pop.invite.reason")).complete();
             //skonwertowane z js
             EmbedBuilder eb = new EmbedBuilder()
@@ -154,12 +184,11 @@ public class PopCommand extends Command {
             popRole.getManager().setMentionable(true).complete();
             TextChannel ch = fdev.getTextChannelById(Ustawienia.instance.popChannel);
             if (ch == null) throw new IllegalStateException("nie ma popChannel/nieprawidłowy");
-            Message msg = ch
-                    .sendMessage("<@&423855296415268865>\nhttp://discord.gg/" + invite.getCode()).embed(eb.build())
-                    .complete();
+            Message msg = ch.sendMessage("<@&" + Ustawienia.instance.popRole + ">\nhttp://discord.gg/" +
+                            invite.getCode()).embed(eb.build()).mentionRoles(Ustawienia.instance.popRole).complete();
             popRole.getManager().setMentionable(false).complete();
             msg.addReaction("\uD83D\uDDD1").queue();
-            context.send(context.getTranslated("pop.success"));
+            context.reply(context.getTranslated("pop.success"));
             PermLevel lvl = UserUtil.getPermlevel(e.getMember(), guildDao, shardManager);
             TextChannel poplch = fdev.getTextChannelById(Ustawienia.instance.popLogChannel);
             if (poplch == null) throw new IllegalStateException("nie ma popLogChannel/nieprawidłowy");
@@ -169,7 +198,7 @@ public class PopCommand extends Command {
                     context.getSender().getId(), context.getGuild().getName(), context.getGuild().getId(),
                     e.getMessage().getContentRaw(), lvl.getNum(), context.getTranslated(lvl.getLanguageKey()))).complete();
         });
-        mw.setTimeoutHandler(() -> context.send(context.getTranslated("pop.aborted")));
+        mw.setTimeoutHandler(() -> context.reply(context.getTranslated("pop.aborted")));
         mw.create();
         return true;
     }
@@ -184,7 +213,7 @@ public class PopCommand extends Command {
             }
         }
         if (UserUtil.getPermlevel(context.getMember(), guildDao, shardManager).getNum() < PermLevel.MOD.getNum()) {
-            context.send(context.getTranslated("pop.no.perms", context.getPrefix()));
+            context.reply(context.getTranslated("pop.no.perms", context.getPrefix()));
             return false;
         }
         return super.preExecute(context);
@@ -196,8 +225,8 @@ public class PopCommand extends Command {
             throw new SilentExecutionFail();
         }
         bypass = !bypass;
-        if (bypass) context.send("Ignoruje czas stworzenia serwera");
-        else context.send("Już nie ignoruje czasu stworzenia serwera");
+        if (bypass) context.reply("Ignoruje czas stworzenia serwera");
+        else context.reply("Już nie ignoruje czasu stworzenia serwera");
         return true;
     }
 
@@ -208,7 +237,7 @@ public class PopCommand extends Command {
         TextChannel logi = fdev.getTextChannelById(Ustawienia.instance.popLogChannel);
         if (logi == null) return; //nie możemy throw'nąć bo to mogło być podczas ładowania shard'ów
         if (!UserUtil.isGadm(e.getUser(), shardManager)) return;
-        if (!isPomoc(e.getGuild())) return;
+        if (!CommonUtil.isPomoc(shardManager, e.getGuild())) return;
         logi.sendMessage((String.format("%s(%s) dostał bana na serwerze %s[%s]. Czy nie należy się gban?",
                 UserUtil.formatDiscrim(e.getUser()), e.getUser().getId(),
                 e.getGuild().getName(), e.getGuild().getId()))).queue();
@@ -254,18 +283,24 @@ public class PopCommand extends Command {
                 //wiadomosci nie ma
                 return;
             }
-            if (e.getUser().isBot()) return;
+            User user;
+            try {
+                user = e.retrieveUser().complete();
+            } catch (Exception er) {
+                user = null;
+            }
+            if (user == null || user.isBot()) return;
             if (!msg.getAuthor().equals(e.getJDA().getSelfUser())) return;
             //noinspection ConstantConditions
             String id = msg.getEmbeds().get(0).getFooter().getText().split(" \\| ")[1];
             Guild g = shardManager.getGuildById(id);
-            if (g == null) return;
             try {
                 msg.delete().complete();
                 logi.sendMessage((String.format("%s(%s) zamknął" + " prośbę o pomoc serwera %s[%s]",
-                        UserUtil.formatDiscrim(e.getUser()), e.getUser().getId(), g.getName(), g.getId()))).queue();
-
+                        UserUtil.formatDiscrim(user), user.getId(),
+                        g != null ? g.getName() : "[bot nie na serwerze]", id))).queue();
             } catch (Exception ignored) {/*lul*/}
+            if (g == null) return;
             Role rola = null;
             for (Language lang : Language.values()) {
                 if (g.getRoles().stream().map(Role::getName).collect(Collectors.toList())
@@ -278,20 +313,5 @@ public class PopCommand extends Command {
             if (rola == null) return;
             rola.delete().queue();
         }
-    }
-
-    private boolean isPomoc(Guild g) {
-        TextChannel kanal = Objects.requireNonNull(shardManager.getGuildById(Ustawienia.instance.botGuild))
-                .getTextChannelById(Ustawienia.instance.popChannel);
-        if (kanal == null) throw new NullPointerException("nieprawidłowy popChannel");
-        List<Message> wiads = kanal.getHistory().retrievePast(50).complete();
-        for (Message mess : wiads) {
-            if (mess.getEmbeds().isEmpty()) continue;
-            //noinspection ConstantConditions
-            String id = mess.getEmbeds().get(0).getFooter().getText().split(" \\| ")[1];
-            if (id.equals(g.getId())) {
-                return true;
-            }
-        } return false;
     }
 }

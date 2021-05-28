@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -47,6 +47,8 @@ public class ReloadCommand extends Command {
         permLevel = PermLevel.BOTOWNER;
         uzycie = new Uzycie("modul", "string");
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
+        allowPermLevelChange = false;
+        allowInDMs = true;
     }
 
     @Override
@@ -59,7 +61,7 @@ public class ReloadCommand extends Command {
         eb.appendDescription(pytajnik + ODMO + "\n");
         eb.appendDescription(pytajnik + UNLOAD + "\n");
         eb.appendDescription(pytajnik + LOAD + "\n");
-        Message msg = context.getChannel().sendMessage(eb.build()).complete();
+        Message msg = context.reply(eb.build());
         File path = managerModulow.getPath((String) context.getArgs()[0]);
         if (path == null) {
             eb.setDescription(eb.getDescriptionBuilder().toString().replace(pytajnik +  ODMO,
@@ -80,7 +82,7 @@ public class ReloadCommand extends Command {
         msg.editMessage(eb.build()).override(true).complete();
         try {
             boolean odp = managerModulow.stopModule((String) context.getArgs()[0]);
-            if (!odp) throw new Exception("Unload modułu nieudany - sprawdź konsolę.");
+            if (!odp) throw new Exception("Unload modułu nieudany - sprawdź konsolę.");
             managerModulow.unload((String) context.getArgs()[0], true);
         } catch (Exception e) {
             logger.error("Błąd w komendzie reload:", e);
@@ -96,7 +98,7 @@ public class ReloadCommand extends Command {
         try {
             managerModulow.load(path.getAbsolutePath());
             boolean odp = managerModulow.startModule((String) context.getArgs()[0]);
-            if (!odp) throw new Exception("Nie udało się wczytać modułu - sprawdź konsolę.");
+            if (!odp) throw new Exception("Nie udało się wczytać modułu - sprawdź konsolę.");
         } catch (Exception e) {
             logger.error("Błąd w komendzie reload:", e);
             eb.setDescription(eb.getDescriptionBuilder().toString().replace(pytajnik +  LOAD,

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,37 +17,53 @@
 
 package pl.fratik.commands;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.eventbus.AllowConcurrentEvents;
+import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
-import net.dv8tion.jda.api.events.guild.member.GuildMemberLeaveEvent;
+import net.dv8tion.jda.api.events.guild.member.GuildMemberRemoveEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.requests.restaction.MessageAction;
+import pl.fratik.core.cache.Cache;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.event.DatabaseUpdateEvent;
+import pl.fratik.core.event.PluginMessageEvent;
 import pl.fratik.core.util.CommonUtil;
 import pl.fratik.core.util.UserUtil;
 
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 class MemberListener {
     private final GuildDao guildDao;
-    private final Cache<String, GuildConfig> gcCache = Caffeine.newBuilder().expireAfterWrite(1, TimeUnit.HOURS).build();
+    private final EventBus eventBus;
+    private final Cache<GuildConfig> gcCache;
 
-    MemberListener(GuildDao guildDao) {
+    private static final Pattern INVITE_TAG_REGEX = Pattern.compile("<invite>(.*)</invite>", Pattern.MULTILINE | Pattern.DOTALL);
+
+    MemberListener(GuildDao guildDao, EventBus eventBus, RedisCacheManager redisCacheManager) {
         this.guildDao = guildDao;
+        this.eventBus = eventBus;
+        gcCache = redisCacheManager.new CacheRetriever<GuildConfig>(){}.getCache();
     }
 
     @Subscribe
     public void onMemberJoinEvent(GuildMemberJoinEvent e) {
         autorole(e);
         przywitanie(e);
+    }
+
+    @Subscribe
+    public void onMemberLeaveEvent(GuildMemberRemoveEvent e) {
+        GuildConfig gc = getGuildConfig(e.getGuild());
+        if (gc.isPowitanieWEmbedzie()) sendEmbeds(e.getUser(), e.getGuild(), gc.getPozegnania().entrySet());
+        else sendMessages(e.getUser(), e.getGuild(), gc.getPozegnania().entrySet());
     }
 
     private void autorole(GuildMemberJoinEvent e) {
@@ -60,40 +76,42 @@ class MemberListener {
             role.add(rola);
         }
         if (role.isEmpty()) return;
-        e.getGuild().modifyMemberRoles(e.getMember(), role, new ArrayList<>()).queue();
-    }
-
-    @Subscribe
-    public void onMemberLeaveEvent(GuildMemberLeaveEvent e) {
-        GuildConfig gc = getGuildConfig(e.getGuild());
-        generateEmbed(e.getMember(), e.getGuild(), gc.getPozegnania().entrySet());
+        try {
+            e.getGuild().modifyMemberRoles(e.getMember(), role, new ArrayList<>()).queue(null, i -> {});
+        } catch (Exception ignored) {} // nie nasz problem lmao
     }
 
     private void przywitanie(GuildMemberJoinEvent e) {
         GuildConfig gc = getGuildConfig(e.getGuild());
+        if (gc.isPowitanieWEmbedzie()) sendEmbeds(e.getUser(), e.getGuild(), gc.getPowitania().entrySet());
+        else sendMessages(e.getUser(), e.getGuild(), gc.getPowitania().entrySet());
+    }
 
-        if (gc.getPowitanieWEmbedzie()) generateEmbed(e.getMember(), e.getGuild(), gc.getPowitania().entrySet());
-        else {
-            for (Map.Entry<String, String> ch : gc.getPowitania().entrySet()) {
-                TextChannel cha = e.getGuild().getTextChannelById(ch.getKey());
-                if (cha == null || !cha.canTalk()) continue;
-                cha.sendMessage(getPowitanie(e.getMember(), ch.getValue())).queue();
-            }
+    private void sendMessages(User user, Guild guild, Set<Map.Entry<String, String>> kek) {
+        for (Map.Entry<String, String> ch : kek) {
+            TextChannel cha = guild.getTextChannelById(ch.getKey());
+            if (cha == null || !cha.canTalk()) continue;
+            boolean hasMentions = ch.getValue().contains("{{mention}}");
+            MessageAction ma = cha.sendMessage(getPowitanie(user, guild, ch.getValue()));
+            if (hasMentions) ma.mention(user).queue();
+            else ma.queue();
         }
     }
 
-    private void generateEmbed(Member user, Guild guild, Set<Map.Entry<String, String>> kek) { // L125
+    private void sendEmbeds(User user, Guild guild, Set<Map.Entry<String, String>> kek) { // L125
         EmbedBuilder eb = new EmbedBuilder();
-        String avatar = UserUtil.getAvatarUrl(user.getUser());
+        String avatar = UserUtil.getAvatarUrl(user);
 
         for (Map.Entry<String, String> ch : kek) {
             TextChannel cha = guild.getTextChannelById(ch.getKey());
             if (cha == null || !cha.canTalk()) continue;
+            boolean hasMentions = ch.getValue().contains("{{mention}}");
             eb.setAuthor(UserUtil.formatDiscrim(user), avatar);
-            eb.setDescription(getPowitanie(user, ch.getValue()));
-            eb.setColor(UserUtil.getPrimColor(user.getUser()));
-            cha.sendMessage(eb.build()).queue();
-            break;
+            eb.setDescription(getPowitanie(user, guild, ch.getValue()));
+            eb.setColor(UserUtil.getPrimColor(user));
+            MessageAction ma = cha.sendMessage(eb.build());
+            if (hasMentions) ma.mention(user).queue();
+            else ma.queue();
         }
     }
 
@@ -122,17 +140,64 @@ class MemberListener {
         }
     }
 
-    private String getPowitanie(Member user, String msg) { // jestem zbyt leniwy żeby zmienić na Member member
-        return msg
-                .replaceAll("\\{\\{user}}", user.getUser().getAsTag().replaceAll("@(everyone|here)", "@\u200b$1"))
-                .replaceAll("\\{\\{mention}}", user.getAsMention())
-                .replaceAll("\\{\\{members}}", String.valueOf(user.getGuild().getMembers().size()))
-                .replaceAll("\\{\\{server}}", user.getGuild().getName().replaceAll("@(everyone|here)", "@\u200b$1"));
+    private String getPowitanie(User user, Guild guild, String cnt) {
+        Matcher matcher = INVITE_TAG_REGEX.matcher(cnt);
+        if (matcher.find()) {
+            String tagCnt = matcher.group(1);
+            StringBuffer buf = new StringBuffer();
+            PluginMessageEvent event = new PluginMessageEvent("commands", "invite", "Module-getInviteData:" +
+                    user.getId() + "." + guild.getId());
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException ignored) {
+            }
+            eventBus.post(event);
+            awaitPluginResponse(event);
+            if (event.getResponse() != null) {
+                pl.fratik.invite.entity.InviteData inv = (pl.fratik.invite.entity.InviteData) event.getResponse();
+                User invitedBy;
+                try {
+                    invitedBy = user.getJDA().retrieveUserById(inv.getDolaczylZJegoZaproszenia()).complete();
+                } catch (Exception err) {
+                    invitedBy = null;
+                }
+                if (invitedBy != null) {
+                    tagCnt = tagCnt.replaceAll("(\\{\\{invitedBy}})|(\\{\\{invitedBy-user}})", invitedBy.getAsTag())
+                            .replace("{{invitedBy-mention}}", invitedBy.getAsMention()).replace("{{inviteCount}}",
+                                    String.valueOf(inv.getTotalInvites() - inv.getLeaveInvites()));
+                } else {
+                    tagCnt = "";
+                }
+                matcher.appendReplacement(buf, tagCnt);
+            } else {
+                matcher.appendReplacement(buf, "");
+            }
+            matcher.appendTail(buf);
+            cnt = buf.toString();
+        }
+        return cnt
+                .replace("{{user}}", user.getAsTag())
+                .replace("{{mention}}", user.getAsMention())
+                .replace("{{members}}", String.valueOf(guild.getMemberCount()))
+                .replace("{{server}}", guild.getName());
     }
 
     @Subscribe
     public void onDatabaseUpdateEvent(DatabaseUpdateEvent e) {
         if (e.getEntity() instanceof GuildConfig)
             gcCache.put(((GuildConfig) e.getEntity()).getGuildId(), (GuildConfig) e.getEntity());
+    }
+
+    private void awaitPluginResponse(PluginMessageEvent event) {
+        int waited = 0;
+        while (event.getResponse() == null) {
+            try {
+                Thread.sleep(100);
+                waited += 100;
+                if (waited >= 3000) break;
+            } catch (InterruptedException e) {
+                break;
+            }
+        }
     }
 }

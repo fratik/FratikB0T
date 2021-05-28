@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,15 +43,15 @@ public class DeleteTagCommand extends Command {
     public boolean execute(@NotNull CommandContext context) {
         String tagName = (String) context.getArgs()[0];
         Tags tags = tagsDao.get(context.getGuild().getId());
-        if (tags.getTagi().stream().noneMatch(t -> t.getName().equals(tagName))) {
-            context.send(context.getTranslated("deletetag.doesnt.exist"));
+        if (tags.getTagi().stream().noneMatch(t -> t.getName().equalsIgnoreCase(tagName))) {
+            context.reply(context.getTranslated("deletetag.doesnt.exist"));
             return false;
         }
-        Tag tag = tags.getTagi().stream().filter(t -> t.getName().equals(tagName)).findFirst()
+        Tag tag = tags.getTagi().stream().filter(t -> t.getName().equalsIgnoreCase(tagName)).findFirst()
                 .orElseThrow(IllegalStateException::new);
         tags.getTagi().remove(tag);
         tagsDao.save(tags);
-        context.send(context.getTranslated("deletetag.success"));
+        context.reply(context.getTranslated("deletetag.success"));
         return true;
     }
 }

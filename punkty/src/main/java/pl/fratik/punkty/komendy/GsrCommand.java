@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -57,12 +57,13 @@ public class GsrCommand extends Command {
         permissions.add(Permission.MESSAGE_MANAGE);
         permissions.add(Permission.MESSAGE_ADD_REACTION);
         aliases = new String[] {"sgur", "servergsr", "serverglobaluserrace", "globalserverrace", "serverowyranking", "rankingserverowy"};
+        allowPermLevelChange = false;
     }
 
     @Override
     public boolean execute(@NotNull @Nonnull CommandContext context) {
-        context.send(context.getTranslated("generic.loading"), message -> {
-            Map<String, Integer> licznikAlboCo = MapUtil.sortByValue(LicznikPunktow.getAllGuildPunkty());
+        context.reply(context.getTranslated("generic.loading"), message -> {
+            Map<String, Integer> licznikAlboCo = MapUtil.sortByValueAsc(LicznikPunktow.getAllGuildPunkty());
             List<EmbedBuilder> embedy = new ArrayList<>();
             licznikAlboCo.forEach((id, poziom) -> {
                 EmbedBuilder eb = new EmbedBuilder();

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,6 +34,7 @@ public class AvatarCommand extends Command {
         uzycie = new Uzycie("osoba", "user");
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         aliases = new String[] {"prof", "profilowe", "awatar"};
+        allowPermLevelChange = false;
     }
 
     @Override
@@ -45,7 +46,7 @@ public class AvatarCommand extends Command {
         eb.setAuthor(UserUtil.formatDiscrim(osoba));
         eb.setTitle(context.getTranslated("avatar.link"), osoba.getEffectiveAvatarUrl().replace(".webp", ".png"));
         eb.setColor(UserUtil.getPrimColor(osoba));
-        context.send(eb.build());
+        context.reply(eb.build());
         return true;
     }
 }

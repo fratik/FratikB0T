@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,8 +32,7 @@ import pl.fratik.core.entity.ScheduleDao;
 import javax.annotation.Nullable;
 import java.time.Instant;
 import java.time.temporal.TemporalAccessor;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 @Getter
 @ToString
@@ -51,9 +50,17 @@ public class Case {
     @Setter   private       boolean valid = true;
     @Nullable private       TemporalAccessor validTo;
     @Setter   private       String messageId;
+    @Setter
+    @Nullable private       String dmMsgId;
     @Nullable private       String issuerId;
     @Setter
     @Nullable private       String reason;
+    @Setter
+    @Nullable private       Integer ileRazy;
+    @Setter
+    @NotNull  private       EnumSet<Flaga> flagi = EnumSet.noneOf(Flaga.class);
+    @Setter
+    @NotNull  private       List<Dowod> dowody = new ArrayList<>();
 
     Case(@NotNull String userId, @NotNull String guildId, int caseId, @Nullable TemporalAccessor timestamp, String messageId, @NotNull Kara type) {
         this.userId = userId;
@@ -141,14 +148,71 @@ public class Case {
         scheduleDao.save(sch);
     }
 
-        private Kara opposite(Kara type) {
-            switch (type) {
-                case TIMEDBAN:
-                case BAN:
-                    return Kara.UNBAN;
-                case MUTE: return Kara.UNMUTE;
-                case WARN: return Kara.UNWARN;
-                default: return null;
-            }
+    private Kara opposite(Kara type) {
+        switch (type) {
+            case BAN:
+                return Kara.UNBAN;
+            case MUTE: return Kara.UNMUTE;
+            case WARN: return Kara.UNWARN;
+            default: return null;
         }
     }
+
+    @Getter
+    public enum Flaga {
+        SILENT(0, 's', null),
+        NOBODY(1, 'n', new String[] {"nikt"});
+
+        private static final Flaga[] EMPTY_FLAGI = new Flaga[0];
+
+        private final int offset;
+        private final long raw;
+        private final char shortName;
+        private final String[] longNames;
+
+        Flaga(int offset, char shortName, String[] longNames) {
+            this.offset = offset;
+            this.raw = 1 << offset;
+            this.shortName = shortName;
+            this.longNames = longNames == null ? new String[0] : longNames;
+        }
+
+        public static Flaga resolveFlag(String f, Flaga... ignore) {
+            List<Flaga> lista = Arrays.asList(ignore);
+            for (Flaga flaga : values()) {
+                if (lista.contains(flaga)) continue;
+                char sn = flaga.getShortName();
+                if (f.equals("-" + sn)) return flaga;
+                if (f.equals("--" + flaga.name().toLowerCase()) || f.equals("—" + flaga.name().toLowerCase()))
+                    return flaga;
+                for (String alias : flaga.getLongNames())
+                    if (f.equals("--" + alias) || f.equals("—" + alias)) return flaga;
+            }
+            return null;
+        }
+
+        /* celem zaoszczędzenia miejsca w db, co się przyda xD */
+        public static long getRaw(@NotNull Flaga... flagi) {
+            long raw = 0;
+            for (Flaga flaga : flagi) {
+                raw |= flaga.raw;
+            }
+            return raw;
+        }
+
+        public static EnumSet<Flaga> getFlagi(long raw) {
+            if (raw == 0)
+                return EnumSet.noneOf(Flaga.class);
+            EnumSet<Flaga> flagi = EnumSet.noneOf(Flaga.class);
+            for (Flaga flaga : Flaga.values()) {
+                if ((raw & flaga.raw) == flaga.raw)
+                    flagi.add(flaga);
+            }
+            return flagi;
+        }
+
+        public static long getRaw(Collection<Flaga> flagi) {
+            return getRaw(flagi.toArray(EMPTY_FLAGI));
+        }
+    }
+}

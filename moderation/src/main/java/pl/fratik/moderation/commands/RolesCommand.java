@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -51,7 +51,7 @@ public class RolesCommand extends ModerationCommand {
         sb.append("```");
         strArray.add(sb.toString());
         for (String str : strArray) {
-            context.send(str);
+            context.reply(str);
         }
         return true;
     }
@@ -61,4 +61,8 @@ public class RolesCommand extends ModerationCommand {
         return PermLevel.EVERYONE;
     }
 
+    @Override
+    public boolean isAllowPermLevelEveryone() {
+        return true;
+    }
 }

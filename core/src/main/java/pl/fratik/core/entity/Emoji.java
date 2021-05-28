@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,7 +36,7 @@ public class Emoji extends EmoteImpl implements ListedEmote {
     private String name;
 
     public Emoji(EmoteImpl e) {
-        super(e.getIdLong(), Objects.requireNonNull(e.getGuild()), e.isFake());
+        super(e.getIdLong(), Objects.requireNonNull(e.getGuild()));
         setUser(e.hasUser() ? e.getUser() : null);
         setManaged(e.isManaged());
         setAnimated(e.isAnimated());
@@ -109,7 +109,8 @@ public class Emoji extends EmoteImpl implements ListedEmote {
     }
 
     public static Emoji resolve(String emote, ShardManager jda) {
-        if (EmojiUtils.isEmoji(emote)) return new Emoji(emote);
+        if (EmojiUtils.isEmoji(emote) || emote.startsWith("UNICODE:"))
+            return new Emoji(emote.replace("UNICODE:", ""));
         else {
             try {
                 return new Emoji((EmoteImpl) Objects.requireNonNull(jda.getEmoteById(emote)));
@@ -146,5 +147,10 @@ public class Emoji extends EmoteImpl implements ListedEmote {
             }
             return Long.hashCode(liczba);
         }
+    }
+
+    @Override
+    public String toString() {
+        return isUnicode() ? unicode : getAsMention();
     }
 }

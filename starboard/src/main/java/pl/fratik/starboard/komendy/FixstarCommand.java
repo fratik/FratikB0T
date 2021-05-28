@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,12 +39,13 @@ public class FixstarCommand extends Command {
         category = CommandCategory.STARBOARD;
         uzycie = new Uzycie("wiadomosc", "message", true);
         permissions.add(Permission.MESSAGE_HISTORY);
+        allowPermLevelChange = false;
     }
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
         starManager.fixStars((Message) context.getArgs()[0], starDataDao.get(context.getGuild()));
-        context.send(context.getTranslated("fixstar.success"));
+        context.reply(context.getTranslated("fixstar.success"));
         return true;
     }
 }

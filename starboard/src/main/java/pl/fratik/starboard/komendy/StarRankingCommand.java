@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -56,20 +56,21 @@ public class StarRankingCommand extends Command {
         category = CommandCategory.STARBOARD;
         cooldown = 15;
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
+        allowPermLevelChange = false;
     }
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
-        Message msg = context.getChannel().sendMessage(context.getTranslated("generic.loading")).complete();
+        Message msg = context.getTextChannel().sendMessage(context.getTranslated("generic.loading")).complete();
         List<FutureTask<EmbedBuilder>> pages = new LinkedList<>();
         StarsData std = starDataDao.get(context.getGuild());
         if (std.getStarboardChannel() == null || std.getStarboardChannel().isEmpty()) {
-            context.send(context.getTranslated("starranking.no.channel"));
+            context.reply(context.getTranslated("starranking.no.channel"));
             return false;
         }
         TextChannel stdch = context.getShardManager().getTextChannelById(std.getStarboardChannel());
         if (stdch == null) {
-            context.send(context.getTranslated("starranking.no.channel"));
+            context.reply(context.getTranslated("starranking.no.channel"));
             return false;
         }
         List<StarData> starDataList = new ArrayList<>(std.getStarData().values());
@@ -92,6 +93,8 @@ public class StarRankingCommand extends Command {
                     eb.setDescription(sMsg.getContentRaw());
                     eb.setFooter(String.format("%d %s | %s | %%s/%%s", sd.getStarredBy().size(),
                             StarboardListener.getStarEmoji(sd.getStarredBy().size()), sMsg.getId()), null);
+                    eb.addField(context.getTranslated("starboard.embed.jump"), String.format("[\\[%s\\]](%s)",
+                            context.getTranslated("starboard.embed.jump.to"), sMsg.getJumpUrl()), false);
                 } catch (Exception e) {
                     eb.setDescription(context.getTranslated("starranking.missing.message"));
                     eb.setFooter(String.format("%d %s | %s | %%s/%%s", sd.getStarredBy().size(),

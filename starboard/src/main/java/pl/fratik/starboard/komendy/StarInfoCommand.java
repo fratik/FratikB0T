@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -53,6 +53,7 @@ public class StarInfoCommand extends Command {
         cooldown = 15;
         uzycie = new Uzycie("osoba", "user", false);
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
+        allowPermLevelChange = false;
     }
 
     @Override
@@ -125,7 +126,7 @@ public class StarInfoCommand extends Command {
                     StarboardListener.getStarEmoji(topStarData.getStarredBy().size()) + " | " +
                     topStarData.id, false);
         }
-        context.send(eb.build());
+        context.reply(eb.build());
         for (Message fix : toFix) {
             starManager.fixStars(fix, starDataDao.get(context.getGuild()));
         }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -45,7 +45,7 @@ public class DodajFcCommand extends Command {
         hmap.put("hajs", "integer");
         uzycie = new Uzycie(hmap, new boolean[] {true, true});
         uzycieDelim = " ";
-        aliases = new String[] {"dodajfratikcoiny", "dfc", "addfc", "addcoin", "addfratikcoins", "addcoins"};
+        aliases = new String[] {"dodajfratikcoiny", "dfc"};
     }
 
     @Override
@@ -53,17 +53,17 @@ public class DodajFcCommand extends Command {
         Member komu = (Member) context.getArgs()[0];
         int ile = (int) context.getArgs()[1];
         if (ile == 0) {
-            context.send(context.getTranslated("dodajfc.badnumber"));
+            context.reply(context.getTranslated("dodajfc.badnumber"));
             return false;
         }
         if (komu.getUser().isBot()) {
-            context.send(context.getTranslated("dodajfc.bot"));
+            context.reply(context.getTranslated("dodajfc.bot"));
             return false;
         }
         MemberConfig mc = memberDao.get(komu);
         mc.setFratikCoiny(mc.getFratikCoiny() + ile);
         memberDao.save(mc);
-        context.send(context.getTranslated("dodajfc.success"));
+        context.reply(context.getTranslated("dodajfc.success"));
         return true;
     }
 }

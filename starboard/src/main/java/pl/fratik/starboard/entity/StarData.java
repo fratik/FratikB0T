@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,6 @@ package pl.fratik.starboard.entity;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -34,11 +33,6 @@ public class StarData {
     private String guild;
     private String channel;
     private String starboardMessageId;
-
-    protected StarData() {
-        LoggerFactory.getLogger(StarData.class).warn("Constructor StarData() jest przestarzały!", new Exception());
-        starredOn = new Date();
-    }
 
     public StarData(String author) {
         this.author = author;

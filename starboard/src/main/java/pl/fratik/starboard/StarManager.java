@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,34 +17,29 @@
 
 package pl.fratik.starboard;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.eventbus.EventBus;
-import com.google.common.eventbus.Subscribe;
 import emoji4j.EmojiUtils;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
-import pl.fratik.core.entity.GuildConfig;
-import pl.fratik.core.event.DatabaseUpdateEvent;
+import pl.fratik.core.cache.Cache;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.starboard.entity.StarData;
 import pl.fratik.starboard.entity.StarDataDao;
 import pl.fratik.starboard.entity.StarsData;
 import pl.fratik.starboard.event.StarEvent;
 
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 public class StarManager {
 
     private final StarDataDao starDataDao;
     private final EventBus eventBus;
+    private final Cache<StarsData> stdCache;
 
-    private static final Cache<String, String> starEmojiCache = Caffeine.newBuilder().expireAfterWrite(5, TimeUnit
-            .MINUTES).maximumSize(1000).build();
-
-    StarManager(StarDataDao starDataDao, EventBus eventBus) {
+    StarManager(StarDataDao starDataDao, EventBus eventBus, RedisCacheManager redisCacheManager) {
         this.starDataDao = starDataDao;
         this.eventBus = eventBus;
+        stdCache = redisCacheManager.new CacheRetriever<StarsData>(){}.getCache();
     }
 
     void addStar(Message message, User user, StarsData std) {
@@ -159,9 +154,7 @@ public class StarManager {
     }
 
     Object getStar(Guild guild) {
-        String e = Objects.requireNonNull(starEmojiCache.get(guild.getId(),
-                uid -> starDataDao.get(guild).getStarEmoji()));
-
+        String e = stdCache.get(guild.getId(), starDataDao::get).getStarEmoji();
         Object emotka = null;
         try {
             emotka = guild.getEmoteById(e);
@@ -176,17 +169,5 @@ public class StarManager {
     public static boolean checkPermissions(TextChannel kanal) {
         return kanal.getGuild().getSelfMember().hasPermission(kanal, Permission.MESSAGE_WRITE,
                 Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_HISTORY);
-    }
-
-    @Subscribe
-    public void onDatabaseUpdate(DatabaseUpdateEvent event) {
-        if (event.getEntity() instanceof GuildConfig) {
-            for (String guildId : starEmojiCache.asMap().keySet()) {
-                if (((GuildConfig) event.getEntity()).getGuildId().equals(guildId)) {
-                    starEmojiCache.invalidate(guildId);
-                    return;
-                }
-            }
-        }
     }
 }

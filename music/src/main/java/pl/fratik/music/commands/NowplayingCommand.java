@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -48,7 +48,7 @@ public class NowplayingCommand extends MusicCommand {
         ManagerMuzykiSerwera mms = managerMuzyki.getManagerMuzykiSerwera(context.getGuild());
         Piosenka piosenka = mms.getAktualnaPiosenka();
         EmbedBuilder eb = generateEmbed(piosenka, context, mms);
-        context.send(eb.build());
+        context.reply(eb.build());
         return true;
     }
 
@@ -57,7 +57,7 @@ public class NowplayingCommand extends MusicCommand {
         EmbedBuilder eb = new EmbedBuilder();
         eb.setAuthor(context.getTranslated("nowplaying.embed.header"), info.uri);
         eb.setTitle(info.title, piosenka.getAudioTrack().getInfo().uri);
-        if (piosenka.getThumbnailURL() == null) piosenka.fillThumbnailURL(searchManager);
+        piosenka.fillThumbnailURL(searchManager);
         eb.setImage(piosenka.getThumbnailURL());
         eb.addField(context.getTranslated("nowplaying.embed.added.by"), piosenka.getRequester(), true);
         eb.addField(context.getTranslated("nowplaying.embed.length"), info.isStream ?

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,6 +41,8 @@ public class GraficznaCommand extends Command {
     { //NOSONAR
         cooldown = 5;
         uzycie = new Uzycie("osoba", "user");
+        allowPermLevelChange = false;
+        allowInDMs = true;
     }
 
     public GraficznaCommand(String name, String endpoint, boolean preventOnSender) {
@@ -92,7 +94,7 @@ public class GraficznaCommand extends Command {
         User user = context.getSender();
         if (context.getArgs().length != 0 && context.getArgs()[0] != null) user = (User) context.getArgs()[0];
         if (user.equals(context.getSender()) && preventOnSender) {
-            context.send(context.getTranslated(name + ".prevent.on.sender"));
+            context.reply(context.getTranslated(name + ".prevent.on.sender"));
             return false;
         }
         try {
@@ -101,13 +103,13 @@ public class GraficznaCommand extends Command {
                             .replace(".webp", ".png") + "?size=2048", "UTF-8"),
                     Ustawienia.instance.apiKeys.get("image-server"));
             if (zdjecie == null || !zdjecie.getBoolean("success")) {
-                context.send(context.getTranslated("image.server.fail"));
+                context.reply(context.getTranslated("image.server.fail"));
                 return false;
             }
             byte[] img = NetworkUtil.getBytesFromBufferArray(zdjecie.getJSONObject("image").getJSONArray("data"));
-            context.getChannel().sendFile(img, name + ".png").queue();
+            context.getMessageChannel().sendFile(img, name + ".png").reference(context.getMessage()).queue();
         } catch (IOException | NullPointerException e) {
-            context.send(context.getTranslated("image.server.fail"));
+            context.reply(context.getTranslated("image.server.fail"));
         }
         return true;
     }

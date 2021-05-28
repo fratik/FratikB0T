@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,6 +34,7 @@ public class CaseBuilder {
     private Kara type;
     private String issuerId;
     private String reason;
+    private Integer ileRazy;
 
     public CaseBuilder() {}
 
@@ -100,6 +101,11 @@ public class CaseBuilder {
         return this;
     }
 
+    public CaseBuilder setIleRazy(Integer ileRazy) {
+        this.ileRazy = ileRazy;
+        return this;
+    }
+
     public Case createCase() {
         if (userId == null || guildId == null || caseId == null || timestamp == null || type == null) {
             throw new IllegalArgumentException("Jeden lub więcej z argumentów jest null");
@@ -107,6 +113,7 @@ public class CaseBuilder {
         Case c = new Case(userId, guildId, caseId, timestamp, messageId, type);
         if (issuerId != null) c.setIssuerId(issuerId);
         if (reason != null) c.setReason(reason);
+        if (ileRazy != null) c.setIleRazy(ileRazy);
         return c;
     }
 }

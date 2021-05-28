@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ public class ArgumentContext {
         this.event = event;
         this.arg = arg;
         this.tlumaczenia = tlumaczenia;
-        this.language = tlumaczenia.getLanguage(event.getMember());
+        this.language = !event.isFromGuild() ? tlumaczenia.getLanguage(event.getAuthor()) : tlumaczenia.getLanguage(event.getMember());
         this.guild = guild;
     }
 

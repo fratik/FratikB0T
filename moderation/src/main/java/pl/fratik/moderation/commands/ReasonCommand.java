@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,40 +17,35 @@
 
 package pl.fratik.moderation.commands;
 
-import net.dv8tion.jda.api.sharding.ShardManager;
-import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
-import pl.fratik.core.entity.*;
+import pl.fratik.core.entity.GuildConfig;
+import pl.fratik.core.entity.GuildDao;
+import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.manager.ManagerKomend;
+import pl.fratik.core.util.DurationUtil;
 import pl.fratik.moderation.entity.Case;
 import pl.fratik.moderation.entity.CaseRow;
 import pl.fratik.moderation.entity.CasesDao;
-import pl.fratik.moderation.utils.ModLogBuilder;
+import pl.fratik.moderation.utils.ReasonUtils;
 
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Objects;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-public class ReasonCommand extends ModerationCommand {
+public class ReasonCommand extends CaseEditingCommand {
 
     private final GuildDao guildDao;
-    private final CasesDao casesDao;
-    private final ShardManager shardManager;
-    private final ManagerKomend managerKomend;
-    private static final String RESU = "reason.success";
 
     public ReasonCommand(GuildDao guildDao, CasesDao casesDao, ShardManager shardManager, ManagerKomend managerKomend) {
+        super(casesDao, shardManager, managerKomend);
         this.guildDao = guildDao;
-        this.casesDao = casesDao;
-        this.shardManager = shardManager;
-        this.managerKomend = managerKomend;
         name = "reason";
         category = CommandCategory.MODERATION;
         uzycieDelim = " ";
@@ -71,55 +66,30 @@ public class ReasonCommand extends ModerationCommand {
         CaseRow caseRow = casesDao.get(context.getGuild());
         if (caseRow.getCases().size() < caseId || (caseRow.getCases().size() >= caseId - 1 &&
                 caseRow.getCases().get(caseId - 1) == null)) {
-            context.send(context.getTranslated("reason.invalid.case"));
+            context.reply(context.getTranslated("reason.invalid.case"));
             return false;
         }
-        if (reason.equals("")) {
-            context.send(context.getTranslated("reason.reason.empty"));
+        DurationUtil.Response durationResp;
+        try {
+            durationResp = DurationUtil.parseDuration(reason);
+        } catch (IllegalArgumentException e) {
+            context.reply(context.getTranslated("reason.max.duration"));
+            return false;
+        }
+        String powod = durationResp.getTekst();
+        Instant akcjaDo = durationResp.getDoKiedy();
+        if (powod.equals("")) {
+            context.reply(context.getTranslated("reason.reason.empty"));
             return false;
         }
         Case aCase = caseRow.getCases().get(caseId - 1);
+        aCase.getFlagi().remove(Case.Flaga.NOBODY); // usuwa -n, -n może zostać ponownie dodane w parseFlags
+        if (akcjaDo != null) aCase.setValidTo(akcjaDo);
         @Nullable TextChannel modLogChannel = gc.getModLog() != null && !Objects.equals(gc.getModLog(), "") ?
                 context.getGuild().getTextChannelById(gc.getModLog()) : null;
-        Consumer<Throwable> throwableConsumer = err -> context.send(context.getTranslated("reason.failed"));
-        if (modLogChannel == null || !context.getGuild().getSelfMember().hasPermission(modLogChannel,
-                Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_WRITE, Permission.MESSAGE_READ)) {
-            aCase.setReason(reason);
-            aCase.setIssuerId(context.getSender().getId());
-            context.send(context.getTranslated(RESU));
-            casesDao.save(caseRow);
-            return true;
-        }
-        if (aCase.getMessageId() == null) {
-            aCase.setReason(reason);
-            aCase.setIssuerId(context.getSender().getId());
-            MessageEmbed embed = ModLogBuilder.generate(aCase, context.getGuild(), shardManager, gc.getLanguage(), managerKomend);
-            modLogChannel.sendMessage(embed).queue(m -> {
-                context.send(context.getTranslated(RESU), c -> {});
-                casesDao.save(caseRow);
-            }, throwableConsumer);
-            context.send(context.getTranslated(RESU));
-            casesDao.save(caseRow);
-            return true;
-        }
-        modLogChannel.retrieveMessageById(aCase.getMessageId()).queue(msg -> {
-            aCase.setReason(reason);
-            aCase.setIssuerId(context.getSender().getId());
-            msg.editMessage(ModLogBuilder.generate(aCase, context.getGuild(), shardManager, gc.getLanguage(), managerKomend))
-                    .override(true).queue(m -> {
-                        context.send(context.getTranslated(RESU), c -> {});
-                        casesDao.save(caseRow);
-                    }, throwableConsumer);
-        }, error -> {
-            aCase.setReason(reason);
-            aCase.setIssuerId(context.getSender().getId());
-            MessageEmbed embed = ModLogBuilder.generate(aCase, context.getGuild(), shardManager, gc.getLanguage(), managerKomend);
-            modLogChannel.sendMessage(embed).queue(m -> {
-                aCase.setMessageId(m.getId());
-                context.send(context.getTranslated(RESU), c -> {});
-                casesDao.save(caseRow);
-            }, throwableConsumer);
-        });
-        return true;
+        ReasonUtils.parseFlags(aCase, powod, Case.Flaga.SILENT);
+        return updateCase(context, context.getTranslated("reason.success"), context.getTranslated("reason.failed"),
+                caseRow, modLogChannel, aCase, gc);
     }
+
 }

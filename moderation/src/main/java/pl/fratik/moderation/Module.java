@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,6 +28,7 @@ import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.Globals;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.entity.*;
 import pl.fratik.core.event.ModuleLoadedEvent;
@@ -59,16 +60,19 @@ public class Module implements Modul {
     @Inject private EventBus eventBus;
     @Inject private ManagerBazyDanych managerBazyDanych;
     @Inject private ManagerModulow managerModulow;
+    @Inject private RedisCacheManager redisCacheManager;
 
     private ArrayList<Command> commands;
     private ModLogListener modLogListener;
     private LogListener logListener;
     private PrzeklenstwaListener przeklenstwaListener;
+    private LinkListener linkListener;
     private AntiInviteListener antiInviteListener;
     private AntiRaidListener antiRaidListener;
     private CasesDao casesDao;
     private PurgeDao purgeDao;
     private AutobanListener autobanListener;
+    private PublishListener publishListener;
 
     public Module() {
         commands = new ArrayList<>();
@@ -76,6 +80,7 @@ public class Module implements Modul {
 
     @Override
     public boolean startUp() {
+        LogMessage.setShardManager(shardManager);
         EnumSet<Permission> permList = Permission.getPermissions(Globals.permissions);
         if (!permList.contains(Permission.VIEW_AUDIT_LOGS)) permList.add(Permission.VIEW_AUDIT_LOGS);
         if (Globals.permissions != Permission.getRaw(permList)) {
@@ -88,33 +93,38 @@ public class Module implements Modul {
         Case.setStaticVariables(casesDao, scheduleDao);
         ModLogBuilder.setTlumaczenia(tlumaczenia);
         ModLogBuilder.setGuildDao(guildDao);
+        ModLogBuilder.setManagerKomend(managerKomend);
         ModLogListener.setTlumaczenia(tlumaczenia);
         ModLogListener.setManagerKomend(managerKomend);
         LogListener.setTlumaczenia(tlumaczenia);
         modLogListener = new ModLogListener(guildDao, shardManager, casesDao);
-        logListener = new LogListener(guildDao, purgeDao);
-        przeklenstwaListener = new PrzeklenstwaListener(guildDao, tlumaczenia, managerKomend, shardManager, casesDao);
+        logListener = new LogListener(guildDao, purgeDao, redisCacheManager);
+        przeklenstwaListener = new PrzeklenstwaListener(guildDao, tlumaczenia, managerKomend, shardManager, casesDao, redisCacheManager);
+        linkListener = new LinkListener(guildDao, tlumaczenia, managerKomend, shardManager, casesDao, redisCacheManager, eventBus);
         autobanListener = new AutobanListener(guildDao, tlumaczenia);
-        antiInviteListener = new AntiInviteListener(guildDao, tlumaczenia, managerKomend, shardManager, casesDao);
-        antiRaidListener = new AntiRaidListener(guildDao, shardManager, eventBus, tlumaczenia);
+        antiInviteListener = new AntiInviteListener(guildDao, tlumaczenia, managerKomend, shardManager, casesDao, redisCacheManager);
+        antiRaidListener = new AntiRaidListener(guildDao, shardManager, eventBus, tlumaczenia, redisCacheManager, managerKomend);
+        publishListener = new PublishListener(guildDao, tlumaczenia, managerKomend, shardManager, casesDao, redisCacheManager);
 
         eventBus.register(this);
         eventBus.register(modLogListener);
         eventBus.register(logListener);
         eventBus.register(przeklenstwaListener);
+        eventBus.register(linkListener);
         eventBus.register(autobanListener);
         eventBus.register(antiInviteListener);
         eventBus.register(antiRaidListener);
+        eventBus.register(publishListener);
 
         commands = new ArrayList<>();
 
         commands.add(new PurgeCommand(logListener));
-        commands.add(new BanCommand());
+        commands.add(new BanCommand(guildDao));
         commands.add(new UnbanCommand());
         commands.add(new KickCommand());
         commands.add(new WarnCommand(guildDao, casesDao, shardManager, managerKomend));
         commands.add(new UnwarnCommand(guildDao, casesDao, shardManager, managerKomend));
-        commands.add(new AkcjeCommand(userDao, casesDao, shardManager, eventWaiter, eventBus, managerKomend));
+        commands.add(new AkcjeCommand(casesDao, shardManager, eventWaiter, eventBus, managerKomend, guildDao));
         commands.add(new ReasonCommand(guildDao, casesDao, shardManager, managerKomend));
         commands.add(new RolesCommand());
         commands.add(new HideCommand(guildDao, managerKomend));
@@ -126,6 +136,7 @@ public class Module implements Modul {
         commands.add(new RolaCommand(guildDao));
         commands.add(new NotatkaCommand(guildDao, casesDao, shardManager, managerKomend));
         commands.add(new RolementionCommand());
+        commands.add(new DowodCommand(guildDao, casesDao, shardManager, managerKomend, eventWaiter, eventBus));
 
         commands.forEach(managerKomend::registerCommand);
 
@@ -142,6 +153,7 @@ public class Module implements Modul {
             LoggerFactory.getLogger(Module.class).debug("Zmieniam long uprawnień: {} -> {}", Globals.permissions, Permission.getRaw(permList));
             Globals.permissions = Permission.getRaw(permList);
         }
+        if (modLogListener != null) modLogListener.cleanup();
         commands.forEach(managerKomend::unregisterCommand);
         antiRaidListener.shutdown();
         try {
@@ -149,9 +161,11 @@ public class Module implements Modul {
             eventBus.unregister(modLogListener);
             eventBus.unregister(logListener);
             eventBus.unregister(przeklenstwaListener);
+            eventBus.unregister(linkListener);
             eventBus.unregister(autobanListener);
             eventBus.unregister(antiInviteListener);
             eventBus.unregister(antiRaidListener);
+            eventBus.unregister(publishListener);
         } catch (Exception ignored) {
             /*lul*/
         }
@@ -181,12 +195,14 @@ public class Module implements Modul {
                         .setKara(Kara.UNMUTE).createCase();
                 c.setIssuerId(String.valueOf(Globals.clientId));
                 c.setReason(tlumaczenia.get(tlumaczenia.getLanguage(e.getGuild()), "modlog.reason.twomutesoneuser"));
-                MessageEmbed em = ModLogBuilder.generate(c, e.getGuild(), shardManager,
-                        tlumaczenia.getLanguage(e.getGuild()), managerKomend);
-                TextChannel mlog = shardManager.getTextChannelById(gc.getModLog());
-                if (mlog != null && mlog.canTalk()) {
-                    mlog.sendMessage(em).complete();
-                    c.setMessageId(mlog.sendMessage(em).complete().getId());
+                if (gc.getModLog() != null && !gc.getModLog().isEmpty()) {
+                    MessageEmbed em = ModLogBuilder.generate(c, e.getGuild(), shardManager,
+                            tlumaczenia.getLanguage(e.getGuild()), managerKomend, true, false);
+                    TextChannel mlog = shardManager.getTextChannelById(gc.getModLog());
+                    if (mlog != null && mlog.canTalk()) {
+                        mlog.sendMessage(em).complete();
+                        c.setMessageId(mlog.sendMessage(em).complete().getId());
+                    }
                 }
                 cases.getCases().add(c);
                 casesDao.save(cases);

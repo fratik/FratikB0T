@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,11 +32,13 @@ public class PingCommand extends Command {
         name = "ping";
         category = CommandCategory.BASIC;
         permLevel = PermLevel.EVERYONE;
+        allowPermLevelChange = false;
+        allowInDMs = true;
     }
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
-        Message message = context.getChannel().sendMessage(context.getTranslated("ping.pinging")).complete();
+        Message message = context.reply(context.getTranslated("ping.pinging"));
         long ping = context.getEvent().getMessage().getTimeCreated().until(message.getTimeCreated(), ChronoUnit.MILLIS);
         message.editMessage(context.getTranslated("ping.delay", ping, context.getMessage().getJDA().getGatewayPing())).complete();
         return true;

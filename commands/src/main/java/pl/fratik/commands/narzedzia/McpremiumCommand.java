@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,8 +17,12 @@
 
 package pl.fratik.commands.narzedzia;
 
+import io.sentry.Sentry;
+import io.sentry.event.EventBuilder;
+import io.sentry.event.interfaces.ExceptionInterface;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.utils.MarkdownSanitizer;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -41,6 +45,7 @@ public class McpremiumCommand extends Command {
         allowInDMs = true;
         aliases = new String[] {"minecraftpremium", "premka", "mcpremka", "premiummc"};
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
+        allowPermLevelChange = false;
     }
 
     @Override
@@ -48,38 +53,40 @@ public class McpremiumCommand extends Command {
         String uuid;
         String name;
         List<String> listaNazw = new ArrayList<>();
+        String nick = (String) context.getArgs()[0];
         try {
-            JSONObject jOb = NetworkUtil.getJson("https://api.mojang.com/users/profiles/minecraft/" + NetworkUtil.encodeURIComponent((String) context.getArgs()[0]));
+            JSONObject jOb = NetworkUtil.getJson("https://api.mojang.com/users/profiles/minecraft/" + NetworkUtil.encodeURIComponent(nick));
             uuid = Objects.requireNonNull(jOb).getString("id");
             name = Objects.requireNonNull(jOb).getString("name");
             JSONArray lista = NetworkUtil.getJsonArray("https://api.mojang.com/user/profiles/" + uuid + "/names");
-            for (Object tfu : Objects.requireNonNull(lista)) {
-                JSONObject obj = (JSONObject) tfu;
-                StringBuilder sb = new StringBuilder();
-                sb.append(obj.getString("name"));
-                if (obj.has("changedToAt")) {
-                    long timestamp = obj.getLong("changedToAt");
-                    Date zmienioneO = new Date(timestamp);
-                    SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy '@' HH:mm z", context.getLanguage().getLocale());
-                    sb.append(" ").append(context.getTranslated("mcpremium.changed.to.at", sdf.format(zmienioneO)));
+            boolean first = true;
+            if (lista != null) {
+                List<JSONObject> tak = new ArrayList<>();
+                for (Object xd : lista) tak.add((JSONObject) xd);
+                Collections.reverse(tak);
+                for (JSONObject obj : tak) {
+                    StringBuilder sb = new StringBuilder();
+                    if (first) sb.append("**");
+                    sb.append(MarkdownSanitizer.escape(obj.getString("name")));
+                    if (first) sb.append("**");
+                    first = false;
+                    if (obj.has("changedToAt")) {
+                        long timestamp = obj.getLong("changedToAt");
+                        Date zmienioneO = new Date(timestamp);
+                        SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy '@' HH:mm z", context.getLanguage().getLocale());
+                        sb.append(" ").append(context.getTranslated("mcpremium.changed.to.at", sdf.format(zmienioneO)));
+                    }
+                    listaNazw.add(sb.toString());
+                    if (listaNazw.size() >= 10) {
+                        listaNazw.add(context.getTranslated("mcstatus.embed.players.more", tak.size() - listaNazw.size()));
+                        break;
+                    }
                 }
-                listaNazw.add(sb.toString());
             }
-            Collections.reverse(listaNazw);
-            String xd = listaNazw.remove(0);
-            StringBuilder tekstPierw = new StringBuilder();
-            StringBuilder tekstDalej = new StringBuilder();
-            for (int i = 0; i < xd.split(" ").length; i++) {
-                if (i == 0)
-                    tekstPierw.append(xd.split(" ")[i]);
-                else {
-                    tekstDalej.append(xd.split(" ")[i]);
-                    if (i + 1 < xd.split(" ").length) tekstDalej.append(" ");
-                }
-            }
-            listaNazw.add(0, "**" + tekstPierw.toString() + "** " + tekstDalej.toString());
         } catch (Exception e) {
-            context.send(context.getTranslated("mcpremium.failed", (String) context.getArgs()[0]));
+            context.reply(context.getTranslated("mcpremium.failed", nick));
+            Sentry.capture(new EventBuilder().withMessage(e.getMessage())
+                    .withSentryInterface(new ExceptionInterface(e)).withExtra("nick", nick));
             return false;
         }
         EmbedBuilder eb = new EmbedBuilder();
@@ -88,49 +95,19 @@ public class McpremiumCommand extends Command {
         eb.addField("UUID", formatUuid(uuid), false);
         eb.addField(context.getTranslated("mcpremium.namemc"), "[namemc.com](https://namemc.com/profile/" + uuid + ")", false);
         eb.setFooter(context.getTranslated("mcpremium.infonick", name), null);
-        if (listaNazw.size() > 1)
+        if (listaNazw.size() > 1) {
             eb.addField(context.getTranslated("mcpremium.namehistory"), String.join("\n", listaNazw),
                     false);
+        }
         eb.setThumbnail("https://minotar.net/helm/" + name + "/2048.png");
         eb.setImage("https://minotar.net/armor/body/" + name + "/124.png");
-        context.send(eb.build());
+        context.reply(eb.build());
         return true;
     }
 
-    private String formatUuid(String uuid) {
-        int chars = 0;
-        int pass = 0;
-        StringBuilder sb = new StringBuilder();
-        for (char c : uuid.toCharArray()) {
-            chars++;
-            sb.append(c);
-            if (pass == 0 && chars == 8) {
-                sb.append('-');
-                pass++;
-                chars = 0;
-            }
-            if (pass == 1 && chars == 4) {
-                sb.append('-');
-                pass++;
-                chars = 0;
-            }
-            if (pass == 2 && chars == 4) {
-                sb.append('-');
-                pass++;
-                chars = 0;
-            }
-            if (pass == 3 && chars == 4) {
-                sb.append('-');
-                pass++;
-                chars = 0;
-            }
-            if (pass == 4 && chars == 12) {
-                sb.append('-');
-                pass++;
-                chars = 0;
-            }
-        }
-        return UUID.fromString(sb.toString()).toString();
+    private static String formatUuid(String uuid) {
+        String regex = "(\\p{XDigit}{8})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}+)";
+        return UUID.fromString(uuid.replaceFirst(regex, "$1-$2-$3-$4-$5")).toString();
     }
 
 }

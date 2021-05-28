@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,15 +18,23 @@
 package pl.fratik.commands.system;
 
 import com.google.common.collect.Ordering;
-import net.dv8tion.jda.api.sharding.ShardManager;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.ChannelType;
+import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.command.*;
+import pl.fratik.core.cache.Cache;
+import pl.fratik.core.cache.RedisCacheManager;
+import pl.fratik.core.command.Command;
+import pl.fratik.core.command.CommandCategory;
+import pl.fratik.core.command.CommandContext;
+import pl.fratik.core.command.PermLevel;
+import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.manager.ManagerKomend;
+import pl.fratik.core.manager.implementation.ManagerKomendImpl;
+import pl.fratik.core.util.CommonUtil;
 import pl.fratik.core.util.UserUtil;
 
 import java.util.ArrayList;
@@ -41,19 +49,21 @@ public class HelpCommand extends Command {
     private final ManagerKomend managerKomend;
     private final GuildDao guildDao;
     private final ShardManager shardManager;
+    private final Cache<GuildConfig> gcCache;
 
-    public HelpCommand(ManagerKomend managerKomend, GuildDao guildDao, ShardManager shardManager) {
+    public HelpCommand(ManagerKomend managerKomend, GuildDao guildDao, ShardManager shardManager, RedisCacheManager redisCacheManager) {
         this.managerKomend = managerKomend;
         this.guildDao = guildDao;
         this.shardManager = shardManager;
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         name = "help";
-        type = CommandType.NORMAL;
         uzycie = new Uzycie("kategoria", "category");
         aliases = new String[] {"commands"};
         category = CommandCategory.BASIC;
         permLevel = PermLevel.EVERYONE;
         allowInDMs = true;
+        allowPermLevelChange = false;
+        gcCache = redisCacheManager.new CacheRetriever<GuildConfig>(){}.getCache();
     }
 
     @Override
@@ -61,17 +71,24 @@ public class HelpCommand extends Command {
         EmbedBuilder eb = context.getBaseEmbed();
         TreeMap<CommandCategory, List<String>> kategorieRaw = Arrays.stream(CommandCategory.values())
                 .collect(Collectors.toMap(c -> c, c -> new ArrayList<>(), (a, b) -> b, TreeMap::new));
-        TreeMap<CommandCategory, List<String>> kategorie = new TreeMap<>();
+        TreeMap<CommandCategory, List<Command>> kategorie = new TreeMap<>();
         managerKomend.getRegistered().stream().filter(command -> command.getCategory() != null)
                 .forEach(command -> kategorieRaw.get(command.getCategory()).add(command.getName()));
         kategorieRaw.forEach((cc, listRaw) -> {
-            List<String> list = new ArrayList<>();
+            List<Command> list = new ArrayList<>();
             for (String cmd : listRaw) {
-                if ((managerKomend.getCommands().get(cmd).getPermLevel().getNum() >
-                        UserUtil.getPermlevel(context.getMember(), guildDao, shardManager).getNum()) ||
+                Command command = managerKomend.getCommands().get(cmd);
+                PermLevel cmdPerm;
+                if (!context.isDirect()) cmdPerm = ManagerKomendImpl.getPermLevelOverride(command, gcCache.get(context.getGuild().getId(), guildDao::get));
+                else cmdPerm = null;
+                if (cmdPerm == null) cmdPerm = command.getPermLevel();
+                PermLevel userPerm;
+                if (!context.isDirect()) userPerm = UserUtil.getPermlevel(context.getMember(), guildDao, shardManager);
+                else userPerm = UserUtil.getPermlevel(context.getSender(), shardManager);
+                if ((cmdPerm.getNum() > userPerm.getNum()) ||
                         (!managerKomend.getCommands().get(cmd).isAllowInDMs() &&
-                                context.getChannel().getType() == ChannelType.PRIVATE)) continue;
-                list.add(cmd);
+                                context.getMessageChannel().getType() == ChannelType.PRIVATE)) continue;
+                list.add(command);
             }
             kategorie.put(cc, list);
         });
@@ -92,27 +109,32 @@ public class HelpCommand extends Command {
                 }
             });
             eb.setDescription(String.join("\n", opis));
-            context.send(eb.build());
+            context.reply(eb.build());
             return true;
         }
         ArrayList<String> opis = new ArrayList<>();
         CommandCategory kategoria = (CommandCategory) context.getArgs()[0];
-        List<String> komendy = kategorie.get(kategoria);
+        List<Command> komendy = kategorie.get(kategoria);
         eb.setAuthor(context.getTranslated("help.listcat.embed.author",
                 context.getTranslated("help.category." +
                         ((CommandCategory) context.getArgs()[0]).name().toLowerCase()), komendy.size()), null,
                 context.getEvent().getJDA().getSelfUser().getEffectiveAvatarUrl()
                         .replace(".webp", ".png"));
-        komendy.sort(String::compareToIgnoreCase);
+        komendy.sort((a, b) -> a.getName().compareToIgnoreCase(b.getName()));
         komendy.forEach(command -> opis
-                .add("**" + command + "**: " + context.getTranslated(command + ".help.description",
+                .add("**" + resolveName(command, context) + "**: " +
+                        context.getTranslated(command.getName() + ".help.description",
                         context.getPrefix().replace("*", "\\*")
                                 .replace("|", "\\|")
                                 .replace("_", "\\_")
                                 .replace("`", "\\`"))));
         eb.setDescription(String.join("\n", opis));
-        context.send(eb.build());
+        context.reply(eb.build());
         return true;
+    }
+
+    private String resolveName(Command cmd, CommandContext context) {
+        return CommonUtil.resolveName(cmd, context.getTlumaczenia(), context.getLanguage());
     }
 
 }

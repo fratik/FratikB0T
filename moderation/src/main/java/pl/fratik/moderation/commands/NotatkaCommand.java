@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,6 +36,7 @@ import pl.fratik.moderation.entity.CaseRow;
 import pl.fratik.moderation.entity.CasesDao;
 import pl.fratik.moderation.entity.CaseBuilder;
 import pl.fratik.moderation.utils.ModLogBuilder;
+import pl.fratik.moderation.utils.ReasonUtils;
 
 import java.time.Instant;
 import java.time.temporal.TemporalAccessor;
@@ -65,7 +66,7 @@ public class NotatkaCommand extends ModerationCommand {
         hmap.put("notatka", "string");
         hmap.put("[...]", "string");
         uzycie = new Uzycie(hmap, new boolean[] {true, true, false});
-        aliases = new String[] {"notka", "note"};
+        aliases = new String[] {"notka"};
     }
 
     @Override
@@ -77,22 +78,20 @@ public class NotatkaCommand extends ModerationCommand {
                     .map(e -> e == null ? "" : e).map(Objects::toString).collect(Collectors.joining(uzycieDelim));
         else throw new IllegalStateException("nie ma powodu, wtf");
         if (uzytkownik.equals(context.getMember())) {
-            context.send(context.getTranslated("notatka.cant.note.yourself"));
+            context.reply(context.getTranslated("notatka.cant.note.yourself"));
             return false;
         }
-        if (context.getGuild().getMemberById(uzytkownik.getUser().getId()) != null) {
-            if (uzytkownik.isOwner()) {
-                context.send(context.getTranslated("notatka.cant.note.owner"));
-                return false;
-            }
-            if (!context.getMember().canInteract(uzytkownik)) {
-                context.send(context.getTranslated("notatka.user.cant.interact"));
-                return false;
-            }
-            if (!context.getGuild().getSelfMember().canInteract(uzytkownik)) {
-                context.send(context.getTranslated("notatka.bot.cant.interact"));
-                return false;
-            }
+        if (uzytkownik.isOwner()) {
+            context.reply(context.getTranslated("notatka.cant.note.owner"));
+            return false;
+        }
+        if (!context.getMember().canInteract(uzytkownik)) {
+            context.reply(context.getTranslated("notatka.user.cant.interact"));
+            return false;
+        }
+        if (!context.getGuild().getSelfMember().canInteract(uzytkownik)) {
+            context.reply(context.getTranslated("notatka.bot.cant.interact"));
+            return false;
         }
         GuildConfig gc = guildDao.get(context.getGuild());
         CaseRow caseRow = casesDao.get(context.getGuild());
@@ -100,27 +99,34 @@ public class NotatkaCommand extends ModerationCommand {
         TemporalAccessor timestamp = Instant.now();
         Case aCase = new CaseBuilder().setUser(uzytkownik.getUser()).setGuild(context.getGuild()).setCaseId(caseId)
                 .setTimestamp(timestamp).setMessageId(null).setKara(Kara.NOTATKA).createCase();
-        aCase.setReason(powod);
+        ReasonUtils.parseFlags(aCase, powod);
         aCase.setIssuerId(context.getSender().getId());
         String mlogchanStr = gc.getModLog();
         if (mlogchanStr == null || mlogchanStr.equals("")) mlogchanStr = "0";
         TextChannel mlogchan = shardManager.getTextChannelById(mlogchanStr);
         if (mlogchan == null || !mlogchan.getGuild().getSelfMember().hasPermission(mlogchan,
                 Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_WRITE, Permission.MESSAGE_READ)) {
-            context.send(context.getTranslated("notatka.success", UserUtil.formatDiscrim(uzytkownik)));
-            context.send(context.getTranslated("notatka.nomodlogs", context.getPrefix()));
+            context.reply(context.getTranslated("notatka.success", UserUtil.formatDiscrim(uzytkownik)));
+            if (!aCase.getFlagi().contains(Case.Flaga.SILENT)) context.reply(context.getTranslated("notatka.nomodlogs", context.getPrefix()));
             caseRow.getCases().add(aCase);
             casesDao.save(caseRow);
             return false;
         }
-        MessageEmbed embed = ModLogBuilder.generate(aCase, context.getGuild(), shardManager,
-                gc.getLanguage(), managerKomend);
-        mlogchan.sendMessage(embed).queue(message -> {
-            context.send(context.getTranslated("notatka.success", UserUtil.formatDiscrim(uzytkownik)), m -> {});
-            aCase.setMessageId(message.getId());
+        if (!aCase.getFlagi().contains(Case.Flaga.SILENT)) {
+            MessageEmbed embed = ModLogBuilder.generate(aCase, context.getGuild(), shardManager,
+                    gc.getLanguage(), managerKomend, true, false);
+            mlogchan.sendMessage(embed).queue(message -> {
+                context.reply(context.getTranslated("notatka.success", UserUtil.formatDiscrim(uzytkownik)), m -> {
+                });
+                aCase.setMessageId(message.getId());
+                caseRow.getCases().add(aCase);
+                casesDao.save(caseRow);
+            });
+        } else {
+            context.reply(context.getTranslated("notatka.success", UserUtil.formatDiscrim(uzytkownik)), m -> {});
             caseRow.getCases().add(aCase);
             casesDao.save(caseRow);
-        });
+        }
         return true;
     }
 }

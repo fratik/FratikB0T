@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,7 +17,6 @@
 
 package pl.fratik.core.manager.implementation;
 
-import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.EventBus;
@@ -26,20 +25,20 @@ import com.google.common.util.concurrent.RateLimiter;
 import io.sentry.Sentry;
 import lombok.Getter;
 import lombok.Setter;
-import net.dv8tion.jda.api.entities.Emote;
-import net.dv8tion.jda.api.sharding.ShardManager;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.ChannelType;
+import net.dv8tion.jda.api.entities.Emote;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.sharding.ShardManager;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.Globals;
 import pl.fratik.core.Ustawienia;
+import pl.fratik.core.cache.Cache;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.command.PermLevel;
@@ -47,26 +46,23 @@ import pl.fratik.core.command.SubCommand;
 import pl.fratik.core.entity.*;
 import pl.fratik.core.event.CommandDispatchEvent;
 import pl.fratik.core.event.CommandDispatchedEvent;
-import pl.fratik.core.event.DatabaseUpdateEvent;
 import pl.fratik.core.manager.ManagerKomend;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
-import pl.fratik.core.util.CommonErrors;
-import pl.fratik.core.util.GuildUtil;
-import pl.fratik.core.util.StringUtil;
-import pl.fratik.core.util.UserUtil;
+import pl.fratik.core.util.*;
 
 import java.awt.*;
 import java.lang.reflect.Method;
 import java.time.Instant;
 import java.util.List;
-import java.util.Queue;
 import java.util.*;
-import java.util.concurrent.*;
-import java.util.function.Consumer;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-public class ManagerKomendImpl implements ManagerKomend, ThreadFactory {
+public class ManagerKomendImpl implements ManagerKomend {
     @Getter
     private Set<Command> registered;
     @Getter
@@ -81,28 +77,29 @@ public class ManagerKomendImpl implements ManagerKomend, ThreadFactory {
     private final GuildDao guildDao;
     private final UserDao userDao;
     private final EventBus eventBus;
-    private final Cache<Guild, RateLimiter> rateLimits = Caffeine.newBuilder().expireAfterWrite(5, TimeUnit.MINUTES).maximumSize(100).build();
+    private final com.github.benmanes.caffeine.cache.Cache<String, RateLimiter> rateLimits =
+            Caffeine.newBuilder().expireAfterWrite(5, TimeUnit.MINUTES).maximumSize(100).build();
     private final Map<String, Instant> cooldowns = new HashMap<>();
-    private final Cache<Guild, List<String>> prefixCache = Caffeine.newBuilder().expireAfterWrite(5, TimeUnit.MINUTES).maximumSize(100).build();
-    private final Cache<Guild, List<String>> disabledCommandsCache = Caffeine.newBuilder().expireAfterWrite(5, TimeUnit.MINUTES).maximumSize(100).build();
-    private final Cache<User, String> reakcjaSuccessCache = Caffeine.newBuilder().expireAfterWrite(5, TimeUnit.MINUTES).maximumSize(100).build();
-    private final Cache<User, String> reakcjaFailCache = Caffeine.newBuilder().expireAfterWrite(5, TimeUnit.MINUTES).maximumSize(100).build();
+    private final Cache<GuildConfig> gcCache;
+    private final Cache<UserConfig> ucCache;
     @Setter
     private static String loadingModule;
-    private Map<Runnable, CommandContext> runnables = new ConcurrentHashMap<>();
 
-    public ManagerKomendImpl(ShardManager shardManager, GuildDao guildDao, UserDao userDao, Tlumaczenia tlumaczenia, EventBus eventBus) {
+    public ManagerKomendImpl(ShardManager shardManager, GuildDao guildDao, UserDao userDao, Tlumaczenia tlumaczenia,
+                             EventBus eventBus, RedisCacheManager redisCacheManager) {
         this.guildDao = guildDao;
         this.userDao = userDao;
         logger = LoggerFactory.getLogger(getClass());
         this.registered = new HashSet<>();
         this.registeredPerModule = new HashMap<>();
         this.commands = new HashMap<>();
-        this.executor = new ManagerKomendImplExecutor(32, this);
+        this.executor = Executors.newFixedThreadPool(32);
         this.scheduledExecutor = Executors.newSingleThreadScheduledExecutor();
         this.tlumaczenia = tlumaczenia;
         this.eventBus = eventBus;
         this.shardManager = shardManager;
+        gcCache = redisCacheManager.new CacheRetriever<GuildConfig>(){}.getCache();
+        ucCache = redisCacheManager.new CacheRetriever<UserConfig>(){}.getCache();
         scheduledExecutor.scheduleWithFixedDelay(this::clearCooldowns, 5, 5, TimeUnit.MINUTES);
     }
 
@@ -143,11 +140,30 @@ public class ManagerKomendImpl implements ManagerKomend, ThreadFactory {
 
         for (Language lang : Language.values()) {
             if (lang == Language.DEFAULT) continue;
-            if (!tlumaczenia.getLanguages().get(lang).containsKey(command.getName() + ".help.description")) {
+            Properties props = tlumaczenia.getLanguages().get(lang);
+            if (!props.containsKey(command.getName() + ".help.description")) {
                 logger.warn("Komenda {} nie zawiera opisu w helpie w języku {}!", command.getName(), lang.getLocalized());
             }
-            if (!tlumaczenia.getLanguages().get(lang).containsKey(command.getName() + ".help.uzycie")) {
+            if (!props.containsKey(command.getName() + ".help.uzycie")) {
                 logger.warn("Komenda {} nie zawiera użycia w helpie w języku {}!", command.getName(), lang.getLocalized());
+            }
+            String langAliases = tlumaczenia.get(lang, command.getName() + ".help.name");
+            if (!langAliases.isEmpty()) {
+                for (String alias : langAliases.split("\\|")) {
+                    if (alias.isEmpty()) continue;
+                    alias = alias.toLowerCase();
+                    if (!alias.matches("^[^ \\u200b ]+$")) {
+                        logger.warn("Alias {} ({}) nie może zostać zarejestrowany dla {}: alias zawiera spacje",
+                                alias, lang.getLocalized(), command.getName());
+                        continue;
+                    }
+                    if (commands.containsKey(alias)) {
+                        logger.warn("Alias {} ({}) nie może zostać zarejestrowany dla {}: komenda/alias już zarejestrowane",
+                                alias, lang.getLocalized(), command.getName());
+                        continue;
+                    }
+                    commands.put(alias, command);
+                }
             }
         }
 
@@ -198,6 +214,7 @@ public class ManagerKomendImpl implements ManagerKomend, ThreadFactory {
             if (content.toLowerCase().startsWith(prefix.toLowerCase())) {
                 content = content.trim().substring(prefix.length()).trim();
                 handleNormal(event, prefix, content, direct);
+                return;
             }
         }
 
@@ -208,6 +225,7 @@ public class ManagerKomendImpl implements ManagerKomend, ThreadFactory {
                 return;
             }
             handleNormal(event, prefixes.get(0), content, direct);
+            return;
         }
         if (content.startsWith("<@!" + event.getJDA().getSelfUser().getId() + ">")) {
             content = content.trim().substring(("<@!" + event.getJDA().getSelfUser().getId() + ">").length()).trim();
@@ -216,6 +234,12 @@ public class ManagerKomendImpl implements ManagerKomend, ThreadFactory {
                 return;
             }
             handleNormal(event, prefixes.get(0), content, direct);
+            return;
+        }
+        if (!direct && content.toLowerCase().startsWith(Ustawienia.instance.prefix.toLowerCase()) &&
+                CommonUtil.isPomoc(shardManager, event.getGuild()) && UserUtil.isStaff(event.getAuthor(), shardManager)) {
+            content = content.trim().substring(Ustawienia.instance.prefix.length()).trim();
+            handleNormal(event, Ustawienia.instance.prefix, content, false);
         }
 
     }
@@ -226,10 +250,10 @@ public class ManagerKomendImpl implements ManagerKomend, ThreadFactory {
             return;
         }
         if (prefixes.size() == 1) event.getChannel().sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(event.getMember()),
-                "generic.prefix.reminder", prefixes.get(0).replaceAll("`", "`\u200b"))).queue();
+                "generic.prefix.reminder", prefixes.get(0).replaceAll("`", "`\u200b"))).reference(event.getMessage()).queue();
         else event.getChannel().sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(event.getMember()),
                 "generic.prefix.reminder.multiple", prefixes.stream().map(p->p.replaceAll("`",
-                        "\u200b`\u200b")).collect(Collectors.joining("\n")))).queue();
+                        "\u200b`\u200b")).collect(Collectors.joining("\n")))).reference(event.getMessage()).queue();
     }
 
     private void handleNormal(MessageReceivedEvent event, String prefix, String content, boolean direct) {
@@ -243,12 +267,12 @@ public class ManagerKomendImpl implements ManagerKomend, ThreadFactory {
                     logger.debug("Serwer {} jest na ratelimicie!", event.getGuild());
                     return;
                 }
+                Language l = !direct ? tlumaczenia.getLanguage(event.getMember()) : tlumaczenia.getLanguage(event.getAuthor());
 
                 int cooldown = isOnCooldown(event.getAuthor(), c);
                 if (cooldown > 0) {
-                    Language l = tlumaczenia.getLanguage(event.getMember());
                     event.getChannel().sendMessage(tlumaczenia.get(l, "generic.cooldown", String.valueOf(cooldown)))
-                            .queue();
+                            .reference(event.getMessage()).queue();
                     return;
                 }
 
@@ -256,15 +280,22 @@ public class ManagerKomendImpl implements ManagerKomend, ThreadFactory {
 
                 if (!direct) {
                     plvl = UserUtil.getPermlevel(event.getMember(), guildDao, shardManager);
+                    if (c.isIgnoreGaPerm() && plvl != PermLevel.BOTOWNER && plvl.getNum() >= PermLevel.GADMIN.getNum()) {
+                        plvl = UserUtil.getPermlevel(event.getMember(), guildDao, shardManager, PermLevel.OWNER);
+                    }
                 } else {
                     plvl = UserUtil.getPermlevel(event.getAuthor(), shardManager);
                 }
 
-                if (c.getPermLevel().getNum() > plvl.getNum()) {
-                    Language l = tlumaczenia.getLanguage(event.getMember());
+                PermLevel customPlvl = null;
+                if (event.isFromGuild()) {
+                    GuildConfig gc = gcCache.get(event.getGuild().getId(), guildDao::get);
+                    customPlvl = getPermLevelOverride(c, gc);
+                }
+                final PermLevel permLevel = customPlvl == null ? c.getPermLevel() : customPlvl;
+                if (permLevel.getNum() > plvl.getNum()) {
                     event.getChannel().sendMessage(tlumaczenia.get(l, "generic.permlevel.too.small",
-                            UserUtil.getPermlevel(event.getMember(), guildDao, shardManager).getNum(), c.getPermLevel().getNum()))
-                            .queue();
+                            plvl.getNum(), permLevel.getNum())).reference(event.getMessage()).queue();
                     return;
                 }
 
@@ -276,21 +307,20 @@ public class ManagerKomendImpl implements ManagerKomend, ThreadFactory {
                         Collections.singletonList(String.join(" ", argsNotDelimed)).toArray(new String[]{});
                 CommandContext context;
                 try {
-                    context = new CommandContext(shardManager, tlumaczenia, c, event, prefix, parts[0], args);
+                    context = new CommandContext(shardManager, tlumaczenia, c, event, prefix, parts[0], args, customPlvl, direct);
                 } catch (ArgsMissingException e) {
                     EmbedBuilder eb = new EmbedBuilder()
                             .setColor(Color.decode("#bef7c3"))
                             .setFooter("© " + event.getJDA().getSelfUser().getName(),
                                     event.getJDA().getSelfUser().getEffectiveAvatarUrl()
                                             .replace(".webp", ".png"));
-                    CommonErrors.usage(eb, tlumaczenia, tlumaczenia.getLanguage(event.getMember()), prefix, c, event.getChannel());
+                    CommonErrors.usage(eb, tlumaczenia, l, prefix, c, event.getChannel(), customPlvl, event.getMessage());
                     return;
                 }
 
-                //noinspection ConstantConditions - nie może być null
-                if (!direct && disabledCommandsCache.get(event.getGuild(), id -> guildDao.get(id).getDisabledCommands())
+                if (!direct && gcCache.get(event.getGuild().getId(), guildDao::get).getDisabledCommands()
                         .contains(c.getName())) {
-                    context.send(context.getTranslated("generic.disabled"));
+                    context.reply(context.getTranslated("generic.disabled"));
                     zareaguj(context, false);
                     return;
                 }
@@ -308,22 +338,25 @@ public class ManagerKomendImpl implements ManagerKomend, ThreadFactory {
                     String issuerString = issuer == null ? "N/a???" : UserUtil.formatDiscrim(issuer);
                     if (!issuerString.equals(gdata.getName())) issuerString = context.getTranslated("gbanlist.different.name",
                             issuer == null ? "N/a???" : UserUtil.formatDiscrim(issuer), gdata.getIssuer());
-                    context.send(context.getTranslated("generic.gban", issuerString, gdata.getReason()));
+                    context.reply(context.getTranslated("generic.gban", issuerString, gdata.getReason()));
                     zareaguj(context, false);
                     return;
                 }
 
-                if (GuildUtil.isGbanned(context.getGuild())) {
+                if (!direct && GuildUtil.isGbanned(context.getGuild())) {
                     GbanData gdata = GuildUtil.getGbanData(context.getGuild());
-                    context.send(context.getTranslated("generic.gban.guild", gdata.getIssuer(), gdata.getReason()));
+                    context.reply(context.getTranslated("generic.gban.guild", gdata.getIssuer(), gdata.getReason()));
                     zareaguj(context, false);
                     return;
                 }
 
                 Runnable runnable = () -> {
+                    final String name = Thread.currentThread().getName();
+                    Thread.currentThread().setName(context.getCommand().getName() + "-" + context.getSender().getId() + "-" +
+                            (context.getGuild() != null ? context.getGuild().getId() : "direct"));
                     logger.info("Użytkownik " + StringUtil.formatDiscrim(event.getAuthor()) + "(" +
-                            event.getAuthor().getId() + ") na serwerze " + event.getGuild().getName() + "(" +
-                            event.getGuild().getId() + ") wykonał komendę " + c.getName() +
+                            event.getAuthor().getId() + ") " + (!direct ? "na serwerze " + event.getGuild().getName() + "(" +
+                            event.getGuild().getId() + ") " : "") + "wykonał komendę " + c.getName() +
                             " (" + String.join(" ", args) + ")");
                     long millis = System.currentTimeMillis();
                     try {
@@ -340,17 +373,32 @@ public class ManagerKomendImpl implements ManagerKomend, ThreadFactory {
                         eventBus.post(new CommandDispatchedEvent(context, false, System.currentTimeMillis() - millis));
                         //teraz nic nie robimy: nie reagujemy
                     } catch (Exception e) {
-                        Sentry.getContext().setUser(new io.sentry.event.User(event.getAuthor().getId(), UserUtil.formatDiscrim(event.getAuthor()), null, null));
+                        Sentry.getContext().setUser(new io.sentry.event.User(event.getAuthor().getId(),
+                                UserUtil.formatDiscrim(event.getAuthor()), null, null));
                         Sentry.capture(e);
                         Sentry.clearContext();
                         logger.error("Błąd w komendzie:", e);
                         CommonErrors.exception(context, e);
                     }
+                    Thread.currentThread().setName(name);
                 };
-                runnables.put(runnable, context);
                 executor.submit(runnable);
             }
         }
+    }
+
+    public static PermLevel getPermLevelOverride(Command c, GuildConfig gc) {
+        if (gc.getCmdPermLevelOverrides() == null)
+            gc.setCmdPermLevelOverrides(new HashMap<>());
+        PermLevel override = gc.getCmdPermLevelOverrides().get(c.getName());
+        if (!checkPermLevelOverride(c, gc, override)) return null;
+        return override;
+    }
+
+    public static boolean checkPermLevelOverride(Command c, GuildConfig gc, PermLevel override) {
+        return gc.getCmdPermLevelOverrides().containsKey(c.getName()) && // https://simulator.io/board/N4iB1fbHf1/1
+                ((c.isAllowPermLevelChange() && override != PermLevel.EVERYONE) ||
+                ((c.isAllowPermLevelChange() && c.isAllowPermLevelEveryone()) && override == PermLevel.EVERYONE));
     }
 
     private void zareaguj(CommandContext context, boolean success) {
@@ -358,23 +406,23 @@ public class ManagerKomendImpl implements ManagerKomend, ThreadFactory {
             Emoji reakcja = getReakcja(context.getSender(), success);
             if (reakcja.isUnicode()) context.getMessage().addReaction(reakcja.getName()).queue();
             else if (shardManager.getEmoteById(reakcja.getId()) != null)
-                context.getMessage().addReaction(reakcja).queue();
+                context.getMessage().addReaction(reakcja).queue(null, a -> {});
             else {
                 Emote zielonyPtak = shardManager.getEmoteById(Ustawienia.instance.emotki.greenTick);
-                if (zielonyPtak != null) context.getMessage().addReaction(zielonyPtak).queue();
+                if (zielonyPtak != null) context.getMessage().addReaction(zielonyPtak).queue(null, a -> {});
             }
         } catch (Exception ignored) {
             try {
                 Emote zielonyPtak = shardManager.getEmoteById(Ustawienia.instance.emotki.greenTick);
-                if (zielonyPtak != null) context.getMessage().addReaction(zielonyPtak).queue();
+                if (zielonyPtak != null) context.getMessage().addReaction(zielonyPtak).queue(null, a -> {});
             } catch (Exception ignored1) {
-                //teraz to juz nic
+                //teraz to juz nic
             }
         }
     }
 
     private boolean isRateLimited(Guild guild) {
-        RateLimiter r = rateLimits.get(guild, g -> RateLimiter.create(3, 5, TimeUnit.SECONDS));
+        RateLimiter r = rateLimits.get(guild.getId(), g -> RateLimiter.create(3, 5, TimeUnit.SECONDS));
         if (r == null) return false; //intellij przestań się pluć plz
         return !r.tryAcquire();
     }
@@ -421,40 +469,16 @@ public class ManagerKomendImpl implements ManagerKomend, ThreadFactory {
 
     @Override
     public Emoji getReakcja(User user, boolean success) {
-        String r = success ? reakcjaSuccessCache.getIfPresent(user) : reakcjaFailCache.getIfPresent(user);
-        if (r == null) {
-            UserConfig config = userDao.get(user);
-            reakcjaSuccessCache.put(user, config.getReakcja());
-            reakcjaFailCache.put(user, config.getReakcjaBlad());
-            if (success) {
-                return Emoji.resolve(config.getReakcja(), shardManager);
-            } else {
-                return Emoji.resolve(config.getReakcjaBlad(), shardManager);
-            }
-        } else return Emoji.resolve(r, shardManager);
+        UserConfig uc = ucCache.get(user.getId(), userDao::get);
+        String r = success ? uc.getReakcja() : uc.getReakcjaBlad();
+        return Emoji.resolve(r, shardManager);
     }
 
     @Override
     public List<String> getPrefixes(Guild guild) {
-        List<String> p = prefixCache.getIfPresent(guild);
-        if (p == null) {
-            try {
-                GuildConfig config = guildDao.get(guild);
-
-                if (config.getPrefixes() == null) {
-                    prefixCache.put(guild, Collections.emptyList());
-                    p = Collections.singletonList(Ustawienia.instance.prefix);
-                } else {
-                    prefixCache.put(guild, config.getPrefixes());
-                    p = config.getPrefixes();
-                }
-            } catch (Exception e) {
-                p = Collections.singletonList(Ustawienia.instance.prefix);
-            }
-        }
-        if (p.isEmpty()) {
-            p = Collections.singletonList(Ustawienia.instance.prefix);
-        }
+        GuildConfig gc = gcCache.get(guild.getId(), guildDao::get);
+        List<String> p = gc.getPrefixes();
+        if (p == null || p.isEmpty()) p = Collections.singletonList(Ustawienia.instance.prefix);
         return p;
     }
 
@@ -465,27 +489,6 @@ public class ManagerKomendImpl implements ManagerKomend, ThreadFactory {
     }
 
     @Subscribe
-    public void onDatabaseUpdate(DatabaseUpdateEvent event) {
-        if (event.getEntity() instanceof GuildConfig) {
-            for (Guild guild : prefixCache.asMap().keySet()) {
-                if (((GuildConfig) event.getEntity()).getGuildId().equals(guild.getId())) {
-                    prefixCache.invalidate(guild);
-                    disabledCommandsCache.invalidate(guild);
-                    return;
-                }
-            }
-        }
-        if (event.getEntity() instanceof UserConfig) {
-            for (User user : reakcjaSuccessCache.asMap().keySet()) {
-                if (((UserConfig) event.getEntity()).getId().equals(user.getId())) {
-                    reakcjaSuccessCache.invalidate(user);
-                    return;
-                }
-            }
-        }
-    }
-
-    @Subscribe
     @AllowConcurrentEvents
     public void handleMessage(MessageReceivedEvent event) {
         if (event.getAuthor().isBot()) return;
@@ -493,142 +496,6 @@ public class ManagerKomendImpl implements ManagerKomend, ThreadFactory {
             this.handleGuild(event);
         } else if (event.getChannelType() == ChannelType.PRIVATE) {
             this.handlePrivate(event);
-        }
-    }
-
-    @Override
-    public Thread newThread(@NotNull Runnable r) {
-        if (r instanceof ManagerKomendImplExecutor.WorkerXD) {
-            if (runnables.containsKey(((ManagerKomendImplExecutor.WorkerXD) r).parent.runnable)) {
-                CommandContext ctx = runnables.remove(((ManagerKomendImplExecutor.WorkerXD) r).parent.runnable);
-                String tName = ctx.getCommand().getName() + "-" + ctx.getSender().getId() + "-" +
-                        (ctx.getEvent().getGuild() != null ? ctx.getGuild().getId() : "direct");
-                return new Thread(r, tName);
-            }
-        }
-        return new Thread(r, "ManagerKomendImpl-executor-unknown");
-    }
-
-    public static class ManagerKomendImplExecutor extends AbstractExecutorService {
-
-        private final int threadLimit;
-        private final ThreadFactory factory;
-        private Map<WorkerXD, Thread> thready = new ConcurrentHashMap<>();
-        private Queue<JebanyTask> czekajaceTaski = new ConcurrentLinkedQueue<>();
-        @Getter private boolean shutdown;
-
-        public ManagerKomendImplExecutor(int threadLimit, ThreadFactory factory) {
-            this.threadLimit = threadLimit;
-            this.factory = factory;
-        }
-
-        @Override
-        protected <T> RunnableFuture<T> newTaskFor(Callable<T> callable) {
-            return new JebanyTask<>(callable);
-        }
-
-        @Override
-        protected <T> RunnableFuture<T> newTaskFor(Runnable runnable, T value) {
-            return new JebanyTask<>(runnable, value);
-        }
-
-        @Override
-        public void shutdown() {
-            shutdown = true;
-            try {
-                awaitTermination(60, TimeUnit.SECONDS);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        }
-
-        @NotNull
-        @Override
-        public List<Runnable> shutdownNow() {
-            List<Runnable> anulowane = new ArrayList<>();
-            thready.forEach((w, t) -> {
-                if (!t.isInterrupted()) {
-                    t.interrupt();
-                    anulowane.add(w.parent);
-                }
-            });
-            return anulowane;
-        }
-
-        @Override
-        public boolean isTerminated() {
-            return isShutdown() && thready.isEmpty();
-        }
-
-        @Override
-        public boolean awaitTermination(long timeout, @NotNull TimeUnit unit) throws InterruptedException {
-            long prob = TimeUnit.SECONDS.convert(timeout, unit);
-            long proba = 0;
-            while (!thready.isEmpty()) {
-                Thread.sleep(100);
-                proba++;
-                if (proba >= prob * 10) {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        @Override
-        public void execute(@NotNull Runnable command) {
-            if (thready.size() >= threadLimit) {
-                czekajaceTaski.add((JebanyTask) command);
-                return;
-            }
-            WorkerXD w = new WorkerXD((JebanyTask) command, this::removeFromQueue);
-            Thread t = factory.newThread(w);
-            thready.put(w, t);
-            t.start();
-        }
-
-        private void removeFromQueue(WorkerXD x) {
-            thready.remove(x);
-            while (thready.size() < threadLimit) {
-                Runnable r = czekajaceTaski.poll();
-                if (r == null) break;
-                execute(r);
-            }
-        }
-
-        static class WorkerXD implements Runnable {
-            private final JebanyTask parent;
-            private final Consumer<WorkerXD> callback;
-
-            WorkerXD(JebanyTask r, Consumer<WorkerXD> callback) {
-                parent = r;
-                this.callback = callback;
-            }
-
-            @Override
-            public void run() {
-                try {
-                    parent.run();
-                } catch (Exception e) {
-                    LoggerFactory.getLogger(getClass()).error("Thread wywalił", e);
-                    Sentry.capture(e);
-                }
-                callback.accept(this);
-            }
-        }
-
-        static class JebanyTask<T> extends FutureTask<T> {
-            public Callable<T> callable;
-            public Runnable runnable;
-
-            public JebanyTask(@NotNull Callable<T> callable) {
-                super(callable);
-                this.callable = callable;
-            }
-
-            public JebanyTask(@NotNull Runnable runnable, T result) {
-                super(runnable, result);
-                this.runnable = runnable;
-            }
         }
     }
 }

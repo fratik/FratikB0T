@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,11 +27,12 @@ public class PomocCommand extends Command {
     public PomocCommand() {
         name = "pomoc";
         category = CommandCategory.SYSTEM;
+        allowPermLevelChange = false;
     }
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
-        context.send(context.getTranslated("pomoc.ambiguous.command", context.getPrefix(),
+        context.reply(context.getTranslated("pomoc.ambiguous.command", context.getPrefix(),
                 context.getPrefix(), context.getPrefix()));
         return true;
     }

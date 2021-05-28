@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,13 +38,13 @@ public class PauseCommand extends MusicCommand {
     @Override
     public boolean execute(@NotNull CommandContext context) {
         if (!hasFullDjPerms(context.getMember(), context.getShardManager(), guildDao)) {
-            context.send(context.getTranslated("pause.dj"));
+            context.reply(context.getTranslated("pause.dj"));
             return false;
         }
         ManagerMuzykiSerwera mms = managerMuzyki.getManagerMuzykiSerwera(context.getGuild());
         boolean paused = mms.pause();
-        if (paused) context.send(context.getTranslated("pause.paused"));
-        else context.send(context.getTranslated("pause.resumed"));
+        if (paused) context.reply(context.getTranslated("pause.paused"));
+        else context.reply(context.getTranslated("pause.resumed"));
         return true;
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -54,13 +54,14 @@ public class GbanCommand extends Command {
         hmap.put("[...]", STRINGARGTYPE);
         uzycie = new Uzycie(hmap, new boolean[] {true, true, false});
         uzycieDelim = " ";
+        allowPermLevelChange = false;
     }
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
         String guild;
         String reason = Arrays.stream(Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length))
-                .map(Object::toString).collect(Collectors.joining(uzycieDelim));
+                .map(o -> o == null ? "" : o.toString()).collect(Collectors.joining(uzycieDelim));
         guild = (String) context.getArgs()[0];
         User user = (User) managerArgumentow.getArguments().get("user").execute((String) context.getArgs()[0],
                 context.getTlumaczenia(), context.getLanguage());
@@ -74,7 +75,7 @@ public class GbanCommand extends Command {
         if (user != null) gdata = gbanDao.get(user);
         if (gdata == null) throw new IllegalStateException("gdata == null");
         if (gdata.isGbanned()) {
-            context.send(context.getTranslated("gban.already.gbanned"));
+            context.reply(context.getTranslated("gban.already.gbanned"));
             return false;
         }
         if (user != null) {
@@ -85,7 +86,7 @@ public class GbanCommand extends Command {
             gdata.setReason(reason);
             gdata.setType(GbanData.Type.USER);
             gbanDao.save(gdata);
-            context.send(context.getTranslated("gban.success.user", UserUtil.formatDiscrim(user)));
+            context.reply(context.getTranslated("gban.success.user", UserUtil.formatDiscrim(user)));
             return true;
         }
         gdata.setGbanned(true);
@@ -96,7 +97,7 @@ public class GbanCommand extends Command {
         gdata.setReason(reason);
         gdata.setType(GbanData.Type.GUILD);
         gbanDao.save(gdata);
-        context.send(context.getTranslated("gban.success.guild", guild));
+        context.reply(context.getTranslated("gban.success.guild", guild));
         return true;
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,6 +31,7 @@ public class RzutMonetaCommand extends Command {
         name = "rzutmoneta";
         category = CommandCategory.FUN;
         aliases = new String[] {"rzutm", "moneta", "rm"};
+        allowPermLevelChange = false;
     }
 
     @Override
@@ -44,7 +45,7 @@ public class RzutMonetaCommand extends Command {
             default:
                 moneta = Moneta.ORZEL; //prosty fallback
         }
-        context.send(context.getTranslated("rzutmoneta.response", context.getSender().getAsMention(), context.getTranslated("rzutmoneta." + moneta.name().toLowerCase())));
+        context.reply(context.getTranslated("rzutmoneta.response", context.getSender().getAsMention(), context.getTranslated("rzutmoneta." + moneta.name().toLowerCase())));
         return true;
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,38 +39,45 @@ public class PogodaCommand extends Command {
         name = "pogoda";
         category = CommandCategory.UTILITY;
         uzycie = new Uzycie("miejsce", "string");
-        aliases = new String[] {"weather", "w", "pg", "prognoza", "pogodynka", "meteo", "meteostp", "warunkiatmosferyczne"};
+        aliases = new String[] {"pg", "prognoza", "pogodynka", "meteo", "meteostp", "warunkiatmosferyczne"};
         allowInDMs = true;
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
+        allowPermLevelChange = false;
     }
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
         String nibyLokacja = userDao.get(context.getSender()).getLocation();
         if (context.getArgs().length == 0 && (nibyLokacja == null || !Objects.equals(nibyLokacja, ""))) {
-            context.send(context.getTranslated("pogoda.no.place", context.getPrefix()));
+            context.reply(context.getTranslated("pogoda.no.place", context.getPrefix()));
             return false;
         }
         String lokacja = nibyLokacja;
         if (context.getArgs().length != 0 && context.getArgs()[0] != null && !((String) context.getArgs()[0]).isEmpty())
             lokacja = (String) context.getArgs()[0];
         if (lokacja == null) {
-            context.send(context.getTranslated("pogoda.no.place", context.getPrefix()));
+            context.reply(context.getTranslated("pogoda.no.place", context.getPrefix()));
             return false;
         }
         try {
-            String downloaded = new String(NetworkUtil.download("http://pl.wttr.in/" + NetworkUtil.encodeURIComponent(lokacja) + "?T0m"));
+            String downloaded = new String(NetworkUtil.download("http://en.wttr.in/" +
+                    NetworkUtil.encodeURIComponent(lokacja) + "?T"));
             downloaded = Jsoup.parse(downloaded).getElementsByTag("body").text();
             if (downloaded.startsWith("ERROR:")) {
-                context.send(context.getTranslated("pogoda.failed"));
+                context.reply(context.getTranslated("pogoda.failed"));
                 return false;
-                // TODO: 01.12.18 3:42 osobny failed dla braku lokacji
             }
-            context.send(context.getBaseEmbed(context.getTranslated("pogoda.embed.header", lokacja), null)
-                    .setImage("http://pl.wttr.in/" + NetworkUtil.encodeURIComponent(lokacja) + ".png?0m")
+            if (downloaded.contains("We were unable to find your location")) {
+                context.reply(context.getTranslated("pogoda.unknown.location"));
+                return false;
+            }
+            context.reply(context.getBaseEmbed(context.getTranslated("pogoda.embed.header", lokacja), null)
+                    .setImage("http://" + context.getLanguage().getLocale()
+                            .getLanguage().toLowerCase().split("_")[0] + ".wttr.in/" +
+                            NetworkUtil.encodeURIComponent(lokacja) + ".png?0m")
                     .setColor(Color.GREEN).build());
         } catch (Exception e) {
-            context.send(context.getTranslated("pogoda.failed"));
+            context.reply(context.getTranslated("pogoda.failed"));
             return false;
         }
         return true;

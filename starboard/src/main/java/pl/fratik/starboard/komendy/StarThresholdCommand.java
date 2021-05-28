@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,7 +43,7 @@ public class StarThresholdCommand extends Command {
         StarsData std = starDataDao.get(context.getGuild());
         int ilosc = (int) context.getArgs()[0];
         std.setStarThreshold(ilosc);
-        context.send(context.getTranslated("starthreshold.set", ilosc));
+        context.reply(context.getTranslated("starthreshold.set", ilosc));
         starDataDao.save(std);
         return true;
     }

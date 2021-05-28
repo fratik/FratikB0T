@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,6 +44,14 @@ public class MembersStatsDao implements Dao<MembersStats> {
 
     public MembersStats get(long date, String id) {
         return mapper.loadManyBySubkey("data->>'guildId'", id).stream().filter(ms -> ms.getDate() == date).findAny().orElse(newObject(date, id));
+    }
+
+    public List<MembersStats> getAllBefore(long date) {
+        return mapper.loadManyBySubkey("data->>'date'", String.valueOf(date), "<");
+    }
+
+    public boolean delete(MembersStats ms) {
+        return mapper.delete(ms.getUniqid()).orElse(false);
     }
 
     @Override

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,8 +17,6 @@
 
 package pl.fratik.moderation.listeners;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.eventbus.Subscribe;
 import lombok.Getter;
 import lombok.Setter;
@@ -31,11 +29,13 @@ import net.dv8tion.jda.api.events.message.MessageBulkDeleteEvent;
 import net.dv8tion.jda.api.events.message.MessageDeleteEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.MessageUpdateEvent;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.Ustawienia;
+import pl.fratik.core.cache.Cache;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
-import pl.fratik.core.event.DatabaseUpdateEvent;
 import pl.fratik.core.event.PluginMessageEvent;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
@@ -43,15 +43,14 @@ import pl.fratik.core.util.StringUtil;
 import pl.fratik.core.util.UserUtil;
 import pl.fratik.moderation.commands.PurgeCommand;
 import pl.fratik.moderation.entity.*;
+import redis.clients.jedis.exceptions.JedisException;
 
 import javax.annotation.CheckReturnValue;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static java.awt.Color.decode;
@@ -62,71 +61,74 @@ public class LogListener {
     private final PurgeDao purgeDao;
 
     @Setter private static Tlumaczenia tlumaczenia;
-    private static final Cache<TextChannel, List<Message>>
-            cache = Caffeine.newBuilder().maximumSize(300).expireAfterWrite(10, TimeUnit.MINUTES).build();
+    private final Cache<List<LogMessage>> cache;
+    private final Cache<GuildConfig> gcCache;
     @Getter private final List<String> znaneAkcje = new ArrayList<>();
 
-    @Getter private static HashMap<Guild, List<Case>> knownCases = new HashMap<>();
+    private static final Logger log = LoggerFactory.getLogger(LogListener.class);
 
-    private final Cache<Guild, TextChannel> logChannelCache = Caffeine.newBuilder().expireAfterWrite(5, TimeUnit.MINUTES)
-            .maximumSize(100).build();
-
-    public LogListener(GuildDao guildDao, PurgeDao purgeDao) {
+    public LogListener(GuildDao guildDao, PurgeDao purgeDao, RedisCacheManager redisCacheManager) {
         this.guildDao = guildDao;
         this.purgeDao = purgeDao;
+        cache = redisCacheManager.new CacheRetriever<List<LogMessage>>(){}.setCanHandleErrors(true).getCache(900);
+        gcCache = redisCacheManager.new CacheRetriever<GuildConfig>(){}.getCache();
     }
 
     @Subscribe
     public void onMessage(MessageReceivedEvent messageReceivedEvent) {
         if (!messageReceivedEvent.isFromGuild()) return;
-        List<Message> messages = cache.get(messageReceivedEvent.getTextChannel(), c -> new ArrayList<>());
-        if (messages == null) throw new IllegalStateException("messages == null mimo compute'owania");
-        if (messages.size() <= 100) messages.add(messageReceivedEvent.getMessage());
-        else {
-            messages.remove(0);
-            messages.add(messageReceivedEvent.getMessage());
+        try {
+            List<LogMessage> messages = cache.get(messageReceivedEvent.getTextChannel().getId(), c -> new ArrayList<>());
+            if (messages == null) throw new IllegalStateException("messages == null mimo compute'owania");
+            if (messages.size() > 100) messages.remove(0);
+            messages.add(new LogMessage(messageReceivedEvent.getMessage()));
+            cache.put(messageReceivedEvent.getTextChannel().getId(), messages);
+        } catch (JedisException e) {
+            log.error("Redis nie odpowiada prawidłowo!", e);
         }
     }
 
     @Subscribe
     public void onMessageEdit(MessageUpdateEvent messageUpdateEvent) {
         if (!messageUpdateEvent.isFromGuild()) return;
-        List<Message> messages = cache.get(messageUpdateEvent.getTextChannel(), c -> new ArrayList<>());
-        if (messages == null) throw new IllegalStateException("messages == null mimo compute'owania");
-        Message m = findMessage(messageUpdateEvent.getTextChannel(), messageUpdateEvent.getMessageId(), false);
-        if (m == null) {
-            if (messages.size() <= 100) messages.add(messageUpdateEvent.getMessage());
-            else {
-                messages.remove(0);
-                messages.add(messageUpdateEvent.getMessage());
+        try {
+            List<LogMessage> messages = cache.get(messageUpdateEvent.getTextChannel().getId(), c -> new ArrayList<>());
+            if (messages == null) throw new IllegalStateException("messages == null mimo compute'owania");
+            Message m = findMessage(messageUpdateEvent.getTextChannel(), messageUpdateEvent.getMessageId(), false, messages);
+            if (m == null) {
+                if (messages.size() > 100) messages.remove(0);
+                messages.add(new LogMessage(messageUpdateEvent.getMessage()));
+                znaneAkcje.remove(messageUpdateEvent.getMessageId());
+                return;
             }
-            znaneAkcje.remove(messageUpdateEvent.getMessageId());
-            return;
+            messages.set(messages.indexOf(m), new LogMessage(messageUpdateEvent.getMessage()));
+            cache.put(messageUpdateEvent.getTextChannel().getId(), messages);
+            if (znaneAkcje.contains(messageUpdateEvent.getMessageId())) {
+                znaneAkcje.remove(messageUpdateEvent.getMessageId());
+                return;
+            }
+            TextChannel channel = getChannel(messageUpdateEvent.getGuild());
+            if (channel == null || !channel.canTalk()) {
+                return;
+            }
+            if (messageUpdateEvent.getMessage().getContentRaw().equals(m.getContentRaw())) {
+                //zmieniony embed/attachment, ignoruj
+                return;
+            }
+            if (messageUpdateEvent.getMessage().getContentRaw().length() >= 1024 || m.getContentRaw().length() >= 1024) {
+                return;
+            }
+            MessageEmbed embed = generateEmbed(LogType.EDIT, messageUpdateEvent.getMessage(), null, m.getContentRaw(), false);
+            try {channel.sendMessage(embed).queue();} catch (Exception ignored) {/*lul*/}
+        } catch (JedisException e) {
+            log.error("Redis nie odpowiada prawidłowo!", e);
         }
-        messages.set(messages.indexOf(m), messageUpdateEvent.getMessage());
-        if (znaneAkcje.contains(messageUpdateEvent.getMessageId())) {
-            znaneAkcje.remove(messageUpdateEvent.getMessageId());
-            return;
-        }
-        TextChannel channel = getChannel(messageUpdateEvent.getGuild());
-        if (channel == null || !channel.canTalk()) {
-            return;
-        }
-        if (messageUpdateEvent.getMessage().getContentRaw().equals(m.getContentRaw())) {
-            //zmieniony embed/attachment, ignoruj
-            return;
-        }
-        if (messageUpdateEvent.getMessage().getContentRaw().length() >= 1024 || m.getContentRaw().length() >= 1024) {
-            return;
-        }
-        MessageEmbed embed = generateEmbed(LogType.EDIT, messageUpdateEvent.getMessage(), null, m.getContentRaw(), false);
-        try {channel.sendMessage(embed).queue();} catch (Exception ignored) {/*lul*/}
     }
 
     @Subscribe
     public void onMessageRemoved(MessageDeleteEvent messageDeleteEvent) {
         if (!messageDeleteEvent.isFromGuild()) return;
-        Message m = findMessage(messageDeleteEvent.getTextChannel(), messageDeleteEvent.getMessageId());
+        LogMessage m = findMessage(messageDeleteEvent.getTextChannel(), messageDeleteEvent.getMessageId());
         if (m == null) {
             znaneAkcje.remove(messageDeleteEvent.getMessageId());
             return;
@@ -138,34 +140,23 @@ public class LogListener {
         }
         if (znaneAkcje.remove(messageDeleteEvent.getMessageId())) return;
         try {
-            messageDeleteEvent.getGuild().retrieveAuditLogs().type(ActionType.MESSAGE_DELETE).queue(
-                    audiologi -> {
-                        User deletedBy = null;
-                        for (AuditLogEntry log : audiologi) {
-                            if (log.getType() == ActionType.MESSAGE_DELETE
-                                    && log.getTimeCreated().isAfter(OffsetDateTime.now().minusMinutes(1))
-                                    && messageDeleteEvent.getChannel().getId().equals(log.getOption(AuditLogOption.CHANNEL))
-                                    && m.getAuthor().getIdLong() == log.getTargetIdLong()) {
-                                deletedBy = log.getUser();
-                                break;
-                            }
-                        }
-                        MessageEmbed embed = generateEmbed(LogType.DELETE, m, deletedBy, m.getContentRaw(), false);
-                        try {
-                            channel.sendMessage(embed).queue();
-                        } catch (Exception ignored) {
-                            /*lul*/
-                        }
-                    },
-                    error -> {
-                        MessageEmbed embed = generateEmbed(LogType.DELETE, m, null, m.getContentRaw(), true);
-                        try {
-                            channel.sendMessage(embed).queue();
-                        } catch (Exception ignored) {
-                            /*lul*/
-                        }
-                    }
-            );
+            List<AuditLogEntry> audiologi = messageDeleteEvent.getGuild().retrieveAuditLogs().type(ActionType.MESSAGE_DELETE).complete();
+            User deletedBy = null;
+            for (AuditLogEntry log : audiologi) {
+                if (log.getType() == ActionType.MESSAGE_DELETE
+                        && log.getTimeCreated().isAfter(OffsetDateTime.now().minusMinutes(1))
+                        && messageDeleteEvent.getChannel().getId().equals(log.getOption(AuditLogOption.CHANNEL))
+                        && m.getAuthorId() == log.getTargetIdLong()) {
+                    deletedBy = log.getUser();
+                    break;
+                }
+            }
+            MessageEmbed embed = generateEmbed(LogType.DELETE, m, deletedBy, m.getContentRaw(), false);
+            try {
+                channel.sendMessage(embed).queue();
+            } catch (Exception ignored) {
+                /*lul*/
+            }
         } catch (Exception e) {
             MessageEmbed embed = generateEmbed(LogType.DELETE, m, null, m.getContentRaw(), true);
             try {
@@ -222,27 +213,42 @@ public class LogListener {
     }
 
     public void pushMessage(Message msg) {
-        List<Message> kesz = Objects.requireNonNull(cache.get(msg.getTextChannel(), c -> new ArrayList<>()));
-        if (kesz.stream().map(ISnowflake::getId).anyMatch(o -> o.equals(msg.getId())))
-            return;
-        kesz.add(msg);
-        cache.put(msg.getTextChannel(), kesz);
+        try {
+            List<LogMessage> kesz = Objects.requireNonNull(cache.get(msg.getTextChannel().getId(), c -> new ArrayList<>()));
+            if (kesz.stream().map(ISnowflake::getId).anyMatch(o -> o.equals(msg.getId())))
+                return;
+            kesz.add(new LogMessage(msg));
+            cache.put(msg.getTextChannel().getId(), kesz);
+        } catch (JedisException e) {
+            log.error("Redis nie odpowiada prawidłowo!", e);
+        }
     }
 
-    private Message findMessage(TextChannel channel, String id) {
+    private LogMessage findMessage(TextChannel channel, String id) {
         return findMessage(channel, id, true);
     }
 
-    private Message findMessage(TextChannel channel, String id, boolean delete) {
+    private LogMessage findMessage(TextChannel channel, String id, boolean delete) {
         try {
-            List<Message> kesz = Objects.requireNonNull(cache.get(channel, c -> new ArrayList<>()));
-            for (Message m : kesz)
+            List<LogMessage> kesz = Objects.requireNonNull(cache.get(channel.getId(), c -> new ArrayList<>()));
+            return findMessage(channel, id, delete, kesz);
+        } catch (JedisException e) {
+            log.error("Redis nie odpowiada prawidłowo!", e);
+            return null;
+        }
+    }
+
+    private LogMessage findMessage(TextChannel channel, String id, boolean delete, List<LogMessage> kesz) {
+        try {
+            for (LogMessage m : kesz)
                 if (m.getId().equals(id)) {
                     if (!delete) return m;
                     kesz.remove(m);
-                    cache.put(channel, kesz);
+                    cache.put(channel.getId(), kesz);
                     return m;
                 }
+        } catch (JedisException e) {
+            log.error("Redis nie odpowiada prawidłowo!", e);
         } catch (Exception ignored) {
             /*lul*/
         }
@@ -262,15 +268,36 @@ public class LogListener {
                 null, message.getAuthor().getEffectiveAvatarUrl().replace(".webp", ".png"));
         if (type == LogType.EDIT) {
             eb.setTimestamp(message.getTimeEdited());
-            eb.addField(tlumaczenia.get(l, "fulllog.old.content"), oldContent, false);
-            eb.addField(tlumaczenia.get(l, "fulllog.new.content"), message.getContentRaw(), false);
+            String oldCnt = oldContent;
+            String oldCnt2 = null;
+            if (oldContent.length() >= 1021) {
+                oldCnt = oldContent.substring(0, 1021).trim() + "...";
+                oldCnt2 = "..." + oldContent.substring(1022).trim();
+            }
+            String newCnt = message.getContentRaw();
+            String newCnt2 = null;
+            if (oldContent.length() >= 1021) {
+                newCnt = message.getContentRaw().substring(0, 1021).trim() + "...";
+                newCnt2 = "..." + message.getContentRaw().substring(1022).trim();
+            }
+            eb.addField(tlumaczenia.get(l, "fulllog.old.content"), oldCnt, false);
+            if (oldCnt2 != null) eb.addField(tlumaczenia.get(l, "fulllog.old.content.pt2"), oldCnt2, false);
+            eb.addField(tlumaczenia.get(l, "fulllog.new.content"), newCnt, false);
+            if (newCnt2 != null) eb.addField(tlumaczenia.get(l, "fulllog.new.content.pt2"), newCnt2, false);
             pushChannel(eb, l, message);
             eb.addField(tlumaczenia.get(l, "fulllog.message.id"), message.getId(), false);
             eb.setColor(decode("#ffa500"));
             eb.setFooter(tlumaczenia.get(l, "fulllog.edit"), null);
         }
         if (type == LogType.DELETE) {
-            eb.addField(tlumaczenia.get(l, "fulllog.content"), message.getContentRaw(), false);
+            String cnt = message.getContentRaw();
+            String cnt2 = null;
+            if (message.getContentRaw().length() >= 1024) {
+                cnt = message.getContentRaw().substring(0, 1021).trim() + "...";
+                cnt2 = "..." + message.getContentRaw().substring(1022).trim();
+            }
+            eb.addField(tlumaczenia.get(l, "fulllog.content"), cnt, false);
+            if (cnt2 != null) eb.addField(tlumaczenia.get(l, "fulllog.content.pt2"), cnt2, false);
             pushChannel(eb, l, message);
             eb.addField(tlumaczenia.get(l, "fulllog.message.id"), message.getId(), false);
             String rmby = "fulllog.removed.by";
@@ -320,28 +347,20 @@ public class LogListener {
                 return;
             }
         }
-        LoggerFactory.getLogger(getClass()).warn("Wiadomość niezrozumiała!");
+        LoggerFactory.getLogger(getClass()).warn("Wiadomość niezrozumiała!");
     }
 
     private TextChannel getChannel(Guild guild) {
-        return logChannelCache.get(guild, g -> {
-            GuildConfig gc = guildDao.get(guild);
-            if (gc.getFullLogs() == null) return null;
-            if (!gc.getFullLogs().isEmpty()) return g.getTextChannelById(gc.getFullLogs());
-            return null;
-        });
-    }
-
-    @Subscribe
-    public void onDatabaseUpdate(DatabaseUpdateEvent event) {
-        if (event.getEntity() instanceof GuildConfig) {
-            for (Guild guild : logChannelCache.asMap().keySet()) {
-                if (((GuildConfig) event.getEntity()).getGuildId().equals(guild.getId())) {
-                    logChannelCache.invalidate(guild);
-                    return;
-                }
-            }
+        GuildConfig gc = gcCache.get(guild.getId(), guildDao::get);
+        if (gc.getFullLogs() == null) return null;
+        String id = null;
+        if (!gc.getFullLogs().isEmpty()) {
+            TextChannel kanal = guild.getTextChannelById(gc.getFullLogs());
+            if (kanal == null) return null;
+            id = kanal.getId();
         }
+        if (id == null) return null;
+        return guild.getTextChannelById(id);
     }
 
     private enum LogType {

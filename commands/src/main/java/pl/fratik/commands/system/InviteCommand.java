@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,8 +28,6 @@ import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.command.PermLevel;
 import pl.fratik.core.util.UserUtil;
 
-import java.util.Objects;
-
 public class InviteCommand extends Command {
 
     public InviteCommand() {
@@ -38,6 +36,7 @@ public class InviteCommand extends Command {
         permLevel = PermLevel.EVERYONE;
         aliases = new String[] {"dodajbota"};
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
+        allowPermLevelChange = false;
     }
 
     @Override
@@ -51,12 +50,12 @@ public class InviteCommand extends Command {
         eb.setDescription(context.getTranslated("invite.description"));
         eb.addField(context.getTranslated("invite.addbot"), context.getTranslated("generic.click", invite), true);
         eb.addField(context.getTranslated("invite.joinfdev"), context.getTranslated("generic.click", dc), true);
-        context.send(eb.build());
+        context.reply(eb.build());
         return true;
     }
 
     private String generateInviteLink(String id) {
-        return "https://discordapp.com/oauth2/authorize?client_id=" +
+        return "https://discord.com/oauth2/authorize?client_id=" +
                 id + "&permissions=" +
                 Globals.permissions + "&scope=bot";
     }

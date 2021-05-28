@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -57,6 +57,7 @@ public class SlotsCommand extends Command {
         maszynaLosujaca = new SlotMachine(3, symbole);
         aliases = new String[] {"maszyna", "lotto", "magicznyautomat"};
         permissions.add(Permission.MESSAGE_EXT_EMOJI);
+        allowPermLevelChange = false;
     }
 
     @Override
@@ -73,17 +74,18 @@ public class SlotsCommand extends Command {
         eb.setTitle(context.getTranslated("slots.embed.title"));
         eb.setDescription(results.visualize());
         eb.appendDescription("\n\n");
+        mc.setFratikCoiny(mc.getFratikCoiny() - zaklad + results.totalPoints() * 10L);
+        String emote = Objects.requireNonNull(context.getShardManager().getEmoteById(Ustawienia.instance.emotki.fratikCoin)).getAsMention();
         if (results.winCount() == 0) {
             eb.appendDescription(context.getTranslated("slots.embed.desc.lost", context.getSender().getAsTag()));
             eb.setColor(Color.red);
         } else {
             eb.appendDescription(context.getTranslated("slots.embed.desc.won", context.getSender().getAsTag(),
-                    results.totalPoints() * 10,
-                    Objects.requireNonNull(context.getShardManager().getEmoteById(Ustawienia.instance.emotki.fratikCoin)).getAsMention()));
+                    results.totalPoints() * 10, emote,
+                    mc.getFratikCoiny(), emote));
             eb.setColor(Color.green);
         }
-        context.send(eb.build());
-        mc.setFratikCoiny(mc.getFratikCoiny() - zaklad + results.totalPoints() * 10);
+        context.reply(eb.build());
         memberDao.save(mc);
         return true;
     }

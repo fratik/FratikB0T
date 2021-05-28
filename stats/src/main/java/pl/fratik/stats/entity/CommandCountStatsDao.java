@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,6 +46,10 @@ public class CommandCountStatsDao implements Dao<CommandCountStats> {
         return mapper.load(id).orElseGet(() -> newObject(id));
     }
 
+    public List<CommandCountStats> getBefore(long date) {
+        return mapper.loadManyBySubkey("data->>'date'", String.valueOf(date), "<");
+    }
+
     @Override
     public List<CommandCountStats> getAll() {
         return mapper.loadAll();
@@ -64,6 +68,10 @@ public class CommandCountStatsDao implements Dao<CommandCountStats> {
                 toCos.getClass().getName(), jsoned);
         mapper.save(toCos);
         eventBus.post(new DatabaseUpdateEvent(toCos));
+    }
+
+    public boolean delete(CommandCountStats ccs) {
+        return mapper.delete(ccs.getDate()).orElse(false);
     }
 
     private CommandCountStats newObject(long id) {

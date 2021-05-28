@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -45,6 +45,8 @@ public class UnloadCommand extends Command {
         permLevel = PermLevel.BOTOWNER;
         uzycie = new Uzycie("modul", "string");
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
+        allowPermLevelChange = false;
+        allowInDMs = true;
     }
 
     @Override
@@ -56,7 +58,7 @@ public class UnloadCommand extends Command {
         String pytajnik = "\u2753";
         eb.appendDescription(pytajnik + SPMO + "\n");
         eb.appendDescription(pytajnik + UNLOAD + "\n");
-        Message msg = context.getChannel().sendMessage(eb.build()).complete();
+        Message msg = context.reply(eb.build());
         if (!managerModulow.isLoaded((String) context.getArgs()[0])) {
             eb.setDescription(eb.getDescriptionBuilder().toString().replace(pytajnik + SPMO,
                     rtick.getAsMention() + SPMO + ": moduł nie jest wczytany"));
@@ -69,7 +71,7 @@ public class UnloadCommand extends Command {
         msg.editMessage(eb.build()).override(true).complete();
         try {
             boolean odp = managerModulow.stopModule((String) context.getArgs()[0]);
-            if (!odp) throw new Exception("Unload modułu nieudany - sprawdź konsolę.");
+            if (!odp) throw new Exception("Unload modułu nieudany - sprawdź konsolę.");
             managerModulow.unload((String) context.getArgs()[0], true);
         } catch (Exception e) {
             logger.error("Błąd w komendzie unload:", e);

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@ import gg.amy.pgorm.annotations.PrimaryKey;
 import gg.amy.pgorm.annotations.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import pl.fratik.core.command.PermLevel;
 import pl.fratik.core.tlumaczenia.Language;
 
 import java.beans.Transient;
@@ -56,6 +57,7 @@ public class GuildConfig implements DatabaseEntity {
     @ConfigField(holdsEntity = ConfigField.Entities.ROLE)
     private String adminRole = "";
     private Boolean antiswear = false;
+    private Boolean antiLink = false;
     private Boolean autoban = false;
     @ConfigField(holdsEntity = ConfigField.Entities.ROLE)
     private List<String> autorole = new ArrayList<>();
@@ -74,10 +76,15 @@ public class GuildConfig implements DatabaseEntity {
     private String modRole = "";
     @ConfigField(holdsEntity = ConfigField.Entities.CHANNEL)
     private List<String> swearchannels = new ArrayList<>();
+    @ConfigField(holdsEntity = ConfigField.Entities.CHANNEL)
+    private List<String> linkchannels = new ArrayList<>();
+    @ConfigField(holdsEntity = ConfigField.Entities.CHANNEL)
+    private List<String> nolvlchannelchange = new ArrayList<>();
     private Boolean warnAdminLubModTraciRange = true;
     private Integer warnyNaBan = 15;
     private Integer warnyNaKick = 5;
     private Integer warnyNaTymczasowegoBana = 10;
+    private Integer maxRoliDoSamododania = 0;
     @Deprecated
     private Boolean wymagajWeryfikacjiDwuetapowej = false;
     private Boolean wysylajDmOKickachLubBanach = true;
@@ -113,6 +120,74 @@ public class GuildConfig implements DatabaseEntity {
     private Map<String, String> pozegnania = new HashMap<>();
     private Boolean wysylajOgloszenia = false;
     private Boolean powitanieWEmbedzie = true;
+    @ConfigField(dontDisplayInSettings = true)
+    private String liczekKanal = "";
+    private Map<String, Webhook> webhooki = new HashMap<>();
+    private String lvlUpMessage;
+    private Boolean resetujOstrzezeniaPrzyBanie = true;
+    private Map<String, PermLevel> cmdPermLevelOverrides = new HashMap<>();
+    @ConfigField(dontDisplayInSettings = true)
+    private Map<Integer, String> roleZaZaproszenia = new HashMap<>();
+    private Boolean lvlUpNotify = true;
+    private Boolean trackInvites = false;
+    private Boolean deleteSwearMessage = false;
+    private Boolean deleteLinkMessage = false;
+    private Boolean cytujFbot = false;
+    private Boolean publikujReakcja = false;
+    private Boolean antiLinkMediaAllowed = true;
+    private Boolean antiLinkIgnoreAdmins = false;
+    @ConfigField(holdsEntity = ConfigField.Entities.ROLE)
+    private List<String> antiLinkIgnoreRoles = new ArrayList<>();
+
+    // TODO: 09/04/2020 można to zrobić dla każdego Boolean'a, ale to już kwestia kosmetyki kodu chyba
+    public boolean isResetujOstrzezeniaPrzyBanie() {
+        return resetujOstrzezeniaPrzyBanie != null && resetujOstrzezeniaPrzyBanie;
+    }
+
+    public boolean isLvlUpNotify() {
+        return lvlUpNotify == null || lvlUpNotify;
+    }
+
+    public boolean isTrackInvites() {
+        return trackInvites != null && trackInvites;
+    }
+
+    public boolean isDeleteSwearMessage() {
+        return deleteSwearMessage != null && deleteSwearMessage;
+    }
+
+    public boolean isCytujFbot() {
+        return cytujFbot != null && cytujFbot;
+    }
+
+    public boolean isPublikujReakcja() {
+        return publikujReakcja != null && publikujReakcja;
+    }
+
+    public Boolean isAntiLink() {
+        return antiLink != null && antiLink;
+    }
+
+    public Boolean isAntiLinkMediaAllowed() {
+        return antiLinkMediaAllowed == null || antiLinkMediaAllowed;
+    }
+
+    public Boolean isAntiLinkIgnoreAdmins() {
+        return antiLinkIgnoreAdmins != null && antiLinkIgnoreAdmins;
+    }
+
+    public List<String> getLinkchannels() {
+        if (linkchannels == null) linkchannels = new ArrayList<>();
+        return linkchannels;
+    }
+
+    public boolean isDeleteLinkMessage() {
+        return deleteLinkMessage != null && deleteLinkMessage;
+    }
+
+    public boolean isPowitanieWEmbedzie() {
+        return powitanieWEmbedzie != null && powitanieWEmbedzie;
+    }
 
     @Transient
     @JsonIgnore
@@ -121,4 +196,10 @@ public class GuildConfig implements DatabaseEntity {
         return "guilds";
     }
 
+    @Data
+    @AllArgsConstructor
+    public static class Webhook {
+        private final String id;
+        private final String token;
+    }
 }

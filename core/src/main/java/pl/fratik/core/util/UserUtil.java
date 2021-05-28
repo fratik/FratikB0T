@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,8 +17,6 @@
 
 package pl.fratik.core.util;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.eventbus.Subscribe;
 import lombok.Setter;
 import net.dv8tion.jda.api.Permission;
@@ -31,6 +29,7 @@ import org.json.JSONObject;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.Globals;
 import pl.fratik.core.Ustawienia;
+import pl.fratik.core.cache.Cache;
 import pl.fratik.core.command.PermLevel;
 import pl.fratik.core.entity.*;
 import pl.fratik.core.event.DatabaseUpdateEvent;
@@ -40,12 +39,12 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.TimeZone;
-import java.util.concurrent.TimeUnit;
 
 public class UserUtil {
 
-    private static final Cache<User, GbanData> gbanCache = Caffeine.newBuilder().expireAfterWrite(5, TimeUnit.MINUTES).maximumSize(100).build();
-    private static final Cache<User, TimeZone> timeZoneCache = Caffeine.newBuilder().expireAfterWrite(5, TimeUnit.MINUTES).maximumSize(100).build();
+    @Setter private static Cache<GuildConfig> gcCache;
+    @Setter private static Cache<GbanData> gbanCache;
+    @Setter private static Cache<String> timeZoneCache;
 
     @Setter private static GbanDao gbanDao;
 
@@ -61,7 +60,7 @@ public class UserUtil {
         GbanData gbanned = gbanCache.getIfPresent(user);
         if (gbanned == null) {
             GbanData config = gbanDao.get(user);
-            gbanCache.put(user, config);
+            gbanCache.put(user.getId(), config);
             return config;
         }
         return gbanned;
@@ -101,7 +100,7 @@ public class UserUtil {
             return PermLevel.OWNER;
         if (max.getNum() >= 3 && member.getPermissions().contains(Permission.MANAGE_SERVER))
             return PermLevel.MANAGESERVERPERMS;
-        GuildConfig gc = guildDao.get(member.getGuild());
+        GuildConfig gc = gcCache.get(member.getGuild().getId(), guildDao::get);
         if (max.getNum() >= 2 && gc.getAdminRole() != null && gc.getAdminRole().length() != 0 &&
                 member.getRoles().stream().map(ISnowflake::getId).anyMatch(id -> gc.getAdminRole().equals(id)))
             return PermLevel.ADMIN;
@@ -188,10 +187,14 @@ public class UserUtil {
     }
 
     public static TimeZone getTimeZone(User user, UserDao userDao) {
-        return timeZoneCache.get(user, u -> {
+        String zone = getTimeZone0(user, userDao);
+        return zone.equals("default") ? TimeZone.getDefault() : TimeZone.getTimeZone(zone);
+    }
+
+    public static String getTimeZone0(User user, UserDao userDao) {
+        return timeZoneCache.get(user.getId(), u -> {
             UserConfig uc = userDao.get(u);
-            if (uc.getTimezone().equals("default")) return TimeZone.getDefault();
-            return TimeZone.getTimeZone(uc.getTimezone());
+            return uc.getTimezone();
         });
     }
 
@@ -202,18 +205,8 @@ public class UserUtil {
     @Subscribe
     public void onDatabaseUpdate(DatabaseUpdateEvent event) {
         if (event.getEntity() instanceof UserConfig) {
-            for (User user : gbanCache.asMap().keySet()) {
-                if (((UserConfig) event.getEntity()).getId().equals(user.getId())) {
-                    gbanCache.invalidate(user);
-                    return;
-                }
-            }
-            for (User user : timeZoneCache.asMap().keySet()) {
-                if (((UserConfig) event.getEntity()).getId().equals(user.getId())) {
-                    timeZoneCache.invalidate(user);
-                    return;
-                }
-            }
+            gbanCache.invalidate(((UserConfig) event.getEntity()).getId());
+            timeZoneCache.invalidate(((UserConfig) event.getEntity()).getId());
         }
     }
 }

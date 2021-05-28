@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,14 +28,15 @@ import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.Globals;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.event.CommandDispatchEvent;
 import pl.fratik.core.event.ModuleLoadedEvent;
 import pl.fratik.core.manager.ManagerBazyDanych;
 import pl.fratik.core.manager.ManagerModulow;
 import pl.fratik.core.moduly.Modul;
-import pl.fratik.core.util.EventWaiter;
 import pl.fratik.stats.entity.*;
 
+import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.*;
 import java.util.concurrent.Executors;
@@ -46,9 +47,9 @@ import java.util.stream.Collectors;
 public class Module implements Modul {
     @Inject private EventBus eventBus;
     @Inject private ManagerBazyDanych managerBazyDanych;
-    @Inject private EventWaiter eventWaiter;
     @Inject private ShardManager shardManager;
     @Inject private ManagerModulow managerModulow;
+    @Inject private RedisCacheManager redisCacheManager;
 
     @Getter private CommandCountStatsDao commandCountStatsDao;
     @Getter private GuildCountStatsDao guildCountStatsDao;
@@ -71,13 +72,14 @@ public class Module implements Modul {
         executorSche.scheduleAtFixedRate(this::zrzut, 15, 15, TimeUnit.MINUTES);
         eventBus.register(this);
         if (managerModulow.getModules().get("api") != null) {
-            gs = new GuildStats(this, managerModulow.getModules().get("api"), shardManager);
+            gs = new GuildStats(this, managerModulow.getModules().get("api"), shardManager, redisCacheManager);
             eventBus.register(gs);
         }
         return true;
     }
 
     private void zrzut() {
+        //#region Zapis statystyk
         CommandCountStats ccs = commandCountStatsDao.get(getCurrentStorageDate());
         if (ccs.getCount() + komend != ccs.getCount() || ccs.getCount() == 0) {
             ccs.setCount(ccs.getCount() + komend);
@@ -89,49 +91,65 @@ public class Module implements Modul {
             gcs.setCount(shardManager.getGuilds().size());
             guildCountStatsDao.save(gcs);
         }
-        List<MembersStats> mss = membersStatsDao.getAll();
+        List<MembersStats> mss = membersStatsDao.getAllForDate(getCurrentStorageDate());
         for (Guild g : shardManager.getGuilds()) {
             if (Thread.currentThread().isInterrupted()) {
                 LoggerFactory.getLogger(getClass()).info("Wątek przerwany, kończę loop'a");
                 break;
             }
-            List<MembersStats> zDzisiaj = mss.stream().filter(m -> m.getDate() == getCurrentStorageDate()
-                    && m.getGuildId().equals(g.getId())).collect(Collectors.toList());
+            List<MembersStats> zDzisiaj = mss.stream().filter(m -> m.getGuildId().equals(g.getId()))
+                    .collect(Collectors.toList());
             if (zDzisiaj.isEmpty()) {
                 MembersStats ms = new MembersStats(getCurrentStorageDate(), g.getId());
-                ms.setCount(g.getMembers().size());
+                ms.setCount(g.getMemberCount());
                 membersStatsDao.save(ms);
             } else {
                 MembersStats ms = zDzisiaj.get(0);
-                if (ms.getCount() == g.getMembers().size() && ms.getCount() != 0) return;
-                ms.setCount(g.getMembers().size());
+                if (ms.getCount() == g.getMemberCount() && ms.getCount() != 0) continue;
+                ms.setCount(g.getMemberCount());
                 membersStatsDao.save(ms);
             }
         }
-        List<MessagesStats> msgs = messagesStatsDao.getAll();
+        List<MessagesStats> msgs = messagesStatsDao.getAllForDate(getCurrentStorageDate());
         for (Guild g : shardManager.getGuilds()) {
             if (Thread.currentThread().isInterrupted()) {
                 LoggerFactory.getLogger(getClass()).info("Wątek przerwany, kończę loop'a");
                 break;
             }
-            List<MessagesStats> zDzisiaj = msgs.stream().filter(m -> m.getDate() == getCurrentStorageDate()
-                    && m.getGuildId().equals(g.getId())).collect(Collectors.toList());
+            List<MessagesStats> zDzisiaj = msgs.stream().filter(m -> m.getGuildId().equals(g.getId()))
+                    .collect(Collectors.toList());
             if (zDzisiaj.isEmpty()) {
                 MessagesStats ms = new MessagesStats(getCurrentStorageDate(), g.getId());
                 Integer wiad = wiadomosci.remove(g.getId());
                 if (wiad == null) wiad = 0;
-                if (ms.getCount() == wiad && ms.getCount() != 0) return;
+                if (ms.getCount() == wiad && ms.getCount() != 0) continue;
                 ms.setCount(ms.getCount() + wiad);
                 messagesStatsDao.save(ms);
             } else {
                 MessagesStats ms = zDzisiaj.get(0);
                 Integer wiad = wiadomosci.remove(g.getId());
                 if (wiad == null) wiad = 0;
-                if (ms.getCount() == wiad && ms.getCount() != 0) return;
+                if (ms.getCount() == wiad && ms.getCount() != 0) continue;
                 ms.setCount(ms.getCount() + wiad);
                 messagesStatsDao.save(ms);
             }
         }
+        //#endregion
+        //#region Usunięcie przestarzałych statystyk
+        Calendar cal = Calendar.getInstance();
+        cal.setTimeZone(TimeZone.getTimeZone(ZoneOffset.UTC));
+        cal.setTime(Date.from(Instant.ofEpochMilli(getCurrentStorageDate())));
+        cal.add(Calendar.YEAR, -2);
+        long twoYearsAgo = cal.toInstant().toEpochMilli();
+        List<CommandCountStats> ccsToRemove = commandCountStatsDao.getBefore(twoYearsAgo);
+        for (CommandCountStats cc : ccsToRemove) commandCountStatsDao.delete(cc);
+        List<GuildCountStats> gcsToRemove = guildCountStatsDao.getBefore(twoYearsAgo);
+        for (GuildCountStats gc : gcsToRemove) guildCountStatsDao.delete(gc);
+        List<MembersStats> mssToRemove = membersStatsDao.getAllBefore(twoYearsAgo);
+        for (MembersStats ms : mssToRemove) membersStatsDao.delete(ms);
+        List<MessagesStats> msgsToRemove = messagesStatsDao.getAllBefore(twoYearsAgo);
+        for (MessagesStats msg : msgsToRemove) messagesStatsDao.delete(msg);
+        //#endregion
     }
 
     public long getCurrentStorageDate() {
@@ -167,7 +185,7 @@ public class Module implements Modul {
     private void onModuleLoad(ModuleLoadedEvent e) {
         if (e.getName().equals("api")) {
             if (gs != null) eventBus.unregister(gs);
-            gs = new GuildStats(this, e.getModule(), shardManager);
+            gs = new GuildStats(this, e.getModule(), shardManager, redisCacheManager);
             eventBus.register(gs);
         }
     }

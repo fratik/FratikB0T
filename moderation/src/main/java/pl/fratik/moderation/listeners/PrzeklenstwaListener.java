@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,8 +17,6 @@
 
 package pl.fratik.moderation.listeners;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.Subscribe;
 import com.google.gson.reflect.TypeToken;
@@ -29,10 +27,11 @@ import net.dv8tion.jda.api.events.message.GenericMessageEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.MessageUpdateEvent;
 import net.dv8tion.jda.api.sharding.ShardManager;
+import pl.fratik.core.cache.Cache;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Kara;
-import pl.fratik.core.event.DatabaseUpdateEvent;
 import pl.fratik.core.manager.ManagerKomend;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.CommonUtil;
@@ -48,7 +47,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.time.Instant;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 public class PrzeklenstwaListener {
 
@@ -58,16 +56,14 @@ public class PrzeklenstwaListener {
     private final ManagerKomend managerKomend;
     private final ShardManager shardManager;
     private final CasesDao casesDao;
-    private static final Cache<String, Boolean> antiswearCache = Caffeine.newBuilder().maximumSize(1000).expireAfterWrite(10, TimeUnit.MINUTES).build();
-    private static final Cache<String, String> modlogCache = Caffeine.newBuilder().maximumSize(1000).expireAfterWrite(10, TimeUnit.MINUTES).build();
-    private static final Cache<String, List<String>> antiswearIgnoreChannelsCache = Caffeine.newBuilder().maximumSize(1000).expireAfterWrite(10, TimeUnit.MINUTES).build();
-
-    public PrzeklenstwaListener(GuildDao guildDao, Tlumaczenia tlumaczenia, ManagerKomend managerKomend, ShardManager shardManager, CasesDao casesDao) {
+    private final Cache<GuildConfig> gcCache;
+    public PrzeklenstwaListener(GuildDao guildDao, Tlumaczenia tlumaczenia, ManagerKomend managerKomend, ShardManager shardManager, CasesDao casesDao, RedisCacheManager redisCacheManager) {
         this.guildDao = guildDao;
         this.tlumaczenia = tlumaczenia;
         this.managerKomend = managerKomend;
         this.shardManager = shardManager;
         this.casesDao = casesDao;
+        gcCache = redisCacheManager.new CacheRetriever<GuildConfig>(){}.getCache();
         try {
             String data = CommonUtil.fromStream(getClass().getResourceAsStream("/przeklenstwa.json"));
             przeklenstwa = GsonUtil.GSON.fromJson(data, new TypeToken<List<String>>() {}.getType());
@@ -89,8 +85,8 @@ public class PrzeklenstwaListener {
     }
 
     public void checkEvent(MessageEvent e) {
-        if (!e.getTextChannel().canTalk()) return;
         if (!e.isFromType(ChannelType.TEXT) || e.getAuthor().isBot() || e.getMember() == null) return;
+        if (!e.getTextChannel().canTalk()) return;
         if (!isAntiswear(e.getTextChannel())) return;
         if (!e.getGuild().getSelfMember().canInteract(e.getMember())) return;
         String content = e.getMessage().getContentRaw();
@@ -102,38 +98,51 @@ public class PrzeklenstwaListener {
                             .setTimestamp(Instant.now()).createCase();
                     c.setIssuerId(e.getJDA().getSelfUser());
                     c.setReason(tlumaczenia.get(tlumaczenia.getLanguage(e.getGuild()), "antiswear.reason"));
-                    e.getChannel().sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(e.getMember()),
-                            "antiswear.notice", e.getAuthor().getAsMention(),
-                            managerKomend.getPrefixes(e.getGuild()).get(0))).queue();
                     String mlogchanStr = getModLogChan(e.getGuild());
                     if (mlogchanStr == null || mlogchanStr.equals("")) mlogchanStr = "0";
                     TextChannel mlogchan = shardManager.getTextChannelById(mlogchanStr);
                     if (!(mlogchan == null || !mlogchan.getGuild().getSelfMember().hasPermission(mlogchan,
                             Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_WRITE, Permission.MESSAGE_READ))) {
                         Message m = mlogchan.sendMessage(ModLogBuilder.generate(c,
-                                e.getGuild(), shardManager, tlumaczenia.getLanguage(e.getGuild()), managerKomend))
+                                e.getGuild(), shardManager, tlumaczenia.getLanguage(e.getGuild()), managerKomend, true, false))
                                 .complete();
                         c.setMessageId(m.getId());
                     }
                     CaseRow cr = casesDao.get(e.getGuild());
                     cr.getCases().add(c);
+                    boolean deleteSwearMessage = gcCache.get(e.getGuild().getId(), guildDao::get).isDeleteSwearMessage();
+                    if (deleteSwearMessage) {
+                        e.getChannel().sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(e.getMember()),
+                                "antiswear.notice", e.getAuthor().getAsMention(),
+                                WarnUtil.countCases(cr, e.getAuthor().getId()),
+                                managerKomend.getPrefixes(e.getGuild()).get(0))).queue();
+                    } else {
+                        e.getChannel().sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(e.getMember()),
+                                "antiswear.notice", e.getAuthor().getAsMention(),
+                                WarnUtil.countCases(cr, e.getAuthor().getId()),
+                                managerKomend.getPrefixes(e.getGuild()).get(0))).reference(e.getMessage()).queue();
+                    }
                     casesDao.save(cr);
                     WarnUtil.takeAction(guildDao, casesDao, e.getMember(), e.getChannel(),
                             tlumaczenia.getLanguage(e.getGuild()), tlumaczenia, managerKomend);
+                    if (deleteSwearMessage) {
+                        try {
+                            e.getMessage().delete().complete();
+                        } catch (Exception ignored) { }
+                    }
                 }
+                return;
             }
         }
     }
 
     private boolean isAntiswear(TextChannel channel) {
-        //noinspection ConstantConditions - nie moze byc null
-        return antiswearCache.get(channel.getGuild().getId(), id -> guildDao.get(channel.getGuild()).getAntiswear()) &&
-                !antiswearIgnoreChannelsCache.get(channel.getGuild().getId(), id ->
-                        guildDao.get(channel.getGuild()).getSwearchannels()).contains(channel.getId());
+        return gcCache.get(channel.getGuild().getId(), guildDao::get).getAntiswear() &&
+                !gcCache.get(channel.getGuild().getId(), guildDao::get).getSwearchannels().contains(channel.getId());
     }
 
     private String getModLogChan(Guild guild) {
-        return modlogCache.get(guild.getId(), id -> guildDao.get(guild).getModLog());
+        return gcCache.get(guild.getId(), guildDao::get).getModLog();
     }
 
     private boolean processWord(String przeklenstwo, String content) {
@@ -141,12 +150,6 @@ public class PrzeklenstwaListener {
         for (String slowo : slowa)
             if (przeklenstwo.equalsIgnoreCase(slowo)) return true;
         return false;
-    }
-
-    @Subscribe
-    public void onDatabaseUpdate(DatabaseUpdateEvent e) {
-        if (!(e.getEntity() instanceof GuildConfig)) return;
-        antiswearCache.invalidate(((GuildConfig) e.getEntity()).getGuildId());
     }
 
     private static class MessageEvent extends GenericMessageEvent {

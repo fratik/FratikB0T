@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,6 +18,8 @@
 package pl.fratik.commands.narzedzia;
 
 import com.google.gson.JsonObject;
+import io.sentry.Sentry;
+import io.sentry.event.User;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.hypixel.api.HypixelAPI;
@@ -25,12 +27,15 @@ import net.hypixel.api.reply.GuildReply;
 import net.hypixel.api.reply.PlayerReply;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.Ustawienia;
+import pl.fratik.core.cache.Cache;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.util.CommonErrors;
 import pl.fratik.core.util.CommonUtil;
+import pl.fratik.core.util.UserUtil;
 
 import java.awt.*;
 import java.text.SimpleDateFormat;
@@ -43,8 +48,9 @@ import java.util.UUID;
 public class HypixelCommand extends Command {
 
     private final HypixelAPI hypixelAPI;
+    private final Cache<String> uuidCache;
 
-    public HypixelCommand() {
+    public HypixelCommand(RedisCacheManager rcm) {
         name = "hypixel";
         category = CommandCategory.UTILITY;
         LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
@@ -57,6 +63,8 @@ public class HypixelCommand extends Command {
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         cooldown = 3;
         hypixelAPI = new HypixelAPI(UUID.fromString(Ustawienia.instance.apiKeys.get("hypixelToken")));
+        allowPermLevelChange = false;
+        uuidCache = rcm.new CacheRetriever<String>("minecraftUUID"){}.getCache(3600);
     }
 
     @Override
@@ -91,9 +99,17 @@ public class HypixelCommand extends Command {
             CommonErrors.usage(context);
             return false;
         }
+        final String arg = (String) context.getArgs()[1];
         if (cos.equals("player")) {
-            PlayerReply pr = hypixelAPI.getPlayerByName((String) context.getArgs()[1]).join();
             try {
+                String uuid;
+                PlayerReply pr;
+                if ((uuid = uuidCache.getIfPresent(arg)) != null) {
+                    pr = hypixelAPI.getPlayerByUuid(uuid).join();
+                } else {
+                    pr = hypixelAPI.getPlayerByName(arg).join();
+                    uuidCache.put(arg, pr.getPlayer().get("uuid").getAsString());
+                }
                 JsonObject pl = pr.getPlayer();
                 if (pl.has("newPackageRank")){
                     ranga = pl.get("newPackageRank").getAsString().replaceAll("_PLUS", "+");
@@ -118,14 +134,18 @@ public class HypixelCommand extends Command {
                     }
                 }
             } catch (Exception e) {
-                context.send(context.getTranslated("hypixel.error.playerapi"));
+                Sentry.getContext().setUser(new User(context.getSender().getId(),
+                        UserUtil.formatDiscrim(context.getSender()), null, null));
+                Sentry.capture(e);
+                Sentry.clearContext();
+                context.reply(context.getTranslated("hypixel.error.playerapi"));
                 return false;
             }
             EmbedBuilder eb = new EmbedBuilder();
             String imageUrl = "https://minotar.net/helm/" + context.getArgs()[1] + "/2048.png";
             eb.setColor(CommonUtil.getPrimColorFromImageUrl(imageUrl));
             eb.setThumbnail(imageUrl);
-            eb.addField(context.getTranslated("hypixel.embed.player.profile"), "[Hypixel.net](https://hypixel.net/player" + player + ")", false);
+            eb.addField(context.getTranslated("hypixel.embed.player.profile"), "[Hypixel.net](https://hypixel.net/player/" + player + ")", false);
             eb.addField(context.getTranslated("hypixel.embed.player.rank"), ranga, false);
             eb.addField(context.getTranslated("hypixel.embed.player.level"), String.valueOf(level), true);
             eb.addField(context.getTranslated("hypixel.embed.player.version"), wersja, false);
@@ -134,11 +154,11 @@ public class HypixelCommand extends Command {
             eb.addField(context.getTranslated("hypixel.embed.player.lastlogin"), date.format(lastlogin), true);
             eb.addField(context.getTranslated("hypixel.embed.player.language"), jezyk, false);
             eb.addField(context.getTranslated("hypixel.embed.player.karma"), String.valueOf(karma), true);
-            context.send(eb.build());
+            context.reply(eb.build());
             return true;
         } else if (cos.equals("guild")) {
             try {
-                GuildReply gr = hypixelAPI.getGuildByName((String) context.getArgs()[1]).join();
+                GuildReply gr = hypixelAPI.getGuildByName(arg).join();
                 GuildReply.Guild g = gr.getGuild();
                 members = g.getMembers().size();
                 name = g.getName();
@@ -149,12 +169,12 @@ public class HypixelCommand extends Command {
                 tagcolor = g.getTagColor();
                 coins = g.getCoins();
             } catch (Exception e) {
-                context.send(context.getTranslated("hypixel.error.guildapi"));
+                context.reply(context.getTranslated("hypixel.error.guildapi"));
                 return false;
             }
             EmbedBuilder eb = new EmbedBuilder();
             eb.setColor(Kolory.valueOf(tagcolor).color);
-            eb.addField(context.getTranslated("hypixel.embed.guild.profile"), "[" + name + "](https://hypixel.net/guilds" + name + ")", false);
+            eb.addField(context.getTranslated("hypixel.embed.guild.profile"), "[" + name + "](https://hypixel.net/guilds/" + name + ")", false);
             eb.addField(context.getTranslated("hypixel.embed.guild.des"), des == null || des.isEmpty() ?
                     context.getTranslated("hypixel.embed.guild.des.empty") : des, false);
             eb.addField(context.getTranslated("hypixel.embed.guild.created"), date.format(created), false);
@@ -163,7 +183,7 @@ public class HypixelCommand extends Command {
             eb.addField(context.getTranslated("hypixel.embed.guild.members"), String.valueOf(members), false);
             eb.addField(context.getTranslated("hypixel.embed.guild.coiny"), String.valueOf(coins), false);
             eb.addField(context.getTranslated("hypixel.embed.guild.exp"), String.valueOf(exp), true);
-            context.send(eb.build());
+            context.reply(eb.build());
             return true;
         }
         return false;

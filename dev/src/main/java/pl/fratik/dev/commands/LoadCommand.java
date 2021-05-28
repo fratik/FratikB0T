@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,6 +46,8 @@ public class LoadCommand extends Command {
         permLevel = PermLevel.BOTOWNER;
         uzycie = new Uzycie("modul", "string");
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
+        allowPermLevelChange = false;
+        allowInDMs = true;
     }
 
     @Override
@@ -57,7 +59,7 @@ public class LoadCommand extends Command {
         String pytajnik = "\u2753";
         eb.appendDescription(pytajnik + SPSC + "\n");
         eb.appendDescription(pytajnik + WCZ + "\n");
-        Message msg = context.getChannel().sendMessage(eb.build()).complete();
+        Message msg = context.reply(eb.build());
         File path = new File((String) context.getArgs()[0]);
         if (!path.exists()) {
             eb.setDescription(eb.getDescriptionBuilder().toString().replace(pytajnik +  SPSC,
@@ -79,7 +81,7 @@ public class LoadCommand extends Command {
         try {
             managerModulow.load(path.getAbsolutePath());
             boolean odp = managerModulow.startModule(managerModulow.getDescription(path).getName());
-            if (!odp) throw new Exception("Nie udało się wczytać modułu - sprawdź konsolę.");
+            if (!odp) throw new Exception("Nie udało się wczytać modułu - sprawdź konsolę.");
         } catch (Exception e) {
             logger.error("Błąd w komendzie load:", e);
             eb.setDescription(eb.getDescriptionBuilder().toString().replace(pytajnik +  WCZ,

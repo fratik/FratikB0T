@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,6 +34,7 @@ public class OsiemBallCommand extends Command {
         category = CommandCategory.FUN;
         uzycie = new Uzycie("pytanie", "string", true);
         aliases = new String[] {"pytanie"};
+        allowPermLevelChange = false;
     }
 
     @Override
@@ -41,10 +42,10 @@ public class OsiemBallCommand extends Command {
         String[] odpowiedzi = context.getTranslated("8ball.responses").split(";");
         String odp = odpowiedzi[random.nextInt(odpowiedzi.length)];
         if (!((String) context.getArgs()[0]).endsWith("?")) {
-            context.send(context.getTranslated("8ball.not.a.question"));
+            context.reply(context.getTranslated("8ball.not.a.question"));
             return false;
         }
-        context.send("\uD83E\uDD14", m -> m.editMessage(odp).queueAfter(3, TimeUnit.SECONDS));
+        context.reply("\uD83E\uDD14", m -> m.editMessage(odp).queueAfter(3, TimeUnit.SECONDS));
         return true;
     }
 }

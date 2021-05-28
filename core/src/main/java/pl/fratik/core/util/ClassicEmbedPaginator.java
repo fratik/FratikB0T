@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@ import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
 import net.dv8tion.jda.api.exceptions.PermissionException;
+import net.dv8tion.jda.api.requests.restaction.MessageAction;
 import pl.fratik.core.event.PluginMessageEvent;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
@@ -49,9 +50,9 @@ public class ClassicEmbedPaginator implements EmbedPaginator {
     private Message message;
     private Message doKtorej;
     private long messageId = 0;
-    private long userId;
-    private Language language;
-    private Tlumaczenia tlumaczenia;
+    private final long userId;
+    private final Language language;
+    private final Tlumaczenia tlumaczenia;
     private boolean customFooter;
     private static final String PMSTO = "moderation";
     private static final String PMZAADD = "znaneAkcje-add:";
@@ -67,8 +68,10 @@ public class ClassicEmbedPaginator implements EmbedPaginator {
     }
 
     @Override
-    public void create(MessageChannel channel) {
-        channel.sendMessage(render(1)).override(true).queue(msg -> {
+    public void create(MessageChannel channel, String referenceMessageId) {
+        MessageAction action = channel.sendMessage(render(1));
+        if (referenceMessageId != null) action = action.referenceById(referenceMessageId);
+        action.override(true).queue(msg -> {
             message = msg;
             messageId = msg.getIdLong();
             if (pages.size() != 1) {
@@ -177,10 +180,10 @@ public class ClassicEmbedPaginator implements EmbedPaginator {
 
     private MessageEmbed render(int page) {
         EmbedBuilder pageEmbed = pages.get(page - 1);
-        if (!customFooter) pageEmbed.setFooter(String.format("%s/%s", String.valueOf(page), String.valueOf(pages.size())), null);
+        if (!customFooter) pageEmbed.setFooter(String.format("%s/%s", page, pages.size()), null);
         else pageEmbed.setFooter(String.format(Objects.requireNonNull(Objects.requireNonNull(pageEmbed.build().getFooter(),
                 "stopka jest null mimo customFooter").getText(), "text jest null mimo customFooter"),
-                String.valueOf(page), String.valueOf(pages.size())), null);
+                page, pages.size()), null);
         return pageEmbed.build();
     }
 

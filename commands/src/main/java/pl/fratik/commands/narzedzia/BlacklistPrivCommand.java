@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,6 +38,7 @@ public class BlacklistPrivCommand extends Command {
         uzycie = new Uzycie("osoba", "user", true);
         uzycieDelim = " ";
         allowInDMs = true;
+        allowPermLevelChange = false;
     }
 
     @Override
@@ -46,7 +47,7 @@ public class BlacklistPrivCommand extends Command {
         UserConfig uc = userDao.get(ignore);
         uc.setPrivBlacklist(true);
         userDao.save(uc);
-        context.send(context.getTranslated("blacklistpriv.success"));
+        context.reply(context.getTranslated("blacklistpriv.success"));
         return true;
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,6 +31,7 @@ import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.command.PermLevel;
 import pl.fratik.core.entity.Uzycie;
+import pl.fratik.core.util.CommonErrors;
 import pl.fratik.core.util.UserUtil;
 
 import java.io.*;
@@ -49,24 +50,29 @@ public class DegradCommand extends Command {
         permissions.add(Permission.MESSAGE_ATTACH_FILES);
         uzycie = new Uzycie("gadmin", "user");
         aliases = new String[] {"papa", "plynik"};
+        allowPermLevelChange = false;
     }
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
         User gadmin = (User) context.getArgs()[0];
+        if (gadmin == null) {
+            CommonErrors.usage(context);
+            return false;
+        }
         if (!Globals.inFratikDev) throw new IllegalStateException("bot nie na FDev");
         @SuppressWarnings("ConstantConditions") // sprawdzamy to wyżej
         Member czlonek = shardManager.getGuildById(Ustawienia.instance.botGuild).getMember(gadmin);
         if (czlonek == null) {
-            context.send(context.getTranslated("degrad.no.member"));
+            context.reply(context.getTranslated("degrad.no.member"));
             return false;
         }
         if (!UserUtil.isGadm(czlonek, shardManager)) {
-            context.send(context.getTranslated("degrad.no.role"));
+            context.reply(context.getTranslated("degrad.no.role"));
             return false;
         }
         if (context.getSender().getId().equals(czlonek.getUser().getId())) {
-            context.send(context.getTranslated("degrad.selfdegrad"));
+            context.reply(context.getTranslated("degrad.selfdegrad"));
             return false;
         }
         byte[] zdjecie;
@@ -76,8 +82,9 @@ public class DegradCommand extends Command {
             logger.warn("Zdjęcie z degradem nie znalezione!");
             zdjecie = null;
         }
-        MessageAction maction = context.getChannel()
-                .sendMessage(context.getTranslated("degrad.inprogress", UserUtil.formatDiscrim(czlonek)));
+        MessageAction maction = context.getTextChannel()
+                .sendMessage(context.getTranslated("degrad.inprogress", UserUtil.formatDiscrim(czlonek)))
+                .reference(context.getMessage());
         if (zdjecie != null) maction = maction.addFile(zdjecie, "degrad.jpg");
         maction.queue(msg -> czlonek.getGuild()
                 .removeRoleFromMember(czlonek, Objects.requireNonNull(czlonek.getGuild().getRoleById(Ustawienia.instance.gadmRole)))

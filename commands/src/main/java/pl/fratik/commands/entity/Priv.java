@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,9 +35,9 @@ public class Priv implements DatabaseEntity {
 
     @PrimaryKey
     private final String id;
-    private final String content;
     private final String odKogo;
     private final String doKogo;
+    private final String content;
     @Nullable private Boolean zgloszone;
 
     @Override

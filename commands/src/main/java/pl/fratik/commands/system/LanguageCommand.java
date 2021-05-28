@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@ package pl.fratik.commands.system;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.Ustawienia;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
@@ -40,9 +41,10 @@ public class LanguageCommand extends Command {
         uzycie = new Uzycie("język", "language");
         category = CommandCategory.BASIC;
         permLevel = PermLevel.EVERYONE;
-        aliases = new String[] {"jezyk"};
+        aliases = new String[] {"jezyk", "lang"};
         this.userDao = userDao;
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
+        allowPermLevelChange = false;
     }
 
     @Override
@@ -50,20 +52,22 @@ public class LanguageCommand extends Command {
         if (context.getArgs().length == 0 || context.getArgs()[0] == null) {
             EmbedBuilder eb = context.getBaseEmbed(context.getTranslated("language.embed.author"));
             ArrayList<String> tekst = new ArrayList<>();
-            tekst.add(context.getTranslated("language.embed.header", context.getPrefix()));
+            tekst.add(context.getTranslated("language.embed.header", context.getPrefix(), Ustawienia.instance.translationUrl));
             tekst.add("");
             for (Language l : Language.values()) {
                 if (l.equals(Language.DEFAULT)) continue;
-                tekst.add(String.format("%s %s", l.getEmoji(), l.getLocalized()));
+                String str = String.format("%s %s", l.getEmoji().toString(), l.getLocalized());
+                if (!l.isChecked()) str += "\\*";
+                tekst.add(str);
             }
             eb.setDescription(String.join("\n", tekst));
-            context.send(eb.build());
-            return false;
+            context.reply(eb.build());
+            return true;
         }
         UserConfig uc = userDao.get(context.getSender());
         uc.setLanguage((Language) context.getArgs()[0]);
         userDao.save(uc);
-        context.send(context.getTranslated("language.change.success", ((Language) context.getArgs()[0]).getLocalized()));
+        context.reply(context.getTranslated("language.change.success", ((Language) context.getArgs()[0]).getLocalized()));
         return true;
     }
 }

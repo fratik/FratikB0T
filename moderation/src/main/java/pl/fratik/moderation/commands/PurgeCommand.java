@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 FratikB0T Contributors
+ * Copyright (C) 2019-2021 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@ import lombok.Getter;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageHistory;
+import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.utils.TimeUtil;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.CommandCategory;
@@ -59,11 +60,11 @@ public class PurgeCommand extends ModerationCommand { //TODO: 1000 wiadomosci dl
         context.getMessage().delete().queue();
         int ilosc = (int) context.getArgs()[0];
         if (ilosc < 2 || ilosc > 100) {
-            context.send(context.getTranslated("purge.no.limit"));
+            context.reply(context.getTranslated("purge.no.limit"));
             return false;
         }
-        Message message = context.getChannel().sendMessage(context.getTranslated("purge.retrieving")).complete();
-        CompletableFuture<MessageHistory> historia = context.getChannel().getHistoryBefore(context.getMessage(), ilosc).submit();
+        Message message = context.reply(context.getTranslated("purge.retrieving"));
+        CompletableFuture<MessageHistory> historia = context.getTextChannel().getHistoryBefore(context.getMessage(), ilosc).submit();
         boolean staraWiadomosc = false;
         long dwaTygodnieTemu = (System.currentTimeMillis() - TimeUnit.DAYS.toMillis(14) - TimeUtil.DISCORD_EPOCH)
                 << TimeUtil.TIMESTAMP_OFFSET;
@@ -88,19 +89,35 @@ public class PurgeCommand extends ModerationCommand { //TODO: 1000 wiadomosci dl
                 wiadomosciWszystkie.get(0).delete().queue();
                 return true;
             }
-        } else message.editMessage(context.getTranslated("purge.deleting", ilosc)).complete();
+        } else {
+            try {
+                message.editMessage(context.getTranslated("purge.deleting", ilosc)).complete();
+            } catch (ErrorResponseException e) {
+                try {
+                    message.getChannel().sendMessage(context.getTranslated("purge.deleting", ilosc))
+                            .reference(context.getMessage()).complete();
+                } catch (ErrorResponseException ignored) {}
+            }
+        }
         znanePurge.put(context.getGuild().getId(), context.getSender().getId());
         if (wiadomosciWszystkie.isEmpty()) {
-            message.editMessage(context.getTranslated("purge.deleting.empty")).complete();
+            try {
+                message.editMessage(context.getTranslated("purge.deleting.empty")).complete();
+            } catch (ErrorResponseException e) {
+                try {
+                    message.getChannel().sendMessage(context.getTranslated("purge.deleting.empty"))
+                            .reference(context.getMessage()).complete();
+                } catch (ErrorResponseException ignored) {}
+            }
             return false;
         }
         if (wiadomosciWszystkie.size() == 1) {
             wiadomosciWszystkie.get(0).delete().queue();
             return true;
         }
-        context.getChannel().deleteMessages(wiadomosciWszystkie).queue();
+        context.getTextChannel().deleteMessages(wiadomosciWszystkie).queue();
         logListener.getZnaneAkcje().add(message.getId());
-        message.delete().queueAfter(5, TimeUnit.SECONDS);
+        message.delete().queueAfter(5, TimeUnit.SECONDS, null, i -> {});
         return true;
     }
 }
