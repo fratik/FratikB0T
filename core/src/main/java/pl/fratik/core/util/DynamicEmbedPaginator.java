@@ -22,9 +22,11 @@ import io.sentry.Sentry;
 import lombok.Getter;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.events.interaction.ButtonClickEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
-import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
 import net.dv8tion.jda.api.exceptions.PermissionException;
+import net.dv8tion.jda.api.interactions.components.ActionRow;
+import net.dv8tion.jda.api.interactions.components.Button;
 import net.dv8tion.jda.api.requests.restaction.MessageAction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +34,8 @@ import pl.fratik.core.event.PluginMessageEvent;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.*;
@@ -114,11 +118,11 @@ public class DynamicEmbedPaginator implements EmbedPaginator {
         try {
             MessageAction action = channel.sendMessage(render(1));
             if (referenceMessageId != null) action = action.referenceById(referenceMessageId);
+            action = addReactions(action);
             action.override(true).queue(msg -> {
                 message = msg;
                 messageId = msg.getIdLong();
                 if (pages.size() != 1) {
-                    addReactions(msg);
                     waitForReaction();
                 }
             });
@@ -132,9 +136,8 @@ public class DynamicEmbedPaginator implements EmbedPaginator {
         messageId = message.getIdLong();
         eventBus.post(new PluginMessageEvent("core", PMSTO, PMZAADD + message.getId()));
         try {
-            message.editMessage(render(1)).override(true).queue(msg -> {
+            addReactions(message.editMessage(render(1))).override(true).queue(msg -> {
                 if (pages.size() != 1) {
-                    addReactions(msg);
                     waitForReaction();
                 }
             });
@@ -142,36 +145,51 @@ public class DynamicEmbedPaginator implements EmbedPaginator {
         }
     }
 
-    private void addReactions(Message message) {
-        message.addReaction(FIRST_EMOJI).queue();
-        message.addReaction(LEFT_EMOJI).queue();
-        message.addReaction(RIGHT_EMOJI).queue();
-        message.addReaction(LAST_EMOJI).queue();
-        message.addReaction(STOP_EMOJI).queue();
-        message.addReaction(ONETWOTHREEFOUR_EMOJI).queue();
-        if (enableShuffle) message.addReaction(SHUFFLE_EMOJI).queue();
-        if (enableDelett) message.addReaction(TRASH_EMOJI).queue();
+    private MessageAction addReactions(MessageAction action) {
+        if (pages.size() == 1) return action;
+        List<Button> secondRowButtons = new ArrayList<>();
+        secondRowButtons.add(Button.danger("STOP_PAGE", Emoji.ofUnicode(STOP_EMOJI)));
+        secondRowButtons.add(Button.secondary("CHOOSE_PAGE", Emoji.ofUnicode(ONETWOTHREEFOUR_EMOJI)));
+        if (enableShuffle) secondRowButtons.add(Button.secondary("SHUFFLE_PAGE", Emoji.ofUnicode(SHUFFLE_EMOJI)));
+        if (enableDelett) secondRowButtons.add(Button.danger("TRASH_PAGE", Emoji.ofUnicode(TRASH_EMOJI)));
+        return action.setActionRows(
+                ActionRow.of(
+                        Button.secondary("FIRST_PAGE", Emoji.ofUnicode(FIRST_EMOJI)).withDisabled(pageNo == 1),
+                        Button.primary("PREV_PAGE", Emoji.ofUnicode(LEFT_EMOJI))
+                                .withLabel(String.valueOf(Math.max(pageNo - 1, 1))).withDisabled(pageNo == 1),
+                        Button.primary("NEXT_PAGE", Emoji.ofUnicode(RIGHT_EMOJI))
+                                .withLabel(String.valueOf(Math.min(pageNo + 1, pages.size()))).withDisabled(pageNo == pages.size()),
+                        Button.secondary("LAST_PAGE", Emoji.ofUnicode(LAST_EMOJI)).withDisabled(pageNo == pages.size())
+                ),
+                ActionRow.of(secondRowButtons)
+        );
     }
 
     private void waitForReaction() {
-        eventWaiter.waitForEvent(MessageReactionAddEvent.class, this::checkReaction,
+        eventWaiter.waitForEvent(ButtonClickEvent.class, this::checkReaction,
                 this::handleReaction, timeout, TimeUnit.SECONDS, this::clearReactions);
     }
 
-    private boolean checkReaction(MessageReactionAddEvent event) {
-        if (event.getMessageIdLong() == messageId && !event.getReactionEmote().isEmote()) {
-            switch (event.getReactionEmote().getName()) {
-                case FIRST_EMOJI:
-                case LEFT_EMOJI:
-                case RIGHT_EMOJI:
-                case LAST_EMOJI:
-                case STOP_EMOJI:
-                case ONETWOTHREEFOUR_EMOJI:
-                    return event.getUser().getIdLong() == userId;
-                case SHUFFLE_EMOJI:
-                    return enableShuffle && event.getUser().getIdLong() == userId;
-                case TRASH_EMOJI:
-                    return enableDelett && event.getUser().getIdLong() == userId;
+    private boolean checkReaction(ButtonClickEvent event) {
+        if (event.getMessageIdLong() == messageId) {
+            if (event.getUser().getIdLong() == userId) event.deferEdit().queue();
+            else {
+                event.reply(tlumaczenia.get(tlumaczenia.getLanguage(event.getMember()),
+                        "paginator.invalid.user", "<@" + userId + ">")).setEphemeral(true).queue();
+                return false;
+            }
+            switch (event.getComponentId()) {
+                case "FIRST_PAGE":
+                case "PREV_PAGE":
+                case "NEXT_PAGE":
+                case "LAST_PAGE":
+                case "STOP_PAGE":
+                case "CHOOSE_PAGE":
+                    return true;
+                case "SHUFFLE_PAGE":
+                    return enableShuffle;
+                case "TRASH_PAGE":
+                    return enableDelett;
                 default:
                     return false;
             }
@@ -179,50 +197,44 @@ public class DynamicEmbedPaginator implements EmbedPaginator {
         return false;
     }
 
-    private void handleReaction(MessageReactionAddEvent event) {
+    private void handleReaction(ButtonClickEvent event) {
         final int oldPageNo = pageNo;
-        if (!event.getReactionEmote().isEmote()) {
-            switch (event.getReactionEmote().getName()) {
-                case FIRST_EMOJI:
-                    pageNo = 1;
-                    break;
-                case LEFT_EMOJI:
-                    if (pageNo > 1) pageNo--;
-                    break;
-                case RIGHT_EMOJI:
-                    if (pageNo < pages.size()) pageNo++;
-                    break;
-                case LAST_EMOJI:
-                    pageNo = pages.size();
-                    break;
-                case STOP_EMOJI:
-                    clearReactions();
-                    return;
-                case ONETWOTHREEFOUR_EMOJI:
-                    doKtorej = event.getChannel().sendMessage(tlumaczenia.get(language, "paginator.waiting.for.pageno")).complete();
-                    eventWaiter.waitForEvent(MessageReceivedEvent.class, this::checkMessage,
-                            this::handleMessage, timeout, TimeUnit.SECONDS, this::clearReactions);
-                    return;
-                case SHUFFLE_EMOJI:
-                    pageNo = ThreadLocalRandom.current().nextInt(pages.size()) + 1;
-                    break;
-                case TRASH_EMOJI:
-                    clearReactions(true);
-                    return;
-                default: return;
-            }
+        switch (event.getComponentId()) {
+            case "FIRST_PAGE":
+                pageNo = 1;
+                break;
+            case "PREV_PAGE":
+                if (pageNo > 1) pageNo--;
+                break;
+            case "NEXT_PAGE":
+                if (pageNo < pages.size()) pageNo++;
+                break;
+            case "LAST_PAGE":
+                pageNo = pages.size();
+                break;
+            case "STOP_PAGE":
+                clearReactions();
+                return;
+            case "CHOOSE_PAGE":
+                doKtorej = event.getChannel().sendMessage(tlumaczenia.get(language, "paginator.waiting.for.pageno")).complete();
+                eventWaiter.waitForEvent(MessageReceivedEvent.class, this::checkMessage,
+                        this::handleMessage, timeout, TimeUnit.SECONDS, this::clearReactions);
+                return;
+            case "SHUFFLE_PAGE":
+                pageNo = ThreadLocalRandom.current().nextInt(pages.size()) + 1;
+                break;
+            case "TRASH_PAGE":
+                clearReactions(true);
+                return;
+            default: return;
         }
-
-        try {
-            event.getReaction().removeReaction(event.getUser()).queue();
-        } catch (PermissionException ignored) {/*lul*/}
 
         eventBus.post(new PluginMessageEvent("core", PMSTO, PMZAADD + message.getId()));
         try {
-            message.editMessage(render(pageNo)).override(true).queue(msg -> waitForReaction());
+            addReactions(message.editMessage(render(pageNo))).override(true).queue(msg -> waitForReaction());
         } catch (LoadingException e) {
             pageNo = oldPageNo;
-            message.editMessage(render(pageNo)).override(true).queue(msg -> waitForReaction());
+            addReactions(message.editMessage(render(pageNo))).override(true).queue(msg -> waitForReaction());
         }
     }
 
@@ -235,17 +247,11 @@ public class DynamicEmbedPaginator implements EmbedPaginator {
         eventBus.post(new PluginMessageEvent("core", PMSTO, PMZAADD + event.getMessage().getId()));
         event.getMessage().delete().queue();
         try {
-            message.editMessage(render(pageNo)).override(true).queue(msg -> waitForReaction());
+            addReactions(message.editMessage(render(pageNo))).override(true).queue(msg -> waitForReaction());
         } catch (LoadingException e) {
             pageNo = oldPageNo;
-            message.editMessage(render(pageNo)).override(true).queue(msg -> waitForReaction());
+            addReactions(message.editMessage(render(pageNo))).override(true).queue(msg -> waitForReaction());
         }
-        try {
-            MessageReaction reac = event.getMessage().getReactions().stream()
-                    .filter(r -> r.getReactionEmote().isEmoji() && r.getReactionEmote().getEmoji().equals(STOP_EMOJI))
-                    .findFirst().orElse(null);
-            Objects.requireNonNull(reac).removeReaction(event.getAuthor()).queue(null, a -> {});
-        } catch (Exception ignored) {/*lul*/}
     }
 
     private boolean checkMessage(MessageReceivedEvent e) {
@@ -329,7 +335,7 @@ public class DynamicEmbedPaginator implements EmbedPaginator {
             if (delett) {
                 eventBus.post(new PluginMessageEvent("core", PMSTO, PMZAADD + message.getId()));
                 message.delete().queue();
-            } else message.clearReactions().queue();
+            } else message.editMessage(message.getContentRaw()).setActionRows(Collections.emptySet()).queue();
         } catch (PermissionException ignored) {/*lul*/}
     }
 
@@ -359,7 +365,7 @@ public class DynamicEmbedPaginator implements EmbedPaginator {
         long waitUntil = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(5);
         //noinspection StatementWithEmptyBody
         while (message == null && System.currentTimeMillis() < waitUntil); // czekamy aż będzie wiadomość, max 5s
-        message.editMessage(render(pageNo)).override(true).queue();
+        addReactions(message.editMessage(render(pageNo))).override(true).queue();
     }
 
     private static class LoadingException extends RuntimeException {
