@@ -18,6 +18,8 @@
 package pl.fratik.fratikcoiny.commands;
 
 import com.google.common.eventbus.EventBus;
+import net.dv8tion.jda.api.interactions.components.ActionRow;
+import net.dv8tion.jda.api.interactions.components.Button;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
@@ -56,10 +58,7 @@ public class SklepCommand extends Command {
         this.eventBus = eventBus;
         name = "sklep";
         category = CommandCategory.MONEY;
-        permissions.add(Permission.MESSAGE_EXT_EMOJI);
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
-        permissions.add(Permission.MESSAGE_MANAGE);
-        permissions.add(Permission.MESSAGE_ADD_REACTION);
         LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
         hmap.put("rola", "role");
         hmap.put("kwota", "long");
@@ -106,40 +105,36 @@ public class SklepCommand extends Command {
         }
         EmbedBuilder eb = generateEmbed(Typ.KUPOWANIE, rola, gc.getRoleDoKupieniaOpisy().get(rola.getId()),
                 kasa, mc.getFratikCoiny(), false, context.getTlumaczenia(), context.getLanguage());
-        Message msgTmp = context.reply(eb.build());
-        msgTmp.addReaction(Objects.requireNonNull(shardManager.getEmoteById(Ustawienia.instance.emotki.greenTick))).complete();
-        msgTmp.addReaction(Objects.requireNonNull(shardManager.getEmoteById(Ustawienia.instance.emotki.redTick))).complete();
-        ReactionWaiter rw = new ReactionWaiter(eventWaiter, context);
-        rw.setReactionHandler(event -> {
-            if (!event.getReactionEmote().isEmote()) {
-                context.send(context.getTranslated("sklep.handler.invalidreaction"), m -> {});
-                return;
-            }
-            if (event.getReactionEmote().getEmote().equals(shardManager.getEmoteById(Ustawienia.instance.emotki.greenTick))) {
+        Message msgTmp = context.reply(eb.build(), ActionRow.of(
+                Button.success("BUY", context.getTranslated("sklep.przycisk.kup")),
+                Button.danger("CANCEL", context.getTranslated("sklep.przycisk.anuluj"))
+        ));
+        ButtonWaiter rw = new ButtonWaiter(eventWaiter, context, msgTmp.getIdLong(), ButtonWaiter.ResponseType.REPLY);
+        rw.setButtonHandler(event -> {
+            msgTmp.editMessage(msgTmp.getContentRaw()).setActionRows(Collections.emptySet()).queue();
+            if (event.getComponentId().equals("BUY")) {
                 try {
                     context.getGuild().addRoleToMember(context.getMember(), rola).queue(aVoid -> {
                         MemberConfig mc2 = memberDao.get(Objects.requireNonNull(event.getMember()));
                         if (mc2.getFratikCoiny() < kasa) {
-                            context.send(context.getTranslated("sklep.kup.brakhajsu"));
+                            event.getHook().editOriginal(context.getTranslated("sklep.kup.brakhajsu")).queue();
                             return;
                         }
                         mc2.setFratikCoiny(mc2.getFratikCoiny() - kasa);
                         memberDao.save(mc2);
-                        context.send(context.getTranslated("sklep.kup.success"), m -> {
-                        });
-                        }, err -> context.send(context.getTranslated("sklep.kup.failed"), m -> {}));
+                        event.getHook().editOriginal(context.getTranslated("sklep.kup.success")).queue();
+                    }, err -> event.getHook().editOriginal(context.getTranslated("sklep.kup.failed")).queue());
                 } catch (Exception e) {
-                    context.send(context.getTranslated("sklep.kup.failed"), m -> { });
+                    event.getHook().editOriginal(context.getTranslated("sklep.kup.failed")).queue();
                 }
-                return;
             }
-            if (event.getReactionEmote().getEmote().equals(shardManager.getEmoteById(Ustawienia.instance.emotki.redTick))) {
-                context.send(context.getTranslated("sklep.kup.canceled"), m -> {});
-                return;
-            }
-            context.send(context.getTranslated("sklep.handler.invalidreaction"), m -> {});
+            if (event.getComponentId().equals("CANCEL"))
+                event.getHook().editOriginal(context.getTranslated("sklep.kup.canceled")).queue();
         });
-        rw.setTimeoutHandler(() -> context.send(context.getTranslated("sklep.kup.canceled"), m -> {}));
+        rw.setTimeoutHandler(() -> {
+            msgTmp.editMessage(msgTmp.getContentRaw()).setActionRows(Collections.emptySet()).queue();
+            context.send(context.getTranslated("sklep.kup.canceled"), m -> {});
+        });
         rw.create();
         return true;
     }
@@ -167,34 +162,31 @@ public class SklepCommand extends Command {
         }
         EmbedBuilder eb = generateEmbed(Typ.SPRZEDAZ, rola, gc.getRoleDoKupieniaOpisy().get(rola.getId()),
                 kasa, mc.getFratikCoiny(), true, context.getTlumaczenia(), context.getLanguage());
-        Message msgTmp = context.getTextChannel().sendMessage(eb.build()).complete();
-        msgTmp.addReaction(Objects.requireNonNull(shardManager.getEmoteById(Ustawienia.instance.emotki.greenTick))).complete();
-        msgTmp.addReaction(Objects.requireNonNull(shardManager.getEmoteById(Ustawienia.instance.emotki.redTick))).complete();
-        ReactionWaiter rw = new ReactionWaiter(eventWaiter, context);
-        rw.setReactionHandler(event -> {
-            if (!event.getReactionEmote().isEmote()) {
-                context.send(context.getTranslated("sklep.handler.invalidreaction"), m -> {});
-                return;
-            }
-            if (event.getReactionEmote().getEmote().equals(shardManager.getEmoteById(Ustawienia.instance.emotki.greenTick))) {
+        Message msgTmp = context.reply(eb.build(), ActionRow.of(
+                Button.success("SELL", context.getTranslated("sklep.przycisk.sprzedaj")),
+                Button.danger("CANCEL", context.getTranslated("sklep.przycisk.anuluj"))
+        ));
+        ButtonWaiter rw = new ButtonWaiter(eventWaiter, context, msgTmp.getIdLong(), ButtonWaiter.ResponseType.REPLY);
+        rw.setButtonHandler(event -> {
+            msgTmp.editMessage(msgTmp.getContentRaw()).setActionRows(Collections.emptySet()).queue();
+            if (event.getComponentId().equals("SELL")) {
                 context.getGuild().removeRoleFromMember(context.getMember(), rola)
                         .queue(
                                 aVoid -> {
                                     MemberConfig mc2 = memberDao.get(Objects.requireNonNull(event.getMember()));
                                     mc2.setFratikCoiny(mc2.getFratikCoiny() + (int) Math.floor((double) kasa / 2));
                                     memberDao.save(mc2);
-                                    context.send(context.getTranslated("sklep.sprzedaj.success"), m -> {});
+                                    event.getHook().editOriginal(context.getTranslated("sklep.sprzedaj.success")).queue();
                                 },
-                                err -> context.send(context.getTranslated("sklep.sprzedaj.failed"), m -> {}));
-                return;
+                                err -> event.getHook().editOriginal(context.getTranslated("sklep.sprzedaj.failed")).queue());
             }
-            if (event.getReactionEmote().getEmote().equals(shardManager.getEmoteById(Ustawienia.instance.emotki.redTick))) {
-                context.send(context.getTranslated("sklep.sprzedaj.canceled"), m -> {});
-                return;
-            }
-            context.send(context.getTranslated("sklep.handler.invalidreaction"), m -> {});
+            if (event.getComponentId().equals("CANCEL"))
+                event.getHook().editOriginal(context.getTranslated("sklep.sprzedaj.canceled")).queue();
         });
-        rw.setTimeoutHandler(() -> context.send(context.getTranslated("sklep.sprzedaj.canceled"), m -> {}));
+        rw.setTimeoutHandler(() -> {
+            msgTmp.editMessage(msgTmp.getContentRaw()).setActionRows(Collections.emptySet()).queue();
+            context.send(context.getTranslated("sklep.sprzedaj.canceled"), m -> {});
+        });
         rw.create();
         return true;
     }
@@ -258,17 +250,15 @@ public class SklepCommand extends Command {
         }
         EmbedBuilder eb = generateEmbed(Typ.DODAWANIE, rola, opis, kasa, 0, false,
                 context.getTlumaczenia(), context.getLanguage());
-        Message msgTmp = context.reply(eb.build());
-        msgTmp.addReaction(Objects.requireNonNull(shardManager.getEmoteById(Ustawienia.instance.emotki.greenTick))).complete();
-        msgTmp.addReaction(Objects.requireNonNull(shardManager.getEmoteById(Ustawienia.instance.emotki.redTick))).complete();
-        ReactionWaiter rw = new ReactionWaiter(eventWaiter, context);
+        Message msgTmp = context.reply(eb.build(), ActionRow.of(
+                Button.success("ADD", context.getTranslated("sklep.przycisk.dodaj")),
+                Button.danger("CANCEL", context.getTranslated("sklep.przycisk.anuluj"))
+        ));
+        ButtonWaiter rw = new ButtonWaiter(eventWaiter, context, msgTmp.getIdLong(), ButtonWaiter.ResponseType.REPLY);
         String finalOpis = opis;
-        rw.setReactionHandler(event -> {
-            if (!event.getReactionEmote().isEmote()) {
-                context.send(context.getTranslated("sklep.handler.invalidreaction"), m -> {});
-                return;
-            }
-            if (event.getReactionEmote().getEmote().equals(shardManager.getEmoteById(Ustawienia.instance.emotki.greenTick))) {
+        rw.setButtonHandler(event -> {
+            msgTmp.editMessage(msgTmp.getContentRaw()).setActionRows(Collections.emptySet()).queue();
+            if (event.getComponentId().equals("ADD")) {
                 GuildConfig gc2 = guildDao.get(event.getGuild());
                 Map<String, Long> roleDoKupienia = gc.getRoleDoKupienia();
                 roleDoKupienia.put(rola.getId(), kasa);
@@ -277,16 +267,15 @@ public class SklepCommand extends Command {
                 gc2.setRoleDoKupienia(roleDoKupienia);
                 gc2.setRoleDoKupieniaOpisy(roleDoKupieniaOpisy);
                 guildDao.save(gc2);
-                context.send(context.getTranslated("sklep.ustaw.success"), m -> {});
-                return;
+                event.getHook().editOriginal(context.getTranslated("sklep.ustaw.success")).queue();
             }
-            if (event.getReactionEmote().getEmote().equals(shardManager.getEmoteById(Ustawienia.instance.emotki.redTick))) {
-                context.send(context.getTranslated("sklep.ustaw.canceled"), m -> {});
-                return;
-            }
-            context.send(context.getTranslated("sklep.handler.invalidreaction"), m -> {});
+            if (event.getComponentId().equals("CANCEL"))
+                event.getHook().editOriginal(context.getTranslated("sklep.ustaw.canceled")).queue();
         });
-        rw.setTimeoutHandler(() -> context.send(context.getTranslated("sklep.ustaw.canceled"), m -> {}));
+        rw.setTimeoutHandler(() -> {
+            msgTmp.editMessage(msgTmp.getContentRaw()).setActionRows(Collections.emptySet()).queue();
+            context.send(context.getTranslated("sklep.ustaw.canceled"), m -> {});
+        });
         rw.create();
         return true;
     }
@@ -317,16 +306,14 @@ public class SklepCommand extends Command {
         EmbedBuilder eb = generateEmbed(Typ.USUWANIE, rola, gc.getRoleDoKupieniaOpisy().get(rola.getId()),
                 gc.getRoleDoKupienia().get(rola.getId()), 0, false,
                 context.getTlumaczenia(), context.getLanguage());
-        Message msgTmp = context.reply(eb.build());
-        msgTmp.addReaction(Objects.requireNonNull(shardManager.getEmoteById(Ustawienia.instance.emotki.greenTick))).complete();
-        msgTmp.addReaction(Objects.requireNonNull(shardManager.getEmoteById(Ustawienia.instance.emotki.redTick))).complete();
-        ReactionWaiter rw = new ReactionWaiter(eventWaiter, context);
-        rw.setReactionHandler(event -> {
-            if (!event.getReactionEmote().isEmote()) {
-                context.send(context.getTranslated("sklep.handler.invalidreaction"), m -> {});
-                return;
-            }
-            if (event.getReactionEmote().getEmote().equals(shardManager.getEmoteById(Ustawienia.instance.emotki.greenTick))) {
+        Message msgTmp = context.reply(eb.build(), ActionRow.of(
+                Button.secondary("DELETE", context.getTranslated("sklep.przycisk.usun")),
+                Button.danger("CANCEL", context.getTranslated("sklep.przycisk.anuluj"))
+        ));
+        ButtonWaiter rw = new ButtonWaiter(eventWaiter, context, msgTmp.getIdLong(), ButtonWaiter.ResponseType.REPLY);
+        rw.setButtonHandler(event -> {
+            msgTmp.editMessage(msgTmp.getContentRaw()).setActionRows(Collections.emptySet()).queue();
+            if (event.getComponentId().equals("DELETE")) {
                 GuildConfig gc2 = guildDao.get(event.getGuild());
                 Map<String, Long> roleDoKupienia = gc.getRoleDoKupienia();
                 roleDoKupienia.remove(rola.getId());
@@ -335,16 +322,15 @@ public class SklepCommand extends Command {
                 gc2.setRoleDoKupienia(roleDoKupienia);
                 gc2.setRoleDoKupieniaOpisy(roleDoKupieniaOpisy);
                 guildDao.save(gc2);
-                context.send(context.getTranslated("sklep.usun.success"), m -> {});
-                return;
+                event.getHook().editOriginal(context.getTranslated("sklep.usun.success")).queue();
             }
-            if (event.getReactionEmote().getEmote().equals(shardManager.getEmoteById(Ustawienia.instance.emotki.redTick))) {
-                context.send(context.getTranslated("sklep.usun.canceled"));
-                return;
-            }
-            context.send(context.getTranslated("sklep.handler.invalidreaction"), m -> {});
+            if (event.getComponentId().equals("CANCEL"))
+                event.getHook().editOriginal(context.getTranslated("sklep.usun.canceled")).queue();
         });
-        rw.setTimeoutHandler(() -> context.send(context.getTranslated("sklep.usun.canceled"), m -> {}));
+        rw.setTimeoutHandler(() -> {
+            msgTmp.editMessage(msgTmp.getContentRaw()).setActionRows(Collections.emptySet()).queue();
+            context.send(context.getTranslated("sklep.usun.canceled"), m -> {});
+        });
         rw.create();
         return true;
     }
@@ -373,7 +359,6 @@ public class SklepCommand extends Command {
                     return eb;
                 }
                 eb.setColor(Color.GREEN);
-                eb.setFooter(tlumaczenia.get(l, "sklep.embed.react"), null);
                 return eb;
             case SPRZEDAZ:
                 eb.setTitle(tlumaczenia.get(l, "sklep.embed.sprzedaj"));
@@ -389,7 +374,6 @@ public class SklepCommand extends Command {
                     return eb;
                 }
                 eb.setColor(Color.GREEN);
-                eb.setFooter(tlumaczenia.get(l, "sklep.embed.react.sprzedaj"), null);
                 return eb;
             case INFO:
                 eb.setTitle(tlumaczenia.get(l, "sklep.embed.info", rola.getName()));
@@ -417,7 +401,6 @@ public class SklepCommand extends Command {
                     eb.setFooter(tlumaczenia.get(l, "sklep.embed.dodaj.niemozna"), null);
                 }
                 eb.setColor(Color.GREEN);
-                eb.setFooter(tlumaczenia.get(l, "sklep.embed.dodaj.potwierdz"), null);
                 return eb;
             case USUWANIE:
                 eb.setTitle(tlumaczenia.get(l, "sklep.embed.usun"));
@@ -432,7 +415,6 @@ public class SklepCommand extends Command {
                     eb.setFooter(tlumaczenia.get(l, "sklep.embed.usun.niemozna"), null);
                 }
                 eb.setColor(Color.GREEN);
-                eb.setFooter(tlumaczenia.get(l, "sklep.embed.usun.potwierdz"), null);
                 return eb;
         }
         throw new IllegalStateException("typ nieprawidłowy");
