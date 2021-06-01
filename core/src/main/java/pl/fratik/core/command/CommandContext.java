@@ -187,11 +187,11 @@ public class CommandContext {
     }
 
     public Message reply(CharSequence message, boolean checkUrl) {
-        return reply(message, checkUrl, (ActionRow) null);
+        return reply(message, checkUrl, (ActionRow[]) null);
     }
 
     public Message reply(CharSequence message, boolean checkUrl, Collection<ActionRow> actionRows) {
-        return reply(message, checkUrl, actionRows.toArray(new ActionRow[0]));
+        return reply(message, checkUrl, actionRows == null ? null : actionRows.toArray(new ActionRow[0]));
     }
 
     public Message reply(CharSequence message, boolean checkUrl, ActionRow... actionRows) {
@@ -217,7 +217,7 @@ public class CommandContext {
 
     //    @Deprecated
     public Message reply(MessageEmbed message) {
-        return reply(message, (ActionRow) null);
+        return reply(message, (ActionRow[]) null);
     }
 
     public Message reply(MessageEmbed message, Collection<ActionRow> actionRows) {
