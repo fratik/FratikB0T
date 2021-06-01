@@ -62,8 +62,8 @@ class MemberListener {
     @Subscribe
     public void onMemberLeaveEvent(GuildMemberRemoveEvent e) {
         GuildConfig gc = getGuildConfig(e.getGuild());
-        if (gc.isPowitanieWEmbedzie()) sendEmbeds(e.getUser(), e.getGuild(), gc.getPozegnania().entrySet());
-        else sendMessages(e.getUser(), e.getGuild(), gc.getPozegnania().entrySet());
+        if (gc.isPowitanieWEmbedzie()) sendEmbeds(e.getUser(), e.getGuild(), gc.getPozegnania().entrySet(), false);
+        else sendMessages(e.getUser(), e.getGuild(), gc.getPozegnania().entrySet(), false);
     }
 
     private void autorole(GuildMemberJoinEvent e) {
@@ -83,22 +83,22 @@ class MemberListener {
 
     private void przywitanie(GuildMemberJoinEvent e) {
         GuildConfig gc = getGuildConfig(e.getGuild());
-        if (gc.isPowitanieWEmbedzie()) sendEmbeds(e.getUser(), e.getGuild(), gc.getPowitania().entrySet());
-        else sendMessages(e.getUser(), e.getGuild(), gc.getPowitania().entrySet());
+        if (gc.isPowitanieWEmbedzie()) sendEmbeds(e.getUser(), e.getGuild(), gc.getPowitania().entrySet(), true);
+        else sendMessages(e.getUser(), e.getGuild(), gc.getPowitania().entrySet(), true);
     }
 
-    private void sendMessages(User user, Guild guild, Set<Map.Entry<String, String>> kek) {
+    private void sendMessages(User user, Guild guild, Set<Map.Entry<String, String>> kek, boolean allowMentions) {
         for (Map.Entry<String, String> ch : kek) {
             TextChannel cha = guild.getTextChannelById(ch.getKey());
             if (cha == null || !cha.canTalk()) continue;
             boolean hasMentions = ch.getValue().contains("{{mention}}");
-            MessageAction ma = cha.sendMessage(getPowitanie(user, guild, ch.getValue()));
+            MessageAction ma = cha.sendMessage(getPowitanie(user, guild, ch.getValue(), allowMentions));
             if (hasMentions) ma.mention(user).queue();
             else ma.queue();
         }
     }
 
-    private void sendEmbeds(User user, Guild guild, Set<Map.Entry<String, String>> kek) { // L125
+    private void sendEmbeds(User user, Guild guild, Set<Map.Entry<String, String>> kek, boolean allowMentions) { // L125
         EmbedBuilder eb = new EmbedBuilder();
         String avatar = UserUtil.getAvatarUrl(user);
 
@@ -106,8 +106,8 @@ class MemberListener {
             TextChannel cha = guild.getTextChannelById(ch.getKey());
             if (cha == null || !cha.canTalk()) continue;
             boolean hasMentions = ch.getValue().contains("{{mention}}");
-            eb.setAuthor(UserUtil.formatDiscrim(user), avatar);
-            eb.setDescription(getPowitanie(user, guild, ch.getValue()));
+            eb.setAuthor(UserUtil.formatDiscrim(user), null, avatar);
+            eb.setDescription(getPowitanie(user, guild, ch.getValue(), allowMentions));
             eb.setColor(UserUtil.getPrimColor(user));
             MessageAction ma = cha.sendMessage(eb.build());
             if (hasMentions) ma.mention(user).queue();
@@ -140,9 +140,9 @@ class MemberListener {
         }
     }
 
-    private String getPowitanie(User user, Guild guild, String cnt) {
+    private String getPowitanie(User user, Guild guild, String cnt, boolean allowMentions) {
         Matcher matcher = INVITE_TAG_REGEX.matcher(cnt);
-        if (matcher.find()) {
+        if (allowMentions && matcher.find()) {
             String tagCnt = matcher.group(1);
             StringBuffer buf = new StringBuffer();
             PluginMessageEvent event = new PluginMessageEvent("commands", "invite", "Module-getInviteData:" +
@@ -175,11 +175,13 @@ class MemberListener {
             matcher.appendTail(buf);
             cnt = buf.toString();
         }
-        return cnt
+        cnt = cnt
                 .replace("{{user}}", user.getAsTag())
-                .replace("{{mention}}", user.getAsMention())
                 .replace("{{members}}", String.valueOf(guild.getMemberCount()))
                 .replace("{{server}}", guild.getName());
+        if (allowMentions) cnt = cnt.replace("{{mention}}", user.getAsMention());
+        if (cnt.length() >= 1997) return cnt.substring(0, 1996) + "...";
+        return cnt;
     }
 
     @Subscribe
