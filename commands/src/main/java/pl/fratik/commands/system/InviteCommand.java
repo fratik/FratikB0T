@@ -57,6 +57,6 @@ public class InviteCommand extends Command {
     private String generateInviteLink(String id) {
         return "https://discord.com/oauth2/authorize?client_id=" +
                 id + "&permissions=" +
-                Globals.permissions + "&scope=bot";
+                Globals.permissions + "&scope=bot+applications.commands";
     }
 }
