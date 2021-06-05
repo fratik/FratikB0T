@@ -137,6 +137,7 @@ public class GuildConfig implements DatabaseEntity {
     private Boolean antiLinkIgnoreAdmins = false;
     @ConfigField(holdsEntity = ConfigField.Entities.ROLE)
     private List<String> antiLinkIgnoreRoles = new ArrayList<>();
+    private Map<String, Wyplata> wyplaty = new HashMap<>();
 
     // TODO: 09/04/2020 można to zrobić dla każdego Boolean'a, ale to już kwestia kosmetyki kodu chyba
     public boolean isResetujOstrzezeniaPrzyBanie() {
@@ -184,6 +185,11 @@ public class GuildConfig implements DatabaseEntity {
         return deleteLinkMessage != null && deleteLinkMessage;
     }
 
+    public Map<String, Wyplata> getWyplaty() {
+        if (wyplaty == null) wyplaty = new HashMap<>();
+        return wyplaty;
+    }
+
     @Transient
     @JsonIgnore
     @Override
@@ -196,5 +202,12 @@ public class GuildConfig implements DatabaseEntity {
     public static class Webhook {
         private final String id;
         private final String token;
+    }
+
+    @Data
+    @AllArgsConstructor
+    public static class Wyplata {
+        private final long kwota;
+        private final int cooldown; // w minutach
     }
 }

@@ -25,6 +25,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 @Table("members")
 @GIndex({"id", "guildId", "userId"})
@@ -47,6 +49,12 @@ public class MemberConfig implements DatabaseEntity {
     private String guildId;
     private long fratikCoiny = 0;
     private Date dailyDate;
+    private Map<String, Date> wyplatyDate;
+
+    public Map<String, Date> getWyplatyDate() {
+        if (wyplatyDate == null) wyplatyDate = new HashMap<>();
+        return wyplatyDate;
+    }
 
     @Override
     @JsonIgnore
