@@ -21,15 +21,13 @@ import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Emote;
 import net.dv8tion.jda.api.entities.Member;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.Ustawienia;
-import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.entity.MemberConfig;
 import pl.fratik.core.entity.MemberDao;
 import pl.fratik.core.entity.Uzycie;
 
-public class KasaCommand extends Command {
+public class KasaCommand extends MoneyCommand {
 
     private final MemberDao memberDao;
 
@@ -50,8 +48,7 @@ public class KasaCommand extends Command {
             m = (Member) context.getArgs()[0];
         }
         MemberConfig mc = memberDao.get(m);
-        Emote e = context.getShardManager().getEmoteById(Ustawienia.instance.emotki.fratikCoin);
-        if (e == null) throw new IllegalStateException("eMoTkA jEsT nUlL");
+        Emote e = getFratikCoin(context);
         if (m.equals(context.getMember()))
             context.reply(context.getTranslated("kasa.success.self", String.valueOf(mc.getFratikCoiny()), e.getAsMention()));
         else

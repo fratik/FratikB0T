@@ -20,8 +20,6 @@ package pl.fratik.fratikcoiny.commands;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Emote;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.Ustawienia;
-import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.entity.MemberConfig;
@@ -30,7 +28,7 @@ import pl.fratik.core.entity.MemberDao;
 import java.util.Calendar;
 import java.util.Date;
 
-public class DailyCommand extends Command {
+public class DailyCommand extends MoneyCommand {
 
     private final MemberDao memberDao;
 
@@ -45,8 +43,7 @@ public class DailyCommand extends Command {
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
-        Emote emotkaFc = context.getShardManager().getEmoteById(Ustawienia.instance.emotki.fratikCoin);
-        if (emotkaFc == null) throw new IllegalStateException("emotka null");
+        Emote emotkaFc = getFratikCoin(context);
         MemberConfig mc = memberDao.get(context.getMember());
         Date dailyDate = mc.getDailyDate();
         Date teraz = new Date();

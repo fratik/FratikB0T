@@ -21,8 +21,6 @@ import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Emote;
 import net.dv8tion.jda.api.entities.Member;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.Ustawienia;
-import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.command.PermLevel;
@@ -33,7 +31,7 @@ import pl.fratik.core.util.UserUtil;
 
 import java.util.LinkedHashMap;
 
-public class UsunFcCommand extends Command {
+public class UsunFcCommand extends MoneyCommand {
 
     private final MemberDao memberDao;
 
@@ -69,10 +67,7 @@ public class UsunFcCommand extends Command {
             context.reply(context.getTranslated("usunfc.badnumber.sub"));
             return false;
         }
-        Emote fc = context.getShardManager().getEmoteById(Ustawienia.instance.emotki.fratikCoin);
-        if (fc == null) {
-            throw new NullPointerException("ni ma emotki");
-        }
+        Emote fc = getFratikCoin(context);
         mc.setFratikCoiny(hajs);
         memberDao.save(mc);
         context.reply(context.getTranslated("usunfc.success",

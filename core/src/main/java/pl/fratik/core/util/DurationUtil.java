@@ -20,6 +20,7 @@ package pl.fratik.core.util;
 import lombok.Data;
 import lombok.Getter;
 import org.apache.commons.lang.ArrayUtils;
+import org.joda.time.Duration;
 import org.joda.time.MutablePeriod;
 import org.joda.time.format.PeriodFormatter;
 import org.joda.time.format.PeriodFormatterBuilder;
@@ -108,11 +109,12 @@ public class DurationUtil {
             } else reason.add(token);
         }
         org.joda.time.Instant instaa = org.joda.time.Instant.now();
-        Instant inst = Instant.ofEpochMilli(instaa.plus(period.toDurationFrom(instaa)).getMillis());
+        Duration dur = period.toDurationFrom(instaa);
+        Instant inst = Instant.ofEpochMilli(instaa.plus(dur).getMillis());
         if (inst.toEpochMilli() - instaa.getMillis() >= 63113904000L)
             throw new IllegalArgumentException("2 lata to maks!");
-        if (inst.toEpochMilli() == instaa.getMillis()) return new Response(null, input);
-        return new Response(inst, String.join(" ", reason).replaceAll(" +", " ").trim());
+        if (inst.toEpochMilli() == instaa.getMillis()) return new Response(null, -1, input);
+        return new Response(inst, dur.getMillis(), String.join(" ", reason).replaceAll(" +", " ").trim());
     }
 
     private static String getParsableString(String input) {
@@ -252,10 +254,12 @@ public class DurationUtil {
     @Getter
     public static class Response {
         private final Instant doKiedy;
+        private final long duration;
         private final String tekst;
 
-        Response(Instant doKiedy, String tekst) {
+        Response(Instant doKiedy, long duration, String tekst) {
             this.doKiedy = doKiedy;
+            this.duration = duration;
             this.tekst = tekst;
         }
     }
