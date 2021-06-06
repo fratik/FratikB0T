@@ -17,6 +17,8 @@
 
 package pl.fratik.fratikcoiny.commands;
 
+import com.google.common.eventbus.EventBus;
+import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Emote;
 import net.dv8tion.jda.api.entities.Role;
@@ -25,19 +27,26 @@ import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.command.SubCommand;
 import pl.fratik.core.entity.*;
+import pl.fratik.core.util.ClassicEmbedPaginator;
 import pl.fratik.core.util.DurationUtil;
+import pl.fratik.core.util.EventWaiter;
 import pl.fratik.core.util.UserUtil;
 
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class PremiaCommand extends MoneyCommand {
     private final GuildDao guildDao;
     private final MemberDao memberDao;
+    private final EventWaiter eventWaiter;
+    private final EventBus eventBus;
 
-    public PremiaCommand(GuildDao guildDao, MemberDao memberDao) {
+    public PremiaCommand(GuildDao guildDao, MemberDao memberDao, EventWaiter eventWaiter, EventBus eventBus) {
         this.guildDao = guildDao;
         this.memberDao = memberDao;
+        this.eventWaiter = eventWaiter;
+        this.eventBus = eventBus;
         name = "premia";
         aliases = new String[] {"odbierz"};
         category = CommandCategory.MONEY;
@@ -98,7 +107,12 @@ public class PremiaCommand extends MoneyCommand {
                     .map(e -> e == null ? "" : e).map(Objects::toString).collect(Collectors.joining(uzycieDelim));
             DurationUtil.Response response = DurationUtil.parseDuration(cooldown);
             GuildConfig gc = guildDao.get(context.getGuild());
-            gc.getWyplaty().put(role.getId(), new GuildConfig.Wyplata(fc, Math.toIntExact(response.getDuration())));
+            int minut = Math.toIntExact(TimeUnit.MINUTES.convert(response.getDuration(), TimeUnit.MILLISECONDS));
+            if (minut < 5) {
+                context.reply(context.getTranslated("premia.set.cooldown"));
+                return false;
+            }
+            gc.getWyplaty().put(role.getId(), new GuildConfig.Wyplata(fc, minut));
             guildDao.save(gc);
             context.reply(context.getTranslated("premia.set.success"));
             return true;
@@ -127,5 +141,36 @@ public class PremiaCommand extends MoneyCommand {
             context.reply(context.getTranslated("premia.set.missing.arguments", context.getPrefix(), context.getLabel()));
             return false;
         }
+    }
+
+    @SubCommand(name = "list", aliases = "lista")
+    public boolean list(@NotNull CommandContext context) {
+        if (UserUtil.getPermlevel(context.getMember(), guildDao, context.getShardManager()).getNum() < 2)
+            return execute(context);
+        GuildConfig gc = guildDao.get(context.getGuild());
+        List<EmbedBuilder> pages = new ArrayList<>();
+        //noinspection ConstantConditions
+        gc.getWyplaty().entrySet().stream().filter(e -> context.getGuild().getRoleById(e.getKey()) != null)
+                .sorted((a, b) -> context.getGuild().getRoleById(a.getKey()).getName()
+                        .compareToIgnoreCase(context.getGuild().getRoleById(b.getKey()).getName()))
+                .forEachOrdered(e -> {
+            Role role = context.getGuild().getRoleById(e.getKey());
+            if (role == null) return; // filter wyżej sprawdza, ale potem IDE się pluje więc niech zostanie
+            GuildConfig.Wyplata wyplata = e.getValue();
+            pages.add(new EmbedBuilder()
+                    .setColor(role.getColorRaw())
+                    .setTitle(role.getName())
+                    .addField(context.getTranslated("premia.list.kwota"), String.valueOf(wyplata.getKwota()), false)
+                    .addField(context.getTranslated("premia.list.cooldown"),
+                            DurationUtil.humanReadableFormat((long) wyplata.getCooldown() * 60 * 1000, false), false)
+            );
+        });
+        if (pages.isEmpty()) {
+            context.reply(context.getTranslated("premia.list.empty"));
+            return false;
+        }
+        new ClassicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(),
+                context.getTlumaczenia(), eventBus).create(context.getMessageChannel());
+        return true;
     }
 }
