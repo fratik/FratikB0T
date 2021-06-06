@@ -161,7 +161,7 @@ public class ClassicEmbedPaginator implements EmbedPaginator {
                 doKtorej = event.getChannel().sendMessage(tlumaczenia.get(language, "paginator.waiting.for.pageno")).complete();
                 eventWaiter.waitForEvent(MessageReceivedEvent.class, this::checkMessage,
                         this::handleMessage, 30, TimeUnit.SECONDS, this::clearReactions);
-                break;
+                return;
             default: return;
         }
 
