@@ -174,6 +174,7 @@ public class ClassicEmbedPaginator implements EmbedPaginator {
         eventBus.post(new PluginMessageEvent("core", PMSTO, PMZAADD + doKtorej.getId()));
         doKtorej.delete().queue();
         eventBus.post(new PluginMessageEvent("core", PMSTO, PMZAADD + event.getMessage().getId()));
+        event.getMessage().delete().queue();
         addReactions(message.editMessage(render(pageNo))).override(true).queue(msg -> waitForReaction());
     }
 
