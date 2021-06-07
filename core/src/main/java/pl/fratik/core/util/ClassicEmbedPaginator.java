@@ -203,7 +203,7 @@ public class ClassicEmbedPaginator implements EmbedPaginator {
                 eventBus.post(new PluginMessageEvent("core", PMSTO, PMZAADD + doKtorej.getId()));
                 doKtorej.delete().queue();
             }
-            message.editMessage(message.getContentRaw()).setActionRows(Collections.emptySet()).queue();
+            clearActions(message);
         } catch (PermissionException ignored) {/*lul*/}
     }
 

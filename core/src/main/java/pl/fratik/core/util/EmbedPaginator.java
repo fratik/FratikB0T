@@ -17,8 +17,11 @@
 
 package pl.fratik.core.util;
 
+import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageChannel;
+
+import java.util.Collections;
 
 public interface EmbedPaginator {
     void create(Message message);
@@ -30,4 +33,13 @@ public interface EmbedPaginator {
     }
     void create(MessageChannel channel, String referenceMessageId);
     EmbedPaginator setCustomFooter(boolean customFooter);
+
+    default void clearActions(Message botMsg) {
+        MessageBuilder mb = new MessageBuilder();
+        if (!botMsg.getEmbeds().isEmpty()) mb.setEmbed(botMsg.getEmbeds().get(0));
+        mb.setContent(botMsg.getContentRaw());
+        mb.setActionRows(Collections.emptyList());
+        botMsg.editMessage(mb.build()).queue();
+    }
+
 }

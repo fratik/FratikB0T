@@ -335,7 +335,7 @@ public class DynamicEmbedPaginator implements EmbedPaginator {
             if (delett) {
                 eventBus.post(new PluginMessageEvent("core", PMSTO, PMZAADD + message.getId()));
                 message.delete().queue();
-            } else message.editMessage(message.getContentRaw()).setActionRows(Collections.emptySet()).queue();
+            } else clearActions(message);
         } catch (PermissionException ignored) {/*lul*/}
     }
 
