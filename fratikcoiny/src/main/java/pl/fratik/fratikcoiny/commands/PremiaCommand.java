@@ -98,10 +98,10 @@ public class PremiaCommand extends MoneyCommand {
         }
         if (appended > 15) sb.append(context.getTranslated("premia.more", appended - 15));
         else sb.setLength(sb.length() - 1);
+        mc.setFratikCoiny(mc.getFratikCoiny() + fc);
         if (fc != 0) sb.append("\n\n").append(context.getTranslated("premia.summary", fc, emotkaFc.getAsMention(),
                 mc.getFratikCoiny(), emotkaFc.getAsMention()));
-        mc.setFratikCoiny(mc.getFratikCoiny() + fc);
-        memberDao.save(mc);
+        else memberDao.save(mc);
         context.reply(sb.toString());
         return true;
     }
