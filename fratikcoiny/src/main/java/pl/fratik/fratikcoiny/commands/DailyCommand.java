@@ -59,10 +59,7 @@ public class DailyCommand extends MoneyCommand {
         cal.add(Calendar.DAY_OF_MONTH, 1);
         dailyDate = Date.from(cal.toInstant());
         long fc = isHoliday() ? mc.getFratikCoiny() + 500 : mc.getFratikCoiny() + 250;
-        if (fc == Long.MAX_VALUE) {
-            context.reply(context.getTranslated("daily.too.many.coins"));
-            return false;
-        }
+        if (checkTooMuch(fc, context)) return false;
         String msg = isHoliday() ? "daily.success.holiday" : "daily.success";
         mc.setFratikCoiny(fc);
         mc.setDailyDate(dailyDate);

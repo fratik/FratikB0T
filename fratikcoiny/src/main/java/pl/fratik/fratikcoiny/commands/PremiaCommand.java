@@ -99,6 +99,10 @@ public class PremiaCommand extends MoneyCommand {
         if (appended > 15) sb.append(context.getTranslated("premia.more", appended - 15));
         else sb.setLength(sb.length() - 1);
         mc.setFratikCoiny(mc.getFratikCoiny() + fc);
+        if (checkTooMuch(mc.getFratikCoiny(), null)) {
+            context.reply(context.getTranslated("premia.too.much.money"));
+            return false;
+        }
         if (fc != 0) sb.append("\n\n").append(context.getTranslated("premia.summary", fc, emotkaFc.getAsMention(),
                 mc.getFratikCoiny(), emotkaFc.getAsMention()));
         else memberDao.save(mc);
@@ -126,6 +130,10 @@ public class PremiaCommand extends MoneyCommand {
             int minut = Math.toIntExact(TimeUnit.MINUTES.convert(response.getDuration(), TimeUnit.MILLISECONDS));
             if (minut < 5) {
                 context.reply(context.getTranslated("premia.set.cooldown"));
+                return false;
+            }
+            if (fc < 0 || fc > 1_000_000_000L) {
+                context.reply(context.getTranslated("premia.set.limit"));
                 return false;
             }
             gc.getWyplaty().put(role.getId(), new GuildConfig.Wyplata(fc, minut));

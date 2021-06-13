@@ -30,4 +30,11 @@ public abstract class MoneyCommand extends Command {
         if (emotkaFc == null) throw new IllegalStateException("emotka null");
         return emotkaFc;
     }
+
+    protected boolean checkTooMuch(long fc, CommandContext context) {
+        if (fc >= Long.MAX_VALUE) {
+            if (context != null) context.reply(context.getTranslated("daily.too.many.coins"));
+            return true;
+        }
+    }
 }
