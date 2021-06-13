@@ -78,23 +78,19 @@ public class PremiaCommand extends MoneyCommand {
             GuildConfig.Wyplata wyplata = e.getValue();
             sb.append(role.getAsMention()).append(": ");
             Date date = mc.getWyplatyDate().get(role.getId());
-            String textToAppend;
             if (date != null) {
                 Calendar cal = Calendar.getInstance();
                 cal.setTime(date);
                 cal.add(Calendar.MINUTE, wyplata.getCooldown());
-                appended++;
                 if (cal.getTime().after(teraz)) {
-                    textToAppend = context.getTranslated("premia.timeout",
-                            DurationUtil.humanReadableFormat(cal.getTimeInMillis() - teraz.getTime(), false));
-                    if (appended <= 15) sb.append(textToAppend).append('\n');
+                    if (++appended <= 15) sb.append(context.getTranslated("premia.timeout",
+                            DurationUtil.humanReadableFormat(cal.getTimeInMillis() - teraz.getTime(), false))).append('\n');
                     continue;
                 }
             }
-            textToAppend = wyplata.getKwota() + emotkaFc.getAsMention();
             fc += wyplata.getKwota();
             mc.getWyplatyDate().put(role.getId(), teraz);
-            if (appended <= 15) sb.append(textToAppend).append('\n');
+            if (++appended <= 15) sb.append(wyplata.getKwota()).append(emotkaFc.getAsMention()).append('\n');
         }
         if (appended > 15) sb.append(context.getTranslated("premia.more", appended - 15));
         else sb.setLength(sb.length() - 1);
@@ -103,9 +99,11 @@ public class PremiaCommand extends MoneyCommand {
             context.reply(context.getTranslated("premia.too.much.money"));
             return false;
         }
-        if (fc != 0) sb.append("\n\n").append(context.getTranslated("premia.summary", fc, emotkaFc.getAsMention(),
-                mc.getFratikCoiny(), emotkaFc.getAsMention()));
-        else memberDao.save(mc);
+        if (fc != 0) {
+            sb.append("\n\n").append(context.getTranslated("premia.summary", fc, emotkaFc.getAsMention(),
+                    mc.getFratikCoiny(), emotkaFc.getAsMention()));
+            memberDao.save(mc);
+        }
         context.reply(sb.toString());
         return true;
     }
