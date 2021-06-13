@@ -76,21 +76,23 @@ public class PremiaCommand extends MoneyCommand {
         for (Map.Entry<Role, GuildConfig.Wyplata> e : wyplaty.entrySet()) {
             Role role = e.getKey();
             GuildConfig.Wyplata wyplata = e.getValue();
-            sb.append(role.getAsMention()).append(": ");
             Date date = mc.getWyplatyDate().get(role.getId());
+            String textToAppend = role.getAsMention() + ": ";
             if (date != null) {
                 Calendar cal = Calendar.getInstance();
                 cal.setTime(date);
                 cal.add(Calendar.MINUTE, wyplata.getCooldown());
                 if (cal.getTime().after(teraz)) {
-                    if (++appended <= 15) sb.append(context.getTranslated("premia.timeout",
-                            DurationUtil.humanReadableFormat(cal.getTimeInMillis() - teraz.getTime(), false))).append('\n');
+                    textToAppend += context.getTranslated("premia.timeout",
+                            DurationUtil.humanReadableFormat(cal.getTimeInMillis() - teraz.getTime(), false));
+                    if (++appended <= 15) sb.append(textToAppend).append('\n');
                     continue;
                 }
             }
+            textToAppend += wyplata.getKwota() + emotkaFc.getAsMention();
             fc += wyplata.getKwota();
             mc.getWyplatyDate().put(role.getId(), teraz);
-            if (++appended <= 15) sb.append(wyplata.getKwota()).append(emotkaFc.getAsMention()).append('\n');
+            if (++appended <= 15) sb.append(textToAppend).append('\n');
         }
         if (appended > 15) sb.append(context.getTranslated("premia.more", appended - 15));
         else sb.setLength(sb.length() - 1);
