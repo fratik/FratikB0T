@@ -36,5 +36,6 @@ public abstract class MoneyCommand extends Command {
             if (context != null) context.reply(context.getTranslated("daily.too.many.coins"));
             return true;
         }
+        return false;
     }
 }
