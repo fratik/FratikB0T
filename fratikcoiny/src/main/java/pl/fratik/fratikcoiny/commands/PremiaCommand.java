@@ -58,35 +58,55 @@ public class PremiaCommand extends MoneyCommand {
     @Override
     protected boolean execute(@NotNull CommandContext context) {
         GuildConfig gc = guildDao.get(context.getGuild());
-        String id = null;
-        GuildConfig.Wyplata wyplata = null;
+        Map<Role, GuildConfig.Wyplata> wyplaty = new LinkedHashMap<>();
         for (Role role : context.getMember().getRoles()) {
-            id = role.getId();
-            if ((wyplata = gc.getWyplaty().get(id)) != null) break;
+            GuildConfig.Wyplata wyplata = gc.getWyplaty().get(role.getId());
+            if (wyplata != null) wyplaty.put(role, wyplata);
         }
-        if (id == null || wyplata == null) {
+        if (wyplaty.isEmpty()) {
             context.reply(context.getTranslated("premia.nothing", context.getPrefix()));
             return false;
         }
         MemberConfig mc = memberDao.get(context.getMember());
         Date teraz = new Date();
-        Date date = mc.getWyplatyDate().get(id);
-        if (date != null) {
-            Calendar cal = Calendar.getInstance();
-            cal.setTime(date);
-            cal.add(Calendar.MINUTE, wyplata.getCooldown());
-            if (cal.getTime().after(teraz)) {
-                context.reply(context.getTranslated("premia.timeout",
-                        DurationUtil.humanReadableFormat(cal.getTimeInMillis() - teraz.getTime(), false)));
-                return false;
-            }
-        }
-        mc.setFratikCoiny(mc.getFratikCoiny() + wyplata.getKwota());
-        mc.getWyplatyDate().put(id, teraz);
-        memberDao.save(mc);
         Emote emotkaFc = getFratikCoin(context);
-        context.reply(context.getTranslated("premia.success", wyplata.getKwota(), emotkaFc.getAsMention(),
-                mc.getFratikCoiny(), emotkaFc.getAsMention()));
+        StringBuilder sb = new StringBuilder(context.getTranslated("premia.start")).append("\n\n");
+        long fc = 0;
+        int appended = 0;
+        for (Map.Entry<Role, GuildConfig.Wyplata> e : wyplaty.entrySet()) {
+            Role role = e.getKey();
+            GuildConfig.Wyplata wyplata = e.getValue();
+            Date date = mc.getWyplatyDate().get(role.getId());
+            String textToAppend = role.getAsMention() + ": ";
+            if (date != null) {
+                Calendar cal = Calendar.getInstance();
+                cal.setTime(date);
+                cal.add(Calendar.MINUTE, wyplata.getCooldown());
+                if (cal.getTime().after(teraz)) {
+                    textToAppend += context.getTranslated("premia.timeout",
+                            DurationUtil.humanReadableFormat(cal.getTimeInMillis() - teraz.getTime(), false));
+                    if (++appended <= 15) sb.append(textToAppend).append('\n');
+                    continue;
+                }
+            }
+            textToAppend += wyplata.getKwota() + emotkaFc.getAsMention();
+            fc += wyplata.getKwota();
+            mc.getWyplatyDate().put(role.getId(), teraz);
+            if (++appended <= 15) sb.append(textToAppend).append('\n');
+        }
+        if (appended > 15) sb.append(context.getTranslated("premia.more", appended - 15));
+        else sb.setLength(sb.length() - 1);
+        mc.setFratikCoiny(mc.getFratikCoiny() + fc);
+        if (checkTooMuch(mc.getFratikCoiny(), null)) {
+            context.reply(context.getTranslated("premia.too.much.money"));
+            return false;
+        }
+        if (fc != 0) {
+            sb.append("\n\n").append(context.getTranslated("premia.summary", fc, emotkaFc.getAsMention(),
+                    mc.getFratikCoiny(), emotkaFc.getAsMention()));
+            memberDao.save(mc);
+        }
+        context.reply(sb.toString());
         return true;
     }
 
@@ -110,6 +130,10 @@ public class PremiaCommand extends MoneyCommand {
             int minut = Math.toIntExact(TimeUnit.MINUTES.convert(response.getDuration(), TimeUnit.MILLISECONDS));
             if (minut < 5) {
                 context.reply(context.getTranslated("premia.set.cooldown"));
+                return false;
+            }
+            if (fc < 0 || fc > 1_000_000_000L) {
+                context.reply(context.getTranslated("premia.set.limit"));
                 return false;
             }
             gc.getWyplaty().put(role.getId(), new GuildConfig.Wyplata(fc, minut));
