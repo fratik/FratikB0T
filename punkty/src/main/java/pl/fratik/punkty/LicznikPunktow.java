@@ -489,13 +489,14 @@ public class LicznikPunktow {
         if (!e.isFromGuild()) return;
         if (!LicznikPunktow.instance.punktyWlaczone(e.getGuild())) return;
         if (!e.getComponentId().startsWith(BUTTON_PREFIX)) return;
+        e.deferReply(true).queue();
         Member mem;
         try {
             long id = MiscUtil.parseSnowflake(e.getComponentId().substring(BUTTON_PREFIX_LENGTH));
             mem = e.getGuild().retrieveMemberById(id).complete();
         } catch (NumberFormatException | ErrorResponseException err) { return; }
-        e.replyEmbeds(StatsCommand.renderStatsEmbed(tlumaczenia,
-                tlumaczenia.getLanguage(e.getMember()), mem)).setEphemeral(true).queue();
+        e.getHook().editOriginalEmbeds(StatsCommand.renderStatsEmbed(tlumaczenia,
+                tlumaczenia.getLanguage(e.getMember()), mem)).queue();
     }
 
     public void setLock(boolean lock) {
