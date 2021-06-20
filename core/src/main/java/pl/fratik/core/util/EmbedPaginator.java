@@ -125,12 +125,11 @@ public abstract class EmbedPaginator {
     }
 
     public void create(Message message) {
-        this.message = message;
-        messageId = message.getIdLong();
         eventBus.post(new PluginMessageEvent("core", PMSTO, PMZAADD + message.getId()));
         try {
             addReactions(message.editMessage(render(1))).override(true).queue(msg -> {
                 this.message = msg;
+                messageId = msg.getIdLong();
                 if (getPageCount() != 1) {
                     waitForReaction();
                 }
@@ -301,7 +300,7 @@ public abstract class EmbedPaginator {
     }
 
     private void clearActions(Message botMsg) {
-        botMsg.editMessage(botMsg).setActionRows(Collections.emptySet()).override(true).queue();
+        botMsg.editMessageEmbeds(currentEmbed).setActionRows(Collections.emptySet()).queue();
     }
 
     public EmbedPaginator setCustomFooter(boolean customFooter) {
