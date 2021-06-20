@@ -312,6 +312,7 @@ class FratikB0T {
             logger.info("Shutdown Hook uruchomiony!");
             StatusService.setCustomPresence(OnlineStatus.DO_NOT_DISTURB,
                     Activity.playing("Wyłączanie bota w toku..."));
+            EmbedPaginator.shutdown();
             if (moduleManager != null) {
                 logger.debug("Wyłączam moduły...");
                 Iterator<String> iterator = moduleManager.getModules().keySet().iterator();
