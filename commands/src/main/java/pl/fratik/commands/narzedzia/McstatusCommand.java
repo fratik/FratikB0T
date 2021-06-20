@@ -29,7 +29,6 @@ import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.requests.restaction.MessageAction;
 import net.dv8tion.jda.api.utils.AttachmentOption;
-import net.dv8tion.jda.internal.requests.Route;
 import net.dv8tion.jda.internal.requests.restaction.MessageActionImpl;
 import net.kyori.text.serializer.legacy.LegacyComponentSerializer;
 import org.jetbrains.annotations.NotNull;
@@ -59,6 +58,7 @@ import java.util.concurrent.FutureTask;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+//todo https://www.youtube.com/watch?v=-L2o5OHTgKU - to aż błaga o rewrite
 public class McstatusCommand extends Command {
 
     public McstatusCommand() {
@@ -102,8 +102,7 @@ public class McstatusCommand extends Command {
                     eb.addField(context.getTranslated("mcstatus.embed.ip"), ip + ":" + port, false);
                     eb.setFooter(ms.getLatency() + " ms", null);
                     MessageChannel ch = context.getMessageChannel();
-                    Route.CompiledRoute route = Route.Messages.SEND_MESSAGE.compile(ch.getId());
-                    return new MesydzAkszyn("ten gorszy", ch.getJDA(), route, ch).reference(context.getMessage()).embed(eb.build());
+                    return new MesydzAkszyn("ten gorszy", ch.getJDA(), null, ch).reference(context.getMessage()).embed(eb.build());
                 } catch (Exception e) {
                     return null;
                 }
@@ -135,8 +134,7 @@ public class McstatusCommand extends Command {
                     eb.addField(context.getTranslated("mcstatus.embed.ip"), ip + ":" + port, false);
                     eb.setFooter(resp.getTime() + " ms", null);
                     MessageChannel ch = context.getMessageChannel();
-                    Route.CompiledRoute route = Route.Messages.SEND_MESSAGE.compile(ch.getId());
-                    MesydzAkszyn ma = new MesydzAkszyn("ten lepszy", ch.getJDA(), route, ch).reference(context.getMessage());
+                    MesydzAkszyn ma = new MesydzAkszyn("ten lepszy", ch.getJDA(), null, ch).reference(context.getMessage());
                     eb.setThumbnail("https://eu.mc-api.net/v3/server/favicon/" + ip + ":" + port);
                     ma = ma.embed(eb.build());
                     return ma;
@@ -290,13 +288,13 @@ public class McstatusCommand extends Command {
     private static class MesydzAkszyn extends MessageActionImpl {
         @Getter private final String name;
 
-        MesydzAkszyn(String name, JDA api, Route.CompiledRoute route, MessageChannel channel) {
-            super(api, route, channel);
+        MesydzAkszyn(String name, JDA api, String messageId, MessageChannel channel) {
+            super(api, messageId, channel);
             this.name = name;
         }
 
         MessageEmbed getEmbed() {
-            return embed;
+            return embeds.get(0);
         }
 
         Map<String, InputStream> getFiles() {

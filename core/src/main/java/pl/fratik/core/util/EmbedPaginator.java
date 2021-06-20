@@ -151,18 +151,18 @@ public abstract class EmbedPaginator {
     private MessageAction addReactions(MessageAction action) {
         if (getPageCount() == 1) return action;
         List<Button> secondRowButtons = new ArrayList<>();
-        secondRowButtons.add(Button.danger("STOP_PAGE", Emoji.ofUnicode(STOP_EMOJI)));
-        secondRowButtons.add(Button.secondary("CHOOSE_PAGE", Emoji.ofUnicode(ONETWOTHREEFOUR_EMOJI)));
-        if (enableShuffle) secondRowButtons.add(Button.secondary("SHUFFLE_PAGE", Emoji.ofUnicode(SHUFFLE_EMOJI)));
-        if (enableDelett) secondRowButtons.add(Button.danger("TRASH_PAGE", Emoji.ofUnicode(TRASH_EMOJI)));
+        secondRowButtons.add(Button.danger("STOP_PAGE", Emoji.fromUnicode(STOP_EMOJI)));
+        secondRowButtons.add(Button.secondary("CHOOSE_PAGE", Emoji.fromUnicode(ONETWOTHREEFOUR_EMOJI)));
+        if (enableShuffle) secondRowButtons.add(Button.secondary("SHUFFLE_PAGE", Emoji.fromUnicode(SHUFFLE_EMOJI)));
+        if (enableDelett) secondRowButtons.add(Button.danger("TRASH_PAGE", Emoji.fromUnicode(TRASH_EMOJI)));
         return action.setActionRows(
                 ActionRow.of(
-                        Button.secondary("FIRST_PAGE", Emoji.ofUnicode(FIRST_EMOJI)).withDisabled(pageNo == 1),
-                        Button.primary("PREV_PAGE", Emoji.ofUnicode(LEFT_EMOJI))
+                        Button.secondary("FIRST_PAGE", Emoji.fromUnicode(FIRST_EMOJI)).withDisabled(pageNo == 1),
+                        Button.primary("PREV_PAGE", Emoji.fromUnicode(LEFT_EMOJI))
                                 .withLabel(String.valueOf(Math.max(pageNo - 1, 1))).withDisabled(pageNo == 1),
-                        Button.primary("NEXT_PAGE", Emoji.ofUnicode(RIGHT_EMOJI))
+                        Button.primary("NEXT_PAGE", Emoji.fromUnicode(RIGHT_EMOJI))
                                 .withLabel(String.valueOf(Math.min(pageNo + 1, getPageCount()))).withDisabled(pageNo == getPageCount()),
-                        Button.secondary("LAST_PAGE", Emoji.ofUnicode(LAST_EMOJI)).withDisabled(pageNo == getPageCount())
+                        Button.secondary("LAST_PAGE", Emoji.fromUnicode(LAST_EMOJI)).withDisabled(pageNo == getPageCount())
                 ),
                 ActionRow.of(secondRowButtons)
         );
