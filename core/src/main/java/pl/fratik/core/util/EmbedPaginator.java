@@ -21,7 +21,6 @@ import com.google.common.eventbus.EventBus;
 import io.sentry.Sentry;
 import lombok.AccessLevel;
 import lombok.Getter;
-import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.Emoji;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageChannel;
@@ -131,6 +130,7 @@ public abstract class EmbedPaginator {
         eventBus.post(new PluginMessageEvent("core", PMSTO, PMZAADD + message.getId()));
         try {
             addReactions(message.editMessage(render(1))).override(true).queue(msg -> {
+                this.message = msg;
                 if (getPageCount() != 1) {
                     waitForReaction();
                 }
@@ -301,11 +301,7 @@ public abstract class EmbedPaginator {
     }
 
     private void clearActions(Message botMsg) {
-        MessageBuilder mb = new MessageBuilder();
-        if (!botMsg.getEmbeds().isEmpty()) mb.setEmbed(botMsg.getEmbeds().get(0));
-        mb.setContent(botMsg.getContentRaw());
-        mb.setActionRows(Collections.emptyList());
-        botMsg.editMessage(mb.build()).queue();
+        botMsg.editMessage(botMsg).setActionRows(Collections.emptySet()).override(true).queue();
     }
 
     public EmbedPaginator setCustomFooter(boolean customFooter) {
