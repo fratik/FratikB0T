@@ -31,7 +31,7 @@ sourceCompatibility = 1.8
 targetCompatibility = 1.8
 mainClassName = 'pl.fratik.core.Main'
 
-def jdaVersion = '4.2.0_232'
+def jdaVersion = '3846f8cad7'
 
 build.dependsOn shadowJar
 
@@ -42,10 +42,11 @@ repositories {
     maven { url "https://plugins.gradle.org/m2/" }
     maven { url 'https://jitpack.io' }
     maven { url 'https://oss.sonatype.org/content/repositories/snapshots/' }
+    maven { url 'https://m2.dv8tion.net/releases' }
 }
 
 dependencies {
-    compile 'net.dv8tion:JDA:' + jdaVersion
+    compile 'com.github.dv8fromtheworld:JDA:' + jdaVersion
     compile 'com.intellij:annotations:+@jar'
     compile 'com.fasterxml.jackson.core:jackson-databind:2.10.1'
     compile 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.10.1'

@@ -28,6 +28,7 @@ import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
+import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import pl.fratik.core.Ustawienia;
 import pl.fratik.core.entity.ArgsMissingException;
@@ -39,6 +40,7 @@ import javax.annotation.CheckReturnValue;
 import javax.annotation.Nullable;
 import java.awt.*;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
@@ -170,6 +172,14 @@ public class CommandContext {
         return reply(message, true);
     }
 
+    public Message reply(CharSequence message, Collection<ActionRow> actionRows) {
+        return reply(message, true, actionRows.toArray(new ActionRow[0]));
+    }
+
+    public Message reply(CharSequence message, ActionRow... actionRows) {
+        return reply(message, true, actionRows);
+    }
+
     private boolean isUnknownMessage(Throwable e) {
         if (!(e instanceof ErrorResponseException)) return false;
         ErrorResponseException h = (ErrorResponseException) e;
@@ -177,6 +187,15 @@ public class CommandContext {
     }
 
     public Message reply(CharSequence message, boolean checkUrl) {
+        return reply(message, checkUrl, (ActionRow[]) null);
+    }
+
+    public Message reply(CharSequence message, boolean checkUrl, Collection<ActionRow> actionRows) {
+        return reply(message, checkUrl, actionRows == null ? null : actionRows.toArray(new ActionRow[0]));
+    }
+
+    public Message reply(CharSequence message, boolean checkUrl, ActionRow... actionRows) {
+        if (actionRows == null) actionRows = new ActionRow[0];
         if (checkUrl && URLPATTERN.matcher(message).matches()) {
             Exception blad = new Exception("Odpowiedź zawiera link!");
             Sentry.getContext().setUser(new io.sentry.event.User(getSender().getId(),
@@ -187,20 +206,30 @@ public class CommandContext {
         }
         try {
             if (!event.isFromGuild() || !event.getGuild().getSelfMember().hasPermission(event.getTextChannel(),
-                    Permission.MESSAGE_HISTORY)) return event.getChannel().sendMessage(message).complete();
-            return event.getChannel().sendMessage(message).reference(getMessage()).complete();
+                    Permission.MESSAGE_HISTORY)) return event.getChannel().sendMessage(message)
+                    .setActionRows(actionRows).complete();
+            return event.getChannel().sendMessage(message).setActionRows(actionRows).reference(getMessage()).complete();
         } catch (ErrorResponseException e) {
-            if (isUnknownMessage(e)) return event.getChannel().sendMessage(message).complete();
+            if (isUnknownMessage(e)) return event.getChannel().sendMessage(message).setActionRows(actionRows).complete();
             throw e;
         }
     }
 
     //    @Deprecated
     public Message reply(MessageEmbed message) {
+        return reply(message, (ActionRow[]) null);
+    }
+
+    public Message reply(MessageEmbed message, Collection<ActionRow> actionRows) {
+        return reply(message, actionRows == null ? null : actionRows.toArray(new ActionRow[0]));
+    }
+
+    public Message reply(MessageEmbed message, ActionRow... actionRows) {
+        if (actionRows == null) actionRows = new ActionRow[0];
         try {
-            return event.getChannel().sendMessage(message).reference(getMessage()).complete();
+            return event.getChannel().sendMessage(message).reference(getMessage()).setActionRows(actionRows).complete();
         } catch (ErrorResponseException e) {
-            if (isUnknownMessage(e)) return event.getChannel().sendMessage(message).complete();
+            if (isUnknownMessage(e)) return event.getChannel().sendMessage(message).setActionRows(actionRows).complete();
             throw e;
         }
     }

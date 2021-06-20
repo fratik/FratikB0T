@@ -22,8 +22,11 @@ import com.google.common.eventbus.Subscribe;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.User;
-import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
+import net.dv8tion.jda.api.events.interaction.ButtonClickEvent;
+import net.dv8tion.jda.api.interactions.components.ActionRow;
+import net.dv8tion.jda.api.interactions.components.Button;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.commands.entity.Priv;
@@ -34,12 +37,13 @@ import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
+import pl.fratik.core.util.ButtonWaiter;
 import pl.fratik.core.util.CommonErrors;
 import pl.fratik.core.util.EventWaiter;
-import pl.fratik.core.util.ReactionWaiter;
 import pl.fratik.core.util.StringUtil;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -51,8 +55,6 @@ public class ZglosPrivCommand extends Command {
     private final EventBus eventBus;
     private final ShardManager shardManager;
     private final Tlumaczenia tlumaczenia;
-    private static final String POTW = "\u2705";
-    private static final String ODRZ = "\u274c";
 
     public ZglosPrivCommand(PrivDao privDao, EventWaiter eventWaiter, EventBus eventBus, ShardManager shardManager, Tlumaczenia tlumaczenia) {
         this.privDao = privDao;
@@ -108,23 +110,21 @@ public class ZglosPrivCommand extends Command {
             return false;
         }
         Message msg = context.getMessageChannel().sendMessage(context.getTranslated("zglospriv.confirmation"))
+                .setActionRows(ActionRow.of(
+                        Button.danger("YES", context.getTranslated("generic.yes")),
+                        Button.secondary("NO", context.getTranslated("generic.no"))
+                ))
                 .reference(context.getMessage()).complete();
-        msg.addReaction(POTW).queue();
-        msg.addReaction(ODRZ).queue();
-        ReactionWaiter waiter = new ReactionWaiter(eventWaiter, context) {
-            @Override
-            protected boolean checkReaction(MessageReactionAddEvent event) {
-                return super.checkReaction(event) && !event.getReactionEmote().isEmote() &&
-                        (event.getReactionEmote().getName().equals(POTW) ||
-                                event.getReactionEmote().getName().equals(ODRZ));
-            }
-        };
-        Runnable cancel = () -> context.reply(context.getTranslated("zglospriv.cancelled"));
-        waiter.setTimeoutHandler(cancel);
+        ButtonWaiter waiter = new ButtonWaiter(eventWaiter, context, msg.getIdLong(), ButtonWaiter.ResponseType.REPLY);
+        waiter.setTimeoutHandler(() -> {
+            msg.editMessage(msg.getContentRaw()).setActionRows(Collections.emptySet()).queue();
+            context.reply(context.getTranslated("zglospriv.cancelled"));
+        });
         String finalPowod = powod;
-        waiter.setReactionHandler(e -> {
-            if (e.getReactionEmote().getName().equals(ODRZ)) {
-                cancel.run();
+        waiter.setButtonHandler(e -> {
+            msg.editMessage(msg.getContentRaw()).setActionRows(Collections.emptySet()).queue();
+            if (e.getComponentId().equals("NO")) {
+                e.getHook().editOriginal(context.getTranslated("zglospriv.cancelled")).queue();
                 return;
             }
             User odKogo = shardManager.getUserById(priv.getOdKogo());
@@ -138,59 +138,55 @@ public class ZglosPrivCommand extends Command {
             eb.addField("Powód nadużycia", finalPowod.length() >= 1000 ? "[Powód za długi]("
                     + StringUtil.haste(finalPowod) + ")" : finalPowod, false);
             eb.addField("Osoba jest tymczasowo zablokowana", "z używania fb!priv.", false);
-            eb.addField("Aby uniewinnić zgłoszoną osobę", "użyj \u2705", false);
             eb.addField("Aby ukarać zgłoszoną osobę", "użyj \u2757 i podejmij właściwą akcję" +
                     " (gban albo blacklistpriv)", false);
             eb.addField("ID osoby zgłaszającej", context.getSender().getId(), false);
             eb.setFooter(id, null);
-            Objects.requireNonNull(botgild.getRoleById(Ustawienia.instance.popRole))
-                    .getManager().setMentionable(true).complete();
-            Message msgpop = Objects.requireNonNull(shardManager.getTextChannelById(Ustawienia.instance
-                    .zglosPrivChannel)).sendMessage(eb.build()).complete();
-            msgpop.addReaction(POTW).queue();
-            msgpop.addReaction("\u2757").queue();
-            Objects.requireNonNull(botgild.getRoleById(Ustawienia.instance.popRole)).getManager().setMentionable(false)
-                    .complete();
+            Role popRole = Objects.requireNonNull(botgild.getRoleById(Ustawienia.instance.popRole));
+            popRole.getManager().setMentionable(true).complete();
+            Objects.requireNonNull(shardManager.getTextChannelById(Ustawienia.instance.zglosPrivChannel))
+                    .sendMessage(popRole.getAsMention()).mention(popRole).embed(eb.build()).setActionRows(
+                            ActionRow.of(
+                                    Button.success("CLOSE", "Uniewinnij"),
+                                    Button.danger("ACTION", "Ukarz (po wciśnięciu " +
+                                            "wykonaj odpowiednią komendę (gban albo blacklistpriv) na innym kanalę)")
+                            )).complete();
+            popRole.getManager().setMentionable(false).complete();
             priv.setZgloszone(true);
             privDao.save(priv);
-            context.reply(context.getTranslated("zglospriv.success"));
+            e.getHook().editOriginal(context.getTranslated("zglospriv.success")).queue();
         });
         waiter.create();
         return true;
     }
 
     @Subscribe
-    private void onReactionAdd(MessageReactionAddEvent e) {
+    private void onButtonClick(ButtonClickEvent e) {
         if (!e.getChannel().getId().equals(Ustawienia.instance.zglosPrivChannel)) return;
-        if (e.getReactionEmote().isEmote()) return;
-        if (e.getUser() != null && e.getUser().isBot()) return;
-        String s = e.getReactionEmote().getName();
-        if (POTW.equals(s)) {
+        if (e.getUser().isBot()) return;
+        if (e.getComponentId().equals("CLOSE")) {
             Message msg = e.getChannel().retrieveMessageById(e.getMessageId()).complete();
             if (msg.getEmbeds().isEmpty() || !msg.getAuthor().equals(e.getJDA().getSelfUser())) return;
             Priv priv = privDao.get(Objects.requireNonNull(msg.getEmbeds().get(0).getFooter()).getText());
             priv.setZgloszone(false);
             privDao.save(priv);
+            e.deferEdit().queue();
             msg.delete().queue();
             shardManager.retrieveUserById(priv.getDoKogo()).complete().openPrivateChannel().complete()
                     .sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(shardManager.retrieveUserById
                             (priv.getDoKogo()).complete()), "zglospriv.response1", priv.getId())).queue();
-        } else if ("\u2757".equals(s)) {
+        } else if (e.getComponentId().equals("ACTION")) {
             Message msg = e.getChannel().retrieveMessageById(e.getMessageId()).complete();
             if (msg.getEmbeds().isEmpty() || !msg.getAuthor().equals(e.getJDA().getSelfUser())) return;
             Priv priv = privDao.get(Objects.requireNonNull(msg.getEmbeds().get(0).getFooter()).getText());
             priv.setZgloszone(false);
             privDao.save(priv);
+            e.reply("Podejmij akcje na jakimkolwiek kanale. Zgłoszenie zostaje zapisane jako rozwiązane za minutę.")
+                    .setEphemeral(true).queue();
             msg.delete().queue();
-            Message msg2 = e.getChannel().sendMessage(e.getUser().getAsMention() +
-                    " podejmij akcje na jakimkolwiek kanale. Zgłoszenie zostaje zapisane jako rozwiązane za minutę.")
-                    .complete();
-            msg2.delete().queueAfter(1, TimeUnit.MINUTES, woid -> {
-                msg.delete().queue();
-                shardManager.retrieveUserById(priv.getDoKogo()).complete().openPrivateChannel().complete()
-                        .sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(shardManager.retrieveUserById
-                                (priv.getDoKogo()).complete()), "zglospriv.response2", priv.getId())).queue();
-            });
+            shardManager.retrieveUserById(priv.getDoKogo()).complete().openPrivateChannel().complete()
+                    .sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(shardManager.retrieveUserById
+                            (priv.getDoKogo()).complete()), "zglospriv.response2", priv.getId())).queueAfter(1, TimeUnit.MINUTES);
         }
     }
 }

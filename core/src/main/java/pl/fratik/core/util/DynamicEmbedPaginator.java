@@ -18,17 +18,12 @@
 package pl.fratik.core.util;
 
 import com.google.common.eventbus.EventBus;
-import io.sentry.Sentry;
-import lombok.Getter;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.entities.*;
-import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
-import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
-import net.dv8tion.jda.api.exceptions.PermissionException;
-import net.dv8tion.jda.api.requests.restaction.MessageAction;
+import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.entities.User;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pl.fratik.core.event.PluginMessageEvent;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 
@@ -36,55 +31,28 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.*;
 
-public class DynamicEmbedPaginator implements EmbedPaginator {
-    private static final String FIRST_EMOJI = "\u23EE";
-    private static final String LEFT_EMOJI = "\u25C0";
-    private static final String RIGHT_EMOJI = "\u25B6";
-    private static final String LAST_EMOJI = "\u23ED";
-    private static final String STOP_EMOJI = "\u23F9";
-    private static final String ONETWOTHREEFOUR_EMOJI = "\uD83D\uDD22";
-    private static final String SHUFFLE_EMOJI = "\uD83D\uDD00";
-    private static final String TRASH_EMOJI = "\uD83D\uDDD1";
-
-    private final EventWaiter eventWaiter;
-    private final List<FutureTask<EmbedBuilder>> pages;
-    private final EventBus eventBus;
-    private int pageNo = 1;
-    private volatile Message message;
-    private Message doKtorej;
-    private long messageId = 0;
-    private final long userId;
-    private final Language language;
-    private final Tlumaczenia tlumaczenia;
-    private boolean customFooter;
-    private boolean enableShuffle;
-    private boolean enableDelett;
-    private long timeout = 30;
-    private boolean loading = true;
-    private boolean ended = false;
-    private boolean preload = true;
-    private static final String PMSTO = "moderation";
-    private static final String PMZAADD = "znaneAkcje-add:";
+public class DynamicEmbedPaginator extends EmbedPaginator {
     private static final ExecutorService mainExecutor = Executors.newFixedThreadPool(4);
     private static final Logger LOGGER = LoggerFactory.getLogger(DynamicEmbedPaginator.class);
+
+    private final List<FutureTask<EmbedBuilder>> pages;
+    private final boolean preload;
 
     static {
         Runtime.getRuntime().addShutdownHook(new Thread(mainExecutor::shutdown));
     }
+
+    private boolean loading;
 
     public DynamicEmbedPaginator(EventWaiter eventWaiter, List<FutureTask<EmbedBuilder>> pages, User user, Language language, Tlumaczenia tlumaczenia, EventBus eventBus) {
         this(eventWaiter, pages, user, language, tlumaczenia, eventBus, true);
     }
 
     public DynamicEmbedPaginator(EventWaiter eventWaiter, List<FutureTask<EmbedBuilder>> pages, User user, Language language, Tlumaczenia tlumaczenia, EventBus eventBus, boolean preload) {
+        super(eventBus, eventWaiter, user.getIdLong(), language, tlumaczenia);
         this.preload = preload;
-        this.eventWaiter = eventWaiter;
         this.pages = pages;
-        this.eventBus = eventBus;
         if (pages.isEmpty()) throw new IllegalArgumentException("brak stron");
-        this.userId = user.getIdLong();
-        this.language = language;
-        this.tlumaczenia = tlumaczenia;
         if (this.preload) {
             mainExecutor.submit(() -> {
                 LOGGER.debug("Zaczynam pobieranie stron...");
@@ -109,156 +77,10 @@ public class DynamicEmbedPaginator implements EmbedPaginator {
         } else loading = false;
     }
 
-    @Override
-    public void create(MessageChannel channel, String referenceMessageId) {
-        try {
-            MessageAction action = channel.sendMessage(render(1));
-            if (referenceMessageId != null) action = action.referenceById(referenceMessageId);
-            action.override(true).queue(msg -> {
-                message = msg;
-                messageId = msg.getIdLong();
-                if (pages.size() != 1) {
-                    addReactions(msg);
-                    waitForReaction();
-                }
-            });
-        } catch (LoadingException ignored) {
-        }
-    }
 
     @Override
-    public void create(Message message) {
-        this.message = message;
-        messageId = message.getIdLong();
-        eventBus.post(new PluginMessageEvent("core", PMSTO, PMZAADD + message.getId()));
-        try {
-            message.editMessage(render(1)).override(true).queue(msg -> {
-                if (pages.size() != 1) {
-                    addReactions(msg);
-                    waitForReaction();
-                }
-            });
-        } catch (LoadingException ignored) {
-        }
-    }
-
-    private void addReactions(Message message) {
-        message.addReaction(FIRST_EMOJI).queue();
-        message.addReaction(LEFT_EMOJI).queue();
-        message.addReaction(RIGHT_EMOJI).queue();
-        message.addReaction(LAST_EMOJI).queue();
-        message.addReaction(STOP_EMOJI).queue();
-        message.addReaction(ONETWOTHREEFOUR_EMOJI).queue();
-        if (enableShuffle) message.addReaction(SHUFFLE_EMOJI).queue();
-        if (enableDelett) message.addReaction(TRASH_EMOJI).queue();
-    }
-
-    private void waitForReaction() {
-        eventWaiter.waitForEvent(MessageReactionAddEvent.class, this::checkReaction,
-                this::handleReaction, timeout, TimeUnit.SECONDS, this::clearReactions);
-    }
-
-    private boolean checkReaction(MessageReactionAddEvent event) {
-        if (event.getMessageIdLong() == messageId && !event.getReactionEmote().isEmote()) {
-            switch (event.getReactionEmote().getName()) {
-                case FIRST_EMOJI:
-                case LEFT_EMOJI:
-                case RIGHT_EMOJI:
-                case LAST_EMOJI:
-                case STOP_EMOJI:
-                case ONETWOTHREEFOUR_EMOJI:
-                    return event.getUser().getIdLong() == userId;
-                case SHUFFLE_EMOJI:
-                    return enableShuffle && event.getUser().getIdLong() == userId;
-                case TRASH_EMOJI:
-                    return enableDelett && event.getUser().getIdLong() == userId;
-                default:
-                    return false;
-            }
-        }
-        return false;
-    }
-
-    private void handleReaction(MessageReactionAddEvent event) {
-        final int oldPageNo = pageNo;
-        if (!event.getReactionEmote().isEmote()) {
-            switch (event.getReactionEmote().getName()) {
-                case FIRST_EMOJI:
-                    pageNo = 1;
-                    break;
-                case LEFT_EMOJI:
-                    if (pageNo > 1) pageNo--;
-                    break;
-                case RIGHT_EMOJI:
-                    if (pageNo < pages.size()) pageNo++;
-                    break;
-                case LAST_EMOJI:
-                    pageNo = pages.size();
-                    break;
-                case STOP_EMOJI:
-                    clearReactions();
-                    return;
-                case ONETWOTHREEFOUR_EMOJI:
-                    doKtorej = event.getChannel().sendMessage(tlumaczenia.get(language, "paginator.waiting.for.pageno")).complete();
-                    eventWaiter.waitForEvent(MessageReceivedEvent.class, this::checkMessage,
-                            this::handleMessage, timeout, TimeUnit.SECONDS, this::clearReactions);
-                    return;
-                case SHUFFLE_EMOJI:
-                    pageNo = ThreadLocalRandom.current().nextInt(pages.size()) + 1;
-                    break;
-                case TRASH_EMOJI:
-                    clearReactions(true);
-                    return;
-                default: return;
-            }
-        }
-
-        try {
-            event.getReaction().removeReaction(event.getUser()).queue();
-        } catch (PermissionException ignored) {/*lul*/}
-
-        eventBus.post(new PluginMessageEvent("core", PMSTO, PMZAADD + message.getId()));
-        try {
-            message.editMessage(render(pageNo)).override(true).queue(msg -> waitForReaction());
-        } catch (LoadingException e) {
-            pageNo = oldPageNo;
-            message.editMessage(render(pageNo)).override(true).queue(msg -> waitForReaction());
-        }
-    }
-
-    private void handleMessage(MessageReceivedEvent event) {
-        final int oldPageNo = pageNo;
-        pageNo = Integer.parseInt(event.getMessage().getContentRaw());
-        eventBus.post(new PluginMessageEvent("core", PMSTO, PMZAADD + doKtorej.getId()));
-        doKtorej.delete().queue();
-        doKtorej = null;
-        eventBus.post(new PluginMessageEvent("core", PMSTO, PMZAADD + event.getMessage().getId()));
-        event.getMessage().delete().queue();
-        try {
-            message.editMessage(render(pageNo)).override(true).queue(msg -> waitForReaction());
-        } catch (LoadingException e) {
-            pageNo = oldPageNo;
-            message.editMessage(render(pageNo)).override(true).queue(msg -> waitForReaction());
-        }
-        try {
-            MessageReaction reac = event.getMessage().getReactions().stream()
-                    .filter(r -> r.getReactionEmote().isEmoji() && r.getReactionEmote().getEmoji().equals(STOP_EMOJI))
-                    .findFirst().orElse(null);
-            Objects.requireNonNull(reac).removeReaction(event.getAuthor()).queue(null, a -> {});
-        } catch (Exception ignored) {/*lul*/}
-    }
-
-    private boolean checkMessage(MessageReceivedEvent e) {
-        try {
-            return (Integer.parseInt(e.getMessage().getContentRaw()) >= 1 && Integer.parseInt(e.getMessage().getContentRaw()) <= pages.size()) &&
-            e.isFromGuild() && e.getTextChannel().equals(message.getTextChannel())
-                    && e.getAuthor().getIdLong() == userId;
-        } catch (Exception ignored) {
-            return false;
-        }
-    }
-
-    private MessageEmbed render(int page) {
+    @NotNull
+    protected MessageEmbed render(int page) throws LoadingException {
         FutureTask<EmbedBuilder> pageEmbed = pages.get(page - 1);
         EmbedBuilder eb;
         if (!pageEmbed.isDone()) mainExecutor.submit(pageEmbed);
@@ -273,27 +95,12 @@ public class DynamicEmbedPaginator implements EmbedPaginator {
                 eb = new EmbedBuilder(pEmbed.build());
             }
         } catch (TimeoutException e) {
-            message.getChannel().sendMessage(tlumaczenia.get(language, "generic.lazyloading"))
-                    .queue(m -> m.delete().queueAfter(5, TimeUnit.SECONDS));
-            throw new LoadingException();
+            throw new LoadingException(false, true, null);
         } catch (ExecutionException e) {
-            Sentry.getContext().setUser(new io.sentry.event.User(String.valueOf(userId), null,
-                    null, null));
-            Sentry.capture(e);
-            LOGGER.error("Ładowanie strony nawaliło", e);
-            if (page == 1) {
-                message.getChannel()
-                        .sendMessage(tlumaczenia.get(language, "generic.dynamicembedpaginator.errorone")).queue();
-                throw new LoadingException(true);
-            }
-            message.getChannel().sendMessage(tlumaczenia.get(language, "generic.dynamicembedpaginator.error"))
-                    .queue(m -> m.delete().queueAfter(5, TimeUnit.SECONDS));
-            Sentry.clearContext();
-            throw new LoadingException();
-        } catch (RuntimeException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new LoadingException(page == 1, false, e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new LoadingException(false, true, null);
         }
         if (!customFooter) {
             eb.setFooter(String.format("%s/%s", page, pages.size()), null);
@@ -315,62 +122,20 @@ public class DynamicEmbedPaginator implements EmbedPaginator {
         return eb.build();
     }
 
-    private void clearReactions() {
-        clearReactions(false);
-    }
-
-    private void clearReactions(boolean delett) {
-        ended = true;
-        try {
-            if (doKtorej != null) {
-                eventBus.post(new PluginMessageEvent("core", PMSTO, PMZAADD + doKtorej.getId()));
-                doKtorej.delete().queue();
-            }
-            if (delett) {
-                eventBus.post(new PluginMessageEvent("core", PMSTO, PMZAADD + message.getId()));
-                message.delete().queue();
-            } else message.clearReactions().queue();
-        } catch (PermissionException ignored) {/*lul*/}
-    }
-
     @Override
-    public DynamicEmbedPaginator setCustomFooter(boolean customFooter) {
-        this.customFooter = customFooter;
-        return this;
-    }
-
-    public DynamicEmbedPaginator setEnableShuffle(boolean enableShuffle) {
-        this.enableShuffle = enableShuffle;
-        return this;
-    }
-
-    public DynamicEmbedPaginator setEnableDelett(boolean enableDelett) {
-        this.enableDelett = enableDelett;
-        return this;
-    }
-
-    public DynamicEmbedPaginator setTimeout(long timeout) {
-        this.timeout = timeout;
-        return this;
+    protected int getPageCount() {
+        return pages.size();
     }
 
     private void loaded() {
         this.loading = false;
-        long waitUntil = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(5);
+        long waitUntil = System.currentTimeMillis() + 5000;
         //noinspection StatementWithEmptyBody
         while (message == null && System.currentTimeMillis() < waitUntil); // czekamy aż będzie wiadomość, max 5s
-        message.editMessage(render(pageNo)).override(true).queue();
-    }
-
-    private static class LoadingException extends RuntimeException {
-        @Getter private final boolean firstPage;
-
-        LoadingException() {
-            this(false);
-        }
-
-        LoadingException(boolean firstPage) {
-            this.firstPage = firstPage;
+        try {
+            rerender();
+        } catch (LoadingException ignored) {
+            // nie w tej implementacji
         }
     }
 }

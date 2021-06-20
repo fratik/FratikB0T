@@ -23,8 +23,9 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.User;
-import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
+import net.dv8tion.jda.api.interactions.components.ActionRow;
+import net.dv8tion.jda.api.interactions.components.Button;
 import net.dv8tion.jda.api.requests.ErrorResponse;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
@@ -36,9 +37,9 @@ import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Kara;
 import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.manager.ManagerKomend;
+import pl.fratik.core.util.ButtonWaiter;
 import pl.fratik.core.util.ClassicEmbedPaginator;
 import pl.fratik.core.util.EventWaiter;
-import pl.fratik.core.util.ReactionWaiter;
 import pl.fratik.core.util.UserUtil;
 import pl.fratik.moderation.entity.Case;
 import pl.fratik.moderation.entity.CaseRow;
@@ -46,6 +47,7 @@ import pl.fratik.moderation.entity.CasesDao;
 import pl.fratik.moderation.utils.ModLogBuilder;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -69,10 +71,8 @@ public class AkcjeCommand extends ModerationCommand {
         this.guildDao = guildDao;
         name = "akcje";
         aliases = new String[] {"administracyjne", "adm", "listawarnow", "listakickow", "listabanow", "ostrzezenia", "kicki", "bany", "ilewarnów"};
-        permissions.add(Permission.MESSAGE_MANAGE);
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         permissions.add(Permission.MESSAGE_HISTORY);
-        permissions.add(Permission.MESSAGE_ADD_REACTION);
         category = CommandCategory.MODERATION;
         uzycieDelim = " ";
         uzycie = new Uzycie("czlonek", "user");
@@ -182,30 +182,26 @@ public class AkcjeCommand extends ModerationCommand {
             context.reply(context.getTranslated("akcje.reset.perms"));
             return false;
         }
-        Message msg = context.reply(context.getTranslated("akcje.reset.confirmation"));
-        msg.addReaction("\u2705").completeAfter(5, TimeUnit.SECONDS);
-        msg.addReaction("\u274c").queue();
-        ReactionWaiter waiter = new ReactionWaiter(eventWaiter, context) {
-            @Override
-            protected boolean checkReaction(MessageReactionAddEvent event) {
-                return super.checkReaction(event) && !event.getReactionEmote().isEmote() &&
-                        (event.getReactionEmote().getName().equals("\u2705") ||
-                                event.getReactionEmote().getName().equals("\u274c"));
-            }
-        };
-        Runnable anuluj = () -> context.send(context.getTranslated("akcje.reset.cancelled"));
-        waiter.setTimeoutHandler(anuluj);
-        waiter.setReactionHandler(e -> {
-            if (!e.getReactionEmote().getName().equals("\u2705")) {
-                anuluj.run();
+        Message msg = context.reply(context.getTranslated("akcje.reset.confirmation"), ActionRow.of(
+                Button.danger("YES", context.getTranslated("generic.yes")),
+                Button.secondary("NO", context.getTranslated("generic.no"))
+        ));
+        ButtonWaiter waiter = new ButtonWaiter(eventWaiter, context, msg.getIdLong(), ButtonWaiter.ResponseType.REPLY);
+        waiter.setTimeoutHandler(() -> {
+            msg.editMessage(msg.getContentRaw()).setActionRows(Collections.emptySet()).queue();
+            context.send(context.getTranslated("akcje.reset.cancelled"));
+        });
+        waiter.setButtonHandler(e -> {
+            msg.editMessage(msg.getContentRaw()).setActionRows(Collections.emptySet()).queue();
+            if (!e.getComponentId().equals("YES")) {
+                e.getHook().editOriginal(context.getTranslated("akcje.reset.cancelled")).queue();
                 return;
             }
-            Message m = context.reply(context.getTranslated("akcje.reset.in.progress"));
             try {
                 CaseRow cd = casesDao.get(context.getGuild());
                 cd.setCases(new ArrayList<>());
                 casesDao.save(cd);
-                m.editMessage(context.getTranslated("akcje.reset.complete")).completeAfter(1, TimeUnit.SECONDS);
+                e.getHook().editOriginal(context.getTranslated("akcje.reset.complete")).completeAfter(1, TimeUnit.SECONDS);
             } catch (ErrorResponseException err) {
                 if (err.getErrorResponse() == ErrorResponse.UNKNOWN_MESSAGE) {
                     context.reply(context.getTranslated("akcje.reset.complete"));
@@ -218,14 +214,14 @@ public class AkcjeCommand extends ModerationCommand {
                 Sentry.capture(err);
                 Sentry.clearContext();
                 try {
-                    m.editMessage(context.getTranslated("akcje.reset.error")).complete();
+                    e.getHook().editOriginal(context.getTranslated("akcje.reset.error")).complete();
                 } catch (ErrorResponseException ed) {
                     if (ed.getErrorResponse() == ErrorResponse.UNKNOWN_MESSAGE) {
                         context.reply(context.getTranslated("akcje.reset.error"));
                         return;
                     }
-                    throw err;
                 }
+                throw err;
             }
         });
         waiter.create();
