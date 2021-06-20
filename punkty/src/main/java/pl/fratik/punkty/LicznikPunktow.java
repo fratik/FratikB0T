@@ -319,23 +319,28 @@ public class LicznikPunktow {
         Role rola;
         if (rolaStr != null) rola = event.getMember().getGuild().getRoleById(rolaStr);
         else rola = null;
+        Language l = tlumaczenia.getLanguage(event.getMember());
+        ActionRow ar = ActionRow.of(Button.success(BUTTON_PREFIX + event.getMember().getId(),
+                tlumaczenia.get(l, "generic.lvlup.button")));
         if (rola == null) {
-            Language l = tlumaczenia.getLanguage(event.getMember());
             if (!uc.isLvlUpOnDM()) {
-                ActionRow ar = ActionRow.of(Button.success(BUTTON_PREFIX + event.getMember().getId(),
-                        tlumaczenia.get(l, "generic.lvlup.button")));
                 try {
                     String channelId = gc.getLvlupMessagesCustomChannel();
                     MessageChannel ch = null;
                     if (channelId != null && !channelId.isEmpty()) ch = shardManager.getTextChannelById(channelId);
                     if (ch == null) ch = event.getChannel();
+                    else {
+                        l = tlumaczenia.getLanguage(event.getMember().getGuild());
+                        ar = ActionRow.of(Button.success(BUTTON_PREFIX + event.getMember().getId(),
+                                tlumaczenia.get(l, "generic.lvlup.button")));
+                    }
                     if (!uc.isLvlupMessages() || !gc.isLvlUpNotify()) return;
                     if (gc.getLvlUpMessage() != null && !gc.getLvlUpMessage().isEmpty())  {
                         ch.sendMessage(gc.getLvlUpMessage()
-                                .replaceAll("\\{\\{mention}}", event.getMember().getUser().getAsMention())
-                                .replaceAll("\\{\\{user}}", UserUtil.formatDiscrim(event.getMember()))
-                                .replaceAll("\\{\\{level}}", String.valueOf(event.getLevel()))
-                                .replaceAll("\\{\\{guild}}", event.getMember().getGuild().getName()))
+                                .replace("{{mention}}", event.getMember().getUser().getAsMention())
+                                .replace("{{user}}", UserUtil.formatDiscrim(event.getMember()))
+                                .replace("{{level}}", String.valueOf(event.getLevel()))
+                                .replace("{{guild}}", event.getMember().getGuild().getName()))
                                 .setActionRows(ar)
                                 .queue(null, kurwa -> {});
                     } else {
@@ -348,9 +353,9 @@ public class LicznikPunktow {
                 }
             } else if (uc.isLvlupMessages() && gc.isLvlUpNotify()) {
                 try {
-                    event.getMember().getUser().openPrivateChannel().queue(e -> e.sendMessage(tlumaczenia.get(l,
-                            "generic.lvlup.dm", event.getLevel(), event.getMember().getGuild().getName(), prefix)
-                    ).complete());
+                    String text = tlumaczenia.get(l,
+                            "generic.lvlup.dm", event.getLevel(), event.getMember().getGuild().getName(), prefix);
+                    event.getMember().getUser().openPrivateChannel().flatMap(e -> e.sendMessage(text)).queue(null, nie -> {});
                 } catch (Exception e) {
                     // lol
                 }
@@ -358,28 +363,27 @@ public class LicznikPunktow {
             return;
         }
         try {
+            Language finalLang = l;
+            ActionRow finalAr = ar;
             event.getMember().getGuild()
                     .addRoleToMember(event.getMember(), rola)
                     .queue(ignored -> {
                         if (event.getChannel() instanceof TextChannel && !((TextChannel) event.getChannel()).canTalk())
                             return;
-                        Language l = tlumaczenia.getLanguage(event.getMember());
-                        event.getChannel().sendMessage(tlumaczenia.get(l,
+                        event.getChannel().sendMessage(tlumaczenia.get(finalLang,
                                 "generic.lvlup.withrole", event.getMember().getUser().getName(),
-                                rola.getName(), event.getLevel())).queue();
+                                rola.getName(), event.getLevel())).setActionRows(finalAr).queue();
                     }, throwable -> {
                         if (event.getChannel() instanceof TextChannel && !((TextChannel) event.getChannel()).canTalk())
                             return;
-                        Language l = tlumaczenia.getLanguage(event.getMember());
-                        event.getChannel().sendMessage(tlumaczenia.get(l,
+                        event.getChannel().sendMessage(tlumaczenia.get(finalLang,
                                 "generic.lvlup.withrole.failed", event.getMember().getUser().getName(),
-                                rola.getName(), event.getLevel())).queue();
+                                rola.getName(), event.getLevel())).setActionRows(finalAr).queue();
                     });
         } catch (Exception e) {
-            Language l = tlumaczenia.getLanguage(event.getMember());
             event.getChannel().sendMessage(tlumaczenia.get(l,
                     "generic.lvlup.withrole.failed", event.getMember().getUser().getName(),
-                    rola.getName(), event.getLevel())).queue();
+                    rola.getName(), event.getLevel())).setActionRows(ar).queue();
         }
     }
 
