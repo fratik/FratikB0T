@@ -22,8 +22,13 @@ import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import io.sentry.Sentry;
 import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.events.interaction.ButtonClickEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.exceptions.ErrorResponseException;
+import net.dv8tion.jda.api.interactions.components.ActionRow;
+import net.dv8tion.jda.api.interactions.components.Button;
 import net.dv8tion.jda.api.sharding.ShardManager;
+import net.dv8tion.jda.api.utils.MiscUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.Ustawienia;
@@ -44,6 +49,7 @@ import pl.fratik.core.util.TimeUtil;
 import pl.fratik.core.util.UserUtil;
 import pl.fratik.punkty.entity.PunktyDao;
 import pl.fratik.punkty.entity.PunktyRow;
+import pl.fratik.punkty.komendy.StatsCommand;
 import redis.clients.jedis.exceptions.JedisException;
 
 import java.io.IOException;
@@ -57,6 +63,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class LicznikPunktow {
+    private static final String BUTTON_PREFIX = "Punkty::Statystyki:";
+    private static final int BUTTON_PREFIX_LENGTH = BUTTON_PREFIX.length();
+
     private static LicznikPunktow instance;
     private final Logger log = LoggerFactory.getLogger(LicznikPunktow.class);
     private final ScheduledExecutorService threadPool;
@@ -313,6 +322,8 @@ public class LicznikPunktow {
         if (rola == null) {
             Language l = tlumaczenia.getLanguage(event.getMember());
             if (!uc.isLvlUpOnDM()) {
+                ActionRow ar = ActionRow.of(Button.success(BUTTON_PREFIX + event.getMember().getId(),
+                        tlumaczenia.get(l, "generic.lvlup.button")));
                 try {
                     String channelId = gc.getLvlupMessagesCustomChannel();
                     MessageChannel ch = null;
@@ -325,11 +336,12 @@ public class LicznikPunktow {
                                 .replaceAll("\\{\\{user}}", UserUtil.formatDiscrim(event.getMember()))
                                 .replaceAll("\\{\\{level}}", String.valueOf(event.getLevel()))
                                 .replaceAll("\\{\\{guild}}", event.getMember().getGuild().getName()))
+                                .setActionRows(ar)
                                 .queue(null, kurwa -> {});
                     } else {
                         ch.sendMessage(tlumaczenia.get(l,
                                 "generic.lvlup.channel", event.getMember().getUser().getName(),
-                                event.getLevel(), prefix)).queue(null, kurwa -> {});
+                                event.getLevel(), prefix)).setActionRows(ar).queue(null, kurwa -> {});
                     }
                 } catch (Exception e) {
                     /*lul*/
@@ -379,12 +391,12 @@ public class LicznikPunktow {
                 return;
             }
             lock = true;
-            HashMap<User, Integer> punktyUzytkownika = new HashMap<>();
-            HashMap<Guild, Integer> punktySerwera = new HashMap<>();
             if (cache.asMap().size() == 0) {
                 lock = false;
                 return;
             }
+            HashMap<User, Integer> punktyUzytkownika = new HashMap<>();
+            HashMap<Guild, Integer> punktySerwera = new HashMap<>();
             log.debug("Zrzucam cache do DB, {} członków do zrzucenia...", cache.asMap().size());
             cache.asMap().forEach((key, map) -> {
                 String[] keysplitted = key.split(":");
@@ -468,6 +480,22 @@ public class LicznikPunktow {
             return;
         }
         LoggerFactory.getLogger(getClass()).warn("Wiadomość niezrozumiała!");
+    }
+
+    @SuppressWarnings("ConstantConditions") // mIgHt Be NuLl - stfu, sprawdzam przez isFromGuild
+    @Subscribe
+    @AllowConcurrentEvents
+    public void onButtonClick(ButtonClickEvent e) {
+        if (!e.isFromGuild()) return;
+        if (!LicznikPunktow.instance.punktyWlaczone(e.getGuild())) return;
+        if (!e.getComponentId().startsWith(BUTTON_PREFIX)) return;
+        Member mem;
+        try {
+            long id = MiscUtil.parseSnowflake(e.getComponentId().substring(BUTTON_PREFIX_LENGTH));
+            mem = e.getGuild().retrieveMemberById(id).complete();
+        } catch (NumberFormatException | ErrorResponseException err) { return; }
+        e.replyEmbeds(StatsCommand.renderStatsEmbed(tlumaczenia,
+                tlumaczenia.getLanguage(e.getMember()), mem)).setEphemeral(true).queue();
     }
 
     public void setLock(boolean lock) {

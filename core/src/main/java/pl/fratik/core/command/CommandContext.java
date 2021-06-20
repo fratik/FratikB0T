@@ -44,6 +44,8 @@ import java.util.Collection;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
+import static pl.fratik.core.Statyczne.BRAND_COLOR;
+
 public class CommandContext {
     @Getter private final ShardManager shardManager;
     @Getter private final Command command;
@@ -294,7 +296,7 @@ public class CommandContext {
         JDA shard = shardManager.getShardById(0);
         if (shard == null) throw new IllegalStateException("bot nie załadowany poprawnie");
         return new EmbedBuilder()
-                .setColor(Color.decode("#bef7c3"))
+                .setColor(Color.decode(BRAND_COLOR))
                 .setAuthor(authorText, null, authorImageUrl)
                 .setFooter("© " + shard.getSelfUser().getName(),
                         UserUtil.getAvatarUrl(shard.getSelfUser()));

@@ -62,6 +62,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import static pl.fratik.core.Statyczne.BRAND_COLOR;
+
 public class ManagerKomendImpl implements ManagerKomend {
     @Getter
     private Set<Command> registered;
@@ -310,7 +312,7 @@ public class ManagerKomendImpl implements ManagerKomend {
                     context = new CommandContext(shardManager, tlumaczenia, c, event, prefix, parts[0], args, customPlvl, direct);
                 } catch (ArgsMissingException e) {
                     EmbedBuilder eb = new EmbedBuilder()
-                            .setColor(Color.decode("#bef7c3"))
+                            .setColor(Color.decode(BRAND_COLOR))
                             .setFooter("© " + event.getJDA().getSelfUser().getName(),
                                     event.getJDA().getSelfUser().getEffectiveAvatarUrl()
                                             .replace(".webp", ".png"));
