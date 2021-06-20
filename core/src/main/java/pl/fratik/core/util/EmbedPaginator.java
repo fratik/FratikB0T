@@ -149,20 +149,24 @@ public abstract class EmbedPaginator {
     }
 
     private MessageAction addReactions(MessageAction action) {
+        return addReactions(action, false);
+    }
+
+    private MessageAction addReactions(MessageAction action, boolean disabled) {
         if (getPageCount() == 1) return action;
         List<Button> secondRowButtons = new ArrayList<>();
-        secondRowButtons.add(Button.danger("STOP_PAGE", Emoji.fromUnicode(STOP_EMOJI)));
-        secondRowButtons.add(Button.secondary("CHOOSE_PAGE", Emoji.fromUnicode(ONETWOTHREEFOUR_EMOJI)));
-        if (enableShuffle) secondRowButtons.add(Button.secondary("SHUFFLE_PAGE", Emoji.fromUnicode(SHUFFLE_EMOJI)));
-        if (enableDelett) secondRowButtons.add(Button.danger("TRASH_PAGE", Emoji.fromUnicode(TRASH_EMOJI)));
+        secondRowButtons.add(Button.danger("STOP_PAGE", Emoji.fromUnicode(STOP_EMOJI)).withDisabled(disabled));
+        secondRowButtons.add(Button.secondary("CHOOSE_PAGE", Emoji.fromUnicode(ONETWOTHREEFOUR_EMOJI)).withDisabled(disabled));
+        if (enableShuffle) secondRowButtons.add(Button.secondary("SHUFFLE_PAGE", Emoji.fromUnicode(SHUFFLE_EMOJI)).withDisabled(disabled));
+        if (enableDelett) secondRowButtons.add(Button.danger("TRASH_PAGE", Emoji.fromUnicode(TRASH_EMOJI)).withDisabled(disabled));
         return action.setActionRows(
                 ActionRow.of(
-                        Button.secondary("FIRST_PAGE", Emoji.fromUnicode(FIRST_EMOJI)).withDisabled(pageNo == 1),
+                        Button.secondary("FIRST_PAGE", Emoji.fromUnicode(FIRST_EMOJI)).withDisabled(pageNo == 1 || disabled),
                         Button.primary("PREV_PAGE", Emoji.fromUnicode(LEFT_EMOJI))
-                                .withLabel(String.valueOf(Math.max(pageNo - 1, 1))).withDisabled(pageNo == 1),
+                                .withLabel(String.valueOf(Math.max(pageNo - 1, 1))).withDisabled(pageNo == 1 || disabled),
                         Button.primary("NEXT_PAGE", Emoji.fromUnicode(RIGHT_EMOJI))
-                                .withLabel(String.valueOf(Math.min(pageNo + 1, getPageCount()))).withDisabled(pageNo == getPageCount()),
-                        Button.secondary("LAST_PAGE", Emoji.fromUnicode(LAST_EMOJI)).withDisabled(pageNo == getPageCount())
+                                .withLabel(String.valueOf(Math.min(pageNo + 1, getPageCount()))).withDisabled(pageNo == getPageCount() || disabled),
+                        Button.secondary("LAST_PAGE", Emoji.fromUnicode(LAST_EMOJI)).withDisabled(pageNo == getPageCount() || disabled)
                 ),
                 ActionRow.of(secondRowButtons)
         );
@@ -216,9 +220,12 @@ public abstract class EmbedPaginator {
                 clearReactions();
                 return;
             case "CHOOSE_PAGE":
-                doKtorej = event.getChannel().sendMessage(tlumaczenia.get(language, "paginator.waiting.for.pageno")).complete();
-                if (addPaginator()) eventWaiter.waitForEvent(MessageReceivedEvent.class, this::checkMessage,
-                        this::handleMessage, timeout, TimeUnit.SECONDS, this::clearReactions);
+                if (addPaginator()) {
+                    addReactions(message.editMessage(message), true).override(true).queue();
+                    doKtorej = event.getChannel().sendMessage(tlumaczenia.get(language, "paginator.waiting.for.pageno")).complete();
+                    eventWaiter.waitForEvent(MessageReceivedEvent.class, this::checkMessage,
+                            this::handleMessage, timeout, TimeUnit.SECONDS, this::clearReactions);
+                }
                 return;
             case "SHUFFLE_PAGE":
                 pageNo = ThreadLocalRandom.current().nextInt(getPageCount()) + 1;
