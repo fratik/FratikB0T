@@ -47,6 +47,7 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
+import static pl.fratik.core.Statyczne.BRAND_COLOR;
 import static pl.fratik.tags.Module.MAX_TAG_NAME_LENGTH;
 
 class TagsManager {
@@ -119,7 +120,7 @@ class TagsManager {
             Member mem = guild.getMember(createdBy);
             eb.setColor(mem == null || mem.getColor() == null ? UserUtil.getPrimColor(createdBy) : mem.getColor());
         } else {
-            eb.setColor(Color.decode("#bef7c3"));
+            eb.setColor(Color.decode(BRAND_COLOR));
             List<String> prefixes = managerKomend.getPrefixes(guild);
             if (prefixes.isEmpty()) prefixes.add(Ustawienia.instance.prefix);
             eb.setFooter(tlumaczenia.get(lang, "tag.creator.unknown", prefixes.get(0),

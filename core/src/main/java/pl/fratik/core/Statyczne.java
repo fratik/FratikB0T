@@ -35,6 +35,8 @@ public class Statyczne {
 
     public static final String DBOTS = "https://discordbots.org/bot/338359366891732993";
 
+    public static final String BRAND_COLOR = "#bef7c3";
+
     public static final List<String> BOTLIST_GUILDS = Collections.unmodifiableList(Lists.newArrayList(
             "110373943822540800", // Discord Bots
             "264445053596991498", // Discord Bot List
