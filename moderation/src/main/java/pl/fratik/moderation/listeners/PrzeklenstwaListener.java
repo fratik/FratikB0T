@@ -46,6 +46,7 @@ import pl.fratik.moderation.utils.WarnUtil;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
 public class PrzeklenstwaListener {
@@ -90,6 +91,12 @@ public class PrzeklenstwaListener {
         if (!isAntiswear(e.getTextChannel())) return;
         if (!e.getGuild().getSelfMember().canInteract(e.getMember())) return;
         String content = e.getMessage().getContentRaw();
+        GuildConfig gc = getGuildConfig(e.getGuild());
+        List<String> przeklenstwa; //NOSONAR
+        if (gc.getCustomAntiSwearWords() != null && !gc.getCustomAntiSwearWords().isEmpty()) {
+            przeklenstwa = new ArrayList<>(this.przeklenstwa);
+            przeklenstwa.addAll(gc.getCustomAntiSwearWords());
+        } else przeklenstwa = this.przeklenstwa;
         for (String przeklenstwo : przeklenstwa) {
             boolean res = processWord(przeklenstwo, content);
             if (res) {
@@ -110,7 +117,7 @@ public class PrzeklenstwaListener {
                     }
                     CaseRow cr = casesDao.get(e.getGuild());
                     cr.getCases().add(c);
-                    boolean deleteSwearMessage = gcCache.get(e.getGuild().getId(), guildDao::get).isDeleteSwearMessage();
+                    boolean deleteSwearMessage = gc.isDeleteSwearMessage();
                     if (deleteSwearMessage) {
                         e.getChannel().sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(e.getMember()),
                                 "antiswear.notice", e.getAuthor().getAsMention(),
@@ -136,13 +143,17 @@ public class PrzeklenstwaListener {
         }
     }
 
+    private GuildConfig getGuildConfig(Guild guild) {
+        return gcCache.get(guild.getId(), guildDao::get);
+    }
+
     private boolean isAntiswear(TextChannel channel) {
-        return gcCache.get(channel.getGuild().getId(), guildDao::get).getAntiswear() &&
-                !gcCache.get(channel.getGuild().getId(), guildDao::get).getSwearchannels().contains(channel.getId());
+        return getGuildConfig(channel.getGuild()).getAntiswear() &&
+                !getGuildConfig(channel.getGuild()).getSwearchannels().contains(channel.getId());
     }
 
     private String getModLogChan(Guild guild) {
-        return gcCache.get(guild.getId(), guildDao::get).getModLog();
+        return getGuildConfig(guild).getModLog();
     }
 
     private boolean processWord(String przeklenstwo, String content) {
