@@ -29,6 +29,7 @@ import io.undertow.Handlers;
 import io.undertow.Undertow;
 import io.undertow.UndertowOptions;
 import io.undertow.server.HttpHandler;
+import io.undertow.server.HttpServerExchange;
 import io.undertow.server.RoutingHandler;
 import io.undertow.server.handlers.BlockingHandler;
 import io.undertow.server.handlers.PathHandler;
@@ -49,6 +50,7 @@ import net.dv8tion.jda.api.requests.ErrorResponse;
 import net.dv8tion.jda.api.requests.RestAction;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.apache.commons.io.IOUtils;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.fratik.api.entity.*;
@@ -62,6 +64,7 @@ import pl.fratik.core.Statyczne;
 import pl.fratik.core.Ustawienia;
 import pl.fratik.core.command.CommandType;
 import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.PermLevel;
 import pl.fratik.core.entity.*;
 import pl.fratik.core.manager.ManagerArgumentow;
 import pl.fratik.core.manager.ManagerBazyDanych;
@@ -165,20 +168,8 @@ public class Module implements Modul {
                                     .contains(guild.getRoleById(Ustawienia.instance.gadmRole)))));
         });
         routes.get("/api/commands", ex -> {
-            Optional<String> langTmp = Exchange.queryParams().queryParam(ex, "language");
-            Language lang = null;
-            if (!langTmp.isPresent()) {
-                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARAM);
-                return;
-            }
-            for (Language l : Language.values()) {
-                if (l == Language.DEFAULT) continue;
-                if (l.getShortName().equals(langTmp.get())) lang = l;
-            }
-            if (lang == null) {
-                Exchange.body().sendErrorCode(ex, Exceptions.Codes.INVALID_LANG);
-                return;
-            }
+            Language lang = getLang(ex);
+            if (lang == null) return;
             List<Komenda> komendy = new ArrayList<>();
             for (Iterator<NewCommand> iter = managerKomend.commandsStream().iterator(); iter.hasNext();) {
                 //fixme
@@ -490,6 +481,17 @@ public class Module implements Modul {
                 Exchange.body().sendErrorCode(ex, Exceptions.Codes.UNKNOWN_ERROR, 500);
             }
         });
+
+        routes.get("/api/perms", ex -> {
+            Language lang = getLang(ex);
+            if (lang == null) return;
+            Map<String, String> m = new HashMap<>();
+            for (PermLevel permLevel : PermLevel.values()) {
+                m.put(permLevel.getNum() + "", tlumaczenia.get(lang, permLevel.getLanguageKey()));
+            }
+            Exchange.body().sendJson(ex, m);
+        });
+
         Rundka rundka = rundkaDao.getAll().stream().filter(Rundka::isTrwa).findAny().orElse(null);
         if (rundka != null) {
             RundkaCommand.setNumerRundy(rundka.getIdRundki());
@@ -691,6 +693,25 @@ public class Module implements Modul {
                 }
             }
         }
+    }
+
+    @Nullable
+    private Language getLang(HttpServerExchange ex) {
+        Optional<String> langTmp = Exchange.queryParams().queryParam(ex, "language");
+        Language lang = null;
+        if (!langTmp.isPresent()) {
+            Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARAM);
+            return null;
+        }
+        for (Language l : Language.values()) {
+            if (l == Language.DEFAULT) continue;
+            if (l.getShortName().equals(langTmp.get())) lang = l;
+        }
+        if (lang == null) {
+            Exchange.body().sendErrorCode(ex, Exceptions.Codes.INVALID_LANG);
+            return null;
+        }
+        return lang;
     }
 
     @AllArgsConstructor
