@@ -1,6 +1,6 @@
 {
   "name": "music",
   "main": "pl.fratik.music.Module",
-  "dependencies": ["arguments"],
+  "dependencies": ["arguments", "api"],
   "coreVersion": "@core.version@"
 }

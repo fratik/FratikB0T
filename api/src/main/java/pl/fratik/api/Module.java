@@ -234,7 +234,7 @@ public class Module implements Modul {
                 return;
             }
             UserConfig uc = userDao.get(user);
-            JsonObject parsed = GsonUtil.GSON.fromJson(IOUtils.toString(ex.getInputStream(), StandardCharsets.UTF_8), JsonObject.class);
+            JsonObject parsed = getJson(ex);
             try {
                 merge(uc, parsed);
             } catch (Exception e) {
@@ -276,7 +276,7 @@ public class Module implements Modul {
                 return;
             }
             GuildConfig gc = guildDao.get(guild);
-            JsonObject parsed = GsonUtil.GSON.fromJson(IOUtils.toString(ex.getInputStream(), StandardCharsets.UTF_8), JsonObject.class);
+            JsonObject parsed = getJson(ex);
             try {
                 merge(gc, parsed);
             } catch (Exception e) {
@@ -572,6 +572,10 @@ public class Module implements Modul {
             });
             channel.resumeReceives();
         })).addPrefixPath("/", wrapWithMiddleware(routes));
+    }
+
+    public static JsonObject getJson(HttpServerExchange ex) throws IOException {
+        return GsonUtil.GSON.fromJson(IOUtils.toString(ex.getInputStream(), StandardCharsets.UTF_8), JsonObject.class);
     }
 
     private HttpHandler wrapWithMiddleware(HttpHandler handler) {
