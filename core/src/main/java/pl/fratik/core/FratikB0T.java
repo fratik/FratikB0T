@@ -22,6 +22,7 @@ import com.google.common.util.concurrent.ServiceManager;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.sedmelluq.discord.lavaplayer.jdaudp.NativeAudioSendFactory;
+import com.wrapper.spotify.SpotifyApi;
 import io.sentry.Sentry;
 import lombok.Getter;
 import net.dv8tion.jda.api.JDA;
@@ -205,6 +206,7 @@ class FratikB0T {
                     Globals.owner = appInfo.getOwner().getName() + "#" + appInfo.getOwner().getDiscriminator();
                     Globals.ownerId = appInfo.getOwner().getIdLong();
                 });
+
                 RedisCacheManager redisCacheManager = new RedisCacheManager(Globals.clientId);
                 eventBus.register(redisCacheManager);
                 UserUtil.setGcCache(redisCacheManager.new CacheRetriever<GuildConfig>(){}.getCache());

@@ -15,22 +15,35 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-jar {
-    archiveName = "music.jar"
-    destinationDir project.file('../plugins')
-}
+package pl.fratik.core.entity;
 
-mainClassName = 'pl.fratik.music.Module'
+import gg.amy.pgorm.annotations.GIndex;
+import gg.amy.pgorm.annotations.PrimaryKey;
+import gg.amy.pgorm.annotations.Table;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 
-build.dependsOn jar
-
-dependencies {
-    implementation project(":core")
-    implementation project(":api")
-}
-
-shadowJar {
-    manifest {
-        attributes 'Main-Class': 'pl.fratik.music.Module'
+@Table("spotify")
+@GIndex({"id"})
+@Data
+@AllArgsConstructor
+public class SpotifyConfig implements DatabaseEntity {
+    public SpotifyConfig() {
     }
+
+    public SpotifyConfig(String id) {
+        this.id = id;
+    }
+
+    @PrimaryKey
+    private String id = "";
+
+    private String accessToken = null;
+    private String refreshToken = null;
+
+    @Override
+    public String getTableName() {
+        return "spotify";
+    }
+
 }

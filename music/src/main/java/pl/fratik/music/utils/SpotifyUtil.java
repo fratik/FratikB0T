@@ -21,6 +21,7 @@ import com.neovisionaries.i18n.CountryCode;
 import com.wrapper.spotify.SpotifyApi;
 import com.wrapper.spotify.exceptions.SpotifyWebApiException;
 import com.wrapper.spotify.exceptions.detailed.UnauthorizedException;
+import com.wrapper.spotify.model_objects.credentials.AuthorizationCodeCredentials;
 import com.wrapper.spotify.model_objects.credentials.ClientCredentials;
 import com.wrapper.spotify.model_objects.specification.Album;
 import com.wrapper.spotify.model_objects.specification.Paging;
@@ -31,9 +32,15 @@ import io.sentry.Sentry;
 import lombok.Getter;
 import org.apache.hc.core5.http.ParseException;
 import org.jetbrains.annotations.Nullable;
+import pl.fratik.core.Ustawienia;
+import pl.fratik.core.entity.SpotifyConfig;
+import pl.fratik.core.entity.SpotifyDao;
 import pl.fratik.core.tlumaczenia.Language;
 
 import java.io.IOException;
+import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -41,6 +48,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@Getter
 public class SpotifyUtil {
 
     private static final Pattern TRACK_REGEX = Pattern.compile("^(https://open.spotify.com/track/)([a-zA-Z0-9]+)(.*)$");
@@ -55,13 +63,45 @@ public class SpotifyUtil {
         Runtime.getRuntime().addShutdownHook(new Thread(ses::shutdown));
     }
 
-    @Getter
     private final SpotifyApi api;
     private ScheduledFuture<?> schedule;
+    private final Map<String, UserCredentials> userCredentials = new HashMap<>();
+    private final SpotifyDao dao;
 
-    public SpotifyUtil(SpotifyApi api) {
+    public SpotifyUtil(SpotifyApi api, SpotifyDao dao) {
         this.api = api;
+        this.dao = dao;
         refreshAccessToken();
+    }
+
+    @Nullable
+    public UserCredentials getUser(String user) {
+        if (getUserCredentials().containsKey(user)) return getUserCredentials().get(user);
+        SpotifyConfig conf = dao.get(user);
+        if (conf == null) return null;
+        UserCredentials cr = new UserCredentials(user, conf.getAccessToken(), conf.getRefreshToken(), dao);
+        getUserCredentials().put(user, cr);
+        return cr;
+    }
+
+    public void addUser(String user, String code) {
+        try {
+            AuthorizationCodeCredentials c = getApi().authorizationCode(
+                    getApi().getClientId(),
+                    getApi().getClientSecret(),
+                    code,
+                    new URI(Ustawienia.instance.botUrl + "/api/spotify/callback")
+            ).build().execute();
+            UserCredentials userCredentials = new UserCredentials(user, c.getAccessToken(), c.getRefreshToken(), dao);
+            getUserCredentials().put(user, userCredentials);
+
+            SpotifyConfig config = new SpotifyConfig(user);
+            config.setAccessToken(c.getAccessToken());
+            config.setRefreshToken(c.getRefreshToken());
+            dao.save(config);
+        } catch (Exception e) {
+            Sentry.capture(e);
+        }
     }
 
     public boolean isTrack(String url) {

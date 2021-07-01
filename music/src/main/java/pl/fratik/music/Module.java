@@ -19,21 +19,27 @@ package pl.fratik.music;
 
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
+import com.google.gson.JsonObject;
 import com.google.inject.Inject;
 import com.wrapper.spotify.SpotifyApi;
+import io.undertow.server.RoutingHandler;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.slf4j.LoggerFactory;
+import pl.fratik.api.entity.Exceptions;
+import pl.fratik.api.internale.Exchange;
 import pl.fratik.core.Globals;
 import pl.fratik.core.Ustawienia;
 import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.command.NewCommand;
 import pl.fratik.core.entity.GuildDao;
+import pl.fratik.core.entity.SpotifyDao;
 import pl.fratik.core.entity.UserDao;
 import pl.fratik.core.event.ConnectedEvent;
 import pl.fratik.core.manager.ManagerArgumentow;
 import pl.fratik.core.manager.ManagerBazyDanych;
+import pl.fratik.core.manager.ManagerModulow;
 import pl.fratik.core.manager.NewManagerKomend;
 import pl.fratik.core.moduly.Modul;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
@@ -47,6 +53,8 @@ import pl.fratik.music.utils.SpotifyUtil;
 import java.util.ArrayList;
 import java.util.EnumSet;
 
+import static pl.fratik.api.Module.getJson;
+
 @SuppressWarnings("FieldCanBeLocal")
 public class Module implements Modul {
     @Inject private NewManagerKomend managerKomend;
@@ -59,9 +67,11 @@ public class Module implements Modul {
     @Inject private ManagerArgumentow managerArgumentow;
     @Inject private ManagerBazyDanych managerBazyDanych;
     @Inject private RedisCacheManager redisCacheManager;
+    @Inject private ManagerModulow managerModulow;
     private NowyManagerMuzyki managerMuzyki;
     private ArrayList<NewCommand> commands;
     private QueueDao queueDao;
+    private SpotifyDao spotifyDao;
 
     public Module() {
         commands = new ArrayList<>();
@@ -77,6 +87,7 @@ public class Module implements Modul {
         }
         eventBus.register(this);
         queueDao = new QueueDao(managerBazyDanych, eventBus);
+        spotifyDao = new SpotifyDao(managerBazyDanych, eventBus);
         NowyManagerMuzyki.setTlumaczenia(tlumaczenia);
         NowyManagerMuzyki.setQueueDao(queueDao);
         managerMuzyki = new NowyManagerMuzyki(shardManager, eventBus, guildDao);
@@ -95,7 +106,7 @@ public class Module implements Modul {
                     .setClientId(cliendId)
                     .setClientSecret(clientSecret)
                     .build();
-            spotifyUtil = new SpotifyUtil(spotifyApi);
+            spotifyUtil = new SpotifyUtil(spotifyApi, spotifyDao);
         }
 
         commands = new ArrayList<>();
@@ -110,14 +121,42 @@ public class Module implements Modul {
         commands.add(new NowplayingCommand(managerMuzyki));
         commands.add(new PauseCommand(managerMuzyki, guildDao));
         commands.add(new ShuffleCommand(managerMuzyki, guildDao));
+        if (spotifyUtil != null)
+            commands.add(new SpotifyStatsCommand(spotifyUtil));
         if (Ustawienia.instance.apiKeys.containsKey("genius"))
             commands.add(new TekstCommand(eventWaiter, eventBus, managerMuzyki));
         commands.add(new NodesCommand());
 
         managerKomend.registerCommands(this, commands);
 
-        if (shardManager.getShards().stream().anyMatch(s -> !s.getStatus().equals(JDA.Status.CONNECTED))) return true;
+        Modul modul = managerModulow.getModules().get("api");
+        try {
+            RoutingHandler routes = (RoutingHandler) modul.getClass().getDeclaredMethod("getRoutes").invoke(modul);
+            SpotifyUtil finalSpotifyUtil = spotifyUtil;
 
+            routes.post("/api/user/{userId}/spotify", ex -> {
+                String userId = Exchange.pathParams().pathParam(ex, "userId").orElse(null);
+                try {
+                    try {
+                        if (userId == null || shardManager.retrieveUserById(userId).complete() == null) {
+                            Exchange.body().sendErrorCode(ex, Exceptions.Codes.INVALID_USER);
+                            return;
+                        }
+                    } catch (Exception e) {
+                        Exchange.body().sendErrorCode(ex, Exceptions.Codes.INVALID_USER);
+                        return;
+                    }
+                    JsonObject json = getJson(ex);
+                    finalSpotifyUtil.addUser(userId, json.get("code").getAsString());
+                } catch (Exception e) {
+                    Exchange.body().sendErrorCode(ex, Exceptions.Codes.UNKNOWN_ERROR);
+                }
+            });
+        } catch (Exception e) {
+            LoggerFactory.getLogger(getClass()).error("Nie udało się doczepić do modułu api!", e);
+        }
+
+        if (shardManager.getShards().stream().anyMatch(s -> !s.getStatus().equals(JDA.Status.CONNECTED))) return true;
         managerMuzyki.loadQueues();
 
         return true;
