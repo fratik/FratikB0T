@@ -127,7 +127,7 @@ public abstract class EmbedPaginator {
     public void create(Message message) {
         eventBus.post(new PluginMessageEvent("core", PMSTO, PMZAADD + message.getId()));
         try {
-            addReactions(message.editMessage(render(1))).override(true).queue(msg -> {
+            addReactions(message.editMessage(currentEmbed = render(1))).override(true).queue(msg -> {
                 this.message = msg;
                 messageId = msg.getIdLong();
                 if (getPageCount() != 1) {
