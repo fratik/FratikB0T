@@ -111,7 +111,7 @@ public class SklepCommand extends Command {
         ));
         ButtonWaiter rw = new ButtonWaiter(eventWaiter, context, msgTmp.getIdLong(), ButtonWaiter.ResponseType.REPLY);
         rw.setButtonHandler(event -> {
-            msgTmp.editMessage(msgTmp.getContentRaw()).setActionRows(Collections.emptySet()).queue();
+            msgTmp.editMessage(msgTmp).setActionRows(Collections.emptySet()).queue();
             if (event.getComponentId().equals("BUY")) {
                 try {
                     context.getGuild().addRoleToMember(context.getMember(), rola).queue(aVoid -> {
@@ -132,7 +132,7 @@ public class SklepCommand extends Command {
                 event.getHook().editOriginal(context.getTranslated("sklep.kup.canceled")).queue();
         });
         rw.setTimeoutHandler(() -> {
-            msgTmp.editMessage(msgTmp.getContentRaw()).setActionRows(Collections.emptySet()).queue();
+            msgTmp.editMessage(msgTmp).setActionRows(Collections.emptySet()).queue();
             context.send(context.getTranslated("sklep.kup.canceled"), m -> {});
         });
         rw.create();
@@ -168,7 +168,7 @@ public class SklepCommand extends Command {
         ));
         ButtonWaiter rw = new ButtonWaiter(eventWaiter, context, msgTmp.getIdLong(), ButtonWaiter.ResponseType.REPLY);
         rw.setButtonHandler(event -> {
-            msgTmp.editMessage(msgTmp.getContentRaw()).setActionRows(Collections.emptySet()).queue();
+            msgTmp.editMessage(msgTmp).setActionRows(Collections.emptySet()).queue();
             if (event.getComponentId().equals("SELL")) {
                 context.getGuild().removeRoleFromMember(context.getMember(), rola)
                         .queue(
@@ -184,7 +184,7 @@ public class SklepCommand extends Command {
                 event.getHook().editOriginal(context.getTranslated("sklep.sprzedaj.canceled")).queue();
         });
         rw.setTimeoutHandler(() -> {
-            msgTmp.editMessage(msgTmp.getContentRaw()).setActionRows(Collections.emptySet()).queue();
+            msgTmp.editMessage(msgTmp).setActionRows(Collections.emptySet()).queue();
             context.send(context.getTranslated("sklep.sprzedaj.canceled"), m -> {});
         });
         rw.create();
@@ -257,7 +257,7 @@ public class SklepCommand extends Command {
         ButtonWaiter rw = new ButtonWaiter(eventWaiter, context, msgTmp.getIdLong(), ButtonWaiter.ResponseType.REPLY);
         String finalOpis = opis;
         rw.setButtonHandler(event -> {
-            msgTmp.editMessage(msgTmp.getContentRaw()).setActionRows(Collections.emptySet()).queue();
+            msgTmp.editMessage(msgTmp).setActionRows(Collections.emptySet()).queue();
             if (event.getComponentId().equals("ADD")) {
                 GuildConfig gc2 = guildDao.get(event.getGuild());
                 Map<String, Long> roleDoKupienia = gc.getRoleDoKupienia();
@@ -273,7 +273,7 @@ public class SklepCommand extends Command {
                 event.getHook().editOriginal(context.getTranslated("sklep.ustaw.canceled")).queue();
         });
         rw.setTimeoutHandler(() -> {
-            msgTmp.editMessage(msgTmp.getContentRaw()).setActionRows(Collections.emptySet()).queue();
+            msgTmp.editMessage(msgTmp).setActionRows(Collections.emptySet()).queue();
             context.send(context.getTranslated("sklep.ustaw.canceled"), m -> {});
         });
         rw.create();
@@ -312,7 +312,7 @@ public class SklepCommand extends Command {
         ));
         ButtonWaiter rw = new ButtonWaiter(eventWaiter, context, msgTmp.getIdLong(), ButtonWaiter.ResponseType.REPLY);
         rw.setButtonHandler(event -> {
-            msgTmp.editMessage(msgTmp.getContentRaw()).setActionRows(Collections.emptySet()).queue();
+            msgTmp.editMessage(msgTmp).setActionRows(Collections.emptySet()).queue();
             if (event.getComponentId().equals("DELETE")) {
                 GuildConfig gc2 = guildDao.get(event.getGuild());
                 Map<String, Long> roleDoKupienia = gc.getRoleDoKupienia();
@@ -328,7 +328,7 @@ public class SklepCommand extends Command {
                 event.getHook().editOriginal(context.getTranslated("sklep.usun.canceled")).queue();
         });
         rw.setTimeoutHandler(() -> {
-            msgTmp.editMessage(msgTmp.getContentRaw()).setActionRows(Collections.emptySet()).queue();
+            msgTmp.editMessage(msgTmp).setActionRows(Collections.emptySet()).queue();
             context.send(context.getTranslated("sklep.usun.canceled"), m -> {});
         });
         rw.create();
