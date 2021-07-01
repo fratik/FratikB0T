@@ -90,7 +90,8 @@ public class SpotifyUtil {
                     getApi().getClientId(),
                     getApi().getClientSecret(),
                     code,
-                    new URI(Ustawienia.instance.botUrl + "/api/spotify/callback")
+//                    new URI(Ustawienia.instance.botUrl + "/api/spotify/callback")
+                    new URI("http://localhost:3000/api/spotify/callback")
             ).build().execute();
             UserCredentials userCredentials = new UserCredentials(user, c.getAccessToken(), c.getRefreshToken(), dao);
             getUserCredentials().put(user, userCredentials);
