@@ -28,6 +28,7 @@ import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.slf4j.LoggerFactory;
 import pl.fratik.api.entity.Exceptions;
+import pl.fratik.api.entity.Successes;
 import pl.fratik.api.internale.Exchange;
 import pl.fratik.core.Globals;
 import pl.fratik.core.Ustawienia;
@@ -148,6 +149,7 @@ public class Module implements Modul {
                     }
                     JsonObject json = getJson(ex);
                     finalSpotifyUtil.addUser(userId, json.get("code").getAsString());
+                    Exchange.body().sendJson(ex, new Successes.GenericSuccess("zapisano"));
                 } catch (Exception e) {
                     Exchange.body().sendErrorCode(ex, Exceptions.Codes.UNKNOWN_ERROR);
                 }
