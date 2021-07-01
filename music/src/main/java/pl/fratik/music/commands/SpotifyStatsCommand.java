@@ -18,6 +18,7 @@
 package pl.fratik.music.commands;
 
 import com.wrapper.spotify.model_objects.specification.Track;
+import io.sentry.Sentry;
 import net.dv8tion.jda.api.EmbedBuilder;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.Ustawienia;
@@ -63,7 +64,7 @@ public class SpotifyStatsCommand extends Command {
             return true;
         } catch (Exception e) {
             context.reply("Wystąpił błąd!");
-            e.printStackTrace();
+            Sentry.capture(e);
         }
 
         return true;
