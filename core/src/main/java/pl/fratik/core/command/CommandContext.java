@@ -149,7 +149,7 @@ public class CommandContext {
         return event.getChannel().sendMessage(message).complete();
     }
 
-//    @Deprecated
+    @Deprecated
     public Message send(MessageEmbed message) {
         return event.getChannel().sendMessage(message).complete();
     }
@@ -166,6 +166,7 @@ public class CommandContext {
         event.getChannel().sendMessage(message).queue(callback);
     }
 
+    @Deprecated
     public void send(MessageEmbed message, Consumer<Message> callback) {
         event.getChannel().sendMessage(message).queue(callback);
     }
