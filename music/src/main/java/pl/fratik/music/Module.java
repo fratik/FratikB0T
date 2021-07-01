@@ -128,7 +128,7 @@ public class Module implements Modul {
         commands.add(new PauseCommand(managerMuzyki, guildDao));
         commands.add(new ShuffleCommand(managerMuzyki, guildDao));
         if (spotifyUtil != null)
-            commands.add(new SpotifyStatsCommand(spotifyUtil));
+            commands.add(new SpotifyStatsCommand(spotifyUtil, eventWaiter, eventBus));
         if (Ustawienia.instance.apiKeys.containsKey("genius"))
             commands.add(new TekstCommand(eventWaiter, eventBus, managerMuzyki));
         commands.add(new NodesCommand());
