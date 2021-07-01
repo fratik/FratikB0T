@@ -31,6 +31,7 @@ import io.sentry.Sentry;
 import lombok.Getter;
 import org.apache.hc.core5.http.ParseException;
 import org.jetbrains.annotations.Nullable;
+import pl.fratik.core.Ustawienia;
 import pl.fratik.core.entity.SpotifyConfig;
 import pl.fratik.core.entity.SpotifyDao;
 import pl.fratik.core.tlumaczenia.Language;
@@ -85,8 +86,7 @@ public class SpotifyUtil {
                     getApi().getClientId(),
                     getApi().getClientSecret(),
                     code,
-//                    new URI(Ustawienia.instance.botUrl + "/api/spotify/callback")
-                    new URI("http://localhost:3000/api/spotify/callback") // TODO
+                    new URI(Ustawienia.instance.botUrl + "/api/spotify/callback")
             ).build().execute();
             UserCredentials userCredentials = new UserCredentials(user, c.getAccessToken(), c.getRefreshToken(), dao);
             getUserCredentials().put(user, userCredentials);
