@@ -39,7 +39,6 @@ import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.DynamicEmbedPaginator;
 import pl.fratik.core.util.EventWaiter;
-import pl.fratik.core.util.GsonUtil;
 import pl.fratik.core.util.UserUtil;
 import pl.fratik.music.utils.SpotifyUtil;
 import pl.fratik.music.utils.UserCredentials;
@@ -75,22 +74,12 @@ public class SpotifyStatsCommand extends Command {
             eb.setColor(UserUtil.getPrimColor(context.getMember().getUser()));
             eb.setTimestamp(Instant.now());
             String link = String.format("https://accounts.spotify.com/authorize?response_type=code&client_id=%s&scope=user-top-read&redirect_uri=%s/api/spotify/callback", spotifyUtil.getApi().getClientId(), Ustawienia.instance.botUrl);
-            eb.setDescription("Aby zobaczyć swoje statystyki Spotify musisz połączyć swoje konto Discord z kontem Spotify! " +
-                    "Możesz to zrobić wchodząc " + String.format("[tutaj](%s)", link));
+            eb.setDescription(context.getTranslated("spotifystats.noconnected", link));
             context.reply(eb.build());
             return false;
         }
 
-        try {
-            new SpotifyWaiter(context.getSender(), eventWaiter, user, context.send("Ładuje..."), context.getLanguage(), context.getTlumaczenia(), eventBus).start();
-            Track tracks = user.getApi().getUsersTopTracks().time_range("short_term").limit(10).build().execute().getItems()[0];
-            context.send(GsonUtil.toJSON(tracks));
-            return true;
-        } catch (Exception e) {
-            context.reply("Wystąpił błąd!");
-            Sentry.capture(e);
-        }
-
+        new SpotifyWaiter(context.getSender(), eventWaiter, user, context.send(context.getTranslated("generic.loading")), context.getLanguage(), context.getTlumaczenia(), eventBus).start();
         return true;
     }
 
@@ -122,9 +111,8 @@ public class SpotifyStatsCommand extends Command {
         }
 
         public void start() {
-            botMsg.editMessage(String.format("%s, wybierz co chcesz sprawdzić! " +
-                    "\n:one: Swoich ulubionych artystów" +
-                    "\n:two: Najczęściej słuchane tracki", user.getAsMention())).setActionRows(ActionRow.of(ONEB, TWOB)).override(true).complete();
+            botMsg.editMessage(tlumaczenia.get(language, "spotifystats.choose.type", user.getAsMention(), "\u0031\u20E3", "\u0032\u20E3")).
+                    setActionRows(ActionRow.of(ONEB, TWOB)).override(true).complete();
             waitForMessage();
         }
 
@@ -161,9 +149,9 @@ public class SpotifyStatsCommand extends Command {
                                 eb.setColor(Color.green);
                                 eb.setTimestamp(Instant.now());
                                 eb.setTitle(String.format("%s. %s", nr, artist.getName()), "https://open.spotify.com/artist/" + artist.getId());
-                                eb.setDescription("Twoi topowi artyści z okresu: " + b2.s2);
+                                eb.setDescription(tlumaczenia.get(language, "spotifystats.topartists", tlumaczenia.get(language, b2.s2)));
                                 if (artist.getImages().length >= 1) eb.setImage(artist.getImages()[0].getUrl());
-                                if (sb.toString().isEmpty()) sb.append("Twoi topowi artyści z okresu: " + b2.s2 + "\n\n");
+                                if (sb.toString().isEmpty()) sb.append(tlumaczenia.get(language, "spotifystats.topartists", tlumaczenia.get(language, b2.s2))).append("\n\n");
                                 sb.append(String.format("%s. [%s](%s)\n", nr, artist.getName(), "https://open.spotify.com/artist/" + artist.getId()));
                                 nr++;
                                 futurePages.add(new FutureTask<>(() -> eb));
@@ -175,16 +163,16 @@ public class SpotifyStatsCommand extends Command {
                                 eb.setColor(Color.green);
                                 eb.setTimestamp(Instant.now());
                                 eb.setTitle(String.format("%s. %s", nr, item.getName()), "https://open.spotify.com/track/" + item.getId());
-                                eb.setDescription("Twoje topowe piosenki z okresu: " + b2.s2);
+                                eb.setDescription(tlumaczenia.get(language, "spotifystats.topsongs", tlumaczenia.get(language, b2.s2)));
                                 if (item.getAlbum().getImages().length >= 1) eb.setImage(item.getAlbum().getImages()[0].getUrl());
-                                if (sb.toString().isEmpty()) sb.append("Twoje topowe piosenki z okresu: " + b2.s2 + "\n\n");
+                                if (sb.toString().isEmpty()) sb.append(tlumaczenia.get(language, "spotifystats.topsongs", tlumaczenia.get(language, b2.s2))).append("\n\n");
                                 sb.append(String.format("%s. [%s - %s](%s)\n", nr, item.getArtists()[0].getName(), item.getName(), "https://open.spotify.com/track/" + item.getId()));
                                 nr++;
                                 futurePages.add(new FutureTask<>(() -> eb));
                             }
                     }
                 } catch (Exception e) {
-                    botMsg.editMessage("Wystąpił błąd przy uzyskiwaniu piosenek!").queue();
+                    botMsg.editMessage(tlumaczenia.get(language, "spotifystats.error")).queue();
                     Sentry.capture(e);
                     return;
                 }
@@ -198,10 +186,12 @@ public class SpotifyStatsCommand extends Command {
 
                 new DynamicEmbedPaginator(eventWaiter, futurePages, user, language, tlumaczenia, eventBus).create(botMsg);
             } else {
-                botMsg.editMessage(String.format("%s, wybierz z jakiego okresu chcesz uzyskać dane" +
-                        "\n:one: 4 tygodni" +
-                        "\n:two: 6 miesięcy" +
-                        "\n:three: kilku lat", user.getAsMention())).setActionRows(ActionRow.of(ONEB, TWOB, THREEB)).complete();
+                botMsg.editMessage(
+                        tlumaczenia.get(language, "spotifystats.choose.timerange", user.getAsMention(),
+                                "\u0031\u20E3", tlumaczenia.get(language, "spotifystats.4week"),
+                                "\u0032\u20E3", tlumaczenia.get(language, "spotifystats.6months"),
+                                "\u0033\u20E3", tlumaczenia.get(language, "spotifystats.fewyears")))
+                        .setActionRows(ActionRow.of(ONEB, TWOB, THREEB)).complete();
                 waitForMessage();
             }
         }
@@ -232,9 +222,9 @@ public class SpotifyStatsCommand extends Command {
         public enum Choose {
             TRACK(null, null), ARTISTS(null, null),
 
-            SHORT("short_term", "**4 tygodni**"),
-            LONG("medium_term", "**6 miesięcy**"),
-            ALL("long_term", "**kilku lat**");
+            SHORT("short_term", "spotifystats.4week"),
+            LONG("medium_term", "spotifystats.6months"),
+            ALL("long_term", "spotifystats.fewyears");
 
             public String s;
             public String s2;
