@@ -25,7 +25,9 @@ import com.google.common.eventbus.Subscribe;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.annotations.SerializedName;
 import com.google.inject.Inject;
+import io.sentry.Sentry;
 import io.undertow.Handlers;
 import io.undertow.Undertow;
 import io.undertow.UndertowOptions;
@@ -40,6 +42,7 @@ import io.undertow.websockets.core.StreamSourceFrameChannel;
 import io.undertow.websockets.core.WebSocketChannel;
 import io.undertow.websockets.core.WebSockets;
 import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.Getter;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
@@ -79,6 +82,10 @@ import pl.fratik.core.util.*;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
@@ -485,6 +492,48 @@ public class Module implements Modul {
             }
         });
 
+        routes.get("/api/{guildId}/configschema", ex -> {
+            String guildId = Exchange.pathParams().pathParam(ex, "guildId").orElse(null);
+            if (guildId == null) {
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARAM);
+                return;
+            }
+            Language lang = getLang(ex);
+            if (lang == null) return;
+            Map<String, GuildSchema> map = new HashMap<>();
+
+            GuildConfig def = guildDao.get(guildId);
+            for (Field field : GuildConfig.class.getDeclaredFields()) {
+                String id = field.getName();
+
+                String s = tlumaczenia.get(lang, String.format("guildconfig.%s.name", id), true);
+                if (s.equals(String.format("guildconfig.%s.name", id))) continue;
+
+                GuildSchema gs = new GuildSchema();
+                String type = field.getType().getSimpleName();
+                if (type.equals("List")) gs.setArray(true);
+                if (type.equals("Boolean")) {
+                    try {
+                        gs.setDefaultt((Boolean) GuildConfig.getValue(field, def));
+                    } catch (Exception e) {
+                        Sentry.capture(e);
+                    }
+                }
+
+                ConfigField ann = field.getDeclaredAnnotation(ConfigField.class);
+                if (ann != null) {
+                    ConfigField.Entities ent = ann.holdsEntity();
+                    if (ent != ConfigField.Entities.NULL) gs.setType(ent.name().toLowerCase());
+                }
+                if (gs.getType() == null) gs.setType(type);
+                gs.setNazwa(tlumaczenia.get(lang, s));
+                gs.setOpis(tlumaczenia.get(lang, String.format("guildconfig.%s.desc", id)));
+                map.put(id, gs);
+            }
+
+            Exchange.body().sendJson(ex, map);
+        });
+
         routes.get("/api/perms", ex -> {
             Language lang = getLang(ex);
             if (lang == null) return;
@@ -730,4 +779,21 @@ public class Module implements Modul {
     private enum Status {
         GLOBALADMIN, ZGA, DEV
     }
+
+
+    @Data
+    @AllArgsConstructor
+    private static class GuildSchema {
+        public GuildSchema() { }
+
+        private String nazwa;
+        private String opis;
+        private String type;
+        private boolean array = false;
+        private boolean nieWymagaModyfikacji = false;
+
+        @SerializedName("default")
+        private boolean defaultt = false;
+    }
+
 }

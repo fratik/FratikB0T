@@ -92,6 +92,10 @@ public class Tlumaczenia {
     }
 
     public String get(Language l, String key) {
+        return get(l, key, false);
+    }
+
+    public String get(Language l, String key, boolean disableSentry) {
         String property;
         if (languages.containsKey(l)) {
             property = languages.get(l).getProperty(key);
@@ -106,7 +110,7 @@ public class Tlumaczenia {
             if (property.equals(languages.get(Language.POLISH)
                     .getProperty("translation.empty", "translation.empty"))) property = "";
         }
-        if (property.equals(key))
+        if (property.equals(key) && !disableSentry)
             Sentry.capture(new EventBuilder().withLevel(Event.Level.WARNING).withMessage(key + NOTTRA).build());
         if (property.equals(languages.getOrDefault(l, languages.get(Language.POLISH))
                 .getProperty("translation.empty", languages.get(Language.POLISH)

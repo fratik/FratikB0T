@@ -253,38 +253,7 @@ public class AutoSettingsRenderer implements SettingsRenderer {
         for (Field f : GuildConfig.class.getDeclaredFields()) {
             ConfigField ann = f.getDeclaredAnnotation(ConfigField.class);
             if (ann != null && ann.dontDisplayInSettings()) continue;
-            Object value;
-            try {
-                StringBuilder methodName = new StringBuilder("get");
-                boolean first = true;
-                for (char ch : f.getName().toCharArray()) {
-                    if (first) {
-                        methodName.append(Character.toUpperCase(ch));
-                        first = false;
-                    }
-                    else methodName.append(ch);
-                }
-                try {
-                    value = GuildConfig.class.getDeclaredMethod(methodName.toString()).invoke(guildConfig);
-                } catch (IllegalAccessException | InvocationTargetException e) {
-                    throw new IllegalStateException(e);
-                }
-            } catch (NoSuchMethodException e) {
-                StringBuilder methodName = new StringBuilder("is");
-                boolean first = true;
-                for (char ch : f.getName().toCharArray()) {
-                    if (first) {
-                        methodName.append(Character.toUpperCase(ch));
-                        first = false;
-                    }
-                    else methodName.append(ch);
-                }
-                try {
-                    value = GuildConfig.class.getDeclaredMethod(methodName.toString()).invoke(guildConfig);
-                } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e1) {
-                    throw new IllegalStateException(e1);
-                }
-            }
+            Object value = GuildConfig.getValue(f, guildConfig);
             Class<?> holds;
             holds = ann == null ? f.getType() : null;
             if (holds == null)
