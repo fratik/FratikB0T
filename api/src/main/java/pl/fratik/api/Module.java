@@ -526,7 +526,7 @@ public class Module implements Modul {
                     if (ent != ConfigField.Entities.NULL) gs.setType(ent.name().toLowerCase());
                 }
                 if (gs.getType() == null) gs.setType(type);
-                gs.setNazwa(tlumaczenia.get(lang, s));
+                gs.setNazwa(s);
                 gs.setOpis(tlumaczenia.get(lang, String.format("guildconfig.%s.desc", id)));
                 map.put(id, gs);
             }

@@ -55,6 +55,8 @@ public class GuildConfig implements DatabaseEntity {
     private final String guildId;
     @ConfigField(dontDisplayInSettings = true)
     private Language language = Language.POLISH;
+
+    @ConfigField(holdsEntity = ConfigField.Entities.STRING)
     private List<String> prefixes = new ArrayList<>();
     @ConfigField(holdsEntity = ConfigField.Entities.ROLE)
     private String adminRole = "";
@@ -97,6 +99,7 @@ public class GuildConfig implements DatabaseEntity {
     private Boolean tylkoDjWGoreMozeDodawacPiosenki = false;
     @ConfigField(holdsEntity = ConfigField.Entities.COMMAND)
     private List<String> disabledCommands = new ArrayList<>();
+    @ConfigField(holdsEntity = ConfigField.Entities.CHANNEL, dontDisplayInSettings = true)
     private String kanalMuzyczny = "";
     private Boolean punktyWlaczone = true;
     private String lvlupMessagesCustomChannel = null;
