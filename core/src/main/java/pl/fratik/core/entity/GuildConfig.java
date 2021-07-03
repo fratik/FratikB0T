@@ -27,6 +27,8 @@ import pl.fratik.core.command.PermLevel;
 import pl.fratik.core.tlumaczenia.Language;
 
 import java.beans.Transient;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -214,4 +216,42 @@ public class GuildConfig implements DatabaseEntity {
         private final long kwota;
         private final int cooldown; // w minutach
     }
+
+    @JsonIgnore
+    public static Object getValue(Field f, GuildConfig guildConfig) {
+        Object value;
+        try {
+            StringBuilder methodName = new StringBuilder("get");
+            boolean first = true;
+            for (char ch : f.getName().toCharArray()) {
+                if (first) {
+                    methodName.append(Character.toUpperCase(ch));
+                    first = false;
+                }
+                else methodName.append(ch);
+            }
+            try {
+                value = GuildConfig.class.getDeclaredMethod(methodName.toString()).invoke(guildConfig);
+            } catch (IllegalAccessException | InvocationTargetException e) {
+                throw new IllegalStateException(e);
+            }
+        } catch (NoSuchMethodException e) {
+            StringBuilder methodName = new StringBuilder("is");
+            boolean first = true;
+            for (char ch : f.getName().toCharArray()) {
+                if (first) {
+                    methodName.append(Character.toUpperCase(ch));
+                    first = false;
+                }
+                else methodName.append(ch);
+            }
+            try {
+                value = GuildConfig.class.getDeclaredMethod(methodName.toString()).invoke(guildConfig);
+            } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e1) {
+                throw new IllegalStateException(e1);
+            }
+        }
+        return value;
+    }
+
 }
