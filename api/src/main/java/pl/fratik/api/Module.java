@@ -515,9 +515,7 @@ public class Module implements Modul {
                 if (type.equals("Boolean")) {
                     try {
                         gs.setDefaultt((Boolean) GuildConfig.getValue(field, def));
-                    } catch (Exception e) {
-                        Sentry.capture(e);
-                    }
+                    } catch (Exception ignored) { }
                 }
 
                 ConfigField ann = field.getDeclaredAnnotation(ConfigField.class);
