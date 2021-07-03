@@ -33,7 +33,7 @@ public @interface ConfigField {
     Entities holdsEntity() default Entities.NULL;
 
     enum Entities {
-        GUILD, USER, ROLE, CHANNEL, /* MESSAGE,*/ EMOJI, NULL, COMMAND;
+        GUILD, USER, ROLE, CHANNEL, /* MESSAGE,*/ EMOJI, NULL, COMMAND, STRING;
 
         public static Class<?> resolveEntity(Entities holdsEntity) {
             switch (holdsEntity) {
@@ -44,7 +44,9 @@ public @interface ConfigField {
                 case EMOJI: return Emoji.class;
 //                case MESSAGE: return Message.class
                 case CHANNEL: return GuildChannel.class;
-                case COMMAND: return String.class;
+                case COMMAND:
+                case STRING:
+                    return String.class;
             }
             return null;
         }
