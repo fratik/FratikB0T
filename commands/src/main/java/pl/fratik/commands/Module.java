@@ -74,7 +74,7 @@ public class Module implements Modul {
 
         commands.add(new PingCommand());
         commands.add(new HelpCommand(managerKomend, guildDao, shardManager, redisCacheManager));
-        commands.add(new LanguageCommand(userDao));
+        commands.add(new LanguageCommand(eventBus, userDao, tlumaczenia));
         commands.add(new UstawieniaCommand(eventWaiter, userDao, guildDao, managerArgumentow, shardManager, tlumaczenia));
         commands.add(new PoziomCommand(guildDao, shardManager));
         commands.add(new BotstatsCommand(shardManager, managerModulow));
