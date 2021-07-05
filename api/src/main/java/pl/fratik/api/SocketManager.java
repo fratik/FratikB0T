@@ -100,19 +100,25 @@ public class SocketManager implements SocketAdapter {
                 }
             });
 
-            socket.on(Socket.EVENT_MESSAGE, args -> {
-                try {
-                    @SuppressWarnings("SuspiciousMethodCalls")
-                    Method method = events.values().stream().filter(m -> m.containsKey(args[0]))
-                            .findAny().map(m -> m.get(args[0])).orElse(null);
-                    if (method == null) {
-                        logger.warn("Nie znalazłem handlera dla eventu {}", args[0]);
-                        return;
+            socket.on(Socket.EVENT_MESSAGE, new Emitter.Listener() {
+                @Override
+                public void call(Object... args) {
+                    try {
+                        @SuppressWarnings("SuspiciousMethodCalls")
+                        Method method = events.values().stream().filter(m -> m.containsKey(args[0]))
+                                .findAny().map(m -> m.get(args[0])).orElse(null);
+                        if (method == null) {
+                            logger.warn("Nie znalazłem handlera dla eventu {}", args[0]);
+                            return;
+                        }
+                        shardManager.getTextChannelById("414370678435872770").sendMessage(args[0].toString()).complete();
+                        shardManager.getTextChannelById("414370678435872770").sendMessage(this.toString()).complete();
+                        shardManager.getTextChannelById("414370678435872770").sendMessage(args[1].toString()).complete();
+                        method.invoke(args[0], this, args[1]);
+                    } catch (Exception e) {
+                        logger.error("Wystąpił błąd przy odbieraniu socketa", e);
+                        Sentry.capture(e);
                     }
-                    method.invoke(args[0], this, args[1]);
-                } catch (Exception ex) {
-                    logger.error("Wystąpił błąd przy odbieraniu socketa", ex);
-                    Sentry.capture(ex);
                 }
             });
 
