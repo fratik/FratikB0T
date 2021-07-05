@@ -18,6 +18,7 @@
 package pl.fratik.stats;
 
 import io.undertow.server.RoutingHandler;
+import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import net.dv8tion.jda.api.JDA;
@@ -45,7 +46,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
-class GuildStats {
+public class GuildStats {
 
     private final Module stats;
     private final ShardManager shardManager;
@@ -196,7 +197,7 @@ class GuildStats {
     }
 
     @SuppressWarnings({"FieldCanBeLocal", "MismatchedQueryAndUpdateOfCollection", "unused", "squid:S1068"})
-    private static class Wrappers {
+    public static class Wrappers {
         private static class GuildStatsWrapper {
             private final String guildId;
             private final List<MembersStatsWrapper> members = new ArrayList<>();
@@ -229,27 +230,28 @@ class GuildStats {
             }
         }
 
-        private static class GuildCountWrapper {
+        public static class GuildCountWrapper {
             @Getter private final long date;
             @Getter @Setter private int count;
 
-            GuildCountWrapper(GuildCountStats ms) {
+            public GuildCountWrapper(GuildCountStats ms) {
                 date = ms.getDate();
                 count = ms.getCount();
             }
         }
 
-        private static class CommandStatsWrapper {
+        public static class CommandStatsWrapper {
             @Getter private final long date;
             @Getter @Setter private int count;
 
-            CommandStatsWrapper(CommandCountStats ms) {
+            public CommandStatsWrapper(CommandCountStats ms) {
                 date = ms.getDate();
                 count = ms.getCount();
             }
         }
 
-        private static class Stats {
+        @Data
+        public static class Stats {
             private final int servers;
             private final double averageServers;
             private final int commandsToday;
@@ -267,7 +269,7 @@ class GuildStats {
             private final String jVersion;
 
             @SuppressWarnings("squid:S00107")
-            Stats(int servers, double averageServers, int commandsToday, int commandsSummary, double averageCommands, int members, int text, int voice, long uptime) {
+            public Stats(int servers, double averageServers, int commandsToday, int commandsSummary, double averageCommands, int members, int text, int voice, long uptime) {
                 this.servers = servers;
                 this.averageServers = averageServers;
                 this.commandsToday = commandsToday;

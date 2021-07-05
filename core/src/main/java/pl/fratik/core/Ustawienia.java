@@ -65,6 +65,7 @@ public class Ustawienia {
     @SerializedName("allowedIPs")
     public List<String> allowedIPs = new ArrayList<>();
     public String translationUrl = "https://translate.fratikbot.pl";
+    public String socketAdress = "http://localhost:4000";
 
     public static class GamesClass {
         public Activity.ActivityType type = Activity.ActivityType.DEFAULT;

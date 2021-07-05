@@ -28,6 +28,7 @@ build.dependsOn shadowJar
 
 dependencies {
     compile project(":core")
+    compile project(":stats")
 }
 
 shadowJar {

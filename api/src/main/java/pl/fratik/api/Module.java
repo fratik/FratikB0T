@@ -22,12 +22,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Ordering;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
-import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.annotations.SerializedName;
 import com.google.inject.Inject;
-import io.sentry.Sentry;
 import io.undertow.Handlers;
 import io.undertow.Undertow;
 import io.undertow.UndertowOptions;
@@ -53,10 +51,8 @@ import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.requests.ErrorResponse;
 import net.dv8tion.jda.api.requests.RestAction;
 import net.dv8tion.jda.api.sharding.ShardManager;
-import org.apache.commons.codec.language.bm.Lang;
 import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.Nullable;
-import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.fratik.api.entity.*;
@@ -68,6 +64,7 @@ import pl.fratik.api.internale.*;
 import pl.fratik.core.Globals;
 import pl.fratik.core.Statyczne;
 import pl.fratik.core.Ustawienia;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.command.PermLevel;
 import pl.fratik.core.entity.*;
@@ -82,10 +79,6 @@ import pl.fratik.core.util.*;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
@@ -114,6 +107,7 @@ public class Module implements Modul {
     @Inject private Tlumaczenia tlumaczenia;
     @Inject private ManagerModulow managerModulow;
     @Inject private EventBus eventBus;
+    @Inject private RedisCacheManager redisCacheManager;
 
     private Undertow undertow;
     @Getter private RoutingHandler routes;
@@ -559,6 +553,9 @@ public class Module implements Modul {
         commands.add(new RundkaCommand(eventBus, rundkaDao));
 //        commands.add(new TestCommand(eventBus));
         commands.forEach(managerKomend::registerCommand);
+
+        new SocketManager(shardManager, redisCacheManager, (pl.fratik.stats.Module) managerModulow.getModules().get("stats")).start();
+
         return true;
     }
 

@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="EntryPointsManager">
-    <list size="3">
+    <list size="4">
       <item index="0" class="java.lang.String" itemvalue="com.google.common.eventbus.Subscribe" />
-      <item index="1" class="java.lang.String" itemvalue="pl.fratik.core.command.SubCommand" />
-      <item index="2" class="java.lang.String" itemvalue="pl.fratik.fratikbot.command.SubCommand" />
+      <item index="1" class="java.lang.String" itemvalue="pl.fratik.api.SocketManager.SocketEvent" />
+      <item index="2" class="java.lang.String" itemvalue="pl.fratik.core.command.SubCommand" />
+      <item index="3" class="java.lang.String" itemvalue="pl.fratik.fratikbot.command.SubCommand" />
     </list>
     <writeAnnotations>
       <writeAnnotation name="com.google.inject.Inject" />
