@@ -111,7 +111,11 @@ public class SocketManager implements SocketAdapter {
                             logger.warn("Nie znalazłem handlera dla eventu {}", args[0]);
                             return;
                         }
-                        method.invoke(args[0], this, args[1]);
+                        method.invoke(
+                                null,
+                                this,
+                                args[1]
+                        );
                     } catch (Exception e) {
                         logger.error("Wystąpił błąd przy odbieraniu socketa", e);
                         Sentry.capture(e);
