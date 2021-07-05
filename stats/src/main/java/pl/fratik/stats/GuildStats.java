@@ -26,6 +26,7 @@ import net.dv8tion.jda.api.JDAInfo;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.slf4j.LoggerFactory;
+import pl.fratik.api.SocketManager;
 import pl.fratik.api.entity.Exceptions;
 import pl.fratik.api.internale.Exchange;
 import pl.fratik.core.Statyczne;
@@ -49,14 +50,17 @@ import java.util.stream.Collectors;
 public class GuildStats {
 
     private final Module stats;
+    private final Modul api;
     private final ShardManager shardManager;
     private final Cache<List<MembersStats>> cacheMms;
     private final Cache<List<MessagesStats>> cacheMsgs;
     private final Cache<List<GuildCountStats>> cacheGuilds;
     private final Cache<List<CommandCountStats>> cacheCommands;
+    private SocketStats adapter;
 
-    GuildStats(Module stats, Modul modul, ShardManager shardManager, RedisCacheManager redisCacheManager) {
+    GuildStats(Module stats, Modul api, ShardManager shardManager, RedisCacheManager redisCacheManager) {
         this.stats = stats;
+        this.api = api;
         this.shardManager = shardManager;
         cacheMms = redisCacheManager.new CacheRetriever<List<MembersStats>>(){}.getCache();
         cacheMsgs = redisCacheManager.new CacheRetriever<List<MessagesStats>>(){}.getCache();
@@ -64,8 +68,11 @@ public class GuildStats {
         cacheCommands = redisCacheManager.new CacheRetriever<List<CommandCountStats>>(){}.getCache();
         RoutingHandler routes;
         try {
-            routes = (RoutingHandler) modul.getClass().getDeclaredMethod("getRoutes").invoke(modul);
-        } catch (Exception e) {
+            routes = ((pl.fratik.api.Module) api).getRoutes();
+            SocketManager socketManager = ((pl.fratik.api.Module) api).getSocketManager();
+            adapter = new SocketStats(stats, shardManager, redisCacheManager);
+            socketManager.registerAdapter(adapter);
+        } catch (Exception | NoClassDefFoundError e) {
             LoggerFactory.getLogger(GuildStats.class).error("Nie udało się doczepić do modułu api!", e);
             return;
         }
@@ -194,6 +201,17 @@ public class GuildStats {
             list.add(o);
         }
         return list;
+    }
+
+    public void shutdown() {
+        if (adapter != null) {
+            try {
+                SocketManager socketManager = ((pl.fratik.api.Module) api).getSocketManager();
+                socketManager.unregisterAdapter(adapter);
+            } catch (Exception | NoClassDefFoundError e) {
+                LoggerFactory.getLogger(GuildStats.class).error("Nie udało się odczepić od modułu api!", e);
+            }
+        }
     }
 
     @SuppressWarnings({"FieldCanBeLocal", "MismatchedQueryAndUpdateOfCollection", "unused", "squid:S1068"})
