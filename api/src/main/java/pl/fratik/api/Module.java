@@ -26,7 +26,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.annotations.SerializedName;
 import com.google.inject.Inject;
-import io.sentry.Sentry;
 import io.undertow.Handlers;
 import io.undertow.Undertow;
 import io.undertow.UndertowOptions;
@@ -65,6 +64,7 @@ import pl.fratik.api.internale.*;
 import pl.fratik.core.Globals;
 import pl.fratik.core.Statyczne;
 import pl.fratik.core.Ustawienia;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.command.CommandType;
 import pl.fratik.core.command.NewCommand;
 import pl.fratik.core.command.PermLevel;
@@ -80,10 +80,6 @@ import pl.fratik.core.util.*;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
@@ -112,6 +108,7 @@ public class Module implements Modul {
     @Inject private Tlumaczenia tlumaczenia;
     @Inject private ManagerModulow managerModulow;
     @Inject private EventBus eventBus;
+    @Inject private RedisCacheManager redisCacheManager;
 
     private Undertow undertow;
     @Getter private RoutingHandler routes;
@@ -555,7 +552,11 @@ public class Module implements Modul {
         eventBus.register(rundkaGa);
         commands.add(new RundkaCommand(eventBus, rundkaDao));
 //        commands.add(new TestCommand(eventBus));
+
         managerKomend.registerCommands(this, commands);
+
+        new SocketManager(shardManager, redisCacheManager, (pl.fratik.stats.Module) managerModulow.getModules().get("stats")).start();
+
         return true;
     }
 
