@@ -23,7 +23,6 @@ import io.socket.client.IO;
 import io.socket.client.Socket;
 import io.socket.emitter.Emitter;
 import net.dv8tion.jda.api.sharding.ShardManager;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.Ustawienia;
@@ -104,18 +103,28 @@ public class SocketManager implements SocketAdapter {
                 @Override
                 public void call(Object... args) {
                     try {
-                        @SuppressWarnings("SuspiciousMethodCalls")
-                        Method method = events.values().stream().filter(m -> m.containsKey(args[0]))
-                                .findAny().map(m -> m.get(args[0])).orElse(null);
-                        if (method == null) {
+//                        @SuppressWarnings("SuspiciousMethodCalls")
+//                        Method method = events.values().stream().filter(m -> m.containsKey(args[0]))
+//                                .findAny().map(m -> m.get(args[0])).orElse(null);
+
+                        SocketAdapter sa = null;
+                        Method m = null;
+
+                        for (Map.Entry<SocketAdapter, Map<String, Method>> entry : events.entrySet()) {
+                            Map<String, Method> value = entry.getValue();
+                            if (value.containsKey(args[0])) {
+                                sa = entry.getKey();
+                                m = value.get(args[0]);
+                            }
+                        }
+
+                        if (m == null) {
                             logger.warn("Nie znalazłem handlera dla eventu {}", args[0]);
                             return;
                         }
-                        method.invoke(
-                                null,
-                                this,
-                                args[1]
-                        );
+
+                        m.invoke(args[0], sa, args[1]);
+
                     } catch (Exception e) {
                         logger.error("Wystąpił błąd przy odbieraniu socketa", e);
                         Sentry.capture(e);
