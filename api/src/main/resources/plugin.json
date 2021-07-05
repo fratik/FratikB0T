@@ -1,6 +1,6 @@
 {
   "name": "api",
-  "dependencies": ["arguments", "stats"],
+  "dependencies": ["arguments"],
   "main": "pl.fratik.api.Module",
   "coreVersion": "@core.version@"
 }
