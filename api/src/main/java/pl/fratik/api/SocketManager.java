@@ -23,6 +23,7 @@ import io.socket.client.IO;
 import io.socket.client.Socket;
 import io.socket.emitter.Emitter;
 import net.dv8tion.jda.api.sharding.ShardManager;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.Ustawienia;
@@ -88,14 +89,14 @@ public class SocketManager implements SocketAdapter {
             socket.on(Socket.EVENT_CONNECT, new Emitter.Listener() {
                 @Override
                 public void call(Object... args) {
-                    connect(this, (Ack) args[args.length - 1]);
+                    connect(this, null);
                 }
             });
 
             socket.on(Socket.EVENT_DISCONNECT, new Emitter.Listener() {
                 @Override
                 public void call(Object... args) {
-                    disconnect(this, (Ack) args[args.length - 1]);
+                    disconnect(this, null);
                 }
             });
 
