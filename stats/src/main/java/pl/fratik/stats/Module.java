@@ -195,6 +195,10 @@ public class Module implements Modul {
         if (!Globals.wylaczanie) zrzut();
         executorSche.shutdown();
         eventBus.unregister(this);
+        if (gs != null) {
+            gs.shutdown();
+            eventBus.unregister(gs);
+        }
         return true;
     }
 }

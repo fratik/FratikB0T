@@ -15,23 +15,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-jar {
-    archiveName = "api.jar"
-    destinationDir project.file('../plugins')
-}
+package pl.fratik.api;
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
-mainClassName = 'pl.fratik.api.Module'
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 
-build.dependsOn shadowJar
-
-dependencies {
-    compile project(":core")
-}
-
-shadowJar {
-    manifest {
-        attributes 'Main-Class': 'pl.fratik.api.Module'
-    }
+@Retention(RetentionPolicy.RUNTIME)
+public @interface SocketEvent {
+    String eventName() default "";
 }

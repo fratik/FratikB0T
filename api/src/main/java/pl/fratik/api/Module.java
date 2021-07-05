@@ -111,6 +111,7 @@ public class Module implements Modul {
 
     private Undertow undertow;
     @Getter private RoutingHandler routes;
+    @Getter private SocketManager socketManager;
     private Map<String, WscWrapper> webSocketChannels = new HashMap<>();
     private List<Command> commands = new ArrayList<>();
 
@@ -554,7 +555,8 @@ public class Module implements Modul {
 //        commands.add(new TestCommand(eventBus));
         commands.forEach(managerKomend::registerCommand);
 
-        new SocketManager(shardManager, redisCacheManager, (pl.fratik.stats.Module) managerModulow.getModules().get("stats")).start();
+        socketManager = new SocketManager(shardManager);
+        socketManager.start();
 
         return true;
     }

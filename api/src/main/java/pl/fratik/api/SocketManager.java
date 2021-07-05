@@ -22,65 +22,61 @@ import io.socket.client.Ack;
 import io.socket.client.IO;
 import io.socket.client.Socket;
 import io.socket.emitter.Emitter;
-import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pl.fratik.core.Statyczne;
 import pl.fratik.core.Ustawienia;
-import pl.fratik.core.cache.Cache;
-import pl.fratik.core.cache.RedisCacheManager;
-import pl.fratik.core.util.CommonUtil;
-import pl.fratik.core.util.GsonUtil;
-import pl.fratik.stats.GuildStats;
-import pl.fratik.stats.Module;
-import pl.fratik.stats.entity.CommandCountStats;
-import pl.fratik.stats.entity.GuildCountStats;
 
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
 import java.lang.reflect.Method;
-import java.time.Instant;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.HashMap;
+import java.util.Map;
 
-public class SocketManager {
+public class SocketManager implements SocketAdapter {
 
     private static final Logger logger = LoggerFactory.getLogger(SocketManager.class);
 
     private final ShardManager shardManager;
-    private final Module stats;
 
-    private final Cache<List<GuildCountStats>> cacheGuilds;
-    private final Cache<List<CommandCountStats>> cacheCommands;
-
-    private final Map<String, Method> events = new HashMap<>();
+    private final Map<SocketAdapter, Map<String, Method>> events = new HashMap<>();
 
     private Socket socket = null;
 
-    public SocketManager(ShardManager shardManager, RedisCacheManager redisCacheManager, Module stats) {
+    public SocketManager(ShardManager shardManager) {
         this.shardManager = shardManager;
-        this.stats = stats;
-        cacheGuilds = redisCacheManager.new CacheRetriever<List<GuildCountStats>>(){}.getCache();
-        cacheCommands = redisCacheManager.new CacheRetriever<List<CommandCountStats>>(){}.getCache();
-        for (Method method : getClass().getMethods()) {
+        registerAdapter(this);
+    }
+
+    public void registerAdapter(SocketAdapter adapter) {
+        int count = 0;
+        for (Method method : adapter.getClass().getMethods()) {
             try {
                 if (method.isAnnotationPresent(SocketEvent.class)) {
                     SocketEvent socketEvent = method.getAnnotation(SocketEvent.class);
                     String name = socketEvent.eventName().isEmpty() ? method.getName() : socketEvent.eventName();
-                    if (events.containsKey(name)) {
-                        logger.error("Nazwa {} jest zdublowana!", name);
+                    SocketAdapter a = events.entrySet().stream().filter(m -> m.getValue().containsKey(name))
+                            .findAny().map(Map.Entry::getKey).orElse(null);
+                    if (a != null) {
+                        logger.error("Adapter {} zarejestrował już handler dla {}!", a, name);
                         continue;
                     }
-                    events.put(name, method);
+                    events.compute(adapter, (h, map) -> {
+                        if (map == null) map = new HashMap<>();
+                        map.put(name, method);
+                        return map;
+                    });
+                    count++;
                 }
             } catch (Exception e) {
                 logger.error("Nie udało się zarejestrować eventu", e);
                 Sentry.capture(e);
             }
         }
-        logger.info("Zarejestrowano {} socket eventów!", events.size());
+        logger.info("Zarejestrowano {} socket eventów - łącznie {}!", count, events.values().stream().mapToInt(Map::size).sum());
+    }
+
+    public void unregisterAdapter(SocketAdapter adapter) {
+        if (!events.containsKey(adapter)) throw new IllegalArgumentException("Adapter nie jest zarejestrowany!");
+        events.remove(adapter);
     }
 
     public void start() {
@@ -105,9 +101,11 @@ public class SocketManager {
 
             socket.on(Socket.EVENT_MESSAGE, args -> {
                 try {
-                    Method method = events.get(args[0]);
+                    @SuppressWarnings("SuspiciousMethodCalls")
+                    Method method = events.values().stream().filter(m -> m.containsKey(args[0]))
+                            .findAny().map(m -> m.get(args[0])).orElse(null);
                     if (method == null) {
-                        logger.warn("Nie znalazłem handlera dla eventu " + method);
+                        logger.warn("Nie znalazłem handlera dla eventu {}", args[0]);
                         return;
                     }
                     method.invoke(args[0], args[1]);
@@ -132,71 +130,6 @@ public class SocketManager {
     @SocketEvent
     public void disconnect(Emitter.Listener e, Ack ack) {
         logger.warn("Odłączono od serwera socketów");
-    }
-
-    @SocketEvent
-    public void retrieveStats(Emitter.Listener e, Ack ack) {
-        int guilds = shardManager.getGuilds().size();
-        int members = shardManager.getGuilds().stream().map(Guild::getMemberCount).reduce(Integer::sum)
-                .orElse(0);
-        int textChannels = shardManager.getTextChannels().size();
-        int voiceChannels = shardManager.getVoiceChannels().size();
-        List<GuildCountStats> tmpGcs;
-        List<CommandCountStats> tmpCcs;
-        JDA szard = shardManager.getShardById(0);
-        if (szard == null) throw new IllegalStateException("bot nie załadowany poprawnie");
-        List<GuildCountStats> kesz = cacheGuilds.getIfPresent(szard.getSelfUser().getId());
-        List<CommandCountStats> kesz2 = cacheCommands.getIfPresent(szard.getSelfUser().getId());
-        if (kesz != null) {
-            tmpGcs = new ArrayList<>();
-            kesz.sort(Comparator.comparingLong(GuildCountStats::getDate).reversed());
-            for (int i = 0; i < kesz.size(); i++) {
-                tmpGcs.add(kesz.get(i));
-                if (i == 29) break;
-            }
-        } else {
-            tmpGcs = stats.getGuildCountStatsDao().getAll();
-            cacheGuilds.put(szard.getSelfUser().getId(), tmpGcs);
-        }
-        if (kesz2 != null) {
-            tmpCcs = kesz2;
-        } else {
-            tmpCcs = stats.getCommandCountStatsDao().getAll();
-            cacheCommands.put(szard.getSelfUser().getId(), tmpCcs);
-        }
-        List<GuildStats.Wrappers.GuildCountWrapper> gcs = tmpGcs.stream().map(GuildStats.Wrappers.GuildCountWrapper::new)
-                .sorted(Comparator.comparingLong(GuildStats.Wrappers.GuildCountWrapper::getDate).reversed()).peek(o -> {
-                    if (o.getDate() == stats.getCurrentStorageDate()) o.setCount(shardManager.getGuilds().size());
-                }).collect(Collectors.toList());
-        List<GuildStats.Wrappers.CommandStatsWrapper> ccs = tmpCcs.stream().map(GuildStats.Wrappers.CommandStatsWrapper::new)
-                .sorted(Comparator.comparingLong(GuildStats.Wrappers.CommandStatsWrapper::getDate).reversed()).peek(cecees -> {
-                    if (cecees.getDate() == stats.getCurrentStorageDate())
-                        cecees.setCount(cecees.getCount() + stats.getKomend());
-                }).collect(Collectors.toList());
-        int guildsSummmary = 0;
-        int commandsSummary = 0;
-        int lastGuildCount = 0;
-        for (int i = 0; i < gcs.size(); i++) {
-            if (i > 0) {
-                guildsSummmary += lastGuildCount - gcs.get(i).getCount();
-            }
-            lastGuildCount = gcs.get(i).getCount();
-            commandsSummary += CommonUtil.supressException(ccs::get, i) == null ? 0 : ccs.get(i).getCount();
-            if (i == 29) break;
-        }
-        GuildStats.Wrappers.Stats srats = new GuildStats.Wrappers.Stats(guilds, (double) guildsSummmary / Math.min(gcs.size(), 30), ccs.get(0).getCount(),
-                commandsSummary, (double) commandsSummary / Math.min(ccs.size(), 30), members,
-                textChannels, voiceChannels,
-                Instant.now().toEpochMilli() - (Statyczne.startDate.toInstant().getEpochSecond() * 1000));
-
-        srats.getGuilds().addAll(gcs);
-        srats.getCommands().addAll(ccs);
-        ack.call(GsonUtil.toJSON(srats));
-    }
-
-    @Retention(RetentionPolicy.RUNTIME)
-    public @interface SocketEvent {
-        String eventName() default "";
     }
 
 }

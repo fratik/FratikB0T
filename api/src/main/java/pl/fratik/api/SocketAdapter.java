@@ -15,23 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-jar {
-    archiveName = "api.jar"
-    destinationDir project.file('../plugins')
-}
+package pl.fratik.api;
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
-mainClassName = 'pl.fratik.api.Module'
-
-build.dependsOn shadowJar
-
-dependencies {
-    compile project(":core")
-}
-
-shadowJar {
-    manifest {
-        attributes 'Main-Class': 'pl.fratik.api.Module'
-    }
+public interface SocketAdapter {
 }
