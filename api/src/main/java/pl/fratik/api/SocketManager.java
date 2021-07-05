@@ -123,8 +123,7 @@ public class SocketManager implements SocketAdapter {
                             return;
                         }
 
-                        m.invoke(args[0], sa, args[1]);
-
+                        m.invoke(sa, this, args[1]);
                     } catch (Exception e) {
                         logger.error("Wystąpił błąd przy odbieraniu socketa", e);
                         Sentry.capture(e);
