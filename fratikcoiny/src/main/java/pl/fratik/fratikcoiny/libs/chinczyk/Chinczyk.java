@@ -380,7 +380,8 @@ public class Chinczyk {
                     }
                     e.deferReply(true).queue();
                     Player player = p.get();
-                    player.getControlHook().editOriginal(t.get(player.getLanguage(), "chinczyk.invalid")).queue();
+                    if (player.getControlHook() != null)
+                        player.getControlHook().editOriginal(t.get(player.getLanguage(), "chinczyk.invalid")).queue();
                     Message control = e.getHook().sendMessage(generateControlMessage(player)).setEphemeral(true).complete();
                     player.setControlHook(e.getHook());
                     player.setControlMessageId(control.getIdLong());
@@ -676,7 +677,7 @@ public class Chinczyk {
     }
 
     private void updateControlMessage(Player p) {
-        p.getControlHook().editOriginal(generateControlMessage(p)).queue();
+        if (p.getControlHook() != null) p.getControlHook().editOriginal(generateControlMessage(p)).queue();
     }
 
     private void updateControlMessages() {
@@ -833,7 +834,8 @@ public class Chinczyk {
             if (rolled == null) return false;
             if (position + rolled > 44) return false; // jeśli przekroczona ilość pól + strefy końcowej, nie można
             String nextPosition;
-            nextPosition = getBoardPosition(position + rolled);
+            if (position == 0) nextPosition = getBoardPosition(1);
+            else nextPosition = getBoardPosition(position + rolled);
             for (Player p : players.values()) {
                 for (Piece piece : p.getPieces()) {
                     if (piece.getBoardPosition().equals(nextPosition))
