@@ -28,7 +28,9 @@ import pl.fratik.core.manager.ManagerKomend;
 import pl.fratik.core.moduly.Modul;
 import pl.fratik.core.util.EventWaiter;
 import pl.fratik.fratikcoiny.games.BlackjackCommand;
+import pl.fratik.fratikcoiny.games.ChinczykCommand;
 import pl.fratik.fratikcoiny.games.SlotsCommand;
+import pl.fratik.fratikcoiny.libs.chinczyk.Chinczyk;
 
 import java.util.ArrayList;
 
@@ -58,6 +60,7 @@ public class Module implements Modul {
         commands.add(new BlackjackCommand(memberDao, eventWaiter));
         commands.add(new SlotsCommand(memberDao));
         commands.add(new PremiaCommand(guildDao, memberDao, eventWaiter, eventBus));
+        if (Chinczyk.canBeUsed()) commands.add(new ChinczykCommand(eventBus));
 
         commands.forEach(managerKomend::registerCommand);
 
