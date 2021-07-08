@@ -520,6 +520,7 @@ public class Chinczyk {
             if (rolled == null || rolled != 6) turn = Place.getNextPlace(turn, players.keySet());
         }
         rolled = null;
+        if (timeout != null) timeout.cancel(false);
         timeout = executor.schedule(this::timeout, 1, TimeUnit.MINUTES);
         updateMainMessage(true);
         updateControlMessages();
