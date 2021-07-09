@@ -30,6 +30,7 @@ public class Credits {
     public static class ParsedCredits {
         private final String username;
         private final String discrim;
+        private final String avatarUrl;
         private final String krotkiPowod;
         private final String dluzszyPowod;
         private final Sociale sociale;

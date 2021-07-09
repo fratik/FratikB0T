@@ -445,7 +445,7 @@ public class Module implements Modul {
                         new TypeReference<List<Credits>>() {})) {
                     User user = shardManager.retrieveUserById(credit.getId()).complete();
                     if (user == null) continue;
-                    credits.add(new Credits.ParsedCredits(user.getName(), user.getDiscriminator(),
+                    credits.add(new Credits.ParsedCredits(user.getName(), user.getDiscriminator(), user.getAvatarUrl(),
                             credit.getKrotkiPowod(), credit.getDluzszyPowod(), credit.getSociale()));
                 }
                 hmap.put("credits", credits);
@@ -463,17 +463,17 @@ public class Module implements Modul {
                     List<Credits.ParsedCredits> ga = new ArrayList<>();
                     for (User d : map.entrySet().stream().filter(s -> s.getValue() == Status.DEV).map(Map.Entry::getKey)
                             .collect(Collectors.toList())) {
-                        devy.add(new Credits.ParsedCredits(d.getName(), d.getDiscriminator(), null,
+                        devy.add(new Credits.ParsedCredits(d.getName(), d.getDiscriminator(), d.getAvatarUrl(), null,
                                 null, socialeGa.get(d.getId())));
                     }
                     for (User z : map.entrySet().stream().filter(s -> s.getValue() == Status.ZGA).map(Map.Entry::getKey)
                             .collect(Collectors.toList())) {
-                        zga.add(new Credits.ParsedCredits(z.getName(), z.getDiscriminator(), null,
+                        zga.add(new Credits.ParsedCredits(z.getName(), z.getDiscriminator(), z.getAvatarUrl(), null,
                                 null, socialeGa.get(z.getId())));
                     }
                     for (User g : map.entrySet().stream().filter(s -> s.getValue() == Status.GLOBALADMIN).map(Map.Entry::getKey)
                             .collect(Collectors.toList())) {
-                        ga.add(new Credits.ParsedCredits(g.getName(), g.getDiscriminator(), null,
+                        ga.add(new Credits.ParsedCredits(g.getName(), g.getDiscriminator(), g.getAvatarUrl(), null,
                                 null, socialeGa.get(g.getId())));
                     }
                     hmap.put("dev", devy);
