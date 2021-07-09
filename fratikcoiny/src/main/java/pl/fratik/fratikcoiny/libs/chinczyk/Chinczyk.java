@@ -27,8 +27,11 @@ import net.dv8tion.jda.api.entities.Emoji;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.events.channel.text.TextChannelDeleteEvent;
+import net.dv8tion.jda.api.events.guild.GuildLeaveEvent;
 import net.dv8tion.jda.api.events.interaction.ButtonClickEvent;
 import net.dv8tion.jda.api.events.interaction.SelectionMenuEvent;
+import net.dv8tion.jda.api.events.message.MessageDeleteEvent;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.Button;
@@ -289,14 +292,8 @@ public class Chinczyk {
                 eb.setColor(winner.getPlace().bgColor);
                 break;
             }
-            case CANCELLED: {
-                eb.setDescription(t.get(l, "chinczyk.aborted"));
-                break;
-            }
-            case ERRORED: {
-                eb.setDescription(t.get(l, "chinczyk.errored"));
-                break;
-            }
+            default:
+                throw new IllegalStateException("Unexpected value: " + status);
         }
         return mb.setEmbeds(eb.build()).build();
     }
@@ -439,6 +436,7 @@ public class Chinczyk {
             case READY: {
                 player.setStatus(PlayerStatus.READY);
                 if (isEveryoneReady()) status = Status.WAITING;
+                else status = Status.WAITING_FOR_PLAYERS;
                 e.deferEdit().queue();
                 updateMainMessage(false);
                 updateControlMessage(player);
@@ -566,8 +564,10 @@ public class Chinczyk {
         try {
             endCallback.accept(this);
         } catch (Exception ignored) {}
-        message.editMessage(t.get(l, key == null ? "chinczyk.aborted" : key)).override(true).queue();
-        updateControlMessages();
+        if (message != null) message.editMessage(t.get(l, key == null ? "chinczyk.aborted" : key)).override(true).queue();
+        try {
+            updateControlMessages();
+        } catch (Exception ignored) {}
     }
 
     @Subscribe
@@ -600,6 +600,30 @@ public class Chinczyk {
         player.setLanguage(l);
         e.deferEdit().queue();
         updateControlMessage(player);
+    }
+    
+    @Subscribe
+    public void onMessageDelete(MessageDeleteEvent e) {
+        if (e.getMessageIdLong() == message.getIdLong()) {
+            status = Status.MESSAGE_DELETED;
+            aborted(null);
+        }
+    }
+    
+    @Subscribe
+    public void onChannelDelete(TextChannelDeleteEvent e) {
+        if (e.getChannel().getIdLong() == getChannel().getIdLong()) {
+            status = Status.CANCELLED;
+            aborted(null);
+        }
+    }
+
+    @Subscribe
+    public void onGuildLeave(GuildLeaveEvent e) {
+        if (e.getGuild().getIdLong() == message.getGuild().getIdLong()) {
+            status = Status.LEFT_GUILD;
+            aborted(null);
+        }
     }
 
     private void updateMainMessage(boolean rerenderBoard) {
@@ -706,6 +730,14 @@ public class Chinczyk {
                 mb.setContent(t.get(player.getLanguage(), "chinczyk.errored"));
                 break;
             }
+            case MESSAGE_DELETED: {
+                mb.setContent(t.get(player.getLanguage(), "chinczyk.aborted.deleted"));
+                break;
+            }
+            case LEFT_GUILD: {
+                mb.setContent(t.get(player.getLanguage(), "chinczyk.aborted.left"));
+                break;
+            }
         }
         return mb.build();
     }
@@ -748,8 +780,8 @@ public class Chinczyk {
             }
             this.controlHook = controlHook;
             if (controlHook == null) return;
-            Message msg = new MessageBuilder(t.get(getLanguage(), "chinczyk.control.expired")).build();
             handle = executor.schedule(() -> {
+                Message msg = new MessageBuilder(t.get(getLanguage(), "chinczyk.control.expired")).build();
                 controlHook.editOriginal(msg).complete();
                 if (Objects.equals(this.controlHook, controlHook)) this.controlHook = null;
             }, controlHook.getExpirationTimestamp() - System.currentTimeMillis() - 60000, TimeUnit.MILLISECONDS);
@@ -803,7 +835,15 @@ public class Chinczyk {
         /**
          * Coś się popsuło
          */
-        ERRORED
+        ERRORED,
+        /**
+         * Wiadomość usunięta, gra anulowana
+         */
+        MESSAGE_DELETED,
+        /**
+         * Serwer opuszczony, gra anulowana
+         */
+        LEFT_GUILD
     }
 
     public enum Place {
