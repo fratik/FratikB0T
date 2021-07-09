@@ -108,6 +108,7 @@ public class Chinczyk {
         coords.put("b6", "965,461");
         coords.put("b7", "965,629");
         coords.put("b8", "965,797");
+        coords.put("btxt", "-59,400");
         coords.put("g1", "1637,1637");
         coords.put("g2", "1805,1637");
         coords.put("g3", "1637,1805");
@@ -116,6 +117,7 @@ public class Chinczyk {
         coords.put("g6", "1469,965");
         coords.put("g7", "1301,965");
         coords.put("g8", "1133,965");
+        coords.put("gtxt", "-59,1530");
         coords.put("y1", "125,1637");
         coords.put("y2", "293,1637");
         coords.put("y3", "125,1805");
@@ -124,6 +126,7 @@ public class Chinczyk {
         coords.put("y6", "965,1469");
         coords.put("y7", "965,1301");
         coords.put("y8", "965,1133");
+        coords.put("ytxt", "59,1530");
         coords.put("r1", "125,125");
         coords.put("r2", "293,125");
         coords.put("r3", "125,293");
@@ -132,6 +135,7 @@ public class Chinczyk {
         coords.put("r6", "461,965");
         coords.put("r7", "629,965");
         coords.put("r8", "797,965");
+        coords.put("rtxt", "59,400");
         coords.put("1", "797,125");
         coords.put("2", "965,125");
         coords.put("3", "1133,125");
@@ -236,6 +240,16 @@ public class Chinczyk {
                     int y = Integer.parseInt(value.split(",")[1]);
                     g.drawImage(piece.render(font), x-30, y-30, null);
                 }
+                String value = BOARD_COORDS.get(player.getPlace().name().toLowerCase().charAt(0) + "txt");
+                int x = Integer.parseInt(value.split(",")[0]);
+                int y = Integer.parseInt(value.split(",")[1]) + g.getFontMetrics().getHeight() + g.getFontMetrics().getAscent();
+                g.setFont(font.deriveFont(60f));
+                g.setColor(Color.BLACK);
+                String str = player.getUser().getName();
+                if (str.length() > 10) str = str.substring(0, 10) + "...";
+                if (x < 0)
+                    x = image.getWidth() + x - g.getFontMetrics().stringWidth(str);
+                g.drawString(str, x, y);
             }
             g.dispose();
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
