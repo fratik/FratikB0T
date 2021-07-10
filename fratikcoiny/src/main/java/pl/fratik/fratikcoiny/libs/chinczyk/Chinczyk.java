@@ -68,6 +68,7 @@ public class Chinczyk {
     private static final String FILE_NAME = "board.png";
     private static final String START = "START";
     private static final String CANCEL = "ABORT";
+    private static final String LEAVE = "LEAVE";
     private static final String READY = "READY";
     private static final String LANGUAGE = "LANGUAGE";
     private static final String NEW_CONTROL_MESSAGE = "NEW_CONTROL_MESSAGE";
@@ -458,12 +459,17 @@ public class Chinczyk {
                 updateControlMessage(player);
                 break;
             }
-            case CANCEL: {
+            case LEAVE: {
                 if (e.getUser().equals(context.getSender()) && status != Status.IN_PROGRESS) {
                     e.reply(t.get(player.getLanguage(), "chinczyk.owner.selfabort")).setEphemeral(true).complete();
                     return;
                 }
                 e.deferEdit().queue();
+                if (!player.isConfirmLeave()) {
+                    player.setConfirmLeave(true);
+                    updateControlMessage(player);
+                    return;
+                }
                 player.setStatus(PlayerStatus.LEFT);
                 players.remove(player.getPlace(), player);
                 updateControlMessage(player);
@@ -484,7 +490,7 @@ public class Chinczyk {
                 break;
             }
             case ROLL: {
-                if (turn != player.getPlace()) return;
+                if (turn != player.getPlace() || rolled != null) return;
                 rolled = random.nextInt(6) + 1; //1-6
                 e.deferEdit().queue();
                 updateMainMessage(false);
@@ -492,11 +498,17 @@ public class Chinczyk {
                 break;
             }
             case END_MOVE: {
-                if (turn != player.getPlace()) return;
+                if (turn != player.getPlace() || rolled == null) return;
                 e.deferEdit().queue();
                 lastEvent = null;
                 makeTurn();
                 break;
+            }
+            case CANCEL: {
+                if (!player.isConfirmLeave()) return;
+                player.setConfirmLeave(false);
+                updateControlMessage(player);
+                return;
             }
             default: {
                 if (!e.getComponentId().startsWith(MOVE_PREFIX)) return;
@@ -514,6 +526,7 @@ public class Chinczyk {
                     return;
                 }
                 e.deferEdit().queue();
+                player.setConfirmLeave(false);
                 Piece thrown = null;
                 String nextPosition;
                 if (piece.position == 0) nextPosition = piece.getBoardPosition(1);
@@ -569,6 +582,8 @@ public class Chinczyk {
                 .findFirst().map(Player::getPlace).orElseThrow(() -> new IllegalStateException("executer nie gra?"));
         else if (rolled == null || rolled != 6) turn = Place.getNextPlace(turn, players.keySet());
         rolled = null;
+        if (timeout != null && !timeout.isCancelled() && !timeout.cancel(false)) return;
+        timeout = executor.schedule(this::timeout, 1, TimeUnit.MINUTES);
         updateMainMessage(true);
         updateControlMessages();
     }
@@ -677,25 +692,33 @@ public class Chinczyk {
 
     private Message generateControlMessage(Player player) {
         MessageBuilder mb = new MessageBuilder();
-        Button leave = Button.danger(CANCEL, t.get(player.getLanguage(), "chinczyk.control.abort"));
+        List<Component> leaveComponents = new ArrayList<>();
+        leaveComponents.add(Button.danger(LEAVE, t.get(player.getLanguage(), "chinczyk.control.leave")));
+        if (player.confirmLeave)
+            leaveComponents.add(Button.danger(CANCEL, t.get(player.getLanguage(), "chinczyk.control.abort")));
+        ActionRow leave = ActionRow.of(leaveComponents);
         switch (status) {
             case WAITING_FOR_PLAYERS:
             case WAITING: {
                 if (player.getStatus() == PlayerStatus.JOINED) {
                     mb.setContent(t.get(player.getLanguage(), "chinczyk.control.start"));
+                    List<Component> controlComp = new ArrayList<>();
+                    controlComp.add(Button.success(READY, t.get(player.getLanguage(), "chinczyk.control.ready")));
+                    controlComp.addAll(leaveComponents);
                     mb.setActionRows(
-                            ActionRow.of(
-                                    Button.success(READY, t.get(player.getLanguage(), "chinczyk.control.ready")),
-                                    leave
-                            ),
+                            ActionRow.of(controlComp),
                             generateLanguageMenu(player.getLanguage())
                     );
+                    if (player.isConfirmLeave())
+                        mb.append('\n').append(t.get(player.getLanguage(), "chinczyk.control.leave.text"));
                 } else if (player.getStatus() == PlayerStatus.READY) {
                     mb.setContent(t.get(player.getLanguage(), "chinczyk.control.start.waiting"));
                     mb.setActionRows(
-                            ActionRow.of(leave),
+                            leave,
                             generateLanguageMenu(player.getLanguage())
                     );
+                    if (player.isConfirmLeave())
+                        mb.append('\n').append(t.get(player.getLanguage(), "chinczyk.control.leave.text"));
                 } else if (player.getStatus() == PlayerStatus.LEFT) {
                     mb.setContent(t.get(player.getLanguage(), "chinczyk.left"));
                 } else throw new IllegalStateException("?");
@@ -708,14 +731,16 @@ public class Chinczyk {
                 }
                 if (turn != player.getPlace()) {
                     mb.setContent(t.get(player.getLanguage(), "chinczyk.awaiting.turn"));
-                    mb.setActionRows(ActionRow.of(leave));
+                    mb.setActionRows(leave);
+                    if (player.isConfirmLeave())
+                        mb.append('\n').append(t.get(player.getLanguage(), "chinczyk.control.leave.text"));
                     break;
                 }
                 if (rolled == null) {
                     mb.setContent(t.get(player.getLanguage(), "chinczyk.awaiting.die"));
                     mb.setActionRows(ActionRow.of(
                             Button.primary(ROLL, t.get(player.getLanguage(), "chinczyk.button.roll"))
-                    ), ActionRow.of(leave));
+                    ), leave);
                 } else {
                     Map<Integer, Piece> canMove = Arrays.stream(player.getPieces()).filter(Piece::canMove)
                             .collect(Collectors.toMap(p -> p.index + 1, p -> p));
@@ -723,7 +748,7 @@ public class Chinczyk {
                         mb.setContent(t.get(player.getLanguage(), "chinczyk.awaiting.move.cant", rolled));
                         mb.setActionRows(ActionRow.of(
                                 Button.primary(END_MOVE, t.get(player.getLanguage(), "chinczyk.button.end.move"))
-                        ), ActionRow.of(leave));
+                        ), leave);
                     } else {
                         mb.setContent(t.get(player.getLanguage(), "chinczyk.awaiting.move", rolled));
                         mb.setActionRows(ActionRow.of(
@@ -731,9 +756,11 @@ public class Chinczyk {
                                 Button.primary(MOVE_PREFIX + "1", "#2").withDisabled(!canMove.containsKey(2)),
                                 Button.primary(MOVE_PREFIX + "2", "#3").withDisabled(!canMove.containsKey(3)),
                                 Button.primary(MOVE_PREFIX + "3", "#4").withDisabled(!canMove.containsKey(4))
-                        ), ActionRow.of(leave));
+                        ), leave);
                     }
                 }
+                if (player.isConfirmLeave())
+                    mb.append('\n').append(t.get(player.getLanguage(), "chinczyk.control.leave.text"));
                 break;
             }
             case ENDED: {
@@ -782,6 +809,7 @@ public class Chinczyk {
         private Language language;
         private PlayerStatus status = PlayerStatus.JOINED;
         private ScheduledFuture<?> handle;
+        private boolean confirmLeave = false;
 
         public Player(Place place, User user, InteractionHook controlHook) {
             this.place = place;
