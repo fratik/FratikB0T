@@ -117,7 +117,7 @@ public class Chinczyk {
         coords.put("g6", "1469,965");
         coords.put("g7", "1301,965");
         coords.put("g8", "1133,965");
-        coords.put("gtxt", "-59,1530");
+        coords.put("gtxt", "-59,1570,-");
         coords.put("y1", "125,1637");
         coords.put("y2", "293,1637");
         coords.put("y3", "125,1805");
@@ -126,7 +126,7 @@ public class Chinczyk {
         coords.put("y6", "965,1469");
         coords.put("y7", "965,1301");
         coords.put("y8", "965,1133");
-        coords.put("ytxt", "59,1530");
+        coords.put("ytxt", "59,1570,-");
         coords.put("r1", "125,125");
         coords.put("r2", "293,125");
         coords.put("r3", "125,293");
@@ -233,20 +233,22 @@ public class Chinczyk {
             BufferedImage image = new BufferedImage(plansza.getWidth(), plansza.getHeight(), BufferedImage.TYPE_INT_RGB);
             Graphics g = image.getGraphics();
             g.drawImage(plansza, 0, 0, null);
+            g.setFont(font.deriveFont(60f));
+            g.setColor(Color.BLACK);
             for (Player player : players.values()) {
                 for (Piece piece : player.getPieces()) {
                     String value = BOARD_COORDS.get(piece.getBoardPosition());
                     int x = Integer.parseInt(value.split(",")[0]);
                     int y = Integer.parseInt(value.split(",")[1]);
-                    g.drawImage(piece.render(font), x-30, y-30, null);
+                    g.drawImage(piece.render(font), x - 30, y - 30, null);
                 }
-                String value = BOARD_COORDS.get(player.getPlace().name().toLowerCase().charAt(0) + "txt");
-                int x = Integer.parseInt(value.split(",")[0]);
-                int y = Integer.parseInt(value.split(",")[1]) + g.getFontMetrics().getHeight() + g.getFontMetrics().getAscent();
-                g.setFont(font.deriveFont(60f));
-                g.setColor(Color.BLACK);
+                String[] value = BOARD_COORDS.get(player.getPlace().name().toLowerCase().charAt(0) + "txt").split(",");
+                int x = Integer.parseInt(value[0]);
+                int fontHeight = g.getFontMetrics().getAscent();
+                if (value.length > 2) fontHeight = value[2].equals("-") ? -fontHeight : fontHeight;
+                int y = Integer.parseInt(value[1]) + fontHeight;
                 String str = player.getUser().getName();
-                if (str.length() > 10) str = str.substring(0, 10) + "...";
+                if (str.length() >= 13) str = str.substring(0, 10) + "...";
                 if (x < 0)
                     x = image.getWidth() + x - g.getFontMetrics().stringWidth(str);
                 g.drawString(str, x, y);
@@ -466,15 +468,17 @@ public class Chinczyk {
                 players.remove(player.getPlace(), player);
                 updateControlMessage(player);
                 if (status == Status.WAITING && !isEveryoneReady()) status = Status.WAITING_FOR_PLAYERS;
-                if (status == Status.IN_PROGRESS && turn == player.getPlace()) {
-                    rolled = null;
-                    makeTurn();
-                    return;
-                }
-                if (readyPlayerCount() < 2) {
-                    status = Status.CANCELLED;
-                    aborted("chinczyk.aborted.not.enough.players");
-                    return;
+                if (status == Status.IN_PROGRESS) {
+                    if (turn == player.getPlace()) {
+                        rolled = null;
+                        makeTurn();
+                        return;
+                    }
+                    if (readyPlayerCount() < 2) {
+                        status = Status.CANCELLED;
+                        aborted("chinczyk.aborted.not.enough.players");
+                        return;
+                    }
                 }
                 updateMainMessage(true);
                 break;
