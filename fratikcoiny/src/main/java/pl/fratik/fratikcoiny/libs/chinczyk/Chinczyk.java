@@ -31,6 +31,7 @@ import net.dv8tion.jda.api.events.channel.text.TextChannelDeleteEvent;
 import net.dv8tion.jda.api.events.guild.GuildLeaveEvent;
 import net.dv8tion.jda.api.events.interaction.ButtonClickEvent;
 import net.dv8tion.jda.api.events.interaction.SelectionMenuEvent;
+import net.dv8tion.jda.api.events.message.MessageBulkDeleteEvent;
 import net.dv8tion.jda.api.events.message.MessageDeleteEvent;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
@@ -259,6 +260,7 @@ public class Chinczyk {
             ImageIO.write(image, "png", baos);
             return baos.toByteArray();
         } catch (Exception e) {
+            LoggerFactory.getLogger(getClass()).error("Wystąpił błąd podczas generacji planszy!", e);
             Sentry.capture(e);
             return null;
         }
@@ -643,6 +645,14 @@ public class Chinczyk {
             aborted(null);
         }
     }
+
+    @Subscribe
+    public void onMessageBulkDelete(MessageBulkDeleteEvent e) {
+        if (e.getMessageIds().contains(message.getId())) {
+            status = Status.MESSAGE_DELETED;
+            aborted(null);
+        }
+    }
     
     @Subscribe
     public void onChannelDelete(TextChannelDeleteEvent e) {
@@ -672,6 +682,8 @@ public class Chinczyk {
                         e -> context.replyAsAction(generateMessage()).addFile(board, FILE_NAME)).complete();
             }
         } catch (Exception e) {
+            LoggerFactory.getLogger(getClass()).error("Wystąpił błąd podczas aktualizacji wiadomości!", e);
+            Sentry.capture(e);
             status = Status.ERRORED;
             String text = t.get(l, "chinczyk.errored");
             if (message != null)
