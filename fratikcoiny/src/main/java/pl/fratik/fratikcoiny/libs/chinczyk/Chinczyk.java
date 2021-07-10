@@ -220,10 +220,10 @@ public class Chinczyk {
         if (status == Status.WAITING_FOR_PLAYERS || status == Status.WAITING)
             aborted("chinczyk.timeout.waiting");
         if (status == Status.IN_PROGRESS) {
-            Player player = players.remove(turn);
+            Player player = players.get(turn);
             player.setStatus(PlayerStatus.LEFT);
             if (player.getControlHook() != null) player.getControlHook()
-                    .editOriginal(t.get(player.getLanguage(), "chinczyk.left.timeout")).complete();
+                    .editOriginal(new MessageBuilder(t.get(player.getLanguage(), "chinczyk.left.timeout")).build()).complete();
             player.setControlHook(null);
             rolled = null;
             makeTurn();
@@ -239,21 +239,35 @@ public class Chinczyk {
             g.setColor(Color.BLACK);
             for (Player player : players.values()) {
                 for (Piece piece : player.getPieces()) {
+                    if (player.getStatus() == PlayerStatus.LEFT) break;
                     String value = BOARD_COORDS.get(piece.getBoardPosition());
                     int x = Integer.parseInt(value.split(",")[0]);
                     int y = Integer.parseInt(value.split(",")[1]);
                     g.drawImage(piece.render(font), x - 30, y - 30, null);
                 }
                 String[] value = BOARD_COORDS.get(player.getPlace().name().toLowerCase().charAt(0) + "txt").split(",");
-                int x = Integer.parseInt(value[0]);
-                int fontHeight = g.getFontMetrics().getAscent();
-                if (value.length > 2) fontHeight = value[2].equals("-") ? -fontHeight : fontHeight;
-                int y = Integer.parseInt(value[1]) + fontHeight;
+                final int valX = Integer.parseInt(value[0]);
+                final int valY = Integer.parseInt(value[1]);
+                int x = valX;
+                int y = valY;
+                final int ascent = g.getFontMetrics().getAscent();
+                int fontHeight = ascent;
+                boolean topToBottom = value.length > 2 && value[2].equals("-");
+                fontHeight = topToBottom ? -fontHeight : fontHeight;
+                y += fontHeight;
                 String str = player.getUser().getName();
                 if (str.length() >= 13) str = str.substring(0, 10) + "...";
                 if (x < 0)
                     x = image.getWidth() + x - g.getFontMetrics().stringWidth(str);
                 g.drawString(str, x, y);
+                if (player.getStatus() == PlayerStatus.LEFT) {
+                    str = t.get(l, "chinczyk.player.left");
+                    x = valX;
+                    y = valY + fontHeight + (topToBottom ? -ascent : ascent);
+                    if (x < 0)
+                        x = image.getWidth() + x - g.getFontMetrics().stringWidth(str);
+                    g.drawString(str, x, y);
+                }
             }
             g.dispose();
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -297,7 +311,8 @@ public class Chinczyk {
                 break;
             }
             case IN_PROGRESS: {
-                if (lastEvent != null) eb.appendDescription(lastEvent.getTranslated(t, l)).appendDescription(" ");
+                if (lastEvent != null && lastEvent.type != null)
+                    eb.appendDescription(lastEvent.getTranslated(t, l)).appendDescription(" ");
                 if (rolled == null) eb.appendDescription(t.get(l, "chinczyk.turn", players.get(turn).getUser().getAsMention()));
                 else eb.appendDescription(t.get(l, "chinczyk.turn.rolled", players.get(turn).getUser().getAsMention(), rolled));
                 eb.setColor(turn.bgColor);
@@ -307,7 +322,9 @@ public class Chinczyk {
                 break;
             }
             case ENDED: {
-                eb.setDescription(t.get(l, "chinczyk.embed.win", winner.getUser().getAsMention()));
+                String ment = winner.getUser().getAsMention();
+                eb.setDescription(t.get(l, "chinczyk.embed.win", ment));
+                if (readyPlayerCount() == 1) eb.setDescription(t.get(l, "chinczyk.embed.win.walkover", ment));
                 eb.setColor(winner.getPlace().bgColor);
                 break;
             }
@@ -386,7 +403,7 @@ public class Chinczyk {
                             + players.values().stream().mapToLong(Player::getControlMessageId).sum());
                     // nieprzewidywalna wartość - nanoTime jest ciężkie do odgadnięcia w całości, hashCode też,
                     // a wiadomości kontroli są widoczne tylko dla pojedynczych osób
-                    lastEvent = new Event(Event.Type.GAME_START, null, null);
+                    lastEvent = new Event(Event.Type.GAME_START, null, null, null, null);
                     makeTurn();
                     break;
                 }
@@ -406,7 +423,7 @@ public class Chinczyk {
                 }
                 case NEW_CONTROL_MESSAGE: {
                     Optional<Player> p = players.values().stream().filter(h -> h.getUser().equals(e.getUser())).findFirst();
-                    if (!p.isPresent()) {
+                    if (!p.isPresent() || !p.get().isPlaying()) {
                         e.reply(t.get(l, "chinczyk.not.playing")).setEphemeral(true).complete();
                         return;
                     }
@@ -448,7 +465,7 @@ public class Chinczyk {
             }
             return;
         }
-        Player player = players.values().stream().filter(p -> p.getControlMessageId() == e.getMessageIdLong())
+        Player player = players.values().stream().filter(p -> p.getControlMessageId() == e.getMessageIdLong() && p.isPlaying())
                 .findAny().orElse(null);
         if (player == null) return;
         switch (e.getComponentId()) {
@@ -473,18 +490,14 @@ public class Chinczyk {
                     return;
                 }
                 player.setStatus(PlayerStatus.LEFT);
-                players.remove(player.getPlace(), player);
+                if (status != Status.IN_PROGRESS) players.remove(player.getPlace(), player);
                 updateControlMessage(player);
                 if (status == Status.WAITING && !isEveryoneReady()) status = Status.WAITING_FOR_PLAYERS;
                 if (status == Status.IN_PROGRESS) {
-                    if (turn == player.getPlace()) {
+                    lastEvent = new Event(Event.Type.LEFT_GAME, player, null, null, null);
+                    if (turn == player.getPlace() || readyPlayerCount() < 2) {
                         rolled = null;
                         makeTurn();
-                        return;
-                    }
-                    if (readyPlayerCount() < 2) {
-                        status = Status.CANCELLED;
-                        aborted("chinczyk.aborted.not.enough.players");
                         return;
                     }
                 }
@@ -502,7 +515,7 @@ public class Chinczyk {
             case END_MOVE: {
                 if (turn != player.getPlace() || rolled == null) return;
                 e.deferEdit().queue();
-                lastEvent = null;
+                lastEvent = new Event(null, player, rolled, null, null);
                 makeTurn();
                 break;
             }
@@ -544,16 +557,24 @@ public class Chinczyk {
                 }
                 if (piece.position == 0) piece.position = 1;
                 else piece.position += rolled;
-                if (thrown != null) lastEvent = new Event(Event.Type.THROW, piece, thrown);
+                if (thrown != null) lastEvent = new Event(Event.Type.THROW, player, rolled, piece, thrown);
                 else lastEvent = new Event(piece.getBoardPosition()
                         .startsWith(String.valueOf(player.getPlace().name().toLowerCase().charAt(0)))
-                        ? Event.Type.ENTERED_HOME : Event.Type.MOVE, piece, null);
+                        ? Event.Type.ENTERED_HOME : Event.Type.MOVE, player, rolled, piece, null);
                 makeTurn();
             }
         }
     }
 
     private boolean checkWin() {
+        if (readyPlayerCount() == 1) {
+            Optional<Player> p = players.values().stream().filter(Player::isPlaying).findAny();
+            if (p.isPresent()) {
+                winner = p.get();
+                return true;
+            }
+            throw new IllegalStateException("ready == 1 ale nie ma wygranego");
+        }
         for (Player p : players.values()) {
             if (Arrays.stream(p.getPieces()).allMatch(piece -> piece.position >= 41)) {
                 winner = p;
@@ -567,7 +588,7 @@ public class Chinczyk {
         if (checkWin()) {
             status = Status.ENDED;
             if (lastEvent == null) throw new IllegalStateException("lastEvent jest null przy wygranej?");
-            lastEvent = new Event(Event.Type.WON, lastEvent.piece, null);
+            lastEvent = new Event(Event.Type.WON, winner, null, null, null);
             eventBus.unregister(this);
             try {
                 endCallback.accept(this);
@@ -583,7 +604,8 @@ public class Chinczyk {
         }
         if (turn == null) turn = players.values().stream().filter(p -> p.getUser().equals(context.getSender()))
                 .findFirst().map(Player::getPlace).orElseThrow(() -> new IllegalStateException("executer nie gra?"));
-        else if (rolled == null || rolled != 6) turn = Place.getNextPlace(turn, players.keySet());
+        else if (rolled == null || rolled != 6) turn = Place.getNextPlace(turn, players.entrySet().stream()
+                .filter(p -> p.getValue().isPlaying()).map(Map.Entry::getKey).collect(Collectors.toSet()));
         rolled = null;
         if (timeout != null && !timeout.isCancelled() && !timeout.cancel(false)) return;
         timeout = executor.schedule(this::timeout, 1, TimeUnit.MINUTES);
@@ -632,7 +654,7 @@ public class Chinczyk {
         }
         Player player = players.values().stream().filter(p -> p.getControlMessageId() == e.getMessageIdLong())
                 .findAny().orElse(null);
-        if (player == null) return;
+        if (player == null || !player.isPlaying()) return;
         player.setLanguage(l);
         e.deferEdit().queue();
         updateControlMessage(player);
@@ -801,11 +823,12 @@ public class Chinczyk {
     }
 
     private void updateControlMessage(Player p) {
-        if (p.getControlHook() != null) p.getControlHook().editOriginal(generateControlMessage(p)).queue();
+        if (p.getControlHook() != null)
+            p.getControlHook().editOriginal(generateControlMessage(p)).queue();
     }
 
     private void updateControlMessages() {
-        for (Player p : players.values()) updateControlMessage(p);
+        for (Player p : players.values()) if (p.isPlaying()) updateControlMessage(p);
     }
 
     public MessageChannel getChannel() {
@@ -828,6 +851,10 @@ public class Chinczyk {
             this.place = place;
             this.user = user;
             setControlHook(controlHook);
+            initPieces();
+        }
+
+        private void initPieces() {
             for (int i = 0; i < pieces.length; i++)
                 pieces[i] = new Piece(this, i);
         }
@@ -848,6 +875,20 @@ public class Chinczyk {
 
         public Language getLanguage() {
             return language != null ? language : l;
+        }
+
+        public boolean isPlaying() {
+            if (Chinczyk.this.status == Status.WAITING || Chinczyk.this.status == Status.WAITING_FOR_PLAYERS)
+                return getStatus() != PlayerStatus.LEFT;
+            return getStatus() == PlayerStatus.PLAYING;
+        }
+
+        public void setStatus(PlayerStatus status) {
+            if (status == PlayerStatus.LEFT) {
+                initPieces();
+                handle.cancel(false);
+            }
+            this.status = status;
         }
     }
 
@@ -971,6 +1012,7 @@ public class Chinczyk {
             if (position == 0) nextPosition = getBoardPosition(1);
             else nextPosition = getBoardPosition(position + rolled);
             for (Player p : players.values()) {
+                if (!p.isPlaying()) continue;
                 for (Piece piece : p.getPieces()) {
                     if (piece.getBoardPosition().equals(nextPosition))
                         return position == 0 ? (rolled == 6 && !p.equals(player)) : !p.equals(player); // zezwól ruch tylko jeżeli bicie
@@ -1014,21 +1056,26 @@ public class Chinczyk {
 
     private static class Event {
         private final Type type;
+        private final Player player;
+        private final Integer rolled;
         private final Piece piece;
         private final Piece piece2;
 
-        private Event(Type type, Piece piece, Piece piece2) {
+        Event(Type type, Player player, Integer rolled, Piece piece, Piece piece2) {
             this.type = type;
-            this.piece = checkType(type, Type.LEFT_START, Type.MOVE, Type.ENTERED_HOME, Type.WON, Type.THROW) ?
+            this.player = player;
+            this.rolled = rolled;
+            this.piece = checkType(type, Type.LEFT_START, Type.MOVE, Type.ENTERED_HOME, Type.THROW) ?
                     Objects.requireNonNull(piece) : null;
             this.piece2 = checkType(type, Type.THROW) ? Objects.requireNonNull(piece2) : null;
         }
 
         private static boolean checkType(Type type, Type... allowedTypes) {
-            return Arrays.asList(allowedTypes).contains(type);
+            return allowedTypes != null && Arrays.asList(allowedTypes).contains(type);
         }
 
         private String getTranslated(Tlumaczenia t, Language l) {
+            if (type == null) throw new IllegalArgumentException("type null");
             Function<Piece, String> pieceString = p -> t.get(l, "chinczyk.piece", p.getIndexAsString(),
                     p.player.getUser().getAsMention());
             switch (type) {
@@ -1037,7 +1084,8 @@ public class Chinczyk {
                 case ENTERED_HOME:
                     return t.get(l, type.translationKey, StringUtils.capitalize(pieceString.apply(piece)));
                 case WON:
-                    return t.get(l, type.translationKey, piece.player.getUser().getAsMention());
+                case LEFT_GAME:
+                    return t.get(l, type.translationKey, player.getUser().getAsMention());
                 case THROW:
                     return t.get(l, type.translationKey, StringUtils.capitalize(pieceString.apply(piece)),
                             pieceString.apply(piece2));
@@ -1052,7 +1100,8 @@ public class Chinczyk {
             MOVE("move"),
             THROW("throw"),
             ENTERED_HOME("entered.home"),
-            WON("win");
+            WON("win"),
+            LEFT_GAME("left.game");
 
             private final String translationKey;
 
