@@ -506,6 +506,7 @@ public class Chinczyk {
             }
             case CANCEL: {
                 if (!player.isConfirmLeave()) return;
+                e.deferEdit().queue();
                 player.setConfirmLeave(false);
                 updateControlMessage(player);
                 return;
@@ -695,7 +696,7 @@ public class Chinczyk {
         List<Component> leaveComponents = new ArrayList<>();
         leaveComponents.add(Button.danger(LEAVE, t.get(player.getLanguage(), "chinczyk.control.leave")));
         if (player.confirmLeave)
-            leaveComponents.add(Button.danger(CANCEL, t.get(player.getLanguage(), "chinczyk.control.abort")));
+            leaveComponents.add(Button.secondary(CANCEL, t.get(player.getLanguage(), "chinczyk.control.abort")));
         ActionRow leave = ActionRow.of(leaveComponents);
         switch (status) {
             case WAITING_FOR_PLAYERS:
