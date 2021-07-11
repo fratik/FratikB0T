@@ -21,6 +21,7 @@ import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import io.sentry.Sentry;
 import lombok.Data;
+import lombok.Getter;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.Emoji;
@@ -84,14 +85,15 @@ public class Chinczyk {
     private final Tlumaczenia t;
     private final Consumer<Chinczyk> endCallback;
     private final ScheduledExecutorService executor;
+    private final EventStorage eventStorage;
     private Language l;
-    private Status status = Status.WAITING_FOR_PLAYERS;
+    @Getter private Status status = Status.WAITING_FOR_PLAYERS;
     private Message message;
     private Random random;
     private Place turn;
+    private int turns;
     private Integer rolled;
-    private Event lastEvent;
-    private Player winner;
+    @Getter private Player winner;
     private ScheduledFuture<?> timeout;
 
     public static boolean canBeUsed() {
@@ -207,6 +209,7 @@ public class Chinczyk {
             }
         };
         players = new EnumMap<>(Place.class);
+        eventStorage = new EventStorage();
         t = context.getTlumaczenia();
         l = context.getLanguage();
         eventBus.register(this);
@@ -287,8 +290,10 @@ public class Chinczyk {
         else l = this.l;
         EmbedBuilder eb = new EmbedBuilder()
                 .setTitle(t.get(l, "chinczyk.embed.title"))
-                .setImage("attachment://" + FILE_NAME)
-                .setFooter("Board: FischX • CC BY-SA 3.0");
+                .setImage("attachment://" + FILE_NAME);
+        if (status == Status.IN_PROGRESS || status == Status.ENDED)
+            eb.setFooter(t.get(l, "chinczyk.footer.turn") + turns + " | Board: FischX • CC BY-SA 3.0");
+        else eb.setFooter("Board: FischX • CC BY-SA 3.0");
         switch (status) {
             case WAITING_FOR_PLAYERS:
             case WAITING: {
@@ -311,6 +316,7 @@ public class Chinczyk {
                 break;
             }
             case IN_PROGRESS: {
+                Event lastEvent = eventStorage.getLastEvent();
                 if (lastEvent != null && lastEvent.type != null)
                     eb.appendDescription(lastEvent.getTranslated(t, l)).appendDescription(" ");
                 if (rolled == null) eb.appendDescription(t.get(l, "chinczyk.turn", players.get(turn).getUser().getAsMention()));
@@ -403,7 +409,7 @@ public class Chinczyk {
                             + players.values().stream().mapToLong(Player::getControlMessageId).sum());
                     // nieprzewidywalna wartość - nanoTime jest ciężkie do odgadnięcia w całości, hashCode też,
                     // a wiadomości kontroli są widoczne tylko dla pojedynczych osób
-                    lastEvent = new Event(Event.Type.GAME_START, null, null, null, null);
+                    eventStorage.add(new Event(Event.Type.GAME_START, null, null, null, null));
                     makeTurn();
                     break;
                 }
@@ -494,7 +500,7 @@ public class Chinczyk {
                 updateControlMessage(player);
                 if (status == Status.WAITING && !isEveryoneReady()) status = Status.WAITING_FOR_PLAYERS;
                 if (status == Status.IN_PROGRESS) {
-                    lastEvent = new Event(Event.Type.LEFT_GAME, player, null, null, null);
+                    eventStorage.add(new Event(Event.Type.LEFT_GAME, player, null, null, null));
                     if (turn == player.getPlace() || readyPlayerCount() < 2) {
                         rolled = null;
                         makeTurn();
@@ -515,7 +521,8 @@ public class Chinczyk {
             case END_MOVE: {
                 if (turn != player.getPlace() || rolled == null) return;
                 e.deferEdit().queue();
-                lastEvent = new Event(null, player, rolled, null, null);
+                player.setConfirmLeave(false);
+                eventStorage.add(new Event(null, player, rolled, null, null));
                 makeTurn();
                 break;
             }
@@ -545,8 +552,9 @@ public class Chinczyk {
                 player.setConfirmLeave(false);
                 Piece thrown = null;
                 String nextPosition;
+                int curPosition = piece.position;
                 if (piece.position == 0) nextPosition = piece.getBoardPosition(1);
-                else nextPosition = piece.getBoardPosition(piece.position + rolled);
+                else nextPosition = piece.getBoardPosition(curPosition + rolled);
                 for (Player p : players.values()) {
                     for (Piece pi : p.getPieces()) {
                         if (pi.getBoardPosition().equals(nextPosition) && !p.equals(player)) {
@@ -557,10 +565,11 @@ public class Chinczyk {
                 }
                 if (piece.position == 0) piece.position = 1;
                 else piece.position += rolled;
-                if (thrown != null) lastEvent = new Event(Event.Type.THROW, player, rolled, piece, thrown);
-                else lastEvent = new Event(piece.getBoardPosition()
-                        .startsWith(String.valueOf(player.getPlace().name().toLowerCase().charAt(0)))
-                        ? Event.Type.ENTERED_HOME : Event.Type.MOVE, player, rolled, piece, null);
+                if (thrown != null) eventStorage.add(new Event(Event.Type.THROW, player, rolled, piece, thrown));
+                else eventStorage.add(new Event(piece.getBoardPosition()
+                        .startsWith(String.valueOf(player.getPlace().name().toLowerCase().charAt(0))) && //x5-x8
+                        curPosition <= 40 ? Event.Type.ENTERED_HOME : //tylko jeżeli wejdzie na tą pozycje z <=40
+                        Event.Type.MOVE, player, rolled, piece, null));
                 makeTurn();
             }
         }
@@ -587,8 +596,9 @@ public class Chinczyk {
     private void makeTurn() {
         if (checkWin()) {
             status = Status.ENDED;
-            if (lastEvent == null) throw new IllegalStateException("lastEvent jest null przy wygranej?");
-            lastEvent = new Event(Event.Type.WON, winner, null, null, null);
+            if (eventStorage.getLastEvent() == null)
+                throw new IllegalStateException("eventStorage.getLastEvent() jest null przy wygranej?");
+            eventStorage.add(new Event(Event.Type.WON, winner, null, null, null));
             eventBus.unregister(this);
             try {
                 endCallback.accept(this);
@@ -602,6 +612,7 @@ public class Chinczyk {
             aborted("chinczyk.aborted.not.enough.players");
             return;
         }
+        turns++;
         if (turn == null) turn = players.values().stream().filter(p -> p.getUser().equals(context.getSender()))
                 .findFirst().map(Player::getPlace).orElseThrow(() -> new IllegalStateException("executer nie gra?"));
         else if (rolled == null || rolled != 6) turn = Place.getNextPlace(turn, players.entrySet().stream()
@@ -835,6 +846,14 @@ public class Chinczyk {
         return context.getMessageChannel();
     }
 
+    public List<Event> getEvents() {
+        return Collections.unmodifiableList(eventStorage);
+    }
+
+    public Set<Player> getPlayers() {
+        return Collections.unmodifiableSet(new HashSet<>(players.values()));
+    }
+
     @Data
     public class Player {
         private final Place place;
@@ -952,9 +971,9 @@ public class Chinczyk {
         YELLOW("\uD83D\uDFE8", new Color(0xF4F600)),
         RED("\uD83D\uDFE5", new Color(0xFF0000));
 
-        private final String emoji;
-        private final Color bgColor;
-        private final Color textColor;
+        @Getter private final String emoji;
+        @Getter private final Color bgColor;
+        @Getter private final Color textColor;
 
         Place(String emoji, Color bgColor) {
             this(emoji, bgColor, Color.BLACK);
@@ -978,6 +997,7 @@ public class Chinczyk {
         }
     }
 
+    @Data
     public class Piece {
         private final Player player;
         private final int index;
@@ -1052,22 +1072,29 @@ public class Chinczyk {
             int pos = (position + offset) % 40;
             return String.valueOf(pos != 0 ? pos : 40);
         }
+
+        public Piece copy() {
+            Piece p = new Piece(player, index);
+            p.position = position;
+            return p;
+        }
     }
 
-    private static class Event {
+    @Data
+    public static class Event {
         private final Type type;
         private final Player player;
         private final Integer rolled;
         private final Piece piece;
         private final Piece piece2;
 
-        Event(Type type, Player player, Integer rolled, Piece piece, Piece piece2) {
+        private Event(Type type, Player player, Integer rolled, Piece piece, Piece piece2) {
             this.type = type;
             this.player = player;
             this.rolled = rolled;
             this.piece = checkType(type, Type.LEFT_START, Type.MOVE, Type.ENTERED_HOME, Type.THROW) ?
-                    Objects.requireNonNull(piece) : null;
-            this.piece2 = checkType(type, Type.THROW) ? Objects.requireNonNull(piece2) : null;
+                    Objects.requireNonNull(piece.copy()) : null;
+            this.piece2 = checkType(type, Type.THROW) ? Objects.requireNonNull(piece2.copy()) : null;
         }
 
         private static boolean checkType(Type type, Type... allowedTypes) {
@@ -1094,7 +1121,7 @@ public class Chinczyk {
             }
         }
 
-        private enum Type {
+        public enum Type {
             GAME_START("game.start"),
             LEFT_START("left.start"),
             MOVE("move"),
@@ -1108,6 +1135,13 @@ public class Chinczyk {
             Type(String translationKey) {
                 this.translationKey = "chinczyk.event." + translationKey;
             }
+        }
+    }
+
+    public static class EventStorage extends ArrayList<Event> {
+        public Event getLastEvent() {
+            if (size() == 0) return null;
+            return get(size() - 1);
         }
     }
 }
