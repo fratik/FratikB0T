@@ -34,6 +34,7 @@ import net.dv8tion.jda.api.events.interaction.ButtonClickEvent;
 import net.dv8tion.jda.api.events.interaction.SelectionMenuEvent;
 import net.dv8tion.jda.api.events.message.MessageBulkDeleteEvent;
 import net.dv8tion.jda.api.events.message.MessageDeleteEvent;
+import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.Button;
@@ -205,7 +206,7 @@ public class Chinczyk {
             try {
                 if (timeout == null || timeout.isDone() || timeout.cancel(false)) endCallback.accept(obj);
             } finally {
-                executor.shutdown();
+                executor.shutdownNow();
             }
         };
         players = new EnumMap<>(Place.class);
@@ -390,188 +391,200 @@ public class Chinczyk {
     @Subscribe
     public void onButtonClick(ButtonClickEvent e) {
         if (!e.getChannel().equals(getChannel())) return;
-        if (e.getMessageIdLong() == message.getIdLong()) {
+        try {
+            if (e.getMessageIdLong() == message.getIdLong()) {
+                switch (e.getComponentId()) {
+                    case START: {
+                        if (!e.getUser().equals(context.getSender())) {
+                            Language lang = players.values().stream().filter(p -> p.getUser().equals(e.getUser()))
+                                    .findAny().map(Player::getLanguage).orElse(l);
+                            e.reply(t.get(lang, "chinczyk.not.owner.start", context.getSender().getAsMention()))
+                                    .setEphemeral(true).complete();
+                            return;
+                        }
+                        if (!timeout.cancel(false)) return;
+                        status = Status.IN_PROGRESS;
+                        for (Player player : players.values()) {
+                            player.setStatus(PlayerStatus.PLAYING);
+                        }
+                        random = new Random(System.nanoTime() + message.getIdLong() + hashCode()
+                                + players.values().stream().mapToLong(Player::getControlMessageId).sum());
+                        // nieprzewidywalna wartość - nanoTime jest ciężkie do odgadnięcia w całości, hashCode też,
+                        // a wiadomości kontroli są widoczne tylko dla pojedynczych osób
+                        eventStorage.add(new Event(Event.Type.GAME_START, null, null, null, null));
+                        makeTurn();
+                        break;
+                    }
+                    case CANCEL: {
+                        if (!e.getUser().equals(context.getSender())) {
+                            Language lang = players.values().stream().filter(p -> p.getUser().equals(e.getUser()))
+                                    .findAny().map(Player::getLanguage).orElse(l);
+                            e.reply(t.get(lang, "chinczyk.not.owner.abort", context.getSender().getAsMention()))
+                                    .setEphemeral(true).complete();
+                            return;
+                        }
+                        e.deferEdit().queue();
+                        status = Status.CANCELLED;
+                        timeout.cancel(false);
+                        aborted(null);
+                        break;
+                    }
+                    case NEW_CONTROL_MESSAGE: {
+                        Optional<Player> p = players.values().stream().filter(h -> h.getUser().equals(e.getUser())).findFirst();
+                        if (!p.isPresent() || !p.get().isPlaying()) {
+                            e.reply(t.get(l, "chinczyk.not.playing")).setEphemeral(true).complete();
+                            return;
+                        }
+                        try {
+                            e.deferReply(true).complete();
+                            Player player = p.get();
+                            if (player.getControlHook() != null)
+                                player.getControlHook().editOriginal(new MessageBuilder(t.get(player.getLanguage(),
+                                        "chinczyk.invalid")).build()).queue();
+                            Message control = e.getHook().sendMessage(generateControlMessage(player)).setEphemeral(true).complete();
+                            player.setControlHook(e.getHook());
+                            player.setControlMessageId(control.getIdLong());
+                        } catch (Exception ex) {
+                            errored(ex);
+                        }
+                        break;
+                    }
+                    default: {
+                        Place place;
+                        try {
+                            place = Place.valueOf(e.getComponentId());
+                        } catch (IllegalArgumentException ex) {
+                            place = null;
+                        }
+                        if (place == null || players.containsKey(place)) return;
+                        if (!e.getUser().equals(context.getSender()) &&
+                                players.values().stream().noneMatch(p -> p.getUser().equals(context.getSender()))) {
+                            e.reply(t.get(l, "chinczyk.executer.first", context.getSender().getAsMention())).setEphemeral(true).complete();
+                            return;
+                        }
+                        if (players.values().stream().anyMatch(p -> p.getUser().equals(e.getUser()))) {
+                            e.reply(t.get(l, "chinczyk.already.playing", context.getSender().getAsMention())).setEphemeral(true).complete();
+                            return;
+                        }
+                        try {
+                            e.deferReply(true).complete();
+                            Player player = new Player(place, e.getUser(), e.getHook());
+                            Message control = e.getHook().sendMessage(generateControlMessage(player)).setEphemeral(true).complete();
+                            player.setControlMessageId(control.getIdLong());
+                            players.put(place, player);
+                        } catch (Exception ex) {
+                            errored(ex);
+                        }
+                        updateMainMessage(true);
+                        break;
+                    }
+                }
+                return;
+            }
+            Player player = players.values().stream().filter(p -> p.getControlMessageId() == e.getMessageIdLong() && p.isPlaying())
+                    .findAny().orElse(null);
+            if (player == null) return;
             switch (e.getComponentId()) {
-                case START: {
-                    if (!e.getUser().equals(context.getSender())) {
-                        Language lang = players.values().stream().filter(p -> p.getUser().equals(e.getUser()))
-                                .findAny().map(Player::getLanguage).orElse(l);
-                        e.reply(t.get(lang, "chinczyk.not.owner.start", context.getSender().getAsMention()))
-                                .setEphemeral(true).complete();
+                case READY: {
+                    player.setStatus(PlayerStatus.READY);
+                    if (isEveryoneReady()) status = Status.WAITING;
+                    else status = Status.WAITING_FOR_PLAYERS;
+                    e.deferEdit().queue();
+                    updateMainMessage(false);
+                    updateControlMessage(player);
+                    break;
+                }
+                case LEAVE: {
+                    if (e.getUser().equals(context.getSender()) && status != Status.IN_PROGRESS) {
+                        e.reply(t.get(player.getLanguage(), "chinczyk.owner.selfabort")).setEphemeral(true).complete();
                         return;
                     }
-                    if (!timeout.cancel(false)) return;
-                    status = Status.IN_PROGRESS;
-                    for (Player player : players.values()) {
-                        player.setStatus(PlayerStatus.PLAYING);
+                    e.deferEdit().queue();
+                    if (!player.isConfirmLeave()) {
+                        player.setConfirmLeave(true);
+                        updateControlMessage(player);
+                        return;
                     }
-                    random = new Random(System.nanoTime() + message.getIdLong() + hashCode()
-                            + players.values().stream().mapToLong(Player::getControlMessageId).sum());
-                    // nieprzewidywalna wartość - nanoTime jest ciężkie do odgadnięcia w całości, hashCode też,
-                    // a wiadomości kontroli są widoczne tylko dla pojedynczych osób
-                    eventStorage.add(new Event(Event.Type.GAME_START, null, null, null, null));
+                    player.setStatus(PlayerStatus.LEFT);
+                    if (status != Status.IN_PROGRESS) players.remove(player.getPlace(), player);
+                    updateControlMessage(player);
+                    if (status == Status.WAITING && !isEveryoneReady()) status = Status.WAITING_FOR_PLAYERS;
+                    if (status == Status.IN_PROGRESS) {
+                        eventStorage.add(new Event(Event.Type.LEFT_GAME, player, null, null, null));
+                        if (turn == player.getPlace() || readyPlayerCount() < 2) {
+                            rolled = null;
+                            makeTurn();
+                            return;
+                        }
+                    }
+                    updateMainMessage(true);
+                    break;
+                }
+                case ROLL: {
+                    if (turn != player.getPlace() || rolled != null) return;
+                    rolled = random.nextInt(6) + 1; //1-6
+                    e.deferEdit().queue();
+                    updateMainMessage(false);
+                    updateControlMessage(player);
+                    break;
+                }
+                case END_MOVE: {
+                    if (turn != player.getPlace() || rolled == null) return;
+                    e.deferEdit().queue();
+                    player.setConfirmLeave(false);
+                    eventStorage.add(new Event(null, player, rolled, null, null));
                     makeTurn();
                     break;
                 }
                 case CANCEL: {
-                    if (!e.getUser().equals(context.getSender())) {
-                        Language lang = players.values().stream().filter(p -> p.getUser().equals(e.getUser()))
-                                .findAny().map(Player::getLanguage).orElse(l);
-                        e.reply(t.get(lang, "chinczyk.not.owner.abort", context.getSender().getAsMention()))
-                                .setEphemeral(true).complete();
-                        return;
-                    }
+                    if (!player.isConfirmLeave()) return;
                     e.deferEdit().queue();
-                    status = Status.CANCELLED;
-                    timeout.cancel(false);
-                    aborted(null);
-                    break;
-                }
-                case NEW_CONTROL_MESSAGE: {
-                    Optional<Player> p = players.values().stream().filter(h -> h.getUser().equals(e.getUser())).findFirst();
-                    if (!p.isPresent() || !p.get().isPlaying()) {
-                        e.reply(t.get(l, "chinczyk.not.playing")).setEphemeral(true).complete();
-                        return;
-                    }
-                    e.deferReply(true).queue();
-                    Player player = p.get();
-                    if (player.getControlHook() != null)
-                        player.getControlHook().editOriginal(new MessageBuilder(t.get(player.getLanguage(),
-                                "chinczyk.invalid")).build()).queue();
-                    Message control = e.getHook().sendMessage(generateControlMessage(player)).setEphemeral(true).complete();
-                    player.setControlHook(e.getHook());
-                    player.setControlMessageId(control.getIdLong());
-                    break;
-                }
-                default: {
-                    Place place;
-                    try {
-                        place = Place.valueOf(e.getComponentId());
-                    } catch (IllegalArgumentException ex) {
-                        place = null;
-                    }
-                    if (place == null || players.containsKey(place)) return;
-                    if (!e.getUser().equals(context.getSender()) &&
-                            players.values().stream().noneMatch(p -> p.getUser().equals(context.getSender()))) {
-                        e.reply(t.get(l, "chinczyk.executer.first", context.getSender().getAsMention())).setEphemeral(true).complete();
-                        return;
-                    }
-                    if (players.values().stream().anyMatch(p -> p.getUser().equals(e.getUser()))) {
-                        e.reply(t.get(l, "chinczyk.already.playing", context.getSender().getAsMention())).setEphemeral(true).complete();
-                        return;
-                    }
-                    e.deferReply(true).queue();
-                    Player player = new Player(place, e.getUser(), e.getHook());
-                    Message control = e.getHook().sendMessage(generateControlMessage(player)).setEphemeral(true).complete();
-                    player.setControlMessageId(control.getIdLong());
-                    players.put(place, player);
-                    updateMainMessage(true);
-                    break;
-                }
-            }
-            return;
-        }
-        Player player = players.values().stream().filter(p -> p.getControlMessageId() == e.getMessageIdLong() && p.isPlaying())
-                .findAny().orElse(null);
-        if (player == null) return;
-        switch (e.getComponentId()) {
-            case READY: {
-                player.setStatus(PlayerStatus.READY);
-                if (isEveryoneReady()) status = Status.WAITING;
-                else status = Status.WAITING_FOR_PLAYERS;
-                e.deferEdit().queue();
-                updateMainMessage(false);
-                updateControlMessage(player);
-                break;
-            }
-            case LEAVE: {
-                if (e.getUser().equals(context.getSender()) && status != Status.IN_PROGRESS) {
-                    e.reply(t.get(player.getLanguage(), "chinczyk.owner.selfabort")).setEphemeral(true).complete();
-                    return;
-                }
-                e.deferEdit().queue();
-                if (!player.isConfirmLeave()) {
-                    player.setConfirmLeave(true);
+                    player.setConfirmLeave(false);
                     updateControlMessage(player);
                     return;
                 }
-                player.setStatus(PlayerStatus.LEFT);
-                if (status != Status.IN_PROGRESS) players.remove(player.getPlace(), player);
-                updateControlMessage(player);
-                if (status == Status.WAITING && !isEveryoneReady()) status = Status.WAITING_FOR_PLAYERS;
-                if (status == Status.IN_PROGRESS) {
-                    eventStorage.add(new Event(Event.Type.LEFT_GAME, player, null, null, null));
-                    if (turn == player.getPlace() || readyPlayerCount() < 2) {
-                        rolled = null;
-                        makeTurn();
+                default: {
+                    if (!e.getComponentId().startsWith(MOVE_PREFIX)) return;
+                    if (turn != player.getPlace()) return;
+                    int pieceIndex;
+                    try {
+                        pieceIndex = Integer.parseInt(e.getComponentId().substring(MOVE_PREFIX.length()));
+                    } catch (NumberFormatException ex) {
                         return;
                     }
-                }
-                updateMainMessage(true);
-                break;
-            }
-            case ROLL: {
-                if (turn != player.getPlace() || rolled != null) return;
-                rolled = random.nextInt(6) + 1; //1-6
-                e.deferEdit().queue();
-                updateMainMessage(false);
-                updateControlMessage(player);
-                break;
-            }
-            case END_MOVE: {
-                if (turn != player.getPlace() || rolled == null) return;
-                e.deferEdit().queue();
-                player.setConfirmLeave(false);
-                eventStorage.add(new Event(null, player, rolled, null, null));
-                makeTurn();
-                break;
-            }
-            case CANCEL: {
-                if (!player.isConfirmLeave()) return;
-                e.deferEdit().queue();
-                player.setConfirmLeave(false);
-                updateControlMessage(player);
-                return;
-            }
-            default: {
-                if (!e.getComponentId().startsWith(MOVE_PREFIX)) return;
-                if (turn != player.getPlace()) return;
-                int pieceIndex;
-                try {
-                    pieceIndex = Integer.parseInt(e.getComponentId().substring(MOVE_PREFIX.length()));
-                } catch (NumberFormatException ex) {
-                    return;
-                }
-                Piece piece;
-                try {
-                    if (!(piece = player.getPieces()[pieceIndex]).canMove()) return;
-                } catch (ArrayIndexOutOfBoundsException ex) {
-                    return;
-                }
-                e.deferEdit().queue();
-                player.setConfirmLeave(false);
-                Piece thrown = null;
-                String nextPosition;
-                int curPosition = piece.position;
-                if (piece.position == 0) nextPosition = piece.getBoardPosition(1);
-                else nextPosition = piece.getBoardPosition(curPosition + rolled);
-                for (Player p : players.values()) {
-                    for (Piece pi : p.getPieces()) {
-                        if (pi.getBoardPosition().equals(nextPosition) && !p.equals(player)) {
-                            pi.position = 0;
-                            thrown = pi;
+                    Piece piece;
+                    try {
+                        if (!(piece = player.getPieces()[pieceIndex]).canMove()) return;
+                    } catch (ArrayIndexOutOfBoundsException ex) {
+                        return;
+                    }
+                    e.deferEdit().queue();
+                    player.setConfirmLeave(false);
+                    Piece thrown = null;
+                    String nextPosition;
+                    int curPosition = piece.position;
+                    if (piece.position == 0) nextPosition = piece.getBoardPosition(1);
+                    else nextPosition = piece.getBoardPosition(curPosition + rolled);
+                    for (Player p : players.values()) {
+                        for (Piece pi : p.getPieces()) {
+                            if (pi.getBoardPosition().equals(nextPosition) && !p.equals(player)) {
+                                pi.position = 0;
+                                thrown = pi;
+                            }
                         }
                     }
+                    if (piece.position == 0) piece.position = 1;
+                    else piece.position += rolled;
+                    if (thrown != null) eventStorage.add(new Event(Event.Type.THROW, player, rolled, piece, thrown));
+                    else eventStorage.add(new Event(piece.getBoardPosition()
+                            .startsWith(String.valueOf(player.getPlace().name().toLowerCase().charAt(0))) && //x5-x8
+                            curPosition <= 40 ? Event.Type.ENTERED_HOME : //tylko jeżeli wejdzie na tą pozycje z <=40
+                            Event.Type.MOVE, player, rolled, piece, null));
+                    makeTurn();
                 }
-                if (piece.position == 0) piece.position = 1;
-                else piece.position += rolled;
-                if (thrown != null) eventStorage.add(new Event(Event.Type.THROW, player, rolled, piece, thrown));
-                else eventStorage.add(new Event(piece.getBoardPosition()
-                        .startsWith(String.valueOf(player.getPlace().name().toLowerCase().charAt(0))) && //x5-x8
-                        curPosition <= 40 ? Event.Type.ENTERED_HOME : //tylko jeżeli wejdzie na tą pozycje z <=40
-                        Event.Type.MOVE, player, rolled, piece, null));
-                makeTurn();
             }
+        } catch (Exception ex) {
+            errored(ex);
         }
     }
 
@@ -649,26 +662,30 @@ public class Chinczyk {
         } catch (IllegalArgumentException | IndexOutOfBoundsException ex) {
             return;
         }
-        if (e.getMessageIdLong() == message.getIdLong()) {
-            if (!e.getUser().equals(context.getSender())) {
-                Language lang = players.values().stream().filter(p -> p.getUser().equals(e.getUser()))
-                        .findAny().map(Player::getLanguage).orElse(selectedLanguage);
-                e.reply(t.get(lang, "chinczyk.not.owner.language", context.getSender().getAsMention()))
-                        .setEphemeral(true).complete();
+        try {
+            if (e.getMessageIdLong() == message.getIdLong()) {
+                if (!e.getUser().equals(context.getSender())) {
+                    Language lang = players.values().stream().filter(p -> p.getUser().equals(e.getUser()))
+                            .findAny().map(Player::getLanguage).orElse(selectedLanguage);
+                    e.reply(t.get(lang, "chinczyk.not.owner.language", context.getSender().getAsMention()))
+                            .setEphemeral(true).complete();
+                    return;
+                }
+                l = selectedLanguage;
+                e.deferEdit().queue();
+                updateMainMessage(false);
+                updateControlMessages();
                 return;
             }
-            l = selectedLanguage;
+            Player player = players.values().stream().filter(p -> p.getControlMessageId() == e.getMessageIdLong())
+                    .findAny().orElse(null);
+            if (player == null || !player.isPlaying()) return;
+            player.setLanguage(l);
             e.deferEdit().queue();
-            updateMainMessage(false);
-            updateControlMessages();
-            return;
+            updateControlMessage(player);
+        } catch (Exception ex) {
+            errored(ex);
         }
-        Player player = players.values().stream().filter(p -> p.getControlMessageId() == e.getMessageIdLong())
-                .findAny().orElse(null);
-        if (player == null || !player.isPlaying()) return;
-        player.setLanguage(l);
-        e.deferEdit().queue();
-        updateControlMessage(player);
     }
     
     @Subscribe
@@ -715,25 +732,27 @@ public class Chinczyk {
                         e -> context.replyAsAction(generateMessage()).addFile(board, FILE_NAME)).complete();
             }
         } catch (Exception e) {
-            LoggerFactory.getLogger(getClass()).error("Wystąpił błąd podczas aktualizacji wiadomości!", e);
-            Sentry.capture(e);
-            status = Status.ERRORED;
-            String text = t.get(l, "chinczyk.errored");
-            if (message != null)
-                message.editMessage(text).onErrorMap(ErrorResponse.UNKNOWN_MESSAGE::test,
-                        ex -> context.reply(text)).complete();
-            try {
-                eventBus.unregister(this);
-            } catch (IllegalArgumentException ex) {
-                // nic
-            }
-            try {
-                endCallback.accept(this);
-            } catch (Exception ignored) {}
-            try {
-                updateControlMessages();
-            } catch (Exception ignored) {}
+            errored(e);
         }
+    }
+
+    private void errored(Exception e) {
+        LoggerFactory.getLogger(getClass()).error("Wystąpił błąd!", e);
+        Sentry.capture(e);
+        status = Status.ERRORED;
+        String text = t.get(l, "chinczyk.errored");
+        if (message != null)
+            message.editMessage(text).override(true).onErrorMap(ErrorResponse.UNKNOWN_MESSAGE::test,
+                    ex -> context.reply(text)).complete();
+        try {
+            eventBus.unregister(this);
+        } catch (IllegalArgumentException ignored) {}
+        try {
+            endCallback.accept(this);
+        } catch (Exception ignored) {}
+        try {
+            updateControlMessages();
+        } catch (Exception ignored) {}
     }
 
     private Message generateControlMessage(Player player) {
@@ -886,10 +905,10 @@ public class Chinczyk {
             this.controlHook = controlHook;
             if (controlHook == null) return;
             handle = executor.schedule(() -> {
+                if (Objects.equals(this.controlHook, controlHook)) this.controlHook = null;
                 Message msg = new MessageBuilder(t.get(getLanguage(), "chinczyk.control.expired")).build();
                 controlHook.editOriginal(msg).complete();
-                if (Objects.equals(this.controlHook, controlHook)) this.controlHook = null;
-            }, controlHook.getExpirationTimestamp() - System.currentTimeMillis() - 60000, TimeUnit.MILLISECONDS);
+            }, controlHook.getExpirationTimestamp() - System.currentTimeMillis() - 90000, TimeUnit.MILLISECONDS);
         }
 
         public Language getLanguage() {
