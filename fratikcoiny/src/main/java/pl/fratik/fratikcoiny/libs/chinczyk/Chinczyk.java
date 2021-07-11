@@ -21,6 +21,7 @@ import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import io.sentry.Sentry;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.MessageBuilder;
@@ -874,6 +875,7 @@ public class Chinczyk {
     }
 
     @Data
+    @EqualsAndHashCode(exclude = "pieces")
     public class Player {
         private final Place place;
         private final User user;
