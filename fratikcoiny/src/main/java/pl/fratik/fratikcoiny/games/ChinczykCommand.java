@@ -130,8 +130,8 @@ public class ChinczykCommand extends Command {
                                     formatNumber(context, stats.getLeaves())), true)
                     .addField(context.getTranslated("chinczyk.stats.win.percentage"),
                             context.getTranslated("chinczyk.stats.win.percentage.text",
-                                    formatNumber(context, ((double) totalWins) / (totalWins + totalLosses) * 100),
-                                    formatNumber(context, ((double) totalLosses) / (totalWins + totalLosses) * 100)), true)
+                                    formatNumber(context, ((double) totalWins) / (totalWins + totalLosses) * 100, false) + "%",
+                                    formatNumber(context, ((double) totalLosses) / (totalWins + totalLosses) * 100, false) + "%"), true)
                     .addField(context.getTranslated("chinczyk.stats.plays"), playsText.toString(), true)
                     .addField(context.getTranslated("chinczyk.stats.travelled"),
                             formatNumber(context, stats.getTravelledSpaces()), true)
@@ -144,7 +144,7 @@ public class ChinczykCommand extends Command {
                     .addField(context.getTranslated("chinczyk.stats.deaths"),
                             formatNumber(context, stats.getDeaths()), true)
                     .addField(context.getTranslated("chinczyk.stats.kdratio"),
-                            formatNumber(context, ((double) stats.getKills()) / stats.getDeaths()), true)
+                            formatNumber(context, ((double) stats.getKills()) / stats.getDeaths(), true), true)
                     .addField(context.getTranslated("chinczyk.stats.entered.home"),
                             formatNumber(context, stats.getEnteredHome()), true)
                     .addField(context.getTranslated("chinczyk.stats.left.start"),
@@ -154,12 +154,15 @@ public class ChinczykCommand extends Command {
             eb.setFooter(sdf.format(new Date(time)));
             pages.add(eb);
         }
-        new ClassicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(), context.getTlumaczenia(), eventBus, pages.size()).setCustomFooter(true).create(msg);
+        new ClassicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(),
+                context.getTlumaczenia(), eventBus, pages.size()).setCustomFooter(true).create(msg);
         return true;
     }
 
-    private String formatNumber(CommandContext context, double l) {
-        return NumberFormat.getInstance(context.getLanguage().getLocale()).format(CommonUtil.round(l, 2, RoundingMode.HALF_UP));
+    private String formatNumber(CommandContext context, double l, boolean forceDecimal) {
+        NumberFormat nf = NumberFormat.getInstance(context.getLanguage().getLocale());
+        if (forceDecimal) nf.setMinimumFractionDigits(1);
+        return nf.format(CommonUtil.round(l, 2, RoundingMode.HALF_UP));
     }
 
     private String formatNumber(CommandContext context, long l) {

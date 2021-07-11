@@ -35,7 +35,6 @@ import net.dv8tion.jda.api.events.interaction.ButtonClickEvent;
 import net.dv8tion.jda.api.events.interaction.SelectionMenuEvent;
 import net.dv8tion.jda.api.events.message.MessageBulkDeleteEvent;
 import net.dv8tion.jda.api.events.message.MessageDeleteEvent;
-import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.Button;
@@ -577,10 +576,15 @@ public class Chinczyk {
                     if (piece.position == 0) piece.position = 1;
                     else piece.position += rolled;
                     if (thrown != null) eventStorage.add(new Event(Event.Type.THROW, player, rolled, piece, thrown));
-                    else eventStorage.add(new Event(piece.getBoardPosition()
-                            .startsWith(String.valueOf(player.getPlace().name().toLowerCase().charAt(0))) && //x5-x8
-                            curPosition <= 40 ? Event.Type.ENTERED_HOME : //tylko jeżeli wejdzie na tą pozycje z <=40
-                            Event.Type.MOVE, player, rolled, piece, null));
+                    else {
+                        Event.Type type;
+                        if (piece.getBoardPosition()
+                                .startsWith(String.valueOf(player.getPlace().name().toLowerCase().charAt(0))) &&
+                                curPosition <= 40) type = Event.Type.ENTERED_HOME; //tylko jeżeli wejdzie na x5-x8 z <=40
+                        else if (curPosition == 0) type = Event.Type.LEFT_START;
+                        else type = Event.Type.MOVE;
+                        eventStorage.add(new Event(type, player, rolled, piece, null));
+                    }
                     makeTurn();
                 }
             }

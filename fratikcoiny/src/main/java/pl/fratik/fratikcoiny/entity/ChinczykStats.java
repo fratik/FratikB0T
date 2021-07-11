@@ -148,6 +148,10 @@ public class ChinczykStats implements DatabaseEntity {
     }
 
     public void addStats(ChinczykStats stats) {
+        bluePlays += stats.bluePlays;
+        greenPlays += stats.greenPlays;
+        yellowPlays += stats.yellowPlays;
+        redPlays += stats.redPlays;
         travelledSpaces += stats.travelledSpaces;
         rolls += stats.rolls;
         rolledTotals += stats.rolledTotals;

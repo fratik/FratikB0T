@@ -101,7 +101,7 @@ public class DynamicEmbedPaginator extends EmbedPaginator {
         } catch (TimeoutException e) {
             throw new LoadingException(false, true, null);
         } catch (ExecutionException e) {
-            throw new LoadingException(page == 1, false, e);
+            throw new LoadingException(page == startPage, false, e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new LoadingException(false, true, null);
