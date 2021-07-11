@@ -154,7 +154,7 @@ public class ChinczykCommand extends Command {
             eb.setFooter(sdf.format(new Date(time)));
             pages.add(eb);
         }
-        new ClassicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(), context.getTlumaczenia(), eventBus).setCustomFooter(true).create(msg);
+        new ClassicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(), context.getTlumaczenia(), eventBus, pages.size()).setCustomFooter(true).create(msg);
         return true;
     }
 
