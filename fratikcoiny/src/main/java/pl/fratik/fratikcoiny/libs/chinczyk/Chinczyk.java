@@ -19,6 +19,7 @@ package pl.fratik.fratikcoiny.libs.chinczyk;
 
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
+import edu.emory.mathcs.backport.java.util.concurrent.locks.ReentrantLock;
 import io.sentry.Sentry;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -86,6 +87,7 @@ public class Chinczyk {
     private final Consumer<Chinczyk> endCallback;
     private final ScheduledExecutorService executor;
     private final EventStorage eventStorage;
+    private final ReentrantLock lock;
     private Language l;
     @Getter private Status status = Status.WAITING_FOR_PLAYERS;
     private Message message;
@@ -204,6 +206,7 @@ public class Chinczyk {
         this.context = context;
         this.eventBus = eventBus;
         executor = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("Chinczyk-" + getChannel().getId()));
+        lock = new ReentrantLock();
         this.endCallback = obj -> {
             end = Instant.now();
             try {
@@ -222,22 +225,28 @@ public class Chinczyk {
     }
 
     private void timeout() {
-        Status status = this.status;
-        this.status = Status.CANCELLED;
-        if (status == Status.WAITING_FOR_PLAYERS || status == Status.WAITING)
-            aborted("chinczyk.timeout.waiting");
-        if (status == Status.IN_PROGRESS) {
-            Player player = players.get(turn);
-            player.setStatus(PlayerStatus.LEFT);
-            if (player.getControlHook() != null) player.getControlHook()
-                    .editOriginal(new MessageBuilder(t.get(player.getLanguage(), "chinczyk.left.timeout")).build()).complete();
-            player.setControlHook(null);
-            rolled = null;
-            makeTurn();
+        lock.lock();
+        try {
+            Status status = this.status;
+            this.status = Status.CANCELLED;
+            if (status == Status.WAITING_FOR_PLAYERS || status == Status.WAITING)
+                aborted("chinczyk.timeout.waiting");
+            if (status == Status.IN_PROGRESS) {
+                Player player = players.get(turn);
+                player.setStatus(PlayerStatus.LEFT);
+                if (player.getControlHook() != null) player.getControlHook()
+                        .editOriginal(new MessageBuilder(t.get(player.getLanguage(), "chinczyk.left.timeout")).build()).complete();
+                player.setControlHook(null);
+                rolled = null;
+                makeTurn();
+            }
+        } finally {
+            lock.unlock();
         }
     }
 
     public byte[] renderBoard() {
+        lock.lock();
         try {
             BufferedImage image = new BufferedImage(plansza.getWidth(), plansza.getHeight(), BufferedImage.TYPE_INT_RGB);
             Graphics g = image.getGraphics();
@@ -284,6 +293,8 @@ public class Chinczyk {
             LoggerFactory.getLogger(getClass()).error("Wystąpił błąd podczas generacji planszy!", e);
             Sentry.capture(e);
             return null;
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -411,6 +422,7 @@ public class Chinczyk {
     @Subscribe
     public void onButtonClick(ButtonClickEvent e) {
         if (!e.getChannel().equals(getChannel())) return;
+        lock.lock();
         try {
             if (e.getMessageIdLong() == message.getIdLong()) {
                 switch (e.getComponentId()) {
@@ -611,6 +623,8 @@ public class Chinczyk {
             }
         } catch (Exception ex) {
             errored(ex);
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -633,38 +647,44 @@ public class Chinczyk {
     }
 
     private void makeTurn() {
-        if (checkWin()) {
-            status = Status.ENDED;
-            if (eventStorage.getLastEvent() == null)
-                throw new IllegalStateException("eventStorage.getLastEvent() jest null przy wygranej?");
-            eventStorage.add(new Event(Event.Type.WON, winner, null, null, null));
-            eventBus.unregister(this);
-            try {
-                endCallback.accept(this);
-            } catch (Exception ignored) {}
+        lock.lock();
+        try {
+            if (checkWin()) {
+                status = Status.ENDED;
+                if (eventStorage.getLastEvent() == null)
+                    throw new IllegalStateException("eventStorage.getLastEvent() jest null przy wygranej?");
+                eventStorage.add(new Event(Event.Type.WON, winner, null, null, null));
+                eventBus.unregister(this);
+                try {
+                    endCallback.accept(this);
+                } catch (Exception ignored) {
+                }
+                updateMainMessage(true);
+                updateControlMessages();
+                return;
+            }
+            if (readyPlayerCount() < 2) {
+                status = Status.CANCELLED;
+                aborted("chinczyk.aborted.not.enough.players");
+                return;
+            }
+            turns++;
+            if (turn == null) turn = players.values().stream().filter(p -> p.getUser().equals(context.getSender()))
+                    .findFirst().map(Player::getPlace).orElseThrow(() -> new IllegalStateException("executer nie gra?"));
+            else if ((rollCounter++ >= 2 || Arrays.stream(players.get(turn).getPieces()).anyMatch(p -> p.position != 0)) &&
+                    (rolled == null || rolled != 6)) {
+                turn = Place.getNextPlace(turn, players.entrySet().stream()
+                        .filter(p -> p.getValue().isPlaying()).map(Map.Entry::getKey).collect(Collectors.toSet()));
+                rollCounter = 0;
+            }
+            rolled = null;
+            if (timeout != null && !timeout.isCancelled() && !timeout.cancel(false)) return;
+            timeout = executor.schedule(this::timeout, 1, TimeUnit.MINUTES);
             updateMainMessage(true);
             updateControlMessages();
-            return;
+        } finally {
+            lock.unlock();
         }
-        if (readyPlayerCount() < 2) {
-            status = Status.CANCELLED;
-            aborted("chinczyk.aborted.not.enough.players");
-            return;
-        }
-        turns++;
-        if (turn == null) turn = players.values().stream().filter(p -> p.getUser().equals(context.getSender()))
-                .findFirst().map(Player::getPlace).orElseThrow(() -> new IllegalStateException("executer nie gra?"));
-        else if ((rollCounter++ >= 2 || Arrays.stream(players.get(turn).getPieces()).anyMatch(p -> p.position != 0)) &&
-                (rolled == null || rolled != 6)) {
-            turn = Place.getNextPlace(turn, players.entrySet().stream()
-                    .filter(p -> p.getValue().isPlaying()).map(Map.Entry::getKey).collect(Collectors.toSet()));
-            rollCounter = 0;
-        }
-        rolled = null;
-        if (timeout != null && !timeout.isCancelled() && !timeout.cancel(false)) return;
-        timeout = executor.schedule(this::timeout, 1, TimeUnit.MINUTES);
-        updateMainMessage(true);
-        updateControlMessages();
     }
 
     private void aborted(String key) {
@@ -692,6 +712,7 @@ public class Chinczyk {
         } catch (IllegalArgumentException | IndexOutOfBoundsException ex) {
             return;
         }
+        lock.lock();
         try {
             if (e.getMessageIdLong() == message.getIdLong()) {
                 if (!e.getUser().equals(context.getSender())) {
@@ -715,6 +736,8 @@ public class Chinczyk {
             updateControlMessage(player);
         } catch (Exception ex) {
             errored(ex);
+        } finally {
+            lock.unlock();
         }
     }
     
@@ -751,6 +774,7 @@ public class Chinczyk {
     }
 
     private void updateMainMessage(boolean rerenderBoard) {
+        lock.lock();
         try {
             byte[] board = renderBoard();
             if (message == null)
@@ -763,6 +787,8 @@ public class Chinczyk {
             }
         } catch (Exception e) {
             errored(e);
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -887,12 +913,22 @@ public class Chinczyk {
     }
 
     private void updateControlMessage(Player p) {
-        if (p.getControlHook() != null)
-            p.getControlHook().editOriginal(generateControlMessage(p)).queue();
+        lock.lock();
+        try {
+            if (p.getControlHook() != null)
+                p.getControlHook().editOriginal(generateControlMessage(p)).queue();
+        } finally {
+            lock.unlock();
+        }
     }
 
     private void updateControlMessages() {
-        for (Player p : players.values()) if (p.isPlaying()) updateControlMessage(p);
+        lock.lock();
+        try {
+            for (Player p : players.values()) if (p.isPlaying()) updateControlMessage(p);
+        } finally {
+            lock.unlock();
+        }
     }
 
     public MessageChannel getChannel() {
@@ -934,15 +970,25 @@ public class Chinczyk {
 
         public void setControlHook(InteractionHook controlHook) {
             if (handle != null) {
-                handle.cancel(false);
+                handle.cancel(true);
                 handle = null;
             }
             this.controlHook = controlHook;
             if (controlHook == null) return;
             handle = executor.schedule(() -> {
-                if (Objects.equals(this.controlHook, controlHook)) this.controlHook = null;
-                Message msg = new MessageBuilder(t.get(getLanguage(), "chinczyk.control.expired")).build();
-                controlHook.editOriginal(msg).complete();
+                try {
+                    lock.lockInterruptibly();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return;
+                }
+                try {
+                    if (Objects.equals(this.controlHook, controlHook)) this.controlHook = null;
+                    Message msg = new MessageBuilder(t.get(getLanguage(), "chinczyk.control.expired")).build();
+                    controlHook.editOriginal(msg).complete();
+                } finally {
+                    lock.unlock();
+                }
             }, controlHook.getExpirationTimestamp() - System.currentTimeMillis() - 90000, TimeUnit.MILLISECONDS);
         }
 
@@ -963,7 +1009,7 @@ public class Chinczyk {
         public void setStatus(PlayerStatus status) {
             if (status == PlayerStatus.LEFT) {
                 initPieces();
-                handle.cancel(false);
+                handle.cancel(true);
             }
             this.status = status;
         }
