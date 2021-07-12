@@ -33,6 +33,7 @@ import net.dv8tion.jda.api.events.interaction.ButtonClickEvent;
 import net.dv8tion.jda.api.events.interaction.SelectionMenuEvent;
 import net.dv8tion.jda.api.events.message.MessageBulkDeleteEvent;
 import net.dv8tion.jda.api.events.message.MessageDeleteEvent;
+import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.Button;
@@ -477,6 +478,15 @@ public class Chinczyk {
                             Message control = e.getHook().sendMessage(generateControlMessage(player)).setEphemeral(true).complete();
                             player.setControlHook(e.getHook());
                             player.setControlMessageId(control.getIdLong());
+                        } catch (ErrorResponseException ex) {
+                            if (ex.getErrorResponse() == ErrorResponse.UNKNOWN_INTERACTION) {
+                                Player player = p.get();
+                                if (player.getControlHook() != null) {
+                                    player.getControlHook().editOriginal(new MessageBuilder(t.get(player.getLanguage(),
+                                            "chinczyk.interaction.crashed")).build()).queue();
+                                    player.setControlHook(null);
+                                }
+                            } else errored(ex);
                         } catch (Exception ex) {
                             errored(ex);
                         }
@@ -505,6 +515,8 @@ public class Chinczyk {
                             Message control = e.getHook().sendMessage(generateControlMessage(player)).setEphemeral(true).complete();
                             player.setControlMessageId(control.getIdLong());
                             players.put(place, player);
+                        } catch (ErrorResponseException ex) {
+                            if (ex.getErrorResponse() != ErrorResponse.UNKNOWN_INTERACTION) errored(ex);
                         } catch (Exception ex) {
                             errored(ex);
                         }
