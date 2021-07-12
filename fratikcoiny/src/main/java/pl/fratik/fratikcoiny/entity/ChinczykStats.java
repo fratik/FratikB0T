@@ -23,12 +23,20 @@ import gg.amy.pgorm.annotations.PrimaryKey;
 import gg.amy.pgorm.annotations.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.User;
+import pl.fratik.core.Statyczne;
 import pl.fratik.core.entity.DatabaseEntity;
+import pl.fratik.core.tlumaczenia.Language;
+import pl.fratik.core.tlumaczenia.Tlumaczenia;
+import pl.fratik.core.util.CommonUtil;
+import pl.fratik.core.util.DurationUtil;
 import pl.fratik.fratikcoiny.libs.chinczyk.Chinczyk;
 
+import java.awt.*;
 import java.beans.Transient;
-import java.time.Instant;
+import java.math.RoundingMode;
+import java.text.NumberFormat;
 import java.time.ZoneOffset;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -70,7 +78,8 @@ public class ChinczykStats implements DatabaseEntity {
 
     public static Map<String, ChinczykStats> getStatsFromGame(Chinczyk chinczyk) {
         Map<String, ChinczykStats> map = new HashMap<>();
-        long timestamp = Instant.now().toEpochMilli();
+        long timestamp = chinczyk.getEnd().toEpochMilli();
+        long gameDuration = chinczyk.getEnd().getEpochSecond() - chinczyk.getStart().getEpochSecond();
         Function<User, ChinczykStats> getStats = usr -> map.computeIfAbsent(usr.getId(), id -> new ChinczykStats(id, timestamp));
         for (Chinczyk.Player player : chinczyk.getPlayers()) {
             if (chinczyk.getWinner().equals(player)) {
@@ -98,8 +107,7 @@ public class ChinczykStats implements DatabaseEntity {
                 default:
                     throw new IllegalStateException("Nieoczekiwana wartość: " + player.getPlace());
             }
-            getStats.apply(player.getUser()).timePlayedSeconds +=
-                    (chinczyk.getEnd().getEpochSecond() - chinczyk.getStart().getEpochSecond());
+            getStats.apply(player.getUser()).timePlayedSeconds += gameDuration;
         }
         for (Chinczyk.Event event : chinczyk.getEvents()) {
             if (event.getType() != null) {
@@ -130,6 +138,9 @@ public class ChinczykStats implements DatabaseEntity {
             getStats.apply(event.getPlayer().getUser()).rolls++;
             getStats.apply(event.getPlayer().getUser()).rolledTotals += event.getRolled();
         }
+        ChinczykStats gameStats = map.computeIfAbsent("0", id -> new ChinczykStats(id, timestamp));
+        for (ChinczykStats s : map.values()) gameStats.addStats(s);
+        gameStats.setTimePlayedSeconds(gameDuration);
         return map;
     }
 
@@ -141,6 +152,97 @@ public class ChinczykStats implements DatabaseEntity {
         cal.set(Calendar.MILLISECOND, 0);
         cal.setTimeZone(TimeZone.getTimeZone(ZoneOffset.UTC));
         return cal.toInstant().toEpochMilli();
+    }
+
+    public static EmbedBuilder renderEmbed(ChinczykStats stats, User gamer, Tlumaczenia t, Language l, boolean withPlays, boolean renderDeaths, boolean renderTime) {
+        if (stats == null) {
+            EmbedBuilder eb = new EmbedBuilder()
+                    .setTitle(t.get(l, "chinczyk.stats.title"))
+                    .setDescription(t.get(l, "chinczyk.stats.no.data"))
+                    .setColor(Color.decode(Statyczne.BRAND_COLOR));
+            if (gamer != null) eb.setAuthor(gamer.getAsTag(), null, gamer.getEffectiveAvatarUrl());
+            return eb;
+        }
+        Chinczyk.Place topPlace = null;
+        long topPlacePlays = 0;
+        StringBuilder playsText = new StringBuilder();
+        for (Chinczyk.Place p : Chinczyk.Place.values()) {
+            playsText.append(p.getEmoji()).append(" ");
+            long plays;
+            switch (p) {
+                case BLUE:
+                    plays = stats.getBluePlays();
+                    break;
+                case GREEN:
+                    plays = stats.getGreenPlays();
+                    break;
+                case YELLOW:
+                    plays = stats.getYellowPlays();
+                    break;
+                case RED:
+                    plays = stats.getRedPlays();
+                    break;
+                default:
+                    throw new IllegalStateException("Nieoczekiwana wartość: " + p);
+            }
+            if (topPlacePlays < plays) {
+                topPlace = p;
+                topPlacePlays = plays;
+            } else if (topPlacePlays == plays) {
+                topPlace = null;
+            }
+            playsText.append(plays).append('\n');
+        }
+        long totalWins = stats.getNormalWins() + stats.getWalkovers();
+        long totalLosses = stats.getNormalLosses() + stats.getLeaves();
+        EmbedBuilder eb = new EmbedBuilder()
+                .setTitle(t.get(l, "chinczyk.stats.title"));
+        if (withPlays) {
+            eb
+                    .addField(t.get(l, "chinczyk.stats.wins"),
+                            t.get(l, "chinczyk.stats.wins.text", formatNumber(l, totalWins),
+                                    formatNumber(l, stats.getNormalWins()), formatNumber(l, stats.getWalkovers())), true)
+                    .addField(t.get(l, "chinczyk.stats.losses"),
+                            t.get(l, "chinczyk.stats.losses.text",
+                                    formatNumber(l, totalLosses), formatNumber(l, stats.getNormalLosses()),
+                                    formatNumber(l, stats.getLeaves())), true)
+                    .addField(t.get(l, "chinczyk.stats.win.percentage"),
+                            t.get(l, "chinczyk.stats.win.percentage.text",
+                                    formatNumber(l, ((double) totalWins) / (totalWins + totalLosses) * 100, false) + "%",
+                                    formatNumber(l, ((double) totalLosses) / (totalWins + totalLosses) * 100, false) + "%"),
+                            true)
+                    .addField(t.get(l, "chinczyk.stats.plays"), playsText.toString(), true);
+        }
+        eb
+                .addField(t.get(l, "chinczyk.stats.travelled"), formatNumber(l, stats.getTravelledSpaces()), true)
+                .addField(t.get(l, "chinczyk.stats.rolls"), formatNumber(l, stats.getRolls()), true)
+                .addField(t.get(l, "chinczyk.stats.rolls.total"), formatNumber(l, stats.getRolledTotals()), true)
+                .addField(t.get(l, "chinczyk.stats.kills"), formatNumber(l, stats.getKills()), true);
+        if (renderDeaths) {
+            eb
+                    .addField(t.get(l, "chinczyk.stats.deaths"), formatNumber(l, stats.getDeaths()), true)
+                    .addField(t.get(l, "chinczyk.stats.kdratio"),
+                            formatNumber(l, ((double) stats.getKills()) / Math.max(stats.getDeaths(), 1), true), true);
+        }
+        eb
+                .addField(t.get(l, "chinczyk.stats.entered.home"), formatNumber(l, stats.getEnteredHome()), true)
+                .addField(t.get(l, "chinczyk.stats.left.start"), formatNumber(l, stats.getLeftStart()), true);
+        if (renderTime) eb.addField(t.get(l, "chinczyk.stats.time"),
+                DurationUtil.humanReadableFormat(stats.getTimePlayedSeconds() * 1000, false), true);
+        if (topPlace != null) eb.setColor(topPlace.getBgColor());
+        else eb.setColor(Color.decode(Statyczne.BRAND_COLOR));
+        if (gamer != null) eb.setAuthor(gamer.getAsTag(), null, gamer.getEffectiveAvatarUrl());
+        return eb;
+    }
+
+    private static String formatNumber(Language l, double d, boolean forceDecimal) {
+        NumberFormat nf = NumberFormat.getInstance(l.getLocale());
+        if (forceDecimal) nf.setMinimumFractionDigits(1);
+        return nf.format(CommonUtil.round(d, 2, RoundingMode.HALF_UP));
+    }
+
+    private static String formatNumber(Language l, long i) {
+        return NumberFormat.getInstance(l.getLocale()).format(i);
     }
 
     @Transient

@@ -25,10 +25,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.MessageBuilder;
-import net.dv8tion.jda.api.entities.Emoji;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.MessageChannel;
-import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.channel.text.TextChannelDeleteEvent;
 import net.dv8tion.jda.api.events.guild.GuildLeaveEvent;
 import net.dv8tion.jda.api.events.interaction.ButtonClickEvent;
@@ -50,6 +47,7 @@ import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.NamedThreadFactory;
+import pl.fratik.fratikcoiny.entity.ChinczykStats;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -338,7 +336,19 @@ public class Chinczyk {
                 eb.setDescription(t.get(l, "chinczyk.embed.win", ment));
                 if (readyPlayerCount() == 1) eb.setDescription(t.get(l, "chinczyk.embed.win.walkover", ment));
                 eb.setColor(winner.getPlace().bgColor);
-                break;
+                eb.addField(t.get(l, "chinczyk.embed.players"), renderPlayerString(), false);
+                Map<String, ChinczykStats> stats = ChinczykStats.getStatsFromGame(this);
+                for (MessageEmbed.Field field : ChinczykStats.renderEmbed(stats.get("0"), null, t, l, false,
+                        false, true).getFields())
+                    eb.addField(field);
+                List<MessageEmbed> embeds = new ArrayList<>();
+                embeds.add(eb.build());
+                for (Player p : players.values()) {
+                    ChinczykStats s = stats.get(p.getUser().getId());
+                    if (s != null) embeds.add(ChinczykStats.renderEmbed(s, p.getUser(), t, l, false, true, false)
+                            .setTitle(t.get(l, "chinczyk.game.stats")).build());
+                }
+                return mb.setEmbeds(embeds).build();
             }
             default:
                 throw new IllegalStateException("Unexpected value: " + status);
@@ -367,9 +377,12 @@ public class Chinczyk {
             Optional<Player> player = Optional.ofNullable(players.get(p));
             String pName = player.map(Player::getUser).map(User::getAsMention)
                     .orElseGet(() -> t.get(l, "chinczyk.no.player"));
-            String pReady = player.map(Player::getStatus).map(st -> st == PlayerStatus.READY ? " \u2705" : " \u274C")
-                    .orElse("");
-            s.append(p.emoji).append(' ').append(pName).append(pReady).append('\n');
+            String pEmoji;
+            if (status == Status.ENDED)
+                pEmoji = player.filter(pl -> pl.equals(winner)).map(pl -> " \uD83D\uDC51").orElse("");
+            else
+                pEmoji = player.map(Player::getStatus).map(st -> st == PlayerStatus.READY ? " \u2705" : " \u274C").orElse("");
+            s.append(p.emoji).append(' ').append(pName).append(pEmoji).append('\n');
         }
         s.setLength(s.length() - 1);
         return s.toString();
@@ -932,9 +945,13 @@ public class Chinczyk {
         }
 
         public boolean isPlaying() {
-            if (Chinczyk.this.status == Status.WAITING || Chinczyk.this.status == Status.WAITING_FOR_PLAYERS)
+            Status gameStatus = Chinczyk.this.status;
+            if (gameStatus == Status.WAITING || gameStatus == Status.WAITING_FOR_PLAYERS)
                 return getStatus() != PlayerStatus.LEFT;
-            return getStatus() == PlayerStatus.PLAYING;
+            return getStatus() == PlayerStatus.PLAYING ||
+                    ((gameStatus == Status.CANCELLED || gameStatus == Status.ERRORED ||
+                            gameStatus == Status.LEFT_GUILD || gameStatus == Status.MESSAGE_DELETED)
+                            && getStatus() == PlayerStatus.READY);
         }
 
         public void setStatus(PlayerStatus status) {

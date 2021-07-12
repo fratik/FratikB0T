@@ -22,25 +22,18 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Message;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.Statyczne;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.command.SubCommand;
 import pl.fratik.core.util.ClassicEmbedPaginator;
-import pl.fratik.core.util.CommonUtil;
-import pl.fratik.core.util.DurationUtil;
 import pl.fratik.core.util.EventWaiter;
 import pl.fratik.fratikcoiny.entity.ChinczykStats;
 import pl.fratik.fratikcoiny.entity.ChinczykStatsDao;
 import pl.fratik.fratikcoiny.libs.chinczyk.Chinczyk;
 
-import java.awt.*;
-import java.math.RoundingMode;
-import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.time.ZoneOffset;
-import java.util.List;
 import java.util.*;
 
 public class ChinczykCommand extends Command {
@@ -76,100 +69,12 @@ public class ChinczykCommand extends Command {
         for (int i = 0; i < 30; i++) {
             long time = cal.toInstant().toEpochMilli() + i * 86400000L;
             ChinczykStats stats = chinczykStatsDao.get(context.getSender().getId() + time);
-            if (stats == null) {
-                pages.add(new EmbedBuilder()
-                        .setTitle(context.getTranslated("chinczyk.stats.title"))
-                        .setDescription(context.getTranslated("chinczyk.stats.no.data"))
-                        .setColor(Color.decode(Statyczne.BRAND_COLOR))
-                        .setFooter(sdf.format(new Date(time)))
-                );
-                continue;
-            }
-            Chinczyk.Place topPlace = null;
-            long topPlacePlays = 0;
-            StringBuilder playsText = new StringBuilder();
-            for (Chinczyk.Place p : Chinczyk.Place.values()) {
-                playsText.append(p.getEmoji()).append(" ");
-                long plays;
-                switch (p) {
-                    case BLUE:
-                        plays = stats.getBluePlays();
-                        break;
-                    case GREEN:
-                        plays = stats.getGreenPlays();
-                        break;
-                    case YELLOW:
-                        plays = stats.getYellowPlays();
-                        break;
-                    case RED:
-                        plays = stats.getRedPlays();
-                        break;
-                    default:
-                        throw new IllegalStateException("Nieoczekiwana wartość: " + p);
-                }
-                if (topPlacePlays < plays) {
-                    topPlace = p;
-                    topPlacePlays = plays;
-                } else if (topPlacePlays == plays) {
-                    topPlace = null;
-                }
-                playsText.append(plays).append('\n');
-            }
-            long totalWins = stats.getNormalWins() + stats.getWalkovers();
-            long totalLosses = stats.getNormalLosses() + stats.getLeaves();
-            EmbedBuilder eb = new EmbedBuilder()
-                    .setTitle(context.getTranslated("chinczyk.stats.title"))
-                    .addField(context.getTranslated("chinczyk.stats.wins"),
-                            context.getTranslated("chinczyk.stats.wins.text",
-                                    formatNumber(context, totalWins),
-                                    formatNumber(context, stats.getNormalWins()),
-                                    formatNumber(context, stats.getWalkovers())), true)
-                    .addField(context.getTranslated("chinczyk.stats.losses"),
-                            context.getTranslated("chinczyk.stats.losses.text",
-                                    formatNumber(context, totalLosses),
-                                    formatNumber(context, stats.getNormalLosses()),
-                                    formatNumber(context, stats.getLeaves())), true)
-                    .addField(context.getTranslated("chinczyk.stats.win.percentage"),
-                            context.getTranslated("chinczyk.stats.win.percentage.text",
-                                    formatNumber(context, ((double) totalWins) / (totalWins + totalLosses) * 100, false) + "%",
-                                    formatNumber(context, ((double) totalLosses) / (totalWins + totalLosses) * 100, false) + "%"), true)
-                    .addField(context.getTranslated("chinczyk.stats.plays"), playsText.toString(), true)
-                    .addField(context.getTranslated("chinczyk.stats.travelled"),
-                            formatNumber(context, stats.getTravelledSpaces()), true)
-                    .addField(context.getTranslated("chinczyk.stats.rolls"),
-                            formatNumber(context, stats.getRolls()), true)
-                    .addField(context.getTranslated("chinczyk.stats.rolls.total"),
-                            formatNumber(context, stats.getRolledTotals()), true)
-                    .addField(context.getTranslated("chinczyk.stats.kills"),
-                            formatNumber(context, stats.getKills()), true)
-                    .addField(context.getTranslated("chinczyk.stats.deaths"),
-                            formatNumber(context, stats.getDeaths()), true)
-                    .addField(context.getTranslated("chinczyk.stats.kdratio"),
-                            formatNumber(context, ((double) stats.getKills()) / Math.max(stats.getDeaths(), 1), true), true)
-                    .addField(context.getTranslated("chinczyk.stats.entered.home"),
-                            formatNumber(context, stats.getEnteredHome()), true)
-                    .addField(context.getTranslated("chinczyk.stats.left.start"),
-                            formatNumber(context, stats.getLeftStart()), true)
-                    .addField(context.getTranslated("chinczyk.stats.time"),
-                            DurationUtil.humanReadableFormat(stats.getTimePlayedSeconds() * 1000, false), true);
-            if (topPlace != null) eb.setColor(topPlace.getBgColor());
-            else eb.setColor(Color.decode(Statyczne.BRAND_COLOR));
-            eb.setFooter(sdf.format(new Date(time)));
-            pages.add(eb);
+            pages.add(ChinczykStats.renderEmbed(stats, null, context.getTlumaczenia(), context.getLanguage(), true, true, true)
+                    .setFooter(sdf.format(new Date(time))));
         }
         new ClassicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(),
                 context.getTlumaczenia(), eventBus, pages.size()).setCustomFooter(true).create(msg);
         return true;
-    }
-
-    private String formatNumber(CommandContext context, double l, boolean forceDecimal) {
-        NumberFormat nf = NumberFormat.getInstance(context.getLanguage().getLocale());
-        if (forceDecimal) nf.setMinimumFractionDigits(1);
-        return nf.format(CommonUtil.round(l, 2, RoundingMode.HALF_UP));
-    }
-
-    private String formatNumber(CommandContext context, long l) {
-        return NumberFormat.getInstance(context.getLanguage().getLocale()).format(l);
     }
 
     @Override
