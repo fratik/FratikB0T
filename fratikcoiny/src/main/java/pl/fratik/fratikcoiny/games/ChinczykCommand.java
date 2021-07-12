@@ -21,11 +21,13 @@ import com.google.common.eventbus.EventBus;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.User;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.command.SubCommand;
+import pl.fratik.core.manager.ManagerArgumentow;
 import pl.fratik.core.util.ClassicEmbedPaginator;
 import pl.fratik.core.util.EventWaiter;
 import pl.fratik.fratikcoiny.entity.ChinczykStats;
@@ -37,12 +39,14 @@ import java.time.ZoneOffset;
 import java.util.*;
 
 public class ChinczykCommand extends Command {
+    private final ManagerArgumentow managerArgumentow;
     private final EventBus eventBus;
     private final EventWaiter eventWaiter;
     private final ChinczykStatsDao chinczykStatsDao;
     private final Set<Chinczyk> instances;
 
-    public ChinczykCommand(EventBus eventBus, EventWaiter eventWaiter, ChinczykStatsDao chinczykStatsDao) {
+    public ChinczykCommand(ManagerArgumentow managerArgumentow, EventBus eventBus, EventWaiter eventWaiter, ChinczykStatsDao chinczykStatsDao) {
+        this.managerArgumentow = managerArgumentow;
         this.eventBus = eventBus;
         this.eventWaiter = eventWaiter;
         this.chinczykStatsDao = chinczykStatsDao;
@@ -61,6 +65,12 @@ public class ChinczykCommand extends Command {
 
     @SubCommand(name = "stats")
     public boolean stats(@NotNull CommandContext context) {
+        User usr = null;
+        if (context.getRawArgs().length >= 1) {
+            usr = (User) managerArgumentow.getArguments().get("user")
+                    .execute(context.getRawArgs()[0], context.getTlumaczenia(), context.getLanguage());
+        }
+        if (usr == null) usr = context.getSender();
         Message msg = context.reply(context.getTranslated("generic.loading"));
         List<EmbedBuilder> pages = new ArrayList<>();
         Calendar cal = Calendar.getInstance();
@@ -73,7 +83,7 @@ public class ChinczykCommand extends Command {
         SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy");
         for (int i = 0; i < 30; i++) {
             long time = cal.toInstant().toEpochMilli() + i * 86400000L;
-            ChinczykStats stats = chinczykStatsDao.get(context.getSender().getId() + time);
+            ChinczykStats stats = chinczykStatsDao.get(usr.getId() + time);
             pages.add(ChinczykStats.renderEmbed(stats, null, context.getTlumaczenia(), context.getLanguage(), true, true, true)
                     .setFooter(sdf.format(new Date(time))));
         }

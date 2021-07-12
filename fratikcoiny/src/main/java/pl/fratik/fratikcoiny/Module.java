@@ -23,6 +23,7 @@ import net.dv8tion.jda.api.sharding.ShardManager;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.MemberDao;
+import pl.fratik.core.manager.ManagerArgumentow;
 import pl.fratik.core.manager.ManagerBazyDanych;
 import pl.fratik.core.manager.ManagerKomend;
 import pl.fratik.core.moduly.Modul;
@@ -38,6 +39,7 @@ import java.util.ArrayList;
 
 public class Module implements Modul {
     @Inject private ManagerBazyDanych managerBazyDanych;
+    @Inject private ManagerArgumentow managerArgumentow;
     @Inject private ManagerKomend managerKomend;
     @Inject private EventWaiter eventWaiter;
     @Inject private GuildDao guildDao;
@@ -65,7 +67,7 @@ public class Module implements Modul {
         commands.add(new BlackjackCommand(memberDao, eventWaiter));
         commands.add(new SlotsCommand(memberDao));
         commands.add(new PremiaCommand(guildDao, memberDao, eventWaiter, eventBus));
-        if (Chinczyk.canBeUsed()) commands.add(new ChinczykCommand(eventBus, eventWaiter, chinczykStatsDao));
+        if (Chinczyk.canBeUsed()) commands.add(new ChinczykCommand(managerArgumentow, eventBus, eventWaiter, chinczykStatsDao));
 
         commands.forEach(managerKomend::registerCommand);
 
