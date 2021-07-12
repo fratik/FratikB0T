@@ -60,7 +60,8 @@ public abstract class EmbedPaginator {
     protected final EventWaiter eventWaiter;
     protected Message message;
     protected long messageId;
-    protected int pageNo = 1;
+    protected int pageNo;
+    protected int startPage;
     protected final long userId;
     protected final Language language;
     protected final Tlumaczenia tlumaczenia;
@@ -74,12 +75,13 @@ public abstract class EmbedPaginator {
     private Message doKtorej;
     @Getter(AccessLevel.PROTECTED) private MessageEmbed currentEmbed;
 
-    protected EmbedPaginator(EventBus eventBus, EventWaiter eventWaiter, long userId, Language language, Tlumaczenia tlumaczenia) {
+    protected EmbedPaginator(EventBus eventBus, EventWaiter eventWaiter, long userId, Language language, Tlumaczenia tlumaczenia, int startPage) {
         this.eventBus = eventBus;
         this.eventWaiter = eventWaiter;
         this.userId = userId;
         this.language = language;
         this.tlumaczenia = tlumaczenia;
+        pageNo = this.startPage = startPage;
     }
 
     @NotNull protected abstract MessageEmbed render(int page) throws LoadingException;
@@ -91,7 +93,7 @@ public abstract class EmbedPaginator {
 
     public void create(MessageChannel channel, String referenceMessageId) {
         try {
-            MessageAction action = channel.sendMessage(currentEmbed = render(1));
+            MessageAction action = channel.sendMessage(currentEmbed = render(pageNo));
             if (referenceMessageId != null) action = action.referenceById(referenceMessageId);
             action = addReactions(action);
             action.override(true).queue(msg -> {
@@ -127,7 +129,7 @@ public abstract class EmbedPaginator {
     public void create(Message message) {
         eventBus.post(new PluginMessageEvent("core", PMSTO, PMZAADD + message.getId()));
         try {
-            addReactions(message.editMessage(currentEmbed = render(1))).override(true).queue(msg -> {
+            addReactions(message.editMessage(currentEmbed = render(pageNo))).override(true).queue(msg -> {
                 this.message = msg;
                 messageId = msg.getIdLong();
                 if (getPageCount() != 1) {

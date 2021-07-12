@@ -29,6 +29,7 @@ import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
+import net.dv8tion.jda.api.requests.restaction.MessageAction;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import pl.fratik.core.Ustawienia;
 import pl.fratik.core.entity.ArgsMissingException;
@@ -254,6 +255,25 @@ public class CommandContext {
         event.getChannel().sendMessage(message).reference(getMessage()).queue(callback, e -> {
             if (isUnknownMessage(e)) event.getChannel().sendMessage(message).queue(callback);
         });
+    }
+
+    public Message reply(Message message) {
+        try {
+            return replyAsAction(message).complete();
+        } catch (ErrorResponseException e) {
+            if (isUnknownMessage(e)) return event.getChannel().sendMessage(message).complete();
+            throw e;
+        }
+    }
+
+    public void reply(Message message, Consumer<Message> callback) {
+        replyAsAction(message).queue(callback, e -> {
+            if (isUnknownMessage(e)) event.getChannel().sendMessage(message).queue(callback);
+        });
+    }
+
+    public MessageAction replyAsAction(Message message) {
+        return event.getChannel().sendMessage(message).reference(getMessage());
     }
 
     public boolean checkSensitive(String input) {

@@ -49,7 +49,11 @@ public class DynamicEmbedPaginator extends EmbedPaginator {
     }
 
     public DynamicEmbedPaginator(EventWaiter eventWaiter, List<FutureTask<EmbedBuilder>> pages, User user, Language language, Tlumaczenia tlumaczenia, EventBus eventBus, boolean preload) {
-        super(eventBus, eventWaiter, user.getIdLong(), language, tlumaczenia);
+        this(eventWaiter, pages, user, language, tlumaczenia, eventBus, preload, 1);
+    }
+
+    public DynamicEmbedPaginator(EventWaiter eventWaiter, List<FutureTask<EmbedBuilder>> pages, User user, Language language, Tlumaczenia tlumaczenia, EventBus eventBus, boolean preload, int startPage) {
+        super(eventBus, eventWaiter, user.getIdLong(), language, tlumaczenia, startPage);
         this.preload = preload;
         this.pages = pages;
         if (pages.isEmpty()) throw new IllegalArgumentException("brak stron");
@@ -97,7 +101,7 @@ public class DynamicEmbedPaginator extends EmbedPaginator {
         } catch (TimeoutException e) {
             throw new LoadingException(false, true, null);
         } catch (ExecutionException e) {
-            throw new LoadingException(page == 1, false, e);
+            throw new LoadingException(page == startPage, false, e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new LoadingException(false, true, null);

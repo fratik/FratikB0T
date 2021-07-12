@@ -32,7 +32,11 @@ public class ClassicEmbedPaginator extends EmbedPaginator {
     private final List<EmbedBuilder> pages;
 
     public ClassicEmbedPaginator(EventWaiter eventWaiter, List<EmbedBuilder> pages, User user, Language language, Tlumaczenia tlumaczenia, EventBus eventBus) {
-        super(eventBus, eventWaiter, user.getIdLong(), language, tlumaczenia);
+        this(eventWaiter, pages, user, language, tlumaczenia, eventBus, 1);
+    }
+
+    public ClassicEmbedPaginator(EventWaiter eventWaiter, List<EmbedBuilder> pages, User user, Language language, Tlumaczenia tlumaczenia, EventBus eventBus, int startPage) {
+        super(eventBus, eventWaiter, user.getIdLong(), language, tlumaczenia, startPage);
         this.pages = pages;
         if (pages.isEmpty()) throw new IllegalArgumentException("brak stron");
     }

@@ -20,19 +20,26 @@ package pl.fratik.fratikcoiny;
 import com.google.common.eventbus.EventBus;
 import com.google.inject.Inject;
 import net.dv8tion.jda.api.sharding.ShardManager;
-import pl.fratik.fratikcoiny.commands.*;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.MemberDao;
+import pl.fratik.core.manager.ManagerArgumentow;
+import pl.fratik.core.manager.ManagerBazyDanych;
 import pl.fratik.core.manager.ManagerKomend;
 import pl.fratik.core.moduly.Modul;
 import pl.fratik.core.util.EventWaiter;
+import pl.fratik.fratikcoiny.commands.*;
+import pl.fratik.fratikcoiny.entity.ChinczykStatsDao;
 import pl.fratik.fratikcoiny.games.BlackjackCommand;
+import pl.fratik.fratikcoiny.games.ChinczykCommand;
 import pl.fratik.fratikcoiny.games.SlotsCommand;
+import pl.fratik.fratikcoiny.libs.chinczyk.Chinczyk;
 
 import java.util.ArrayList;
 
 public class Module implements Modul {
+    @Inject private ManagerBazyDanych managerBazyDanych;
+    @Inject private ManagerArgumentow managerArgumentow;
     @Inject private ManagerKomend managerKomend;
     @Inject private EventWaiter eventWaiter;
     @Inject private GuildDao guildDao;
@@ -40,6 +47,7 @@ public class Module implements Modul {
     @Inject private ShardManager shardManager;
     @Inject private EventBus eventBus;
     private ArrayList<Command> commands;
+    private ChinczykStatsDao chinczykStatsDao;
 
     public Module() {
         commands = new ArrayList<>();
@@ -47,6 +55,7 @@ public class Module implements Modul {
 
     @Override
     public boolean startUp() {
+        chinczykStatsDao = new ChinczykStatsDao(managerBazyDanych, eventBus);
         commands = new ArrayList<>();
 
         commands.add(new DailyCommand(memberDao));
@@ -58,6 +67,7 @@ public class Module implements Modul {
         commands.add(new BlackjackCommand(memberDao, eventWaiter));
         commands.add(new SlotsCommand(memberDao));
         commands.add(new PremiaCommand(guildDao, memberDao, eventWaiter, eventBus));
+        if (Chinczyk.canBeUsed()) commands.add(new ChinczykCommand(managerArgumentow, eventBus, eventWaiter, chinczykStatsDao));
 
         commands.forEach(managerKomend::registerCommand);
 
