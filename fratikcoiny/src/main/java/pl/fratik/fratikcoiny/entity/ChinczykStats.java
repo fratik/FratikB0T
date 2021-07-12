@@ -60,6 +60,7 @@ public class ChinczykStats implements DatabaseEntity {
     private long walkovers;
     private long normalLosses;
     private long leaves;
+    private long timePlayedSeconds;
 
     public ChinczykStats(String userId, long timestamp) {
         id = userId + timestamp;
@@ -97,6 +98,8 @@ public class ChinczykStats implements DatabaseEntity {
                 default:
                     throw new IllegalStateException("Nieoczekiwana wartość: " + player.getPlace());
             }
+            getStats.apply(player.getUser()).timePlayedSeconds +=
+                    (chinczyk.getEnd().getEpochSecond() - chinczyk.getStart().getEpochSecond());
         }
         for (Chinczyk.Event event : chinczyk.getEvents()) {
             if (event.getType() != null) {
@@ -163,5 +166,6 @@ public class ChinczykStats implements DatabaseEntity {
         walkovers += stats.walkovers;
         normalLosses += stats.normalLosses;
         leaves += stats.leaves;
+        timePlayedSeconds += stats.timePlayedSeconds;
     }
 }

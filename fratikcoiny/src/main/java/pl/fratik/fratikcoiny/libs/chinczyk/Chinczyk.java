@@ -56,6 +56,7 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.time.Instant;
 import java.util.List;
 import java.util.*;
 import java.util.concurrent.Executors;
@@ -94,8 +95,11 @@ public class Chinczyk {
     private Place turn;
     private int turns;
     private Integer rolled;
+    private int rollCounter = 0;
     @Getter private Player winner;
     private ScheduledFuture<?> timeout;
+    @Getter private Instant start;
+    @Getter private Instant end;
 
     public static boolean canBeUsed() {
         return font != null && plansza != null;
@@ -203,6 +207,7 @@ public class Chinczyk {
         this.eventBus = eventBus;
         executor = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("Chinczyk-" + getChannel().getId()));
         this.endCallback = obj -> {
+            end = Instant.now();
             try {
                 if (timeout == null || timeout.isDone() || timeout.cancel(false)) endCallback.accept(obj);
             } finally {
@@ -404,6 +409,7 @@ public class Chinczyk {
                         }
                         if (!timeout.cancel(false)) return;
                         status = Status.IN_PROGRESS;
+                        start = Instant.now();
                         for (Player player : players.values()) {
                             player.setStatus(PlayerStatus.PLAYING);
                         }
@@ -633,8 +639,12 @@ public class Chinczyk {
         turns++;
         if (turn == null) turn = players.values().stream().filter(p -> p.getUser().equals(context.getSender()))
                 .findFirst().map(Player::getPlace).orElseThrow(() -> new IllegalStateException("executer nie gra?"));
-        else if (rolled == null || rolled != 6) turn = Place.getNextPlace(turn, players.entrySet().stream()
-                .filter(p -> p.getValue().isPlaying()).map(Map.Entry::getKey).collect(Collectors.toSet()));
+        else if ((rollCounter++ >= 2 || Arrays.stream(players.get(turn).getPieces()).anyMatch(p -> p.position != 0)) &&
+                (rolled == null || rolled != 6)) {
+            turn = Place.getNextPlace(turn, players.entrySet().stream()
+                    .filter(p -> p.getValue().isPlaying()).map(Map.Entry::getKey).collect(Collectors.toSet()));
+            rollCounter = 0;
+        }
         rolled = null;
         if (timeout != null && !timeout.isCancelled() && !timeout.cancel(false)) return;
         timeout = executor.schedule(this::timeout, 1, TimeUnit.MINUTES);

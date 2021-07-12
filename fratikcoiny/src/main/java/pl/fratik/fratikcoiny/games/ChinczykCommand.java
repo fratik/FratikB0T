@@ -29,6 +29,7 @@ import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.command.SubCommand;
 import pl.fratik.core.util.ClassicEmbedPaginator;
 import pl.fratik.core.util.CommonUtil;
+import pl.fratik.core.util.DurationUtil;
 import pl.fratik.core.util.EventWaiter;
 import pl.fratik.fratikcoiny.entity.ChinczykStats;
 import pl.fratik.fratikcoiny.entity.ChinczykStatsDao;
@@ -144,11 +145,13 @@ public class ChinczykCommand extends Command {
                     .addField(context.getTranslated("chinczyk.stats.deaths"),
                             formatNumber(context, stats.getDeaths()), true)
                     .addField(context.getTranslated("chinczyk.stats.kdratio"),
-                            formatNumber(context, ((double) stats.getKills()) / stats.getDeaths(), true), true)
+                            formatNumber(context, ((double) stats.getKills()) / Math.max(stats.getDeaths(), 1), true), true)
                     .addField(context.getTranslated("chinczyk.stats.entered.home"),
                             formatNumber(context, stats.getEnteredHome()), true)
                     .addField(context.getTranslated("chinczyk.stats.left.start"),
-                            formatNumber(context, stats.getLeftStart()), true);
+                            formatNumber(context, stats.getLeftStart()), true)
+                    .addField(context.getTranslated("chinczyk.stats.time"),
+                            DurationUtil.humanReadableFormat(stats.getTimePlayedSeconds() * 1000, false), true);
             if (topPlace != null) eb.setColor(topPlace.getBgColor());
             else eb.setColor(Color.decode(Statyczne.BRAND_COLOR));
             eb.setFooter(sdf.format(new Date(time)));
