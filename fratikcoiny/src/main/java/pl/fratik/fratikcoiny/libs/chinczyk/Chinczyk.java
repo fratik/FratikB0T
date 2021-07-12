@@ -379,7 +379,9 @@ public class Chinczyk {
                     .orElseGet(() -> t.get(l, "chinczyk.no.player"));
             String pEmoji;
             if (status == Status.ENDED)
-                pEmoji = player.filter(pl -> pl.equals(winner)).map(pl -> " \uD83D\uDC51").orElse("");
+                pEmoji = player.filter(pl -> pl.equals(winner)).map(pl -> " \uD83D\uDC51")
+                        .orElseGet(() -> player.map(Player::getStatus).filter(st -> st == PlayerStatus.LEFT)
+                                .map(pl -> " \uD83D\uDEAA").orElse(""));
             else
                 pEmoji = player.map(Player::getStatus).map(st -> st == PlayerStatus.READY ? " \u2705" : " \u274C").orElse("");
             s.append(p.emoji).append(' ').append(pName).append(pEmoji).append('\n');
