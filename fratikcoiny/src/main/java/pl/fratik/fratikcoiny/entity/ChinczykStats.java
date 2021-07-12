@@ -59,6 +59,8 @@ public class ChinczykStats implements DatabaseEntity {
     private long redPlays;
     private long travelledSpaces;
     private long rolls;
+    private long rolledSix;
+    private long highestSixStreak;
     private long rolledTotals;
     private long kills;
     private long deaths;
@@ -82,34 +84,38 @@ public class ChinczykStats implements DatabaseEntity {
         long gameDuration = chinczyk.getEnd().getEpochSecond() - chinczyk.getStart().getEpochSecond();
         Function<User, ChinczykStats> getStats = usr -> map.computeIfAbsent(usr.getId(), id -> new ChinczykStats(id, timestamp));
         for (Chinczyk.Player player : chinczyk.getPlayers()) {
+            ChinczykStats playerStats = getStats.apply(player.getUser());
             if (chinczyk.getWinner().equals(player)) {
                 if (chinczyk.getPlayers().stream().filter(p -> p.getStatus() == Chinczyk.PlayerStatus.PLAYING).count() == 1)
-                    getStats.apply(player.getUser()).walkovers++;
-                else getStats.apply(player.getUser()).normalWins++;
+                    playerStats.walkovers++;
+                else playerStats.normalWins++;
             } else {
                 if (player.getStatus() == Chinczyk.PlayerStatus.LEFT)
-                    getStats.apply(player.getUser()).leaves++;
-                else getStats.apply(player.getUser()).normalLosses++;
+                    playerStats.leaves++;
+                else playerStats.normalLosses++;
             }
             switch (player.getPlace()) {
                 case BLUE:
-                    getStats.apply(player.getUser()).bluePlays++;
+                    playerStats.bluePlays++;
                     break;
                 case GREEN:
-                    getStats.apply(player.getUser()).greenPlays++;
+                    playerStats.greenPlays++;
                     break;
                 case YELLOW:
-                    getStats.apply(player.getUser()).yellowPlays++;
+                    playerStats.yellowPlays++;
                     break;
                 case RED:
-                    getStats.apply(player.getUser()).redPlays++;
+                    playerStats.redPlays++;
                     break;
                 default:
                     throw new IllegalStateException("Nieoczekiwana wartość: " + player.getPlace());
             }
-            getStats.apply(player.getUser()).timePlayedSeconds += gameDuration;
+            playerStats.timePlayedSeconds += gameDuration;
         }
+        Map<Chinczyk.Player, Integer> lastRolled = new HashMap<>();
+        Map<Chinczyk.Player, Integer> currentStreaks = new HashMap<>();
         for (Chinczyk.Event event : chinczyk.getEvents()) {
+            ChinczykStats playerStats = getStats.apply(event.getPlayer().getUser());
             if (event.getType() != null) {
                 switch (event.getType()) {
                     case GAME_START:
@@ -117,26 +123,37 @@ public class ChinczykStats implements DatabaseEntity {
                     case LEFT_GAME:
                         continue;
                     case LEFT_START:
-                        getStats.apply(event.getPlayer().getUser()).leftStart++;
+                        playerStats.leftStart++;
                         break;
                     case MOVE:
-                        getStats.apply(event.getPlayer().getUser()).travelledSpaces += event.getRolled();
+                        playerStats.travelledSpaces += event.getRolled();
                         break;
                     case THROW:
-                        getStats.apply(event.getPlayer().getUser()).travelledSpaces += event.getRolled();
+                        playerStats.travelledSpaces += event.getRolled();
                         getStats.apply(event.getPiece().getPlayer().getUser()).kills++;
                         getStats.apply(event.getPiece2().getPlayer().getUser()).deaths++;
                         break;
                     case ENTERED_HOME:
-                        getStats.apply(event.getPlayer().getUser()).travelledSpaces += event.getRolled();
-                        getStats.apply(event.getPlayer().getUser()).enteredHome++;
+                        playerStats.travelledSpaces += event.getRolled();
+                        playerStats.enteredHome++;
                         break;
                     default:
                         throw new IllegalStateException("Nieoczekiwana wartość " + event.getType());
                 }
             }
-            getStats.apply(event.getPlayer().getUser()).rolls++;
-            getStats.apply(event.getPlayer().getUser()).rolledTotals += event.getRolled();
+            playerStats.rolls++;
+            playerStats.rolledTotals += event.getRolled();
+            Integer l = lastRolled.put(event.getPlayer(), event.getRolled());
+            if (event.getRolled() == 6) {
+                playerStats.rolledSix++;
+                currentStreaks.compute(event.getPlayer(), (p, i) -> {
+                    if (i == null) i = 0;
+                    if (l == null || l != 6) i = 1;
+                    else i++;
+                    return i;
+                });
+            } else playerStats.highestSixStreak = Math.max(playerStats.highestSixStreak,
+                    currentStreaks.getOrDefault(event.getPlayer(), 0));
         }
         ChinczykStats gameStats = map.computeIfAbsent("0", id -> new ChinczykStats(id, timestamp));
         for (ChinczykStats s : map.values()) gameStats.addStats(s);
@@ -154,7 +171,13 @@ public class ChinczykStats implements DatabaseEntity {
         return cal.toInstant().toEpochMilli();
     }
 
-    public static EmbedBuilder renderEmbed(ChinczykStats stats, User gamer, Tlumaczenia t, Language l, boolean withPlays, boolean renderDeaths, boolean renderTime) {
+    public static EmbedBuilder renderEmbed(ChinczykStats stats,
+                                           User gamer,
+                                           Tlumaczenia t,
+                                           Language l,
+                                           boolean withPlays,
+                                           boolean renderDeaths,
+                                           boolean renderTime) {
         if (stats == null) {
             EmbedBuilder eb = new EmbedBuilder()
                     .setTitle(t.get(l, "chinczyk.stats.title"))
@@ -216,6 +239,8 @@ public class ChinczykStats implements DatabaseEntity {
         eb
                 .addField(t.get(l, "chinczyk.stats.travelled"), formatNumber(l, stats.getTravelledSpaces()), true)
                 .addField(t.get(l, "chinczyk.stats.rolls"), formatNumber(l, stats.getRolls()), true)
+                .addField(t.get(l, "chinczyk.stats.rolled.six"), formatNumber(l, stats.getRolledSix()), true)
+                .addField(t.get(l, "chinczyk.stats.highest.six.streak"), formatNumber(l, stats.getHighestSixStreak()), true)
                 .addField(t.get(l, "chinczyk.stats.rolls.total"), formatNumber(l, stats.getRolledTotals()), true)
                 .addField(t.get(l, "chinczyk.stats.kills"), formatNumber(l, stats.getKills()), true);
         if (renderDeaths) {
@@ -259,6 +284,8 @@ public class ChinczykStats implements DatabaseEntity {
         redPlays += stats.redPlays;
         travelledSpaces += stats.travelledSpaces;
         rolls += stats.rolls;
+        rolledSix += stats.rolledSix;
+        highestSixStreak = Math.max(stats.highestSixStreak, highestSixStreak);
         rolledTotals += stats.rolledTotals;
         kills += stats.kills;
         deaths += stats.deaths;
