@@ -785,6 +785,10 @@ public class Chinczyk {
         } catch (Exception ignored) {}
     }
 
+    public void shutdown() {
+        errored(new IllegalStateException("bot się wyłącza")); //todo zapisz stan gry i go przywróć po restarcie
+    }
+
     private Message generateControlMessage(Player player) {
         MessageBuilder mb = new MessageBuilder();
         List<Component> leaveComponents = new ArrayList<>();

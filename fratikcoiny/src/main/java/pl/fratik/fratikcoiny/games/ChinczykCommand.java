@@ -54,6 +54,11 @@ public class ChinczykCommand extends Command {
         instances = new HashSet<>();
     }
 
+    @Override
+    public void onUnregister() {
+        for (Chinczyk chi : new HashSet<>(instances)) chi.shutdown();
+    }
+
     @SubCommand(name = "stats")
     public boolean stats(@NotNull CommandContext context) {
         Message msg = context.reply(context.getTranslated("generic.loading"));
