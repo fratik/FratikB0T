@@ -728,7 +728,7 @@ public class Chinczyk {
 
     @Subscribe
     public void onMessageBulkDelete(MessageBulkDeleteEvent e) {
-        if (e.getMessageIds().contains(message.getId())) {
+        if (message != null && e.getMessageIds().contains(message.getId())) {
             status = Status.MESSAGE_DELETED;
             aborted(null);
         }
@@ -744,7 +744,7 @@ public class Chinczyk {
 
     @Subscribe
     public void onGuildLeave(GuildLeaveEvent e) {
-        if (e.getGuild().getIdLong() == message.getGuild().getIdLong()) {
+        if (e.getGuild().getIdLong() == getChannel().getIdLong()) {
             status = Status.LEFT_GUILD;
             aborted(null);
         }
