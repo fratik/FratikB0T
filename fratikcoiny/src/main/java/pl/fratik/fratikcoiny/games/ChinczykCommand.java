@@ -63,14 +63,24 @@ public class ChinczykCommand extends Command {
         for (Chinczyk chi : new HashSet<>(instances)) chi.shutdown();
     }
 
+    @SubCommand(name = "globalStats")
+    public boolean globalStats(@NotNull CommandContext context) {
+        return stats("0", context, false);
+    }
+
     @SubCommand(name = "stats")
-    public boolean stats(@NotNull CommandContext context) {
+    public boolean userStats(@NotNull CommandContext context) {
         User usr = null;
         if (context.getRawArgs().length >= 1) {
+            if (context.getRawArgs()[0].equals("global")) return globalStats(context);
             usr = (User) managerArgumentow.getArguments().get("user")
                     .execute(context.getRawArgs()[0], context.getTlumaczenia(), context.getLanguage());
         }
         if (usr == null) usr = context.getSender();
+        return stats(usr.getId(), context, true);
+    }
+
+    public boolean stats(String id, @NotNull CommandContext context, boolean withWins) {
         Message msg = context.reply(context.getTranslated("generic.loading"));
         List<EmbedBuilder> pages = new ArrayList<>();
         Calendar cal = Calendar.getInstance();
@@ -83,9 +93,9 @@ public class ChinczykCommand extends Command {
         SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy");
         for (int i = 0; i < 30; i++) {
             long time = cal.toInstant().toEpochMilli() + i * 86400000L;
-            ChinczykStats stats = chinczykStatsDao.get(usr.getId() + time);
-            pages.add(ChinczykStats.renderEmbed(stats, null, context.getTlumaczenia(), context.getLanguage(), true, true, true)
-                    .setFooter(sdf.format(new Date(time))));
+            ChinczykStats stats = chinczykStatsDao.get(id + time);
+            pages.add(ChinczykStats.renderEmbed(stats, null, context.getTlumaczenia(), context.getLanguage(),
+                    true, withWins, true, true).setFooter(sdf.format(new Date(time))));
         }
         new ClassicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(),
                 context.getTlumaczenia(), eventBus, pages.size()).setCustomFooter(true).create(msg);

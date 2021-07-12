@@ -351,13 +351,13 @@ public class Chinczyk {
                 eb.addField(t.get(l, "chinczyk.embed.players"), renderPlayerString(), false);
                 Map<String, ChinczykStats> stats = ChinczykStats.getStatsFromGame(this);
                 for (MessageEmbed.Field field : ChinczykStats.renderEmbed(stats.get("0"), null, t, l, false,
-                        false, true).getFields())
+                        false, false, true).getFields())
                     eb.addField(field);
                 List<MessageEmbed> embeds = new ArrayList<>();
                 embeds.add(eb.build());
                 for (Player p : players.values()) {
                     ChinczykStats s = stats.get(p.getUser().getId());
-                    if (s != null) embeds.add(ChinczykStats.renderEmbed(s, p.getUser(), t, l, false, true, false)
+                    if (s != null) embeds.add(ChinczykStats.renderEmbed(s, p.getUser(), t, l, false, false, true, false)
                             .setTitle(t.get(l, "chinczyk.game.stats")).build());
                 }
                 return mb.setEmbeds(embeds).build();

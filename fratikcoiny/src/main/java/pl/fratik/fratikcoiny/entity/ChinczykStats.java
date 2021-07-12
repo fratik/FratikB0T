@@ -175,6 +175,7 @@ public class ChinczykStats implements DatabaseEntity {
                                            Tlumaczenia t,
                                            Language l,
                                            boolean withPlays,
+                                           boolean withWins,
                                            boolean renderDeaths,
                                            boolean renderTime) {
         if (stats == null) {
@@ -219,7 +220,7 @@ public class ChinczykStats implements DatabaseEntity {
         long totalLosses = stats.getNormalLosses() + stats.getLeaves();
         EmbedBuilder eb = new EmbedBuilder()
                 .setTitle(t.get(l, "chinczyk.stats.title"));
-        if (withPlays) {
+        if (withWins) {
             eb
                     .addField(t.get(l, "chinczyk.stats.wins"),
                             t.get(l, "chinczyk.stats.wins.text", formatNumber(l, totalWins),
@@ -232,9 +233,9 @@ public class ChinczykStats implements DatabaseEntity {
                             t.get(l, "chinczyk.stats.win.percentage.text",
                                     formatNumber(l, ((double) totalWins) / (totalWins + totalLosses) * 100, false) + "%",
                                     formatNumber(l, ((double) totalLosses) / (totalWins + totalLosses) * 100, false) + "%"),
-                            true)
-                    .addField(t.get(l, "chinczyk.stats.plays"), playsText.toString(), true);
+                            true);
         }
+        if (withPlays) eb.addField(t.get(l, "chinczyk.stats.plays"), playsText.toString(), true);
         eb
                 .addField(t.get(l, "chinczyk.stats.travelled"), formatNumber(l, stats.getTravelledSpaces()), true)
                 .addField(t.get(l, "chinczyk.stats.rolls"), formatNumber(l, stats.getRolls()), true)
