@@ -720,7 +720,7 @@ public class Chinczyk {
     
     @Subscribe
     public void onMessageDelete(MessageDeleteEvent e) {
-        if (e.getMessageIdLong() == message.getIdLong()) {
+        if (message != null && e.getMessageIdLong() == message.getIdLong()) {
             status = Status.MESSAGE_DELETED;
             aborted(null);
         }
