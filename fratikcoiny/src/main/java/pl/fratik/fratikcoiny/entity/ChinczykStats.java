@@ -86,30 +86,30 @@ public class ChinczykStats implements DatabaseEntity {
         for (Chinczyk.Player player : chinczyk.getPlayers()) {
             if (chinczyk.getWinner().equals(player)) {
                 if (chinczyk.getPlayers().stream().filter(p -> p.getStatus() == Chinczyk.PlayerStatus.PLAYING).count() == 1)
-                    getStats.apply(event.getPlayer().getUser()).walkovers++;
-                else getStats.apply(event.getPlayer().getUser()).normalWins++;
+                    getStats.apply(player.getUser()).walkovers++;
+                else getStats.apply(player.getUser()).normalWins++;
             } else {
                 if (player.getStatus() == Chinczyk.PlayerStatus.LEFT)
-                    getStats.apply(event.getPlayer().getUser()).leaves++;
-                else getStats.apply(event.getPlayer().getUser()).normalLosses++;
+                    getStats.apply(player.getUser()).leaves++;
+                else getStats.apply(player.getUser()).normalLosses++;
             }
             switch (player.getPlace()) {
                 case BLUE:
-                    getStats.apply(event.getPlayer().getUser()).bluePlays++;
+                    getStats.apply(player.getUser()).bluePlays++;
                     break;
                 case GREEN:
-                    getStats.apply(event.getPlayer().getUser()).greenPlays++;
+                    getStats.apply(player.getUser()).greenPlays++;
                     break;
                 case YELLOW:
-                    getStats.apply(event.getPlayer().getUser()).yellowPlays++;
+                    getStats.apply(player.getUser()).yellowPlays++;
                     break;
                 case RED:
-                    getStats.apply(event.getPlayer().getUser()).redPlays++;
+                    getStats.apply(player.getUser()).redPlays++;
                     break;
                 default:
                     throw new IllegalStateException("Nieoczekiwana wartość: " + player.getPlace());
             }
-            getStats.apply(event.getPlayer().getUser()).timePlayedSeconds += gameDuration;
+            getStats.apply(player.getUser()).timePlayedSeconds += gameDuration;
         }
         Map<Chinczyk.Player, Integer> lastRolled = new HashMap<>();
         Map<Chinczyk.Player, Integer> currentStreaks = new HashMap<>();
