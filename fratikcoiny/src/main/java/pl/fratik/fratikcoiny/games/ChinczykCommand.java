@@ -95,7 +95,7 @@ public class ChinczykCommand extends Command {
             long time = cal.toInstant().toEpochMilli() + i * 86400000L;
             ChinczykStats stats = chinczykStatsDao.get(id + time);
             pages.add(ChinczykStats.renderEmbed(stats, null, context.getTlumaczenia(), context.getLanguage(),
-                    true, withWins, true, true).setFooter(sdf.format(new Date(time))));
+                    true, withWins, withWins, true).setFooter(sdf.format(new Date(time))));
         }
         new ClassicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(),
                 context.getTlumaczenia(), eventBus, pages.size()).setCustomFooter(true).create(msg);
