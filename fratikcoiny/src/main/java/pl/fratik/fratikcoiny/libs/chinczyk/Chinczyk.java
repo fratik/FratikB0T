@@ -99,6 +99,7 @@ public class Chinczyk {
     private int rollCounter = 0;
     @Getter private Player winner;
     private ScheduledFuture<?> timeout;
+    private static final ThreadLocal<Boolean> isTimeout = ThreadLocal.withInitial(() -> false);
     @Getter private Instant start;
     @Getter private Instant end;
 
@@ -211,7 +212,8 @@ public class Chinczyk {
         this.endCallback = obj -> {
             end = Instant.now();
             try {
-                if (timeout == null || timeout.isDone() || timeout.cancel(false)) endCallback.accept(obj);
+                if (isTimeout.get() == Boolean.TRUE || timeout == null || timeout.isDone() || timeout.cancel(false))
+                    endCallback.accept(obj);
             } finally {
                 executor.shutdownNow();
             }
@@ -226,6 +228,7 @@ public class Chinczyk {
     }
 
     private void timeout() {
+        isTimeout.set(true);
         lock.lock();
         try {
             Status status = this.status;
@@ -245,6 +248,7 @@ public class Chinczyk {
         } finally {
             lock.unlock();
         }
+        isTimeout.remove();
     }
 
     public byte[] renderBoard() {
@@ -684,16 +688,17 @@ public class Chinczyk {
             turns++;
             if (turn == null) turn = players.values().stream().filter(p -> p.getUser().equals(context.getSender()))
                     .findFirst().map(Player::getPlace).orElseThrow(() -> new IllegalStateException("executer nie gra?"));
-            else if ((rollCounter++ >= 2 || Arrays.stream(players.get(turn).getPieces()).anyMatch(p -> p.position != 0)) &&
-                    (rolled == null || rolled != 6)) {
+            else if (!players.get(turn).isPlaying() ||
+                    ((rollCounter++ >= 2 || Arrays.stream(players.get(turn).getPieces()).anyMatch(p -> p.position != 0)) &&
+                    (rolled == null || rolled != 6))) {
                 turn = Place.getNextPlace(turn, players.entrySet().stream()
                         .filter(p -> p.getValue().isPlaying()).map(Map.Entry::getKey).collect(Collectors.toSet()));
                 rollCounter = 0;
             }
             rolled = null;
-            if (timeout != null && !timeout.isCancelled() && !timeout.cancel(false)) return;
+            if (isTimeout.get() == Boolean.FALSE && timeout != null && !timeout.isCancelled() && !timeout.cancel(false)) return;
             timeout = executor.schedule(this::timeout, 1, TimeUnit.MINUTES);
-            updateMainMessage(eventStorage.getLastEvent() == null || eventStorage.getLastEvent().getType() != null);
+            updateMainMessage(isTimeout.get() == Boolean.TRUE || eventStorage.getLastEvent() == null || eventStorage.getLastEvent().getType() != null);
             updateControlMessages();
         } finally {
             lock.unlock();
