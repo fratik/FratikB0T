@@ -1232,24 +1232,24 @@ public class Chinczyk {
             if (position + rolled > 44) return false; // jeśli przekroczona ilość pól + strefy końcowej, nie można
             Boolean captureable = canCapture();
             if (captureable != null) return captureable;
-            if (rules.contains(Rules.NO_PASSES)) {
-                try {
-                    int thisPosition = Integer.parseInt(getBoardPosition(position + rolled));
-                    for (Player p : players.values()) {
-                        if (!p.equals(player)) {
-                            for (Piece piece : p.getPieces()) {
-                                try {
-                                    if (thisPosition > Integer.parseInt(piece.getBoardPosition())) return false;
-                                } catch (NumberFormatException ignored) {
-                                    // ignoruj ten pionek - jest na polu końcowym / startowym
-                                }
-                            }
-                        }
-                    }
-                } catch (NumberFormatException ignored) {
-                    // jesteśmy na polu startowym/końcowym, nie ma przeskoku
-                }
-            }
+//            if (rules.contains(Rules.NO_PASSES)) {
+//                try {
+//                    int thisPosition = Integer.parseInt(getBoardPosition(position + rolled));
+//                    for (Player p : players.values()) {
+//                        if (!p.equals(player)) {
+//                            for (Piece piece : p.getPieces()) {
+//                                try {
+//                                    if (thisPosition > Integer.parseInt(piece.getBoardPosition())) return false;
+//                                } catch (NumberFormatException ignored) {
+//                                    // ignoruj ten pionek - jest na polu końcowym / startowym
+//                                }
+//                            }
+//                        }
+//                    }
+//                } catch (NumberFormatException ignored) {
+//                    // jesteśmy na polu startowym/końcowym, nie ma przeskoku
+//                }
+//            }
             if (rules.contains(Rules.FORCE_CAPTURE) && Arrays.stream(player.getPieces()).filter(p -> !p.equals(this))
                     .anyMatch(p -> p.canCapture() == Boolean.TRUE)) return false;
             return position != 0 || rolled == 6; // pole czyste, można iść
@@ -1388,7 +1388,7 @@ public class Chinczyk {
         /**
          * Brak przeskakiwania - jeżeli próbujesz przejść przez innego gracza, a nie możesz go zbić nie zezwalaj na ruch
          */
-        NO_PASSES(1<<2, "chinczyk.rule.no.passes"),
+//        NO_PASSES(1<<2, "chinczyk.rule.no.passes"),
         /**
          * Wymuś bicie - jeżeli jeden z pionków ma bicie, nie pozwalaj na ruch innym
          */
