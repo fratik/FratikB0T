@@ -693,7 +693,7 @@ public class Chinczyk {
             rolled = null;
             if (timeout != null && !timeout.isCancelled() && !timeout.cancel(false)) return;
             timeout = executor.schedule(this::timeout, 1, TimeUnit.MINUTES);
-            updateMainMessage(true);
+            updateMainMessage(eventStorage.getLastEvent() == null || eventStorage.getLastEvent().getType() == null);
             updateControlMessages();
         } finally {
             lock.unlock();
