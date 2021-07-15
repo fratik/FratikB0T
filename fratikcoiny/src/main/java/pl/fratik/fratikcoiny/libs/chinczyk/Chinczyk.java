@@ -1227,7 +1227,8 @@ public class Chinczyk {
         public boolean canMove() {
             if (rolled == null) return false;
             if (position + rolled > 44) return false; // jeśli przekroczona ilość pól + strefy końcowej, nie można
-            if (canCapture()) return true;
+            Boolean captureable = canCapture();
+            if (captureable != null) return captureable;
             if (rules.contains(Rules.NO_PASSES)) {
                 try {
                     int thisPosition = Integer.parseInt(getBoardPosition(position + rolled));
@@ -1246,16 +1247,13 @@ public class Chinczyk {
                     // jesteśmy na polu startowym/końcowym, nie ma przeskoku
                 }
             }
-            if (rules.contains(Rules.FORCE_CAPTURE)) {
-                for (Piece piece : player.getPieces()) {
-                    if (!piece.equals(this)) continue;
-                    if (piece.canCapture()) return false;
-                }
-            }
+            if (rules.contains(Rules.FORCE_CAPTURE) && Arrays.stream(player.getPieces()).filter(p -> !p.equals(this))
+                    .anyMatch(p -> p.canCapture() == Boolean.TRUE)) return false;
             return position != 0 || rolled == 6; // pole czyste, można iść
         }
 
-        public boolean canCapture() {
+        // true - można bić, false - pole zajęte, null - pole wolne
+        public Boolean canCapture() {
             String nextPosition;
             if (position == 0) nextPosition = getBoardPosition(1);
             else nextPosition = getBoardPosition(position + rolled);
@@ -1263,10 +1261,10 @@ public class Chinczyk {
                 if (!p.isPlaying()) continue;
                 for (Piece piece : p.getPieces()) {
                     if (piece.getBoardPosition().equals(nextPosition))
-                        return position == 0 ? (rolled == 6 && !p.equals(player)) : !p.equals(player); // zezwól ruch tylko jeżeli bicie
+                        return !p.equals(player); // zezwól ruch tylko jeżeli bicie
                 }
             }
-            return false;
+            return null;
         }
 
         public String getIndexAsString() {
