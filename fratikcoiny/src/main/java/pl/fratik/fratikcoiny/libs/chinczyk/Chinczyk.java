@@ -1259,7 +1259,10 @@ public class Chinczyk {
         // true - można bić, false - pole zajęte, null - pole wolne
         public Boolean canCapture() {
             String nextPosition;
-            if (position == 0) nextPosition = getBoardPosition(1);
+            if (position == 0) {
+                if (rolled != 6) return null;
+                nextPosition = getBoardPosition(1);
+            }
             else nextPosition = getBoardPosition(position + rolled);
             for (Player p : players.values()) {
                 if (!p.isPlaying()) continue;
