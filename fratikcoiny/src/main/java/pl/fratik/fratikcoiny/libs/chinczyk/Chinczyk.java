@@ -734,10 +734,9 @@ public class Chinczyk {
             turns++;
             if (turn == null) turn = players.values().stream().filter(p -> p.getUser().equals(context.getSender()))
                     .findFirst().map(Player::getPlace).orElseThrow(() -> new IllegalStateException("executer nie gra?"));
-            else if (!players.get(turn).isPlaying() ||
-                    ((!rules.contains(Rules.ONE_ROLL) && (rollCounter++ >= 2 ||
-                            Arrays.stream(players.get(turn).getPieces()).anyMatch(p -> p.position != 0))) &&
-                    (rolled == null || rolled != 6))) {
+            else if (!players.get(turn).isPlaying() || rules.contains(Rules.ONE_ROLL) ||
+                    ((rollCounter++ >= 2 || Arrays.stream(players.get(turn).getPieces()).anyMatch(p -> p.position != 0)) &&
+                            (rolled == null || rolled != 6))) {
                 turn = Place.getNextPlace(turn, players.entrySet().stream()
                         .filter(p -> p.getValue().isPlaying()).map(Map.Entry::getKey).collect(Collectors.toSet()));
                 rollCounter = 0;
