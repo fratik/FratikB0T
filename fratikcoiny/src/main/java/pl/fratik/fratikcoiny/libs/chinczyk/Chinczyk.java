@@ -608,6 +608,7 @@ public class Chinczyk {
                             Optional<Piece> piece = Arrays.stream(player.getPieces()).filter(Piece::canMove).findFirst();
                             if (piece.isPresent()) {
                                 movePiece(piece.get(), true);
+                                makeTurn();
                                 break;
                             }
                         }
@@ -737,9 +738,9 @@ public class Chinczyk {
             turns++;
             if (turn == null) turn = players.values().stream().filter(p -> p.getUser().equals(context.getSender()))
                     .findFirst().map(Player::getPlace).orElseThrow(() -> new IllegalStateException("executer nie gra?"));
-            else if (!players.get(turn).isPlaying() || rules.contains(Rules.ONE_ROLL) ||
-                    ((rollCounter++ >= 2 || Arrays.stream(players.get(turn).getPieces()).anyMatch(p -> p.position != 0)) &&
-                            (rolled == null || rolled != 6))) {
+            else if (!players.get(turn).isPlaying() || (rules.contains(Rules.ONE_ROLL) || rollCounter++ >= 2 ||
+                    Arrays.stream(players.get(turn).getPieces()).anyMatch(p -> p.position != 0)) &&
+                    (rolled == null || rolled != 6)) {
                 turn = Place.getNextPlace(turn, players.entrySet().stream()
                         .filter(p -> p.getValue().isPlaying()).map(Map.Entry::getKey).collect(Collectors.toSet()));
                 rollCounter = 0;
@@ -1325,10 +1326,15 @@ public class Chinczyk {
             this.piece = checkType(type, Type.LEFT_START, Type.MOVE, Type.ENTERED_HOME, Type.THROW) ?
                     Objects.requireNonNull(piece.copy()) : null;
             this.piece2 = checkType(type, Type.THROW) ? Objects.requireNonNull(piece2.copy()) : null;
-            this.fastRolled = checkType(type, Type.LEFT_START, Type.MOVE, Type.ENTERED_HOME, Type.THROW) ? fastRolled : null;
+            this.fastRolled = checkType(true, type, Type.LEFT_START, Type.MOVE, Type.ENTERED_HOME, Type.THROW) ? fastRolled : null;
         }
 
         private static boolean checkType(Type type, Type... allowedTypes) {
+            return checkType(false, type, allowedTypes);
+        }
+
+        private static boolean checkType(boolean allowNull, Type type, Type... allowedTypes) {
+            if (allowNull && type == null) return true;
             return allowedTypes != null && Arrays.asList(allowedTypes).contains(type);
         }
 
