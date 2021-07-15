@@ -338,6 +338,8 @@ public class Chinczyk {
                         .setDescription(t.get(l, "chinczyk.embed.description"))
                         .addField(t.get(l, "chinczyk.embed.players"), renderPlayerString(), true)
                         .addField(t.get(l, "chinczyk.embed.state"), renderStateString(), true);
+                if (!rules.isEmpty())
+                    eb.addField(t.get(l, "chinczyk.embed.rules"), renderRulesString(), false);
                 mb.setActionRows(rulesMenu, ActionRow.of(placeComponents), ActionRow.of(controlComponents), langMenu);
                 break;
             }
@@ -362,6 +364,8 @@ public class Chinczyk {
                 if (readyPlayerCount() == 1) eb.setDescription(t.get(l, "chinczyk.embed.win.walkover", ment));
                 eb.setColor(winner.getPlace().bgColor);
                 eb.addField(t.get(l, "chinczyk.embed.players"), renderPlayerString(), false);
+                if (!rules.isEmpty())
+                    eb.addField(t.get(l, "chinczyk.embed.rules"), renderRulesString(), false);
                 Map<String, ChinczykStats> stats = ChinczykStats.getStatsFromGame(this);
                 for (MessageEmbed.Field field : ChinczykStats.renderEmbed(stats.get("0"), null, t, l, false,
                         false, false, true).getFields())
@@ -438,6 +442,13 @@ public class Chinczyk {
             return t.get(l, "chinczyk.waiting.for.start");
         }
         throw new IllegalStateException();
+    }
+
+    private String renderRulesString() {
+        StringBuilder sb = new StringBuilder();
+        for (Rules rule : rules)
+            sb.append(t.get(l, rule.getKey())).append(" - ").append(t.get(l, rule.getDescriptionKey())).append('\n');
+        return sb.toString();
     }
 
     private long readyPlayerCount() {
@@ -1029,6 +1040,17 @@ public class Chinczyk {
         }
     }
 
+    private Piece getPieceAt(String boardPosition) {
+        for (Player p : players.values()) {
+            if (!p.isPlaying()) continue;
+            for (Piece piece : p.getPieces()) {
+                if (piece.getBoardPosition().equals(boardPosition))
+                    return piece;
+            }
+        }
+        return null;
+    }
+
     public MessageChannel getChannel() {
         return context.getMessageChannel();
     }
@@ -1169,21 +1191,23 @@ public class Chinczyk {
     }
 
     public enum Place {
-        BLUE("\uD83D\uDFE6", new Color(0x0000F8), new Color(0xFFFFFF)),
-        GREEN("\uD83D\uDFE9", new Color(0x007C00)),
-        YELLOW("\uD83D\uDFE8", new Color(0xF4F600)),
-        RED("\uD83D\uDFE5", new Color(0xFF0000));
+        BLUE("\uD83D\uDFE6", 2, new Color(0x0000F8), new Color(0xFFFFFF)),
+        GREEN("\uD83D\uDFE9", 12, new Color(0x007C00)),
+        YELLOW("\uD83D\uDFE8", 22, new Color(0xF4F600)),
+        RED("\uD83D\uDFE5", 32, new Color(0xFF0000));
 
         @Getter private final String emoji;
+        @Getter private final int offset;
         @Getter private final Color bgColor;
         @Getter private final Color textColor;
 
-        Place(String emoji, Color bgColor) {
-            this(emoji, bgColor, Color.BLACK);
+        Place(String emoji, int offset, Color bgColor) {
+            this(emoji, offset, bgColor, Color.BLACK);
         }
 
-        Place(String emoji, Color bgColor, Color textColor) {
+        Place(String emoji, int offset, Color bgColor, Color textColor) {
             this.emoji = emoji;
+            this.offset = offset;
             this.bgColor = bgColor;
             this.textColor = textColor;
         }
@@ -1233,24 +1257,19 @@ public class Chinczyk {
             if (position + rolled > 44) return false; // jeśli przekroczona ilość pól + strefy końcowej, nie można
             Boolean captureable = canCapture();
             if (captureable != null) return captureable;
-//            if (rules.contains(Rules.NO_PASSES)) {
-//                try {
-//                    int thisPosition = Integer.parseInt(getBoardPosition(position + rolled));
-//                    for (Player p : players.values()) {
-//                        if (!p.equals(player)) {
-//                            for (Piece piece : p.getPieces()) {
-//                                try {
-//                                    if (thisPosition > Integer.parseInt(piece.getBoardPosition())) return false;
-//                                } catch (NumberFormatException ignored) {
-//                                    // ignoruj ten pionek - jest na polu końcowym / startowym
-//                                }
-//                            }
-//                        }
-//                    }
-//                } catch (NumberFormatException ignored) {
-//                    // jesteśmy na polu startowym/końcowym, nie ma przeskoku
-//                }
-//            }
+            if (rules.contains(Rules.NO_PASSES)) {
+                int rolledLoop = rolled;
+                do {
+                    String boardPosition;
+                    if (position == 0) boardPosition = getBoardPosition(1);
+                    else boardPosition = getBoardPosition(position + rolledLoop);
+                    Piece pieceAt = getPieceAt(boardPosition);
+                    if (pieceAt != null && !pieceAt.getPlayer().equals(player)) {
+                        if (rolledLoop == rolled) break; // na wszelki, choć nie powinno do tego dojść
+                        return false;
+                    }
+                } while (--rolledLoop >= 1 && position != 0); //jeżeli pos. jest 0, wykonaj pętle tylko raz bo więcej nie ma sensu
+            }
             if (rules.contains(Rules.FORCE_CAPTURE) && Arrays.stream(player.getPieces()).filter(p -> !p.equals(this))
                     .anyMatch(p -> p.canCapture() == Boolean.TRUE)) return false;
             return position != 0 || rolled == 6; // pole czyste, można iść
@@ -1264,13 +1283,8 @@ public class Chinczyk {
                 nextPosition = getBoardPosition(1);
             }
             else nextPosition = getBoardPosition(position + rolled);
-            for (Player p : players.values()) {
-                if (!p.isPlaying()) continue;
-                for (Piece piece : p.getPieces()) {
-                    if (piece.getBoardPosition().equals(nextPosition))
-                        return !p.equals(player); // zezwól ruch tylko jeżeli bicie
-                }
-            }
+            Piece pieceAt = getPieceAt(nextPosition);
+            if (pieceAt != null) return !pieceAt.getPlayer().equals(player);
             return null;
         }
 
@@ -1285,23 +1299,7 @@ public class Chinczyk {
         public String getBoardPosition(int position) {
             if (position == 0) return String.valueOf(player.getPlace().name().toLowerCase().charAt(0)) + (index + 1);
             if (position > 40) return String.valueOf(player.getPlace().name().toLowerCase().charAt(0)) + (position - 36);
-            int offset;
-            switch (player.getPlace()) {
-                case BLUE:
-                    offset = 2;
-                    break;
-                case GREEN:
-                    offset = 12;
-                    break;
-                case YELLOW:
-                    offset = 22;
-                    break;
-                case RED:
-                    offset = 32;
-                    break;
-                default:
-                    throw new IllegalStateException("Unexpected value: " + player.getPlace());
-            }
+            int offset = player.getPlace().getOffset();
             int pos = (position + offset) % 40;
             return String.valueOf(pos != 0 ? pos : 40);
         }
@@ -1395,9 +1393,9 @@ public class Chinczyk {
          */
         ONE_ROLL(1<<1, "chinczyk.rule.one.roll"),
         /**
-         * Brak przeskakiwania - jeżeli próbujesz przejść przez innego gracza, a nie możesz go zbić nie zezwalaj na ruch
+         * Zakaz przeskakiwania - jeżeli próbujesz przejść przez pion innego gracza, a nie możesz go zbić nie zezwalaj na ruch
          */
-//        NO_PASSES(1<<2, "chinczyk.rule.no.passes"),
+        NO_PASSES(1<<2, "chinczyk.rule.no.passes"),
         /**
          * Wymuś bicie - jeżeli jeden z pionków ma bicie, nie pozwalaj na ruch innym
          */
