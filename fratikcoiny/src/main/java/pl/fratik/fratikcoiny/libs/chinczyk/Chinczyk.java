@@ -229,9 +229,10 @@ public class Chinczyk {
         lock.lock();
         try {
             Status status = this.status;
-            this.status = Status.CANCELLED;
-            if (status == Status.WAITING_FOR_PLAYERS || status == Status.WAITING)
+            if (status == Status.WAITING_FOR_PLAYERS || status == Status.WAITING) {
+                this.status = Status.CANCELLED;
                 aborted("chinczyk.timeout.waiting");
+            }
             if (status == Status.IN_PROGRESS) {
                 Player player = players.get(turn);
                 player.setStatus(PlayerStatus.LEFT);
