@@ -246,7 +246,7 @@ public class Chinczyk {
                         .editOriginal(new MessageBuilder(t.get(player.getLanguage(), "chinczyk.left.timeout")).build()).complete();
                 player.setControlHook(null);
                 rolled = null;
-                eventStorage.add(new Event(Event.Type.LEFT_GAME, player, null, null, null));
+                eventStorage.add(new Event(Event.Type.LEFT_GAME, player, null, null, null, false));
                 makeTurn();
             }
         } finally {
@@ -343,9 +343,12 @@ public class Chinczyk {
             }
             case IN_PROGRESS: {
                 Event lastEvent = eventStorage.getLastEvent();
+                if (rules.contains(Rules.FAST_ROLLS) && lastEvent.getFastRolled() == Boolean.TRUE && rolled == null)
+                    eb.appendDescription(t.get(l, "chinczyk.turn.fast.rolled", lastEvent.getRolled())).appendDescription(" ");
                 if (lastEvent != null && lastEvent.type != null)
                     eb.appendDescription(lastEvent.getTranslated(t, l)).appendDescription(" ");
-                if (rolled == null) eb.appendDescription(t.get(l, "chinczyk.turn", players.get(turn).getUser().getAsMention()));
+                if (rolled == null)
+                    eb.appendDescription(t.get(l, "chinczyk.turn", players.get(turn).getUser().getAsMention()));
                 else eb.appendDescription(t.get(l, "chinczyk.turn.rolled", players.get(turn).getUser().getAsMention(), rolled));
                 eb.setColor(turn.bgColor);
                 mb.setActionRows(ActionRow.of(
@@ -470,7 +473,7 @@ public class Chinczyk {
                                 + players.values().stream().mapToLong(Player::getControlMessageId).sum());
                         // nieprzewidywalna wartość - nanoTime jest ciężkie do odgadnięcia w całości, hashCode też,
                         // a wiadomości kontroli są widoczne tylko dla pojedynczych osób
-                        eventStorage.add(new Event(Event.Type.GAME_START, null, null, null, null));
+                        eventStorage.add(new Event(Event.Type.GAME_START, null, null, null, null, false));
                         makeTurn();
                         break;
                     }
@@ -580,7 +583,7 @@ public class Chinczyk {
                     updateControlMessage(player);
                     if (status == Status.WAITING && !isEveryoneReady()) status = Status.WAITING_FOR_PLAYERS;
                     if (status == Status.IN_PROGRESS) {
-                        eventStorage.add(new Event(Event.Type.LEFT_GAME, player, null, null, null));
+                        eventStorage.add(new Event(Event.Type.LEFT_GAME, player, null, null, null, false));
                         if (turn == player.getPlace() || readyPlayerCount() < 2) {
                             rolled = null;
                             makeTurn();
@@ -597,14 +600,14 @@ public class Chinczyk {
                     if (rules.contains(Rules.FAST_ROLLS)) {
                         long canMove = Arrays.stream(player.getPieces()).filter(Piece::canMove).count();
                         if (canMove == 0) {
-                            eventStorage.add(new Event(null, player, rolled, null, null));
+                            eventStorage.add(new Event(null, player, rolled, null, null, true));
                             makeTurn();
                             break;
                         }
                         if (canMove == 1) {
                             Optional<Piece> piece = Arrays.stream(player.getPieces()).filter(Piece::canMove).findFirst();
                             if (piece.isPresent()) {
-                                movePiece(piece.get());
+                                movePiece(piece.get(), true);
                                 break;
                             }
                         }
@@ -617,7 +620,7 @@ public class Chinczyk {
                     if (turn != player.getPlace() || rolled == null) return;
                     e.deferEdit().queue();
                     player.setConfirmLeave(false);
-                    eventStorage.add(new Event(null, player, rolled, null, null));
+                    eventStorage.add(new Event(null, player, rolled, null, null, false));
                     makeTurn();
                     break;
                 }
@@ -645,7 +648,7 @@ public class Chinczyk {
                     }
                     e.deferEdit().queue();
                     player.setConfirmLeave(false);
-                    movePiece(piece);
+                    movePiece(piece, false);
                     makeTurn();
                 }
             }
@@ -656,7 +659,7 @@ public class Chinczyk {
         }
     }
 
-    private void movePiece(Piece piece) {
+    private void movePiece(Piece piece, boolean fastRoll) {
         Piece thrown = null;
         String nextPosition;
         int curPosition = piece.position;
@@ -672,7 +675,7 @@ public class Chinczyk {
         }
         if (piece.position == 0) piece.position = 1;
         else piece.position += rolled;
-        if (thrown != null) eventStorage.add(new Event(Event.Type.THROW, piece.getPlayer(), rolled, piece, thrown));
+        if (thrown != null) eventStorage.add(new Event(Event.Type.THROW, piece.getPlayer(), rolled, piece, thrown, fastRoll));
         else {
             Event.Type type;
             if (piece.getBoardPosition()
@@ -680,7 +683,7 @@ public class Chinczyk {
                     curPosition <= 40) type = Event.Type.ENTERED_HOME; //tylko jeżeli wejdzie na x5-x8 z <=40
             else if (curPosition == 0) type = Event.Type.LEFT_START;
             else type = Event.Type.MOVE;
-            eventStorage.add(new Event(type, piece.getPlayer(), rolled, piece, null));
+            eventStorage.add(new Event(type, piece.getPlayer(), rolled, piece, null, fastRoll));
         }
     }
 
@@ -716,7 +719,7 @@ public class Chinczyk {
                 status = Status.ENDED;
                 if (eventStorage.getLastEvent() == null)
                     throw new IllegalStateException("eventStorage.getLastEvent() jest null przy wygranej?");
-                eventStorage.add(new Event(Event.Type.WON, winner, null, null, null));
+                eventStorage.add(new Event(Event.Type.WON, winner, null, null, null, false));
                 eventBus.unregister(this);
                 try {
                     endCallback.accept(this);
@@ -1313,14 +1316,16 @@ public class Chinczyk {
         private final Integer rolled;
         private final Piece piece;
         private final Piece piece2;
+        private final Boolean fastRolled;
 
-        private Event(Type type, Player player, Integer rolled, Piece piece, Piece piece2) {
+        private Event(Type type, Player player, Integer rolled, Piece piece, Piece piece2, Boolean fastRolled) {
             this.type = type;
             this.player = player;
             this.rolled = rolled;
             this.piece = checkType(type, Type.LEFT_START, Type.MOVE, Type.ENTERED_HOME, Type.THROW) ?
                     Objects.requireNonNull(piece.copy()) : null;
             this.piece2 = checkType(type, Type.THROW) ? Objects.requireNonNull(piece2.copy()) : null;
+            this.fastRolled = checkType(type, Type.LEFT_START, Type.MOVE, Type.ENTERED_HOME, Type.THROW) ? fastRolled : null;
         }
 
         private static boolean checkType(Type type, Type... allowedTypes) {
