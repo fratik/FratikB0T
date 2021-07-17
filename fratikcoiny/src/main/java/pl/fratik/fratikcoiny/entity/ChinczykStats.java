@@ -81,7 +81,7 @@ public class ChinczykStats implements DatabaseEntity {
     public static Map<String, ChinczykStats> getStatsFromGame(Chinczyk chinczyk) {
         Map<String, ChinczykStats> map = new HashMap<>();
         long timestamp = chinczyk.getEnd().toEpochMilli();
-        long gameDuration = chinczyk.getEnd().getEpochSecond() - chinczyk.getStart().getEpochSecond();
+        long gameDuration = chinczyk.getGameDuration();
         Function<User, ChinczykStats> getStats = usr -> map.computeIfAbsent(usr.getId(), id -> new ChinczykStats(id, timestamp));
         for (Chinczyk.Player player : chinczyk.getPlayers()) {
             if (chinczyk.getWinner().equals(player)) {

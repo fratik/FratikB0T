@@ -43,19 +43,23 @@ import net.dv8tion.jda.api.interactions.components.selections.SelectOption;
 import net.dv8tion.jda.api.interactions.components.selections.SelectionMenu;
 import net.dv8tion.jda.api.requests.ErrorResponse;
 import net.dv8tion.jda.api.requests.restaction.MessageAction;
+import net.dv8tion.jda.api.sharding.ShardManager;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.NamedThreadFactory;
+import pl.fratik.fratikcoiny.entity.ChinczykState;
+import pl.fratik.fratikcoiny.entity.ChinczykStateDao;
 import pl.fratik.fratikcoiny.entity.ChinczykStats;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
+import java.io.*;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 import java.util.*;
@@ -69,6 +73,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class Chinczyk {
+    private static final byte CHINCZYK_VERSION = 0x01;
+    private static final byte[] CHINCZYK_HEADER = new byte[] {0x21, 0x37};
     private static final Map<String, String> BOARD_COORDS;
     private static final String FILE_NAME = "board.png";
     private static final String START = "START";
@@ -83,7 +89,9 @@ public class Chinczyk {
     private static final String END_MOVE = "END_MOVE";
     private static final BufferedImage plansza;
     private static final Font font;
-    private final CommandContext context;
+    private final User executer;
+    private final MessageChannel channel;
+    private final long referenceMessageId;
     private final EventBus eventBus;
     private final EnumMap<Place, Player> players;
     private final Tlumaczenia t;
@@ -95,6 +103,8 @@ public class Chinczyk {
     @Getter private Status status = Status.WAITING_FOR_PLAYERS;
     private Message message;
     private Random random;
+    private long randomSeed;
+    private long randomSeq;
     private Place turn;
     private int turns;
     private Integer rolled;
@@ -104,6 +114,7 @@ public class Chinczyk {
     private static final ThreadLocal<Boolean> isTimeout = ThreadLocal.withInitial(() -> false);
     @Getter private Instant start;
     @Getter private Instant end;
+    private long gameDuration;
     private EnumSet<Rules> rules = EnumSet.noneOf(Rules.class);
 
     public static boolean canBeUsed() {
@@ -208,7 +219,9 @@ public class Chinczyk {
     }
 
     public Chinczyk(CommandContext context, EventBus eventBus, Consumer<Chinczyk> endCallback) {
-        this.context = context;
+        executer = context.getSender();
+        channel = context.getMessageChannel();
+        referenceMessageId = context.getMessage().getIdLong();
         this.eventBus = eventBus;
         executor = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("Chinczyk-" + getChannel().getId()));
         lock = new ReentrantLock();
@@ -228,6 +241,208 @@ public class Chinczyk {
         eventBus.register(this);
         updateMainMessage(true);
         timeout = executor.schedule(this::timeout, 2, TimeUnit.MINUTES);
+    }
+    
+    public Chinczyk(InputStream is, ShardManager sm, EventBus eventBus, Consumer<Chinczyk> endCallback, Tlumaczenia tlumaczenia) throws IOException {
+        lock = new ReentrantLock();
+        eventStorage = new EventStorage();
+        t = tlumaczenia;
+        lock.lock();
+        try {
+            byte[] header = new byte[CHINCZYK_HEADER.length];
+            if (is.read(header) != CHINCZYK_HEADER.length) throw new EOFException();
+            if (!Arrays.equals(CHINCZYK_HEADER, header)) throw new IOException("nieoczekiwany nagłówek");
+            int version = is.read();
+            if (version == -1) throw new EOFException();
+            if ((byte) version != CHINCZYK_VERSION) throw new IOException("niezgodność wersji pliku");
+            long executerId = readLong(is);
+            try {
+                executer = sm.retrieveUserById(executerId).complete();
+            } catch (Exception e) {
+                throw new IOException("nieznany użytkownik", e);
+            }
+            long channelId = readLong(is);
+            if ((channel = sm.getTextChannelById(channelId)) == null)
+                throw new IOException("nieznany kanał " + channelId);
+            executor = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("Chinczyk-" + getChannel().getId()));
+            this.endCallback = obj -> {
+                end = Instant.now();
+                try {
+                    if (isTimeout.get() == Boolean.TRUE || timeout == null || timeout.isDone() || timeout.cancel(false))
+                        endCallback.accept(obj);
+                } finally {
+                    executor.shutdownNow();
+                }
+            };
+            referenceMessageId = readLong(is);
+            random = new Random(randomSeed = readLong(is));
+            randomSeq = readLong(is);
+            for (long i = 0; i < randomSeq; i++)
+                random.nextInt(6);
+            try {
+                l = Language.valueOf(readString(is));
+            } catch (IllegalArgumentException e) {
+                throw new IOException("nieprawidłowy język", e);
+            }
+            int playerCount = is.read();
+            if (playerCount == -1) throw new EOFException();
+            this.eventBus = eventBus;
+            players = new EnumMap<>(Place.class);
+            for (int i = 0; i < playerCount; i++) {
+                Player p = readPlayer(is, sm);
+                players.put(p.getPlace(), p);
+            }
+            rules = EnumSet.copyOf(Rules.fromRaw(readLong(is)));
+            gameDuration = readUnsignedInt(is);
+            Instant started = Instant.ofEpochMilli(readLong(is));
+            Instant saved = Instant.ofEpochMilli(readLong(is));
+            gameDuration += (saved.getEpochSecond() - started.getEpochSecond());
+            start = Instant.now();
+            int type;
+            Player lastRolled = null;
+            try {
+                while ((type = is.read()) != -1) {
+                    Event.Type t = Event.Type.getByRaw(type);
+                    if (t == null && type != 0) throw new IOException("nieznany event " + type);
+                    Player p;
+                    try {
+                        int placeOffset = is.read();
+                        if (placeOffset == -1) throw new EOFException();
+                        Place place = Place.getByOffset(placeOffset);
+                        if (place != null) {
+                            p = players.get(place);
+                            if (p == null) throw new NullPointerException();
+                        } else p = null;
+                    } catch (Exception e) {
+                        throw new IOException(e);
+                    }
+                    Integer rolled = is.read();
+                    if (rolled == -1) throw new EOFException();
+                    if (rolled == 0) rolled = null;
+                    int pieceIndex = is.read();
+                    if (pieceIndex == -1) throw new EOFException();
+                    Piece piece = p == null ? null : p.getPieces()[pieceIndex];
+                    Piece piece2;
+                    int player2 = is.read();
+                    if (player2 == -1) throw new EOFException();
+                    if (player2 == 0) piece2 = null;
+                    else {
+                        int piece2Index = is.read();
+                        if (piece2Index == -1) throw new EOFException();
+                        piece2 = players.get(Place.getByOffset(player2)).getPieces()[pieceIndex];
+                    }
+                    int rawRolled = is.read();
+                    if (rawRolled == -1) throw new EOFException();
+                    boolean fastRolled = rawRolled == 1;
+                    eventStorage.add(new Event(t, p, rolled, piece, piece2, fastRolled));
+                    if (t == Event.Type.GAME_START) {
+                        status = Status.IN_PROGRESS;
+                    } else if (t == Event.Type.THROW) {
+                        Objects.requireNonNull(piece2).position = 0;
+                        Objects.requireNonNull(piece).position += Objects.requireNonNull(rolled);
+                    } else if (t == Event.Type.LEFT_START || t == Event.Type.MOVE || t == Event.Type.ENTERED_HOME) {
+                        Objects.requireNonNull(piece).position += Objects.requireNonNull(rolled);
+                    } else if (t == Event.Type.WON) {
+                        end = Instant.ofEpochMilli(readLong(is));
+                        winner = p;
+                        status = Status.ENDED;
+                    } else if (t == Event.Type.LEFT_GAME) {
+                        p.setStatus(PlayerStatus.LEFT);
+                    }
+                    if (t == null || t == Event.Type.THROW || t == Event.Type.LEFT_START ||
+                            t == Event.Type.MOVE || t == Event.Type.ENTERED_HOME) {
+                        turns++;
+                        this.rolled = rolled;
+                        if (p.equals(lastRolled)) rollCounter++;
+                        else {
+                            lastRolled = p;
+                            rollCounter = 0;
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                throw new IOException("nie udało się odczytać wydarzeń", e);
+            }
+            turn = lastRolled.getPlace();
+            makeTurn();
+            eventBus.register(this);
+            message.reply(players.values().stream().filter(Player::isPlaying)
+                    .map(Player::getUser).map(User::getAsMention).collect(Collectors.joining(" ")) + "\n"
+                    + t.get(l, "chinczyk.reloaded.state"))
+                    .mention(players.values().stream().filter(Player::isPlaying).map(Player::getUser).collect(Collectors.toSet()))
+                    .complete();
+            timeout = executor.schedule(this::timeout, 2, TimeUnit.MINUTES);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    private Player readPlayer(InputStream is, ShardManager sm) throws IOException {
+        int placeOffset = is.read();
+        if (placeOffset == -1) throw new EOFException();
+        Place place = Place.getByOffset(placeOffset);
+        User user;
+        try {
+            user = sm.retrieveUserById(readLong(is)).complete();
+        } catch (Exception e) {
+            throw new IOException("nieprawidłowe ID użytkownika", e);
+        }
+        Language language;
+        try {
+            language = Language.valueOf(readString(is));
+        } catch (IllegalArgumentException e) {
+            throw new IOException("nieprawidłowy język", e);
+        }
+        Player p = new Player(place, user, null);
+        p.setLanguage(language);
+        p.setStatus(PlayerStatus.PLAYING);
+        return p;
+    }
+
+    private long readUnsignedInt(InputStream is) throws IOException {
+        ByteBuffer bb = ByteBuffer.allocate(4);
+        if (is.read(bb.array()) != 4) throw new EOFException();
+        return Integer.toUnsignedLong(bb.getInt());
+    }
+
+    private long readLong(InputStream is) throws IOException {
+        ByteBuffer bb = ByteBuffer.allocate(8);
+        if (is.read(bb.array()) != 8) throw new EOFException();
+        return bb.getLong();
+    }
+
+    private String readString(InputStream is) throws IOException {
+        ByteBuffer bb = ByteBuffer.allocate(2);
+        if (is.read(bb.array()) != 2) throw new EOFException();
+        byte[] buffer = new byte[bb.getShort()];
+        if (is.read(buffer) != buffer.length) throw new EOFException();
+        return new String(buffer, 0, buffer.length, StandardCharsets.UTF_8);
+    }
+
+    private void writePlayer(OutputStream os, Player p) throws IOException {
+        os.write(p.getPlace().getOffset());
+        writeLong(os, p.getUser().getIdLong());
+        writeString(os, p.getLanguage().name());
+    }
+
+    private void writeUnsignedInt(OutputStream os, long l) throws IOException {
+        ByteBuffer bb = ByteBuffer.allocate(4);
+        bb.putInt((int) l);
+        os.write(bb.array());
+    }
+
+    private void writeLong(OutputStream os, long l) throws IOException {
+        ByteBuffer bb = ByteBuffer.allocate(8);
+        bb.putLong(l);
+        os.write(bb.array());
+    }
+
+    private void writeString(OutputStream os, String s) throws IOException {
+        ByteBuffer bb = ByteBuffer.allocate(2);
+        byte[] bytes = s.getBytes(StandardCharsets.UTF_8);
+        bb.putShort((short) bytes.length);
+        os.write(bb.array());
+        os.write(bytes);
     }
 
     private void timeout() {
@@ -467,10 +682,10 @@ public class Chinczyk {
             if (e.getMessageIdLong() == message.getIdLong()) {
                 switch (e.getComponentId()) {
                     case START: {
-                        if (!e.getUser().equals(context.getSender())) {
+                        if (!e.getUser().equals(executer)) {
                             Language lang = players.values().stream().filter(p -> p.getUser().equals(e.getUser()))
                                     .findAny().map(Player::getLanguage).orElse(l);
-                            e.reply(t.get(lang, "chinczyk.not.owner.start", context.getSender().getAsMention()))
+                            e.reply(t.get(lang, "chinczyk.not.owner.start", executer.getAsMention()))
                                     .setEphemeral(true).complete();
                             return;
                         }
@@ -480,7 +695,7 @@ public class Chinczyk {
                         for (Player player : players.values()) {
                             player.setStatus(PlayerStatus.PLAYING);
                         }
-                        random = new Random(System.nanoTime() + message.getIdLong() + hashCode()
+                        random = new Random(randomSeed = System.nanoTime() + message.getIdLong() + hashCode()
                                 + players.values().stream().mapToLong(Player::getControlMessageId).sum());
                         // nieprzewidywalna wartość - nanoTime jest ciężkie do odgadnięcia w całości, hashCode też,
                         // a wiadomości kontroli są widoczne tylko dla pojedynczych osób
@@ -489,10 +704,10 @@ public class Chinczyk {
                         break;
                     }
                     case CANCEL: {
-                        if (!e.getUser().equals(context.getSender())) {
+                        if (!e.getUser().equals(executer)) {
                             Language lang = players.values().stream().filter(p -> p.getUser().equals(e.getUser()))
                                     .findAny().map(Player::getLanguage).orElse(l);
-                            e.reply(t.get(lang, "chinczyk.not.owner.abort", context.getSender().getAsMention()))
+                            e.reply(t.get(lang, "chinczyk.not.owner.abort", executer.getAsMention()))
                                     .setEphemeral(true).complete();
                             return;
                         }
@@ -539,13 +754,13 @@ public class Chinczyk {
                             place = null;
                         }
                         if (place == null || players.containsKey(place)) return;
-                        if (!e.getUser().equals(context.getSender()) &&
-                                players.values().stream().noneMatch(p -> p.getUser().equals(context.getSender()))) {
-                            e.reply(t.get(l, "chinczyk.executer.first", context.getSender().getAsMention())).setEphemeral(true).complete();
+                        if (!e.getUser().equals(executer) &&
+                                players.values().stream().noneMatch(p -> p.getUser().equals(executer))) {
+                            e.reply(t.get(l, "chinczyk.executer.first", executer.getAsMention())).setEphemeral(true).complete();
                             return;
                         }
                         if (players.values().stream().anyMatch(p -> p.getUser().equals(e.getUser()))) {
-                            e.reply(t.get(l, "chinczyk.already.playing", context.getSender().getAsMention())).setEphemeral(true).complete();
+                            e.reply(t.get(l, "chinczyk.already.playing", executer.getAsMention())).setEphemeral(true).complete();
                             return;
                         }
                         try {
@@ -579,7 +794,7 @@ public class Chinczyk {
                     break;
                 }
                 case LEAVE: {
-                    if (e.getUser().equals(context.getSender()) && status != Status.IN_PROGRESS) {
+                    if (e.getUser().equals(executer) && status != Status.IN_PROGRESS) {
                         e.reply(t.get(player.getLanguage(), "chinczyk.owner.selfabort")).setEphemeral(true).complete();
                         return;
                     }
@@ -607,6 +822,7 @@ public class Chinczyk {
                 case ROLL: {
                     if (turn != player.getPlace() || rolled != null) return;
                     rolled = random.nextInt(6) + 1; //1-6
+                    randomSeq++;
                     e.deferEdit().queue();
                     if (rules.contains(Rules.FAST_ROLLS)) {
                         long canMove = Arrays.stream(player.getPieces()).filter(Piece::canMove).count();
@@ -747,7 +963,7 @@ public class Chinczyk {
                 return;
             }
             turns++;
-            if (turn == null) turn = players.values().stream().filter(p -> p.getUser().equals(context.getSender()))
+            if (turn == null) turn = players.values().stream().filter(p -> p.getUser().equals(executer))
                     .findFirst().map(Player::getPlace).orElseThrow(() -> new IllegalStateException("executer nie gra?"));
             else if (!players.get(turn).isPlaying() || (rules.contains(Rules.ONE_ROLL) || rollCounter++ >= 2 ||
                     Arrays.stream(players.get(turn).getPieces()).anyMatch(p -> p.position != 0)) &&
@@ -794,10 +1010,10 @@ public class Chinczyk {
             lock.lock();
             try {
                 if (e.getMessageIdLong() == message.getIdLong()) {
-                    if (!e.getUser().equals(context.getSender())) {
+                    if (!e.getUser().equals(executer)) {
                         Language lang = players.values().stream().filter(p -> p.getUser().equals(e.getUser()))
                                 .findAny().map(Player::getLanguage).orElse(selectedLanguage);
-                        e.reply(t.get(lang, "chinczyk.not.owner.language", context.getSender().getAsMention()))
+                        e.reply(t.get(lang, "chinczyk.not.owner.language", executer.getAsMention()))
                                 .setEphemeral(true).complete();
                         return;
                     }
@@ -831,10 +1047,10 @@ public class Chinczyk {
             }
             lock.lock();
             try {
-                if (!e.getUser().equals(context.getSender())) {
+                if (!e.getUser().equals(executer)) {
                     Language lang = players.values().stream().filter(p -> p.getUser().equals(e.getUser()))
                             .findAny().map(Player::getLanguage).orElse(l);
-                    e.reply(t.get(lang, "chinczyk.not.owner.rules", context.getSender().getAsMention()))
+                    e.reply(t.get(lang, "chinczyk.not.owner.rules", executer.getAsMention()))
                             .setEphemeral(true).complete();
                     return;
                 }
@@ -887,12 +1103,12 @@ public class Chinczyk {
         try {
             byte[] board = renderBoard();
             if (message == null)
-                message = context.replyAsAction(generateMessage()).addFile(board, FILE_NAME).complete();
+                message = channel.sendMessage(generateMessage()).referenceById(referenceMessageId).addFile(board, FILE_NAME).complete();
             else {
                 MessageAction ma = message.editMessage(generateMessage());
                 if (rerenderBoard) ma = ma.retainFiles(Collections.emptySet()).addFile(board, FILE_NAME);
                 message = ma.onErrorFlatMap(ErrorResponse.UNKNOWN_MESSAGE::test,
-                        e -> context.replyAsAction(generateMessage()).addFile(board, FILE_NAME)).complete();
+                        e -> channel.sendMessage(generateMessage()).referenceById(referenceMessageId).addFile(board, FILE_NAME)).complete();
             }
         } catch (Exception e) {
             errored(e);
@@ -908,7 +1124,7 @@ public class Chinczyk {
         String text = t.get(l, "chinczyk.errored");
         if (message != null)
             message.editMessage(text).override(true).onErrorMap(ErrorResponse.UNKNOWN_MESSAGE::test,
-                    ex -> context.reply(text)).complete();
+                    ex -> channel.sendMessage(text).referenceById(referenceMessageId).complete()).complete();
         try {
             eventBus.unregister(this);
         } catch (IllegalArgumentException ignored) {}
@@ -920,8 +1136,30 @@ public class Chinczyk {
         } catch (Exception ignored) {}
     }
 
-    public void shutdown() {
-        errored(new IllegalStateException("bot się wyłącza")); //todo zapisz stan gry i go przywróć po restarcie
+    public void shutdown(ChinczykStateDao stateDao) {
+        eventBus.unregister(this);
+        lock.lock();
+        try {
+            String key;
+            if (status == Status.IN_PROGRESS) key = "chinczyk.shutting.down.saving";
+            else key = "chinczyk.shutting.down";
+            message.editMessage(t.get(l, key)).override(true).complete();
+            for (Player p : players.values()) {
+                if (p.isPlaying() && p.getControlHook() != null) {
+                    String controlKey;
+                    if (status == Status.IN_PROGRESS) controlKey = "chinczyk.control.shutting.down.saving";
+                    else controlKey = "chinczyk.control.shutting.down";
+                    p.getControlHook().editOriginal(new MessageBuilder(t.get(p.getLanguage(), controlKey)).build()).queue();
+                    p.setControlHook(null);
+                }
+            }
+            if (status == Status.IN_PROGRESS) stateDao.save(new ChinczykState(channel.getId(), captureState()));
+        } catch (Exception e) {
+            errored(e);
+        } finally {
+            executor.shutdownNow();
+            lock.unlock();
+        }
     }
 
     private Message generateControlMessage(Player player) {
@@ -1052,7 +1290,7 @@ public class Chinczyk {
     }
 
     public MessageChannel getChannel() {
-        return context.getMessageChannel();
+        return channel;
     }
 
     public List<Event> getEvents() {
@@ -1061,6 +1299,53 @@ public class Chinczyk {
 
     public Set<Player> getPlayers() {
         return Collections.unmodifiableSet(new HashSet<>(players.values()));
+    }
+
+    public long getGameDuration() {
+        return gameDuration + (end.getEpochSecond() - start.getEpochSecond());
+    }
+
+    public ByteArrayOutputStream captureState() {
+        if (status != Status.IN_PROGRESS && status != Status.ENDED)
+            throw new IllegalStateException("Można zachować stan gry jedynie o statusie IN_PROGRESS lub ENDED");
+        ByteArrayOutputStream baos = new ByteArrayOutputStream(1024);
+        Instant now = Instant.now();
+        lock.lock();
+        try {
+            baos.write(CHINCZYK_HEADER);
+            baos.write(CHINCZYK_VERSION);
+            writeLong(baos, executer.getIdLong());
+            writeLong(baos, channel.getIdLong());
+            writeLong(baos, referenceMessageId);
+            writeLong(baos, randomSeed);
+            writeLong(baos, randomSeq - (rolled == null ? 0 : 1));
+            writeString(baos, l.name());
+            baos.write(players.size());
+            for (Player p : players.values())
+                writePlayer(baos, p);
+            writeLong(baos, Rules.toRaw(rules));
+            writeUnsignedInt(baos, gameDuration);
+            writeLong(baos, start.toEpochMilli());
+            writeLong(baos, now.toEpochMilli());
+            for (Event event : eventStorage) {
+                baos.write(event.getType() == null ? 0 : event.getType().getRaw());
+                baos.write(event.getPlayer() == null ? 0 : event.getPlayer().getPlace().getOffset());
+                baos.write(event.getRolled() == null ? 0 : event.getRolled());
+                baos.write(event.getPiece() == null ? 0 : event.getPiece().getIndex());
+                baos.write(event.getPiece2() == null ? 0 : event.getPiece2().getPlayer().getPlace().getOffset());
+                if (event.getPiece2() != null)
+                    baos.write(event.getPiece2().getIndex());
+                baos.write(event.getFastRolled() == Boolean.TRUE ? 1 : 0);
+                if (event.getType() == Event.Type.WON) writeLong(baos, end.toEpochMilli());
+            }
+        } catch (IOException e) { //niemożliwe
+            return null;
+        } catch (OutOfMemoryError e) {
+            throw new IllegalStateException("Nie udało się wygenerować stanu gry - przekroczono limit pamięci");
+        } finally {
+            lock.unlock();
+        }
+        return baos;
     }
 
     @Data
@@ -1130,7 +1415,7 @@ public class Chinczyk {
         public void setStatus(PlayerStatus status) {
             if (status == PlayerStatus.LEFT) {
                 initPieces();
-                handle.cancel(true);
+                if (handle != null) handle.cancel(true);
             }
             this.status = status;
         }
@@ -1221,6 +1506,13 @@ public class Chinczyk {
             else throw new IllegalArgumentException("Nieoczekiwana wartość " + currentPlace);
             if (places.contains(nextPlace)) return nextPlace;
             else return getNextPlace(nextPlace, places);
+        }
+
+        public static Place getByOffset(int offset) {
+            for (Place p : values()) {
+                if (p.getOffset() == offset) return p;
+            }
+            return null;
         }
     }
 
@@ -1360,18 +1652,27 @@ public class Chinczyk {
         }
 
         public enum Type {
-            GAME_START("game.start"),
-            LEFT_START("left.start"),
-            MOVE("move"),
-            THROW("throw"),
-            ENTERED_HOME("entered.home"),
-            WON("win"),
-            LEFT_GAME("left.game");
+            GAME_START(1, "game.start"),
+            LEFT_START(2, "left.start"),
+            MOVE(3, "move"),
+            THROW(4, "throw"),
+            ENTERED_HOME(5, "entered.home"),
+            WON(6, "win"),
+            LEFT_GAME(7, "left.game");
 
+            @Getter private final int raw;
             private final String translationKey;
 
-            Type(String translationKey) {
+            Type(int raw, String translationKey) {
+                this.raw = raw;
                 this.translationKey = "chinczyk.event." + translationKey;
+            }
+
+            public static Type getByRaw(int raw) {
+                for (Type t : Type.values()) {
+                    if (t.getRaw() == raw) return t;
+                }
+                return null;
             }
         }
     }
