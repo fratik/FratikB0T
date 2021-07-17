@@ -1026,7 +1026,7 @@ public class Chinczyk {
                 Player player = players.values().stream().filter(p -> p.getControlMessageId() == e.getMessageIdLong())
                         .findAny().orElse(null);
                 if (player == null || !player.isPlaying()) return;
-                player.setLanguage(l);
+                player.setLanguage(selectedLanguage);
                 e.deferEdit().queue();
                 updateControlMessage(player);
             } catch (Exception ex) {
