@@ -339,8 +339,10 @@ public class Chinczyk {
                         status = Status.IN_PROGRESS;
                     } else if (t == Event.Type.THROW) {
                         Objects.requireNonNull(piece2).position = 0;
-                        Objects.requireNonNull(piece).position += Objects.requireNonNull(rolled);
-                    } else if (t == Event.Type.LEFT_START || t == Event.Type.MOVE || t == Event.Type.ENTERED_HOME) {
+                        Objects.requireNonNull(piece).position += piece.position == 0 ? 1 : Objects.requireNonNull(rolled);
+                    } else if (t == Event.Type.LEFT_START) {
+                        Objects.requireNonNull(piece).position = 1;
+                    } else if (t == Event.Type.MOVE || t == Event.Type.ENTERED_HOME) {
                         Objects.requireNonNull(piece).position += Objects.requireNonNull(rolled);
                     } else if (t == Event.Type.WON) {
                         end = Instant.ofEpochMilli(readLong(is));
