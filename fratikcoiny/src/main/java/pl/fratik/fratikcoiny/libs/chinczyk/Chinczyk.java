@@ -1101,6 +1101,7 @@ public class Chinczyk {
         if (!e.getChannel().equals(getChannel())) return;
         if (status != Status.WAITING_FOR_PLAYERS || !players.isEmpty()) return;
         if (cheats) return;
+        if (!e.getAuthor().equals(executer)) return;
         if (e.getMessage().getContentRaw().equals("\u2191\u2191\u2193\u2193\u2190\u2192\u2190\u2192BA")) {
             lock.lock();
             try {
@@ -1386,6 +1387,7 @@ public class Chinczyk {
             for (Player p : players.values())
                 writePlayer(baos, p);
             writeLong(baos, Rules.toRaw(rules));
+            baos.write(cheats ? 1 : 0);
             writeUnsignedInt(baos, gameDuration);
             writeLong(baos, start.toEpochMilli());
             writeLong(baos, now.toEpochMilli());
