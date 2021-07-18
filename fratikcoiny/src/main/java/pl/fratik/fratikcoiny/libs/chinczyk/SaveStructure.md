@@ -3,7 +3,7 @@
 ## Nagłówek:
 | Nazwa | Typ | Wielkość | Opis |
 | Magic bytes | unsigned byte | 2 bajty | zawsze 0x21, 0x37 |
-| Wersja | unsigned byte | 1 bajt | wersja — obecnie 1 |
+| Wersja | unsigned byte | 1 bajt | wersja — obecnie 2 |
 | ID wykonawcy komendy | long | 8 bajtów | ID wykonawcy komendy |
 | ID kanału | long | 8 bajtów | ID kanału z grą |
 | ID wiadomości źródłowej | long | 8 bajtów | ID wiadomości gdzie komenda została wykonana |
@@ -13,6 +13,7 @@
 | Ilość graczy | unsigned byte | 1 bajt | ilość graczy - 1-4 (*n*) |
 | Gracze (*n* obiektów) | Gracz | patrz opis Gracza | gracze w grze |
 | Zasady | long | 8 bajtów | Raw flagi włączonych zasad |
+| Oszustwa | boolean | 1 bajt | Flaga oszustw
 | Czas gry | unsigned int | 4 bajty | Zarejestrowany czas gry w momencie zapisu |
 | Start | long | 8 bajtów | UNIX timestamp rozpoczęcia gry |
 | Timestamp | long | 8 bajtów | UNIX timestamp momentu zapisu |

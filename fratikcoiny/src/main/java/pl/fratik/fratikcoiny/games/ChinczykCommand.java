@@ -152,6 +152,7 @@ public class ChinczykCommand extends Command {
     private void endCallback(Chinczyk chinczyk) {
         instances.remove(chinczyk);
         if (chinczyk.getStatus() == Chinczyk.Status.CANCELLED || chinczyk.getStatus() == Chinczyk.Status.ERRORED) return;
+        if (chinczyk.isCheats()) return;
         Map<String, ChinczykStats> stats = ChinczykStats.getStatsFromGame(chinczyk);
         long currentStorageDate = ChinczykStats.getCurrentStorageDate();
         chinczykStatsDao.getLock().lock();

@@ -17,6 +17,7 @@
 
 package pl.fratik.fratikcoiny.libs.chinczyk;
 
+import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import io.sentry.Sentry;
@@ -26,6 +27,7 @@ import lombok.Getter;
 import lombok.ToString;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.MessageBuilder;
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.channel.text.TextChannelDeleteEvent;
 import net.dv8tion.jda.api.events.guild.GuildLeaveEvent;
@@ -33,6 +35,7 @@ import net.dv8tion.jda.api.events.interaction.ButtonClickEvent;
 import net.dv8tion.jda.api.events.interaction.SelectionMenuEvent;
 import net.dv8tion.jda.api.events.message.MessageBulkDeleteEvent;
 import net.dv8tion.jda.api.events.message.MessageDeleteEvent;
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
@@ -73,7 +76,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class Chinczyk {
-    private static final byte CHINCZYK_VERSION = 0x01;
+    private static final byte CHINCZYK_VERSION = 0x02;
     private static final byte[] CHINCZYK_HEADER = new byte[] {0x21, 0x37};
     private static final Map<String, String> BOARD_COORDS;
     private static final String FILE_NAME = "board.png";
@@ -116,6 +119,7 @@ public class Chinczyk {
     @Getter private Instant end;
     private long gameDuration;
     private EnumSet<Rules> rules = EnumSet.noneOf(Rules.class);
+    @Getter private boolean cheats; // tu nic nie ma 👀
 
     public static boolean canBeUsed() {
         return font != null && plansza != null;
@@ -293,6 +297,9 @@ public class Chinczyk {
                 players.put(p.getPlace(), p);
             }
             rules = EnumSet.copyOf(Rules.fromRaw(readLong(is)));
+            int rawCheats = is.read();
+            if (rawCheats == -1) throw new EOFException();
+            cheats = rawCheats != 0;
             gameDuration = readUnsignedInt(is);
             Instant started = Instant.ofEpochMilli(readLong(is));
             Instant saved = Instant.ofEpochMilli(readLong(is));
@@ -329,7 +336,7 @@ public class Chinczyk {
                     else {
                         int piece2Index = is.read();
                         if (piece2Index == -1) throw new EOFException();
-                        piece2 = players.get(Place.getByOffset(player2)).getPieces()[pieceIndex];
+                        piece2 = players.get(Place.getByOffset(player2)).getPieces()[piece2Index];
                     }
                     int rawRolled = is.read();
                     if (rawRolled == -1) throw new EOFException();
@@ -557,6 +564,8 @@ public class Chinczyk {
                         .addField(t.get(l, "chinczyk.embed.state"), renderStateString(), true);
                 if (!rules.isEmpty())
                     eb.addField(t.get(l, "chinczyk.embed.rules"), renderRulesString(), false);
+                if (cheats)
+                    eb.addField(t.get(l, "chinczyk.cheats.enabled.title"), t.get(l, "chinczyk.cheats.enabled.description"), false);
                 mb.setActionRows(rulesMenu, ActionRow.of(placeComponents), ActionRow.of(controlComponents), langMenu);
                 break;
             }
@@ -619,14 +628,17 @@ public class Chinczyk {
 
     private ActionRow generateRulesMenu() {
         List<SelectOption> options = new ArrayList<>();
+        int values = 0;
         for (Rules r : Rules.values()) {
+            if (r.isCheat() && !cheats) continue;
             options.add(SelectOption.of(t.get(l, r.getKey()), r.name())
                     .withDescription(t.get(l, r.getDescriptionKey()))
                     .withDefault(rules.contains(r)));
+            values++;
         }
         return ActionRow.of(SelectionMenu.create(RULES)
                 .setPlaceholder(t.get(l, "chinczyk.rules.placeholder"))
-                .setRequiredRange(0, Rules.values().length)
+                .setRequiredRange(0, values)
                 .setDisabled(!players.isEmpty())
                 .addOptions(options)
                 .build());
@@ -821,31 +833,6 @@ public class Chinczyk {
                     updateMainMessage(true);
                     break;
                 }
-                case ROLL: {
-                    if (turn != player.getPlace() || rolled != null) return;
-                    rolled = random.nextInt(6) + 1; //1-6
-                    randomSeq++;
-                    e.deferEdit().queue();
-                    if (rules.contains(Rules.FAST_ROLLS)) {
-                        long canMove = Arrays.stream(player.getPieces()).filter(Piece::canMove).count();
-                        if (canMove == 0) {
-                            eventStorage.add(new Event(null, player, rolled, null, null, true));
-                            makeTurn();
-                            break;
-                        }
-                        if (canMove == 1) {
-                            Optional<Piece> piece = Arrays.stream(player.getPieces()).filter(Piece::canMove).findFirst();
-                            if (piece.isPresent()) {
-                                movePiece(piece.get(), true);
-                                makeTurn();
-                                break;
-                            }
-                        }
-                    }
-                    updateMainMessage(false);
-                    updateControlMessage(player);
-                    break;
-                }
                 case END_MOVE: {
                     if (turn != player.getPlace() || rolled == null) return;
                     e.deferEdit().queue();
@@ -862,24 +849,60 @@ public class Chinczyk {
                     return;
                 }
                 default: {
-                    if (!e.getComponentId().startsWith(MOVE_PREFIX)) return;
-                    if (turn != player.getPlace() || rolled == null) return;
-                    int pieceIndex;
-                    try {
-                        pieceIndex = Integer.parseInt(e.getComponentId().substring(MOVE_PREFIX.length()));
-                    } catch (NumberFormatException ex) {
-                        return;
+                    if (e.getComponentId().equals(ROLL) || e.getComponentId().startsWith(ROLL)) {
+                        if (turn != player.getPlace() || rolled != null) return;
+                        int rollNumber;
+                        try {
+                            if (rules.contains(Rules.DEV_MODE) && e.getComponentId().length() > ROLL.length())
+                                rollNumber = Integer.parseInt(e.getComponentId().substring(ROLL.length()));
+                            else {
+                                rollNumber = random.nextInt(6) + 1; // 1-6
+                                randomSeq++;
+                            }
+                        } catch (NumberFormatException ex) {
+                            return;
+                        }
+                        rolled = rollNumber;
+                        e.deferEdit().queue();
+                        if (rules.contains(Rules.FAST_ROLLS)) {
+                            long canMove = Arrays.stream(player.getPieces()).filter(Piece::canMove).count();
+                            if (canMove == 0) {
+                                eventStorage.add(new Event(null, player, rolled, null, null, true));
+                                makeTurn();
+                                break;
+                            }
+                            if (canMove == 1) {
+                                Optional<Piece> piece = Arrays.stream(player.getPieces()).filter(Piece::canMove).findFirst();
+                                if (piece.isPresent()) {
+                                    movePiece(piece.get(), true);
+                                    makeTurn();
+                                    break;
+                                }
+                            }
+                        }
+                        updateMainMessage(false);
+                        updateControlMessage(player);
+                        break;
                     }
-                    Piece piece;
-                    try {
-                        if (!(piece = player.getPieces()[pieceIndex]).canMove()) return;
-                    } catch (ArrayIndexOutOfBoundsException ex) {
-                        return;
+                    if (e.getComponentId().startsWith(MOVE_PREFIX)) {
+                        if (turn != player.getPlace() || rolled == null) return;
+                        int pieceIndex;
+                        try {
+                            pieceIndex = Integer.parseInt(e.getComponentId().substring(MOVE_PREFIX.length()));
+                        } catch (NumberFormatException ex) {
+                            return;
+                        }
+                        Piece piece;
+                        try {
+                            if (!(piece = player.getPieces()[pieceIndex]).canMove()) return;
+                        } catch (ArrayIndexOutOfBoundsException ex) {
+                            return;
+                        }
+                        e.deferEdit().queue();
+                        player.setConfirmLeave(false);
+                        movePiece(piece, false);
+                        makeTurn();
                     }
-                    e.deferEdit().queue();
-                    player.setConfirmLeave(false);
-                    movePiece(piece, false);
-                    makeTurn();
                 }
             }
         } catch (Exception ex) {
@@ -1043,7 +1066,11 @@ public class Chinczyk {
             if (!players.isEmpty()) return;
             EnumSet<Rules> setRules = EnumSet.noneOf(Rules.class);
             try {
-                for (String val : e.getValues()) setRules.add(Rules.valueOf(val));
+                for (String val : e.getValues()) {
+                    Rules r = Rules.valueOf(val);
+                    if (r.isCheat() && !cheats) return;
+                    setRules.add(r);
+                }
             } catch (IllegalArgumentException ex) {
                 return;
             }
@@ -1062,6 +1089,25 @@ public class Chinczyk {
                 updateMainMessage(false);
             } catch (Exception ex) {
                 errored(ex);
+            } finally {
+                lock.unlock();
+            }
+        }
+    }
+
+    @Subscribe
+    @AllowConcurrentEvents
+    public void onMessage(MessageReceivedEvent e) {
+        if (!e.getChannel().equals(getChannel())) return;
+        if (status != Status.WAITING_FOR_PLAYERS || !players.isEmpty()) return;
+        if (cheats) return;
+        if (e.getMessage().getContentRaw().equals("\u2191\u2191\u2193\u2193\u2190\u2192\u2190\u2192BA")) {
+            lock.lock();
+            try {
+                cheats = true;
+                if (!e.isFromGuild() || e.getGuild().getSelfMember().hasPermission(e.getTextChannel(), Permission.MESSAGE_ADD_REACTION))
+                    e.getMessage().addReaction("\uD83D\uDC40").onErrorMap(err -> null).complete();
+                updateMainMessage(false);
             } finally {
                 lock.unlock();
             }
@@ -1212,9 +1258,23 @@ public class Chinczyk {
                 }
                 if (rolled == null) {
                     mb.setContent(t.get(player.getLanguage(), "chinczyk.awaiting.die"));
-                    mb.setActionRows(ActionRow.of(
-                            Button.primary(ROLL, t.get(player.getLanguage(), "chinczyk.button.roll"))
-                    ), leave);
+                    List<ActionRow> actionRows = new ArrayList<>();
+                    actionRows.add(ActionRow.of(
+                            Button.primary(ROLL, t.get(player.getLanguage(), "chinczyk.button.roll"))));
+                    if (rules.contains(Rules.DEV_MODE)) {
+                        actionRows.add(ActionRow.of(
+                                Button.secondary(ROLL + "1", "1"),
+                                Button.secondary(ROLL + "2", "2"),
+                                Button.secondary(ROLL + "3", "3")
+                        ));
+                        actionRows.add(ActionRow.of(
+                                Button.secondary(ROLL + "4", "4"),
+                                Button.secondary(ROLL + "5", "5"),
+                                Button.secondary(ROLL + "6", "6")
+                        ));
+                    }
+                    actionRows.add(leave);
+                    mb.setActionRows(actionRows);
                 } else {
                     Map<Integer, Piece> canMove = Arrays.stream(player.getPieces()).filter(Piece::canMove)
                             .collect(Collectors.toMap(p -> p.index + 1, p -> p));
@@ -1706,13 +1766,23 @@ public class Chinczyk {
         /**
          * Szybkie rzuty - kiedy jest tylko jeden (lub 0) ruchów dozwolonych, wykonaj je automatycznie
          */
-        FAST_ROLLS(1<<4, "chinczyk.rule.fast.rolls");
+        FAST_ROLLS(1<<4, "chinczyk.rule.fast.rolls"),
+        /**
+         * Tryb dewelopera - wybierasz rzut kostką
+         */
+        DEV_MODE(1<<5, true, "chinczyk.rule.dev.mode");
 
         @Getter private final int flag;
+        @Getter private final boolean cheat;
         @Getter private final String key;
 
         Rules(int flag, String key) {
+            this(flag, false, key);
+        }
+
+        Rules(int flag, boolean cheat, String key) {
             this.flag = flag;
+            this.cheat = cheat;
             this.key = key;
         }
 
