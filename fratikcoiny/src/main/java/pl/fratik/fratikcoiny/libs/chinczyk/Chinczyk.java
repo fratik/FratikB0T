@@ -380,7 +380,6 @@ public class Chinczyk {
                     + t.get(l, "chinczyk.reloaded.state"))
                     .mention(players.values().stream().filter(Player::isPlaying).map(Player::getUser).collect(Collectors.toSet()))
                     .complete();
-            timeout = executor.schedule(this::timeout, 2, TimeUnit.MINUTES);
         } finally {
             lock.unlock();
         }
@@ -1368,6 +1367,12 @@ public class Chinczyk {
         return gameDuration + (end.getEpochSecond() - start.getEpochSecond());
     }
 
+    private boolean rolled6() {
+        if (rolled == null) return false;
+        if (rules.contains(Rules.ONE_LEAVES_HOME)) return rolled == 1 || rolled == 6;
+        return rolled == 6;
+    }
+
     public ByteArrayOutputStream captureState() {
         if (status != Status.IN_PROGRESS && status != Status.ENDED)
             throw new IllegalStateException("Można zachować stan gry jedynie o statusie IN_PROGRESS lub ENDED");
@@ -1628,14 +1633,14 @@ public class Chinczyk {
             }
             if (rules.contains(Rules.FORCE_CAPTURE) && Arrays.stream(player.getPieces()).filter(p -> !p.equals(this))
                     .anyMatch(p -> p.canCapture() == Boolean.TRUE)) return false;
-            return position != 0 || rolled == 6; // pole czyste, można iść
+            return position != 0 || rolled6(); // pole czyste, można iść
         }
 
         // true - można bić, false - pole zajęte, null - pole wolne
         public Boolean canCapture() {
             String nextPosition;
             if (position == 0) {
-                if (rolled != 6) return null;
+                if (!rolled6()) return null;
                 nextPosition = getBoardPosition(1);
             }
             else nextPosition = getBoardPosition(position + rolled);
@@ -1772,7 +1777,11 @@ public class Chinczyk {
         /**
          * Tryb dewelopera - wybierasz rzut kostką
          */
-        DEV_MODE(1<<5, true, "chinczyk.rule.dev.mode");
+        DEV_MODE(1<<5, true, "chinczyk.rule.dev.mode"),
+        /**
+         * 1 opuszcza start - wyrzucenie 1 (tak jak 6) opuszcza pole startowe
+         */
+        ONE_LEAVES_HOME(1<<6, "chinczyk.rule.one.leaves");
 
         @Getter private final int flag;
         @Getter private final boolean cheat;
