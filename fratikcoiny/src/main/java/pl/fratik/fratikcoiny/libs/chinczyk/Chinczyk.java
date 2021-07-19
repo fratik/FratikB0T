@@ -415,7 +415,7 @@ public class Chinczyk {
                     }
                     private final Process process = new ProcessBuilder("ffmpeg", "-loglevel", "fatal",
                             "-framerate", "10/6", "-f", "image2pipe", "-y", "-i", "-", "-vcodec", "libx264",
-                            "-tune", "stillimage", "-r", "15", "-movflags", "faststart", temp.getAbsolutePath()).start();
+                            "-tune", "stillimage", "-r", "15", "-pix_fmt", "yuv420p", "-movflags", "faststart", temp.getAbsolutePath()).start();
                     private ByteArrayOutputStream baos = new ByteArrayOutputStream();
                     private boolean closed;
                     @Override
