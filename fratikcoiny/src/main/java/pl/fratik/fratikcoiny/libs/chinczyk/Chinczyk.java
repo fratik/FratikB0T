@@ -801,6 +801,7 @@ public class Chinczyk {
                             return;
                         }
                         if (!timeout.cancel(false)) return;
+                        if (status == Status.WAITING_FOR_PLAYERS || !isEveryoneReady()) return;
                         status = Status.IN_PROGRESS;
                         start = Instant.now();
                         for (Player player : players.values()) {
