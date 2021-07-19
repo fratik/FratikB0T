@@ -27,8 +27,10 @@ import pl.fratik.core.manager.ManagerArgumentow;
 import pl.fratik.core.manager.ManagerBazyDanych;
 import pl.fratik.core.manager.ManagerKomend;
 import pl.fratik.core.moduly.Modul;
+import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.EventWaiter;
 import pl.fratik.fratikcoiny.commands.*;
+import pl.fratik.fratikcoiny.entity.ChinczykStateDao;
 import pl.fratik.fratikcoiny.entity.ChinczykStatsDao;
 import pl.fratik.fratikcoiny.games.BlackjackCommand;
 import pl.fratik.fratikcoiny.games.ChinczykCommand;
@@ -46,8 +48,10 @@ public class Module implements Modul {
     @Inject private MemberDao memberDao;
     @Inject private ShardManager shardManager;
     @Inject private EventBus eventBus;
+    @Inject private Tlumaczenia tlumaczenia;
     private ArrayList<Command> commands;
     private ChinczykStatsDao chinczykStatsDao;
+    private ChinczykStateDao chinczykStateDao;
 
     public Module() {
         commands = new ArrayList<>();
@@ -56,6 +60,7 @@ public class Module implements Modul {
     @Override
     public boolean startUp() {
         chinczykStatsDao = new ChinczykStatsDao(managerBazyDanych, eventBus);
+        chinczykStateDao = new ChinczykStateDao(managerBazyDanych, eventBus);
         commands = new ArrayList<>();
 
         commands.add(new DailyCommand(memberDao));
@@ -67,7 +72,7 @@ public class Module implements Modul {
         commands.add(new BlackjackCommand(memberDao, eventWaiter));
         commands.add(new SlotsCommand(memberDao));
         commands.add(new PremiaCommand(guildDao, memberDao, eventWaiter, eventBus));
-        if (Chinczyk.canBeUsed()) commands.add(new ChinczykCommand(managerArgumentow, eventBus, eventWaiter, chinczykStatsDao));
+        if (Chinczyk.canBeUsed()) commands.add(new ChinczykCommand(shardManager, managerArgumentow, eventBus, eventWaiter, chinczykStatsDao, chinczykStateDao, tlumaczenia));
 
         commands.forEach(managerKomend::registerCommand);
 

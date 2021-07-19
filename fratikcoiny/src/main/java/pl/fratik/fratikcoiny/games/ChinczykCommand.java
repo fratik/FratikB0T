@@ -18,49 +18,86 @@
 package pl.fratik.fratikcoiny.games;
 
 import com.google.common.eventbus.EventBus;
+import com.google.common.eventbus.Subscribe;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.LoggerFactory;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.command.SubCommand;
+import pl.fratik.core.event.ConnectedEvent;
 import pl.fratik.core.manager.ManagerArgumentow;
+import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.ClassicEmbedPaginator;
 import pl.fratik.core.util.EventWaiter;
+import pl.fratik.fratikcoiny.entity.ChinczykState;
+import pl.fratik.fratikcoiny.entity.ChinczykStateDao;
 import pl.fratik.fratikcoiny.entity.ChinczykStats;
 import pl.fratik.fratikcoiny.entity.ChinczykStatsDao;
 import pl.fratik.fratikcoiny.libs.chinczyk.Chinczyk;
 
+import java.io.ByteArrayInputStream;
 import java.text.SimpleDateFormat;
 import java.time.ZoneOffset;
 import java.util.*;
 
 public class ChinczykCommand extends Command {
+    @NotNull
+    private final ShardManager shardManager;
     private final ManagerArgumentow managerArgumentow;
     private final EventBus eventBus;
     private final EventWaiter eventWaiter;
     private final ChinczykStatsDao chinczykStatsDao;
+    private final ChinczykStateDao chinczykStateDao;
+    private final Tlumaczenia tlumaczenia;
     private final Set<Chinczyk> instances;
 
-    public ChinczykCommand(ManagerArgumentow managerArgumentow, EventBus eventBus, EventWaiter eventWaiter, ChinczykStatsDao chinczykStatsDao) {
+    public ChinczykCommand(ShardManager shardManager, ManagerArgumentow managerArgumentow, EventBus eventBus, EventWaiter eventWaiter, ChinczykStatsDao chinczykStatsDao, ChinczykStateDao chinczykStateDao, Tlumaczenia tlumaczenia) {
+        this.shardManager = shardManager;
         this.managerArgumentow = managerArgumentow;
         this.eventBus = eventBus;
         this.eventWaiter = eventWaiter;
         this.chinczykStatsDao = chinczykStatsDao;
+        this.chinczykStateDao = chinczykStateDao;
+        this.tlumaczenia = tlumaczenia;
         name = "chinczyk";
         category = CommandCategory.FUN;
         permissions.add(Permission.MESSAGE_EMBED_LINKS);
         allowPermLevelChange = false;
         uzycieDelim = " ";
         instances = new HashSet<>();
+        if (shardManager.getShards().stream().anyMatch(s -> !s.getStatus().equals(JDA.Status.CONNECTED)))
+            eventBus.register(this);
+        else loadSavedGames();
+    }
+
+    private void loadSavedGames() {
+        for (ChinczykState state : chinczykStateDao.getAll()) {
+            try {
+                instances.add(new Chinczyk(new ByteArrayInputStream(Base64.getDecoder().decode(state.getState())),
+                        shardManager, eventBus, this::endCallback, tlumaczenia));
+            } catch (Exception e) {
+                LoggerFactory.getLogger(getClass()).error("Nie udało się załadować stanu chińczyka!", e);
+            }
+            chinczykStateDao.delete(state.getChannelId());
+        }
+    }
+
+    @Subscribe
+    public void onConnected(ConnectedEvent e) {
+        eventBus.unregister(this);
+        loadSavedGames();
     }
 
     @Override
     public void onUnregister() {
-        for (Chinczyk chi : new HashSet<>(instances)) chi.shutdown();
+        for (Chinczyk chi : new HashSet<>(instances)) chi.shutdown(chinczykStateDao);
     }
 
     @SubCommand(name = "globalStats")
@@ -115,6 +152,7 @@ public class ChinczykCommand extends Command {
     private void endCallback(Chinczyk chinczyk) {
         instances.remove(chinczyk);
         if (chinczyk.getStatus() == Chinczyk.Status.CANCELLED || chinczyk.getStatus() == Chinczyk.Status.ERRORED) return;
+        if (chinczyk.isCheats()) return;
         Map<String, ChinczykStats> stats = ChinczykStats.getStatsFromGame(chinczyk);
         long currentStorageDate = ChinczykStats.getCurrentStorageDate();
         chinczykStatsDao.getLock().lock();
