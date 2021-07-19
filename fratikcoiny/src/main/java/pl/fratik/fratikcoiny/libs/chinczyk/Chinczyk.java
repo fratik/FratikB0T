@@ -79,7 +79,7 @@ public class Chinczyk {
     private static final byte CHINCZYK_VERSION = 0x02;
     private static final byte[] CHINCZYK_HEADER = new byte[] {0x21, 0x37};
     private static final Map<String, String> BOARD_COORDS;
-    private static final String FILE_NAME = "board.png";
+    private static final String FILE_NAME = "board";
     private static final String START = "START";
     private static final String CANCEL = "ABORT";
     private static final String LEAVE = "LEAVE";
@@ -303,7 +303,8 @@ public class Chinczyk {
             gameDuration = readUnsignedInt(is);
             Instant started = Instant.ofEpochMilli(readLong(is));
             Instant saved = Instant.ofEpochMilli(readLong(is));
-            gameDuration += (saved.getEpochSecond() - started.getEpochSecond());
+            long addedDuration = saved.getEpochSecond() - started.getEpochSecond(); 
+            gameDuration += addedDuration;
             start = Instant.now();
             int type;
             Player lastRolled = null;
@@ -341,23 +342,9 @@ public class Chinczyk {
                     int rawRolled = is.read();
                     if (rawRolled == -1) throw new EOFException();
                     boolean fastRolled = rawRolled == 1;
-                    eventStorage.add(new Event(t, p, rolled, piece, piece2, fastRolled));
-                    if (t == Event.Type.GAME_START) {
-                        status = Status.IN_PROGRESS;
-                    } else if (t == Event.Type.THROW) {
-                        Objects.requireNonNull(piece2).position = 0;
-                        Objects.requireNonNull(piece).position += piece.position == 0 ? 1 : Objects.requireNonNull(rolled);
-                    } else if (t == Event.Type.LEFT_START) {
-                        Objects.requireNonNull(piece).position = 1;
-                    } else if (t == Event.Type.MOVE || t == Event.Type.ENTERED_HOME) {
-                        Objects.requireNonNull(piece).position += Objects.requireNonNull(rolled);
-                    } else if (t == Event.Type.WON) {
-                        end = Instant.ofEpochMilli(readLong(is));
-                        winner = p;
-                        status = Status.ENDED;
-                    } else if (t == Event.Type.LEFT_GAME) {
-                        p.setStatus(PlayerStatus.LEFT);
-                    }
+                    Event e;
+                    eventStorage.add(e = new Event(t, p, rolled, piece, piece2, fastRolled));
+                    parseEvent(e);
                     if (t == null || t == Event.Type.THROW || t == Event.Type.LEFT_START ||
                             t == Event.Type.MOVE || t == Event.Type.ENTERED_HOME) {
                         turns++;
@@ -367,22 +354,135 @@ public class Chinczyk {
                             lastRolled = p;
                             rollCounter = 0;
                         }
+                    } else if (t == Event.Type.WON) {
+                        start = started;
+                        end = Instant.ofEpochMilli(readLong(is));
+                        gameDuration -= addedDuration;
                     }
                 }
             } catch (Exception e) {
                 throw new IOException("nie udało się odczytać wydarzeń", e);
             }
-            turn = lastRolled.getPlace();
-            makeTurn();
-            eventBus.register(this);
-            message.reply(players.values().stream().filter(Player::isPlaying)
-                    .map(Player::getUser).map(User::getAsMention).collect(Collectors.joining(" ")) + "\n"
-                    + t.get(l, "chinczyk.reloaded.state"))
-                    .mention(players.values().stream().filter(Player::isPlaying).map(Player::getUser).collect(Collectors.toSet()))
-                    .complete();
+            if (winner == null) {
+                turn = lastRolled.getPlace();
+                makeTurn();
+                eventBus.register(this);
+                message.reply(players.values().stream().filter(Player::isPlaying)
+                        .map(Player::getUser).map(User::getAsMention).collect(Collectors.joining(" ")) + "\n"
+                        + t.get(l, "chinczyk.reloaded.state"))
+                        .mention(players.values().stream().filter(Player::isPlaying).map(Player::getUser).collect(Collectors.toSet()))
+                        .complete();
+            }
         } finally {
             lock.unlock();
         }
+    }
+
+    private void parseEvent(Event event) {
+        if (event.getType() == Event.Type.GAME_START) {
+            status = Status.IN_PROGRESS;
+        } else if (event.getType() == Event.Type.THROW) {
+            Objects.requireNonNull(event.getPiece2()).position = 0;
+            Objects.requireNonNull(event.getPiece()).position += event.getPiece().position == 0 ? 1 : event.getRolled();
+        } else if (event.getType() == Event.Type.LEFT_START) {
+            Objects.requireNonNull(event.getPiece()).position = 1;
+        } else if (event.getType() == Event.Type.MOVE || event.getType() == Event.Type.ENTERED_HOME) {
+            Objects.requireNonNull(event.getPiece()).position += Objects.requireNonNull(event.getRolled());
+        } else if (event.getType() == Event.Type.WON) {
+            winner = event.getPlayer();
+            status = Status.ENDED;
+        } else if (event.getType() == Event.Type.LEFT_GAME) {
+            event.getPlayer().setStatus(PlayerStatus.LEFT);
+        }
+    }
+
+    private interface BoardReplayRenderer extends Closeable {
+        InputStream getStream();
+        String getFormatExtension();
+        void writeFrame(BufferedImage image) throws IOException;
+    }
+
+    public BoardReplayRenderer renderReplay() {
+        if (status != Status.IN_PROGRESS && status != Status.ENDED)
+            throw new IllegalStateException("Generacja powtórek jest możliwa tylko dla gier w toku lub zakończonych");
+        BoardReplayRenderer videoRenderer;
+        try {
+            if (new ProcessBuilder("ffmpeg", "-version").start().waitFor() == 0) {
+                videoRenderer = new BoardReplayRenderer() {
+                    private final File temp = File.createTempFile("boardreplay", ".mp4");
+                    {
+                        temp.deleteOnExit();
+                    }
+                    private final Process process = new ProcessBuilder("ffmpeg", "-loglevel", "fatal",
+                            "-framerate", "10/6", "-f", "image2pipe", "-y", "-i", "-", "-vcodec", "libx264",
+                            "-tune", "stillimage", "-r", "15", "-movflags", "faststart", temp.getAbsolutePath()).start();
+                    private ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    private boolean closed;
+                    @Override
+                    public synchronized void close() throws IOException {
+                        closed = true;
+                        process.getOutputStream().close();
+                    }
+
+                    @Override
+                    public InputStream getStream() {
+                        try {
+                            process.waitFor();
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            throw new IllegalStateException(e);
+                        }
+                        try {
+                            return new FileInputStream(temp);
+                        } catch (FileNotFoundException e) {
+                            throw new IllegalStateException(e);
+                        }
+                    }
+
+                    @Override
+                    public String getFormatExtension() {
+                        return "mp4";
+                    }
+
+                    @Override
+                    public synchronized void writeFrame(BufferedImage image) throws IOException {
+                        if (closed) throw new IOException("closed");
+                        baos.reset();
+                        ImageIO.write(image, "png", baos);
+                        process.getOutputStream().write(baos.toByteArray());
+                    }
+
+                    @Override
+                    protected void finalize() {
+                        if (temp.exists()) temp.delete();
+                    }
+                };
+            } else return null;
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            return null;
+        } catch (IOException ignored) {
+            return null;
+        }
+        lock.lock();
+        try (BoardReplayRenderer r = videoRenderer) {
+            for (Player player : players.values()) {
+                player.initPieces(); // resetuj pionki - przywrócisz ich stan z eventów
+                player.setStatus(PlayerStatus.PLAYING); // opuszczenia również wrócą
+            }
+            for (Event event : eventStorage) {
+                parseEvent(new Event(event.getType(), event.getPlayer(), event.getRolled(),
+                        event.getPiece() == null ? null : event.getPlayer().getPieces()[event.getPiece().getIndex()],
+                        event.getPiece2() == null ? null : event.getPiece2().getPlayer().getPieces()[event.getPiece2().getIndex()],
+                        event.getFastRolled()));
+                r.writeFrame(renderBoard());
+            }
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        } finally {
+            lock.unlock();
+        }
+        return videoRenderer;
     }
 
     private Player readPlayer(InputStream is, ShardManager sm) throws IOException {
@@ -478,7 +578,7 @@ public class Chinczyk {
         isTimeout.remove();
     }
 
-    public byte[] renderBoard() {
+    public BufferedImage renderBoard() {
         lock.lock();
         try {
             BufferedImage image = new BufferedImage(plansza.getWidth(), plansza.getHeight(), BufferedImage.TYPE_INT_RGB);
@@ -519,9 +619,7 @@ public class Chinczyk {
                 }
             }
             g.dispose();
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ImageIO.write(image, "png", baos);
-            return baos.toByteArray();
+            return image;
         } catch (Exception e) {
             LoggerFactory.getLogger(getClass()).error("Wystąpił błąd podczas generacji planszy!", e);
             Sentry.capture(e);
@@ -531,14 +629,14 @@ public class Chinczyk {
         }
     }
 
-    public Message generateMessage() {
+    public Message generateMessage(String fileName) {
         MessageBuilder mb = new MessageBuilder();
         Language l;
         if (turn != null) l = players.get(turn).getLanguage();
         else l = this.l;
         EmbedBuilder eb = new EmbedBuilder()
                 .setTitle(t.get(l, "chinczyk.embed.title"))
-                .setImage("attachment://" + FILE_NAME);
+                .setImage("attachment://" + fileName);
         if (status == Status.IN_PROGRESS || status == Status.ENDED)
             eb.setFooter(t.get(l, "chinczyk.footer.turn") + turns + " | Board: FischX • CC BY-SA 3.0");
         else eb.setFooter("Board: FischX • CC BY-SA 3.0");
@@ -1149,14 +1247,43 @@ public class Chinczyk {
     private void updateMainMessage(boolean rerenderBoard) {
         lock.lock();
         try {
-            byte[] board = renderBoard();
-            if (message == null)
-                message = channel.sendMessage(generateMessage()).referenceById(referenceMessageId).addFile(board, FILE_NAME).complete();
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ImageIO.write(renderBoard(), "png", baos);
+            byte[] board = baos.toByteArray();
+            String fileName = FILE_NAME + ".png";
+            if (message == null) message = channel.sendMessage(generateMessage(fileName))
+                    .referenceById(referenceMessageId).addFile(board, fileName).complete();
             else {
-                MessageAction ma = message.editMessage(generateMessage());
-                if (rerenderBoard) ma = ma.retainFiles(Collections.emptySet()).addFile(board, FILE_NAME);
+                Message msg = generateMessage(fileName);
+                MessageAction ma = message.editMessage(msg);
+                if (rerenderBoard) ma = ma.retainFiles(Collections.emptySet()).addFile(board, fileName);
                 message = ma.onErrorFlatMap(ErrorResponse.UNKNOWN_MESSAGE::test,
-                        e -> channel.sendMessage(generateMessage()).referenceById(referenceMessageId).addFile(board, FILE_NAME)).complete();
+                        e -> channel.sendMessage(msg).referenceById(referenceMessageId).addFile(board, fileName)).complete();
+            }
+            if (status == Status.ENDED) {
+                new Thread(() -> {
+                    try {
+                        BoardReplayRenderer renderer = renderReplay();
+                        if (renderer == null) return;
+                        MessageAction ma = message.reply(t.get(l, "chinczyk.replay"));
+                        try {
+                            //noinspection ResultOfMethodCallIgnored
+                            ma.addFile(renderer.getStream(), "chinczykreplay." + renderer.getFormatExtension());
+                        } catch (Exception ex) {
+                            return; //plik za duży, ignoruj
+                        }
+                        ma.complete();
+                    } catch (Exception ex) {
+                        if (ex instanceof ErrorResponseException) return; //ignoruj błędy wysłania
+                        try {
+                            Sentry.getContext().addExtra("state", Base64.getEncoder().encodeToString(captureState().toByteArray()));
+                        } catch (Exception ignored) {
+                            // jak state sie nie zapisze to już trudno XD
+                        }
+                        Sentry.capture(ex);
+                        Sentry.clearContext();
+                    }
+                }, "ChinczykReplay-" + executer + '-' + channel.getId()).start();
             }
         } catch (Exception e) {
             errored(e);
@@ -1686,8 +1813,8 @@ public class Chinczyk {
             this.player = player;
             this.rolled = rolled;
             this.piece = checkType(type, Type.LEFT_START, Type.MOVE, Type.ENTERED_HOME, Type.THROW) ?
-                    Objects.requireNonNull(piece.copy()) : null;
-            this.piece2 = checkType(type, Type.THROW) ? Objects.requireNonNull(piece2.copy()) : null;
+                    Objects.requireNonNull(piece) : null;
+            this.piece2 = checkType(type, Type.THROW) ? Objects.requireNonNull(piece2) : null;
             this.fastRolled = checkType(true, type, Type.LEFT_START, Type.MOVE, Type.ENTERED_HOME, Type.THROW) ? fastRolled : null;
         }
 
