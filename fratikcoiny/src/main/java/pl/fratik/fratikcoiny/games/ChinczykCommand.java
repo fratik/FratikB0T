@@ -19,7 +19,6 @@ package pl.fratik.fratikcoiny.games;
 
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
-import lombok.SneakyThrows;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.Permission;
@@ -44,8 +43,6 @@ import pl.fratik.fratikcoiny.entity.ChinczykStatsDao;
 import pl.fratik.fratikcoiny.libs.chinczyk.Chinczyk;
 
 import java.io.ByteArrayInputStream;
-import java.io.FileOutputStream;
-import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.time.ZoneOffset;
 import java.util.*;
