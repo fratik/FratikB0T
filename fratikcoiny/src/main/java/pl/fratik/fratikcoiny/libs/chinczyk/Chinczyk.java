@@ -56,6 +56,7 @@ import pl.fratik.core.util.NamedThreadFactory;
 import pl.fratik.fratikcoiny.entity.ChinczykState;
 import pl.fratik.fratikcoiny.entity.ChinczykStateDao;
 import pl.fratik.fratikcoiny.entity.ChinczykStats;
+import pl.fratik.fratikcoiny.util.ImageUtils;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -91,7 +92,10 @@ public class Chinczyk {
     private static final String MOVE_PREFIX = "MOVE_";
     private static final String END_MOVE = "END_MOVE";
     private static final BufferedImage plansza;
-    private static final Font font;
+    private static final Font mulish;
+    private static final Font lato;
+    private static final int REPLAY_TEXT_LINES = 3;
+    private static final int REPLAY_TEXT_MARGIN = 100;
     private final User executer;
     private final MessageChannel channel;
     private final long referenceMessageId;
@@ -122,7 +126,7 @@ public class Chinczyk {
     @Getter private boolean cheats; // tu nic nie ma 👀
 
     public static boolean canBeUsed() {
-        return font != null && plansza != null;
+        return mulish != null && plansza != null;
     }
 
     static {
@@ -207,18 +211,25 @@ public class Chinczyk {
         coords.put("40", "797,293");
         BOARD_COORDS = Collections.unmodifiableMap(coords);
         //#endregion
-        Font f;
+        Font m;
+        Font l;
         BufferedImage i;
-        try (InputStream stream = Chinczyk.class.getResourceAsStream("/Mulish-Regular.ttf")) {
-            f = Font.createFont(Font.TRUETYPE_FONT, Objects.requireNonNull(stream));
-            i = ImageIO.read(Objects.requireNonNull(Chinczyk.class.getResource("/plansza_chinczyk.png")));
+        try {
+            try (InputStream mulishStream = Chinczyk.class.getResourceAsStream("/Mulish-Regular.ttf");
+                 InputStream latoStream = Chinczyk.class.getResourceAsStream("/Lato-Bold.ttf")) {
+                m = Font.createFont(Font.TRUETYPE_FONT, Objects.requireNonNull(mulishStream));
+                l = Font.createFont(Font.TRUETYPE_FONT, Objects.requireNonNull(latoStream));
+                i = ImageIO.read(Objects.requireNonNull(Chinczyk.class.getResource("/plansza_chinczyk.png")));
+            }
         } catch (Exception e) {
             LoggerFactory.getLogger(Chinczyk.class).error("Nie udało się załadować czcionki i/lub planszy: ", e);
             Sentry.capture(e);
-            f = null;
+            m = null;
+            l = null;
             i = null;
         }
-        font = f;
+        mulish = m;
+        lato = l;
         plansza = i;
     }
 
@@ -414,8 +425,9 @@ public class Chinczyk {
                         temp.deleteOnExit();
                     }
                     private final Process process = new ProcessBuilder("ffmpeg", "-loglevel", "fatal",
-                            "-framerate", "10/6", "-f", "image2pipe", "-y", "-i", "-", "-vcodec", "libx264",
-                            "-tune", "stillimage", "-r", "15", "-pix_fmt", "yuv420p", "-movflags", "faststart", temp.getAbsolutePath()).start();
+                            "-framerate", "1", "-f", "image2pipe", "-y", "-i", "-", "-vcodec", "libx264",
+                            "-tune", "stillimage", "-r", "15", "-pix_fmt", "yuv420p", "-movflags", "faststart",
+                            temp.getAbsolutePath()).start();
                     private ByteArrayOutputStream baos = new ByteArrayOutputStream();
                     private boolean closed;
                     @Override
@@ -475,7 +487,28 @@ public class Chinczyk {
                         event.getPiece() == null ? null : event.getPlayer().getPieces()[event.getPiece().getIndex()],
                         event.getPiece2() == null ? null : event.getPiece2().getPlayer().getPieces()[event.getPiece2().getIndex()],
                         event.getFastRolled()));
-                r.writeFrame(renderBoard());
+                BufferedImage image = renderBoard();
+                Font font = Chinczyk.lato.deriveFont(80f);
+                Graphics g = image.getGraphics();
+                g.setFont(font);
+                FontMetrics fontMetrics = g.getFontMetrics();
+                BufferedImage frame = new BufferedImage(image.getWidth(),
+                        image.getHeight() + (fontMetrics.getHeight() * REPLAY_TEXT_LINES), BufferedImage.TYPE_INT_RGB);
+                g = frame.getGraphics();
+                g.setColor(Color.WHITE);
+                g.fillRect(0, 0, frame.getWidth(), frame.getHeight());
+                g.setColor(Color.BLACK);
+                g.setFont(font);
+                StringBuilder sb = new StringBuilder();
+                if (event.getRolled() != null) sb.append(t.get(l, "chinczyk.replay.rolled", event.getRolled())).append(" ");
+                if (event.getType() != null) sb.append(event.getTranslated(t, l, false));
+                else sb.setLength(sb.length() - 1); // usuń spację
+                List<String> lines = ImageUtils.splitString(sb.toString(), fontMetrics,
+                        REPLAY_TEXT_LINES, frame.getWidth() - REPLAY_TEXT_MARGIN);
+                ImageUtils.renderLinesCentered(g, lines, 0, 0, frame.getWidth(), fontMetrics.getHeight() * REPLAY_TEXT_LINES);
+                g.drawImage(image, 0, fontMetrics.getHeight() * REPLAY_TEXT_LINES, null);
+                g.dispose();
+                r.writeFrame(frame);
             }
         } catch (IOException e) {
             throw new IllegalStateException(e);
@@ -583,8 +616,10 @@ public class Chinczyk {
         try {
             BufferedImage image = new BufferedImage(plansza.getWidth(), plansza.getHeight(), BufferedImage.TYPE_INT_RGB);
             Graphics g = image.getGraphics();
+            g.setColor(new Color(0xd1b689));
+            g.fillRect(0, 0, plansza.getWidth(), plansza.getHeight());
             g.drawImage(plansza, 0, 0, null);
-            g.setFont(font.deriveFont(60f));
+            g.setFont(mulish.deriveFont(60f));
             g.setColor(Color.BLACK);
             for (Player player : players.values()) {
                 for (Piece piece : player.getPieces()) {
@@ -592,7 +627,7 @@ public class Chinczyk {
                     String value = BOARD_COORDS.get(piece.getBoardPosition());
                     int x = Integer.parseInt(value.split(",")[0]);
                     int y = Integer.parseInt(value.split(",")[1]);
-                    g.drawImage(piece.render(font), x - 30, y - 30, null);
+                    g.drawImage(piece.render(mulish), x - 30, y - 30, null);
                 }
                 String[] value = BOARD_COORDS.get(player.getPlace().name().toLowerCase().charAt(0) + "txt").split(",");
                 final int valX = Integer.parseInt(value[0]);
@@ -604,8 +639,7 @@ public class Chinczyk {
                 boolean topToBottom = value.length > 2 && value[2].equals("-");
                 fontHeight = topToBottom ? -fontHeight : fontHeight;
                 y += fontHeight;
-                String str = player.getUser().getName();
-                if (str.length() >= 13) str = str.substring(0, 10) + "...";
+                String str = player.getName();
                 if (x < 0)
                     x = image.getWidth() + x - g.getFontMetrics().stringWidth(str);
                 g.drawString(str, x, y);
@@ -1616,6 +1650,12 @@ public class Chinczyk {
             }
             this.status = status;
         }
+
+        public String getName() {
+            String str = getUser().getName();
+            if (str.length() >= 13) str = str.substring(0, 10) + "...";
+            return str;
+        }
     }
 
     public enum PlayerStatus {
@@ -1829,9 +1869,13 @@ public class Chinczyk {
         }
 
         private String getTranslated(Tlumaczenia t, Language l) {
+            return getTranslated(t, l, true);
+        }
+
+        private String getTranslated(Tlumaczenia t, Language l, boolean mention) {
             if (type == null) throw new IllegalArgumentException("type null");
             Function<Piece, String> pieceString = p -> t.get(l, "chinczyk.piece", p.getIndexAsString(),
-                    p.player.getUser().getAsMention());
+                    mention ? p.player.getUser().getAsMention() : p.player.getName());
             switch (type) {
                 case LEFT_START:
                 case MOVE:
@@ -1839,7 +1883,7 @@ public class Chinczyk {
                     return t.get(l, type.translationKey, StringUtils.capitalize(pieceString.apply(piece)));
                 case WON:
                 case LEFT_GAME:
-                    return t.get(l, type.translationKey, player.getUser().getAsMention());
+                    return t.get(l, type.translationKey, mention ? player.getUser().getAsMention() : player.getName());
                 case THROW:
                     return t.get(l, type.translationKey, StringUtils.capitalize(pieceString.apply(piece)),
                             pieceString.apply(piece2));
