@@ -139,7 +139,8 @@ public enum SpecialSkins implements ChinczykSkin {
     @Override
     public void serialize(OutputStream os) throws IOException {
         os.write(1);
-        StreamUtil.writeString(os, getClass().getName());
+        StreamUtil.writeString(os, SpecialSkins.class.getName());
+        StreamUtil.writeUnsignedInt(os, 8);
         StreamUtil.writeLong(os, flag);
     }
 

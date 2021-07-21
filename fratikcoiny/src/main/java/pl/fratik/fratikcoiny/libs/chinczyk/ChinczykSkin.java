@@ -214,24 +214,27 @@ public interface ChinczykSkin {
         @Override
         public void serialize(OutputStream os) throws IOException {
             os.write(1);
-            writeString(os, getClass().getName());
-            writeColor(os, textColor);
-            writeColor(os, bgColor);
-            writeColor(os, circleStroke);
-            writeColor(os, circleFill);
-            writeColor(os, redFill);
-            writeColor(os, redStartFill);
-            writeColor(os, greenFill);
-            writeColor(os, greenStartFill);
-            writeColor(os, blueFill);
-            writeColor(os, blueStartFill);
-            writeColor(os, yellowFill);
-            writeColor(os, yellowStartFill);
-            writeColor(os, arrowStroke);
-            writeColor(os, arrowFill);
-            writeColor(os, lineStroke);
-            writeColor(os, pieceStroke);
-            writeString(os, emoji == null ? "" : emoji.getAsMention());
+            ByteArrayOutputStream skinData = new ByteArrayOutputStream();
+            writeString(skinData, getClass().getName());
+            writeColor(skinData, textColor);
+            writeColor(skinData, bgColor);
+            writeColor(skinData, circleStroke);
+            writeColor(skinData, circleFill);
+            writeColor(skinData, redFill);
+            writeColor(skinData, redStartFill);
+            writeColor(skinData, greenFill);
+            writeColor(skinData, greenStartFill);
+            writeColor(skinData, blueFill);
+            writeColor(skinData, blueStartFill);
+            writeColor(skinData, yellowFill);
+            writeColor(skinData, yellowStartFill);
+            writeColor(skinData, arrowStroke);
+            writeColor(skinData, arrowFill);
+            writeColor(skinData, lineStroke);
+            writeColor(skinData, pieceStroke);
+            writeString(skinData, emoji == null ? "" : emoji.getAsMention());
+            writeUnsignedInt(os, skinData.size());
+            os.write(skinData.toByteArray());
         }
 
         public static ChinczykSkin deserialize(InputStream is) throws IOException {

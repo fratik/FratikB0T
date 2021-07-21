@@ -381,7 +381,7 @@ public class Chinczyk {
                             t == Event.Type.MOVE || t == Event.Type.ENTERED_HOME) {
                         turns++;
                         this.rolled = rolled;
-                        if (lastRolled.equals(p)) rollCounter++;
+                        if (Objects.equals(lastRolled, p)) rollCounter++;
                         else {
                             lastRolled = p;
                             rollCounter = 0;
@@ -2017,7 +2017,7 @@ public class Chinczyk {
     @Getter
     public enum DefaultSkins implements ChinczykSkin {
         DEFAULT(1,
-                new Color(0xffffff), // kolor tekstu (nick gracza)
+                new Color(0x000000), // kolor tekstu (nick gracza)
                 new Color(0xd1b689), // kolor tła
                 new Color(0x000000), // kolor obwodu koła
                 new Color(0xffffff), // kolor tła koła
