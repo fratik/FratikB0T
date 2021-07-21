@@ -64,6 +64,7 @@ import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
+import java.lang.ref.SoftReference;
 import java.time.Instant;
 import java.util.List;
 import java.util.*;
@@ -96,6 +97,8 @@ public class Chinczyk {
     private static final String MOVE_PREFIX = "MOVE_";
     private static final String END_MOVE = "END_MOVE";
     static final SVGDocument plansza;
+    private static final int WIDTH;
+    private static final int HEIGHT;
     private static final Font mulish;
     private static final Font lato;
     private static final int REPLAY_TEXT_LINES = 3;
@@ -110,6 +113,7 @@ public class Chinczyk {
     private final ScheduledExecutorService executor;
     private final EventStorage eventStorage;
     private final ReentrantLock lock;
+    private SoftReference<BufferedImage> boardBase = new SoftReference<>(null);
     private Language l;
     @Getter private Status status = Status.WAITING_FOR_PLAYERS;
     private Message message;
@@ -132,10 +136,12 @@ public class Chinczyk {
     private final Map<String, ChinczykSkin> availableSkins;
 
     public static boolean canBeUsed() {
-        return mulish != null && plansza != null && lato != null;
+        return mulish != null && plansza != null && lato != null && WIDTH != -1 && HEIGHT != -1;
     }
 
     static {
+        int width;
+        int height;
         //#region koordynaty pól na mapie
         //kurwa, robiłem to 53 minuty
         Map<String, String> coords = new HashMap<>();
@@ -228,6 +234,8 @@ public class Chinczyk {
                 String parser = XMLResourceDescriptor.getXMLParserClassName();
                 SAXSVGDocumentFactory f = new SAXSVGDocumentFactory(parser);
                 doc = (SVGDocument) f.createDocument(Chinczyk.class.getResource("/Menschenaergern.svg").toString());
+                width = (int) (doc.getRootElement().getWidth().getBaseVal().getValue() * 5);
+                height = (int) (doc.getRootElement().getHeight().getBaseVal().getValue() * 5);
             }
         } catch (Exception e) {
             LoggerFactory.getLogger(Chinczyk.class).error("Nie udało się załadować czcionki i/lub planszy: ", e);
@@ -235,10 +243,14 @@ public class Chinczyk {
             m = null;
             l = null;
             doc = null;
+            width = -1;
+            height = -1;
         }
         mulish = m;
         lato = l;
         plansza = doc;
+        WIDTH = width;
+        HEIGHT = height;
     }
 
     public Chinczyk(CommandContext context, EventBus eventBus, Consumer<Chinczyk> endCallback) {
@@ -592,14 +604,27 @@ public class Chinczyk {
         isTimeout.remove();
     }
 
+    public BufferedImage renderBoardBase() {
+        if (boardBase.get() != null) return boardBase.get();
+        lock.lock();
+        try {
+            BufferedImage image = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
+            Graphics g = image.getGraphics();
+            skin.drawBoard(g, WIDTH, HEIGHT);
+            g.dispose();
+            boardBase = new SoftReference<>(image);
+            return image;
+        } finally {
+            lock.unlock();
+        }
+    }
+
     public BufferedImage renderBoard() {
         lock.lock();
         try {
-            int width = (int) (plansza.getRootElement().getWidth().getBaseVal().getValue() * 5);
-            int height = (int) (plansza.getRootElement().getHeight().getBaseVal().getValue() * 5);
-            BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+            BufferedImage image = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
             Graphics g = image.getGraphics();
-            skin.drawBoard(g, width, height);
+            g.drawImage(renderBoardBase(), 0, 0, WIDTH, HEIGHT, null);
             g.setFont(mulish.deriveFont(60f));
             g.setColor(skin.getTextColor());
             for (Player player : players.values()) {
@@ -1245,6 +1270,7 @@ public class Chinczyk {
             lock.lock();
             try {
                 skin = selectedSkin;
+                boardBase = new SoftReference<>(null);
                 updateMainMessage(true);
             } finally {
                 lock.unlock();
@@ -1272,7 +1298,7 @@ public class Chinczyk {
             }
         }
         SpecialSkins skin = SpecialSkins.fromPassword(e.getMessage().getContentRaw());
-        if (skin != null && !availableSkins.containsKey(skin.getValue())) {
+        if (skin != null && skin.isAvailable() && !availableSkins.containsKey(skin.getValue())) {
             availableSkins.put(skin.getValue(), skin);
             updateMainMessage(false);
         }

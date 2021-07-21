@@ -32,6 +32,7 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.ref.SoftReference;
 import java.net.URL;
 
 // aka nie mam pojęcia czemu to istnieje
@@ -55,10 +56,11 @@ public enum SpecialSkins implements ChinczykSkin {
             return "Jan Paweł 2";
         }
     },
-    WEEB(1<<3, "uwu owo >.<", "https://i1.sndcdn.com/artworks-000200048978-glvasd-t500x500.jpg") {
+    WEEB(1<<3, "uwu owo >.<", "https://i.fratikbot.pl/LmbUteC.jpg") {
         @Override
         public String getTranslated(Tlumaczenia t, Language l) {
-            return "Weeb";
+            //noinspection SpellCheckingInspection - celowe
+            return "Anime gril";
         }
     };
 
@@ -73,7 +75,8 @@ public enum SpecialSkins implements ChinczykSkin {
         String getTranslated(Tlumaczenia t, Language l) throws IOException;
     }
     private final @Delegate(types = ChinczykSkin.class, excludes = DelExc.class) SpecialSkinImpl skin;
-    private final BufferedImage background;
+    private URL url;
+    private SoftReference<BufferedImage> background;
 
     public class SpecialSkinImpl extends SkinImpl {
         public SpecialSkinImpl(ChinczykSkin skin) {
@@ -86,44 +89,47 @@ public enum SpecialSkins implements ChinczykSkin {
 
         @Override
         protected void drawBackground(Graphics g, int width, int height) {
-            Color c = g.getColor();
-            g.setColor(Chinczyk.DefaultSkins.DEFAULT.getBgColor());
-            g.fillRect(0, 0, width, height);
-            g.setColor(c);
-            g.drawImage(background, 0, 0, width, height, null);
+            if (!isAvailable()) throw new IllegalStateException("skin nie jest dostępny");
+            g.drawImage(getBackground(), 0, 0, width, height, null);
         }
     }
 
-    SpecialSkins(int flag, String password, String bgImage) {
+    SpecialSkins(int flag, String password) {
         this.flag = flag;
         this.password = password;
         this.skin = new SpecialSkinImpl(Chinczyk.DefaultSkins.DEFAULT);
-        BufferedImage bg;
+    }
+
+    SpecialSkins(int flag, String password, String bgImage) {
+        this(flag, password);
         try {
-            bg = ImageIO.read(new URL(bgImage));
+            url = new URL(bgImage);
         } catch (Exception e) {
-            logger.error("Nie udało się pobrać tła!", e);
-            bg = null;
+            logger.error("Nieprawidłowy link!", e);
+            url = null;
         }
-        background = bg;
     }
 
     SpecialSkins(int flag, String password, URL bgImage) {
-        BufferedImage bg;
-        this.flag = flag;
-        this.password = password;
-        this.skin = new SpecialSkinImpl(Chinczyk.DefaultSkins.DEFAULT.getSkin());
+        this(flag, password);
+        url = bgImage;
+    }
+
+    private synchronized BufferedImage getBackground() {
+        if (background != null && background.get() != null) return background.get();
         try {
-            bg = ImageIO.read(bgImage);
-        } catch (IOException e) {
-            logger.error("Nie udało się pobrać tła!", e);
-            bg = null;
+            BufferedImage image = ImageIO.read(url);
+            background = new SoftReference<>(image);
+            return image;
+        } catch (Exception e) {
+            logger.error("Nie udało się pobrać zdjęcia!", e);
+            background = null;
+            return null;
         }
-        background = bg;
     }
 
     public boolean isAvailable() {
-        return background != null;
+        return getBackground() != null;
     }
 
     public static SpecialSkins fromRaw(long raw) {
@@ -145,7 +151,9 @@ public enum SpecialSkins implements ChinczykSkin {
     }
 
     public static ChinczykSkin deserialize(InputStream is) throws IOException {
-        return fromRaw(StreamUtil.readLong(is));
+        SpecialSkins s = fromRaw(StreamUtil.readLong(is));
+        if (s == null || !s.isAvailable()) throw new IOException("skin nie jest dostępny");
+        return s;
     }
 
     @Override

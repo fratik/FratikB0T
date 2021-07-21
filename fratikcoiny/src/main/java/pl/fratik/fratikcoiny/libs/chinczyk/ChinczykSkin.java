@@ -17,12 +17,14 @@
 
 package pl.fratik.fratikcoiny.libs.chinczyk;
 
+import io.sentry.Sentry;
 import lombok.Getter;
 import net.dv8tion.jda.api.entities.Emoji;
 import org.apache.batik.transcoder.SVGAbstractTranscoder;
 import org.apache.batik.transcoder.TranscoderException;
 import org.apache.batik.transcoder.TranscoderInput;
 import org.apache.batik.transcoder.image.ImageTranscoder;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.Element;
 import org.w3c.dom.svg.SVGDocument;
 import pl.fratik.core.tlumaczenia.Language;
@@ -32,6 +34,7 @@ import pl.fratik.fratikcoiny.util.ImageUtils;
 import java.awt.*;
 import java.io.*;
 import java.lang.reflect.Method;
+import java.util.Base64;
 
 import static pl.fratik.core.util.CommonUtil.asHex;
 import static pl.fratik.core.util.StreamUtil.*;
@@ -79,7 +82,13 @@ public interface ChinczykSkin {
             Method m = cls.getDeclaredMethod("deserialize", InputStream.class);
             return (ChinczykSkin) m.invoke(null, bais);
         } catch (Exception e) {
-            throw new IOException(e);
+            LoggerFactory.getLogger(ChinczykSkin.class).error("Nie udało się odczytać skina!", e);
+            Sentry.getContext().addExtra("skinDeserializer", deserializer);
+            Sentry.getContext().addExtra("skinSize", size);
+            Sentry.getContext().addExtra("skinData", Base64.getEncoder().encodeToString(baos.toByteArray()));
+            Sentry.capture(e);
+            Sentry.clearContext();
+            return Chinczyk.DefaultSkins.DEFAULT;
         }
     }
 
@@ -202,7 +211,15 @@ public interface ChinczykSkin {
                 // niemożliwe, ale na wszelki
                 throw new IllegalStateException(e);
             }
-            drawBackground(g, width, height);
+            Color c = g.getColor();
+            g.setColor(Chinczyk.DefaultSkins.DEFAULT.getBgColor());
+            g.fillRect(0, 0, width, height);
+            g.setColor(c);
+            try {
+                drawBackground(g, width, height);
+            } catch (Exception ignored) {
+                // ignoruj, doszło do defekacji wewnętrznej - lepiej domyślny kolor niż przerwana gra
+            }
             g.drawImage(trans.getImage(), 0, 0, width, height, null);
         }
 
