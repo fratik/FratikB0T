@@ -28,6 +28,7 @@ import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.entity.Uzycie;
+import pl.fratik.core.util.CommonUtil;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -99,16 +100,16 @@ public class KolorCommand extends Command {
             baos.flush();
             EmbedBuilder eb = new EmbedBuilder();
             eb.setColor(color);
-            eb.setImage("attachment://" + asHex(color) + ".png");
+            eb.setImage("attachment://" + CommonUtil.asHex(color) + ".png");
             eb.setTitle(context.getTranslated("kolor.embed.header"));
             String[] rgb = new String[3];
             rgb[0] = String.valueOf(color.getRed());
             rgb[1] = String.valueOf(color.getGreen());
             rgb[2] = String.valueOf(color.getBlue());
             eb.addField("RGB", String.join(", ", rgb), true);
-            eb.addField("Hex", "#" + asHex(color), true);
+            eb.addField("Hex", "#" + CommonUtil.asHex(color), true);
             if (getCssName(color) != null) eb.addField("CSS", getCssName(color), true);
-            context.getMessageChannel().sendMessage(eb.build()).addFile(baos.toByteArray(), asHex(color) + ".png")
+            context.getMessageChannel().sendMessage(eb.build()).addFile(baos.toByteArray(), CommonUtil.asHex(color) + ".png")
                     .reference(context.getMessage()).queue();
             baos.close();
         } catch (IOException e) {
@@ -160,11 +161,4 @@ public class KolorCommand extends Command {
         return null;
     }
 
-    private String asHex(Color color) {
-        String hexColor = Integer.toHexString(color.getRGB() & 0xffffff);
-        if (hexColor.length() < 6) {
-            hexColor = "000000".substring(0, 6 - hexColor.length()) + hexColor;
-        }
-        return hexColor;
-    }
 }

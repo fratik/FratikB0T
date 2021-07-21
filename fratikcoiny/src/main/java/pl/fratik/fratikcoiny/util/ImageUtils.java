@@ -17,7 +17,12 @@
 
 package pl.fratik.fratikcoiny.util;
 
+import lombok.Getter;
+import org.apache.batik.transcoder.TranscoderOutput;
+import org.apache.batik.transcoder.image.ImageTranscoder;
+
 import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -74,6 +79,20 @@ public class ImageUtils {
             x = initialX + (width - fontMetrics.stringWidth(line)) / 2;
             g.drawString(line, x, y);
             y += fontMetrics.getHeight();
+        }
+    }
+
+    public static class BufferedImageTranscoder extends ImageTranscoder {
+        @Getter private BufferedImage image;
+
+        @Override
+        public BufferedImage createImage(int width, int height) {
+            return image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB_PRE);
+        }
+
+        @Override
+        public void writeImage(BufferedImage img, TranscoderOutput output) {
+            // nie rób nic - gotowe
         }
     }
 }

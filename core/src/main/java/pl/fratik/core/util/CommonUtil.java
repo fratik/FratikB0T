@@ -244,4 +244,12 @@ public class CommonUtil {
         if (!showPrecentage) return String.format(format, append(niebieskie), Ustawienia.instance.botUrl, append(biale));
         else return String.format(format, append(niebieskie), Ustawienia.instance.botUrl, append(biale), procent);
     }
+
+    public static String asHex(Color color) {
+        String hexColor = Integer.toHexString(color.getRGB() & 0xffffff);
+        if (hexColor.length() < 6) {
+            hexColor = "000000".substring(0, 6 - hexColor.length()) + hexColor;
+        }
+        return hexColor;
+    }
 }

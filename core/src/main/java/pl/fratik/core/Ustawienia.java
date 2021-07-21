@@ -128,6 +128,7 @@ public class Ustawienia {
         public String osuLM = "648152361935831053";
         public String chinczykDefault = "<:default:867068362499948573>"; //w markdown!
         public String chinczykDark = "<:dark:867068374550970368>"; //w markdown!
+        public String chinczykAmoled = "<:amoled:867346828903186432>"; //w markdown!
     }
 
     public static class ShardSettings {

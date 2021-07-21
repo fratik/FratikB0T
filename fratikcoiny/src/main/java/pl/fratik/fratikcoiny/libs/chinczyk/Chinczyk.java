@@ -21,10 +21,8 @@ import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import io.sentry.Sentry;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.ToString;
+import lombok.*;
+import lombok.experimental.Delegate;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.Permission;
@@ -47,8 +45,11 @@ import net.dv8tion.jda.api.interactions.components.selections.SelectionMenu;
 import net.dv8tion.jda.api.requests.ErrorResponse;
 import net.dv8tion.jda.api.requests.restaction.MessageAction;
 import net.dv8tion.jda.api.sharding.ShardManager;
+import org.apache.batik.anim.dom.SAXSVGDocumentFactory;
+import org.apache.batik.util.XMLResourceDescriptor;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
+import org.w3c.dom.svg.SVGDocument;
 import pl.fratik.core.Ustawienia;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.tlumaczenia.Language;
@@ -63,8 +64,6 @@ import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 import java.util.*;
@@ -78,9 +77,10 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static net.dv8tion.jda.api.requests.ErrorResponse.UNKNOWN_INTERACTION;
+import static pl.fratik.core.util.StreamUtil.*;
 
 public class Chinczyk {
-    private static final byte CHINCZYK_VERSION = 0x03;
+    private static final byte CHINCZYK_VERSION = 0x04;
     private static final byte[] CHINCZYK_HEADER = new byte[] {0x21, 0x37};
     private static final Map<String, String> BOARD_COORDS;
     private static final String FILE_NAME = "board";
@@ -95,7 +95,7 @@ public class Chinczyk {
     private static final String ROLL = "ROLL";
     private static final String MOVE_PREFIX = "MOVE_";
     private static final String END_MOVE = "END_MOVE";
-    private static final BufferedImage plansza;
+    static final SVGDocument plansza;
     private static final Font mulish;
     private static final Font lato;
     private static final int REPLAY_TEXT_LINES = 3;
@@ -128,10 +128,11 @@ public class Chinczyk {
     private long gameDuration;
     private EnumSet<Rules> rules = EnumSet.noneOf(Rules.class);
     @Getter private boolean cheats; // tu nic nie ma 👀
-    private Skin skin;
+    private ChinczykSkin skin;
+    private final Map<String, ChinczykSkin> availableSkins;
 
     public static boolean canBeUsed() {
-        return mulish != null && plansza != null;
+        return mulish != null && plansza != null && lato != null;
     }
 
     static {
@@ -218,24 +219,26 @@ public class Chinczyk {
         //#endregion
         Font m;
         Font l;
-        BufferedImage i;
+        SVGDocument doc;
         try {
             try (InputStream mulishStream = Chinczyk.class.getResourceAsStream("/Mulish-Regular.ttf");
                  InputStream latoStream = Chinczyk.class.getResourceAsStream("/Lato-Bold.ttf")) {
                 m = Font.createFont(Font.TRUETYPE_FONT, Objects.requireNonNull(mulishStream));
                 l = Font.createFont(Font.TRUETYPE_FONT, Objects.requireNonNull(latoStream));
-                i = ImageIO.read(Objects.requireNonNull(Chinczyk.class.getResource("/plansza_chinczyk.png")));
+                String parser = XMLResourceDescriptor.getXMLParserClassName();
+                SAXSVGDocumentFactory f = new SAXSVGDocumentFactory(parser);
+                doc = (SVGDocument) f.createDocument(Chinczyk.class.getResource("/Menschenaergern.svg").toString());
             }
         } catch (Exception e) {
             LoggerFactory.getLogger(Chinczyk.class).error("Nie udało się załadować czcionki i/lub planszy: ", e);
             Sentry.capture(e);
             m = null;
             l = null;
-            i = null;
+            doc = null;
         }
         mulish = m;
         lato = l;
-        plansza = i;
+        plansza = doc;
     }
 
     public Chinczyk(CommandContext context, EventBus eventBus, Consumer<Chinczyk> endCallback) {
@@ -257,8 +260,10 @@ public class Chinczyk {
         players = new EnumMap<>(Place.class);
         eventStorage = new EventStorage();
         int godzina = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
-        if (godzina >= 22 || godzina <= 6) skin = Skin.DARK;
-        else skin = Skin.DEFAULT;
+        availableSkins = new LinkedHashMap<>();
+        for (DefaultSkins s : DefaultSkins.values()) availableSkins.put(s.getValue(), s);
+        if (godzina >= 22 || godzina <= 6) skin = DefaultSkins.DARK;
+        else skin = DefaultSkins.DEFAULT;
         t = context.getTlumaczenia();
         l = context.getLanguage();
         eventBus.register(this);
@@ -270,6 +275,8 @@ public class Chinczyk {
         lock = new ReentrantLock();
         eventStorage = new EventStorage();
         t = tlumaczenia;
+        availableSkins = new LinkedHashMap<>();
+        for (DefaultSkins s : DefaultSkins.values()) availableSkins.put(s.getValue(), s);
         lock.lock();
         try {
             byte[] header = new byte[CHINCZYK_HEADER.length];
@@ -323,8 +330,8 @@ public class Chinczyk {
             int rawCheats = is.read();
             if (rawCheats == -1) throw new EOFException();
             cheats = rawCheats != 0;
-            if (version > 2) skin = Skin.fromRaw(readLong(is));
-            else skin = Skin.DEFAULT;
+            if (version > 2) skin = ChinczykSkin.deserialize(is); //FIXME wywalic po stable deployu
+            else skin = DefaultSkins.DEFAULT;
             gameDuration = readUnsignedInt(is);
             Instant started = Instant.ofEpochMilli(readLong(is));
             Instant saved = Instant.ofEpochMilli(readLong(is));
@@ -374,7 +381,7 @@ public class Chinczyk {
                             t == Event.Type.MOVE || t == Event.Type.ENTERED_HOME) {
                         turns++;
                         this.rolled = rolled;
-                        if (p.equals(lastRolled)) rollCounter++;
+                        if (lastRolled.equals(p)) rollCounter++;
                         else {
                             lastRolled = p;
                             rollCounter = 0;
@@ -442,7 +449,7 @@ public class Chinczyk {
                             "-framerate", "1", "-f", "image2pipe", "-y", "-i", "-", "-vcodec", "libx264",
                             "-tune", "stillimage", "-r", "15", "-pix_fmt", "yuv420p", "-movflags", "faststart",
                             temp.getAbsolutePath()).start();
-                    private ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    private final ByteArrayOutputStream baos = new ByteArrayOutputStream();
                     private boolean closed;
                     @Override
                     public synchronized void close() throws IOException {
@@ -554,50 +561,10 @@ public class Chinczyk {
         return p;
     }
 
-    private long readUnsignedInt(InputStream is) throws IOException {
-        ByteBuffer bb = ByteBuffer.allocate(4);
-        if (is.read(bb.array()) != 4) throw new EOFException();
-        return Integer.toUnsignedLong(bb.getInt());
-    }
-
-    private long readLong(InputStream is) throws IOException {
-        ByteBuffer bb = ByteBuffer.allocate(8);
-        if (is.read(bb.array()) != 8) throw new EOFException();
-        return bb.getLong();
-    }
-
-    private String readString(InputStream is) throws IOException {
-        ByteBuffer bb = ByteBuffer.allocate(2);
-        if (is.read(bb.array()) != 2) throw new EOFException();
-        byte[] buffer = new byte[bb.getShort()];
-        if (is.read(buffer) != buffer.length) throw new EOFException();
-        return new String(buffer, 0, buffer.length, StandardCharsets.UTF_8);
-    }
-
     private void writePlayer(OutputStream os, Player p) throws IOException {
         os.write(p.getPlace().getOffset());
         writeLong(os, p.getUser().getIdLong());
         writeString(os, p.getLanguage().name());
-    }
-
-    private void writeUnsignedInt(OutputStream os, long l) throws IOException {
-        ByteBuffer bb = ByteBuffer.allocate(4);
-        bb.putInt((int) l);
-        os.write(bb.array());
-    }
-
-    private void writeLong(OutputStream os, long l) throws IOException {
-        ByteBuffer bb = ByteBuffer.allocate(8);
-        bb.putLong(l);
-        os.write(bb.array());
-    }
-
-    private void writeString(OutputStream os, String s) throws IOException {
-        ByteBuffer bb = ByteBuffer.allocate(2);
-        byte[] bytes = s.getBytes(StandardCharsets.UTF_8);
-        bb.putShort((short) bytes.length);
-        os.write(bb.array());
-        os.write(bytes);
     }
 
     private void timeout() {
@@ -628,10 +595,11 @@ public class Chinczyk {
     public BufferedImage renderBoard() {
         lock.lock();
         try {
-            BufferedImage image = new BufferedImage(plansza.getWidth(), plansza.getHeight(), BufferedImage.TYPE_INT_RGB);
+            int width = (int) (plansza.getRootElement().getWidth().getBaseVal().getValue() * 5);
+            int height = (int) (plansza.getRootElement().getHeight().getBaseVal().getValue() * 5);
+            BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
             Graphics g = image.getGraphics();
-            skin.fillBackground(g, plansza.getWidth(), plansza.getHeight());
-            g.drawImage(plansza, 0, 0, null);
+            skin.drawBoard(g, width, height);
             g.setFont(mulish.deriveFont(60f));
             g.setColor(skin.getTextColor());
             for (Player player : players.values()) {
@@ -791,8 +759,8 @@ public class Chinczyk {
 
     private ActionRow generateSkinMenu() {
         List<SelectOption> options = new ArrayList<>();
-        for (Skin skin : Skin.values()) {
-            options.add(SelectOption.of(t.get(l, skin.getKey()), skin.name())
+        for (ChinczykSkin skin : availableSkins.values()) {
+            options.add(SelectOption.of(skin.getTranslated(t, l), skin.getValue())
                     .withEmoji(skin.getEmoji())
                     .withDefault(this.skin == skin));
         }
@@ -1259,10 +1227,10 @@ public class Chinczyk {
         }
         if (e.getComponentId().equals(SKIN)) {
             if (status != Status.WAITING && status != Status.WAITING_FOR_PLAYERS) return;
-            Skin selectedSkin;
+            ChinczykSkin selectedSkin;
             try {
-                selectedSkin = Skin.valueOf(e.getValues().get(0));
-            } catch (IllegalArgumentException | IndexOutOfBoundsException ex) {
+                selectedSkin = availableSkins.get(e.getValues().get(0));
+            } catch (IndexOutOfBoundsException ex) {
                 return;
             }
             if (e.getMessageIdLong() != message.getIdLong()) return;
@@ -1288,10 +1256,11 @@ public class Chinczyk {
     @AllowConcurrentEvents
     public void onMessage(MessageReceivedEvent e) {
         if (!e.getChannel().equals(getChannel())) return;
-        if (status != Status.WAITING_FOR_PLAYERS || !players.isEmpty()) return;
-        if (cheats) return;
+        if (status != Status.WAITING && status != Status.WAITING_FOR_PLAYERS) return;
         if (!e.getAuthor().equals(executer)) return;
         if (e.getMessage().getContentRaw().equals("\u2191\u2191\u2193\u2193\u2190\u2192\u2190\u2192BA")) {
+            if (!players.isEmpty()) return;
+            if (cheats) return;
             lock.lock();
             try {
                 cheats = true;
@@ -1301,6 +1270,11 @@ public class Chinczyk {
             } finally {
                 lock.unlock();
             }
+        }
+        SpecialSkins skin = SpecialSkins.fromPassword(e.getMessage().getContentRaw());
+        if (skin != null && !availableSkins.containsKey(skin.getValue())) {
+            availableSkins.put(skin.getValue(), skin);
+            updateMainMessage(false);
         }
     }
     
@@ -1612,7 +1586,7 @@ public class Chinczyk {
                 writePlayer(baos, p);
             writeLong(baos, Rules.toRaw(rules));
             baos.write(cheats ? 1 : 0);
-            writeLong(baos, skin.getFlag());
+            skin.serialize(baos);
             writeUnsignedInt(baos, gameDuration);
             writeLong(baos, start.toEpochMilli());
             writeLong(baos, now.toEpochMilli());
@@ -1772,18 +1746,14 @@ public class Chinczyk {
 
     public enum Place {
         BLUE("\uD83D\uDFE6", 2, new Color(0x0000F8), new Color(0xFFFFFF)),
-        GREEN("\uD83D\uDFE9", 12, new Color(0x007C00)),
-        YELLOW("\uD83D\uDFE8", 22, new Color(0xF4F600)),
-        RED("\uD83D\uDFE5", 32, new Color(0xFF0000));
+        GREEN("\uD83D\uDFE9", 12, new Color(0x007C00), new Color(0xFFFFFF)),
+        YELLOW("\uD83D\uDFE8", 22, new Color(0xF4F600), new Color(0x000000)),
+        RED("\uD83D\uDFE5", 32, new Color(0xFF0000), new Color(0xFFFFFF));
 
         @Getter private final String emoji;
         @Getter private final int offset;
         @Getter private final Color bgColor;
         @Getter private final Color textColor;
-
-        Place(String emoji, int offset, Color bgColor) {
-            this(emoji, offset, bgColor, Color.BLACK);
-        }
 
         Place(String emoji, int offset, Color bgColor, Color textColor) {
             this.emoji = emoji;
@@ -1827,7 +1797,7 @@ public class Chinczyk {
             Graphics g = square.getGraphics();
             g.setColor(player.getPlace().bgColor);
             g.fillRect(0, 0, 59, 59);
-            g.setColor(Color.BLACK);
+            g.setColor(skin.getPieceStroke());
             g.drawRect(0, 0, 59, 59);
             g.setColor(player.getPlace().textColor);
             g.setFont(f.deriveFont(Font.BOLD, 44f));
@@ -2045,36 +2015,115 @@ public class Chinczyk {
     }
 
     @Getter
-    public enum Skin {
-        DEFAULT(1, new Color(0xD1B689), Color.BLACK, Ustawienia.instance.emotki.chinczykDefault),
-        DARK(1<<1, new Color(0x665A44), Color.WHITE, Ustawienia.instance.emotki.chinczykDark);
+    public enum DefaultSkins implements ChinczykSkin {
+        DEFAULT(1,
+                new Color(0xffffff), // kolor tekstu (nick gracza)
+                new Color(0xd1b689), // kolor tła
+                new Color(0x000000), // kolor obwodu koła
+                new Color(0xffffff), // kolor tła koła
+                new Color(0xff0000), // kolor czerwonego gracza
+                new Color(0xffa07a), // kolor startowy czerwonego
+                new Color(0x008000), // kolor zielonego gracza
+                new Color(0x90ee90), // kolor startowy zielonego
+                new Color(0x0000ff), // kolor niebieskiego gracza
+                new Color(0x6495ed), // kolor startowy niebieskiego
+                new Color(0xffff00), // kolor żółtego gracza
+                new Color(0xfffacd), // kolor startowy żółtego
+                new Color(0x000000), // obwód strzałki
+                new Color(0x000000), // wypełnienie strzałki
+                new Color(0x000000), // kolor linii łączącej pola
+                new Color(0x000000), // kolor krawędzi pionków
+                Ustawienia.instance.emotki.chinczykDefault),
+        DARK(1<<1,
+                new Color(0xffffff), // kolor tekstu (nick gracza)
+                new Color(0x665a44), // kolor tła
+                new Color(0x000000), // kolor obwodu koła
+                new Color(0xffffff), // kolor tła koła
+                new Color(0xff0000), // kolor czerwonego gracza
+                new Color(0xffa07a), // kolor startowy czerwonego
+                new Color(0x008000), // kolor zielonego gracza
+                new Color(0x90ee90), // kolor startowy zielonego
+                new Color(0x0000ff), // kolor niebieskiego gracza
+                new Color(0x6495ed), // kolor startowy niebieskiego
+                new Color(0xffff00), // kolor żółtego gracza
+                new Color(0xfffacd), // kolor startowy żółtego
+                new Color(0x000000), // obwód strzałki
+                new Color(0x000000), // wypełnienie strzałki
+                new Color(0x000000), // kolor linii łączącej pola
+                new Color(0x000000), // kolor krawędzi pionków
+                Ustawienia.instance.emotki.chinczykDark),
+        AMOLED(1<<2,
+                new Color(0xffffff), // kolor tekstu (nick gracza)
+                new Color(0x000000), // kolor tła
+                new Color(0xffffff), // kolor obwodu koła
+                new Color(0x000000), // kolor tła koła
+                new Color(0xff0000), // kolor czerwonego gracza
+                new Color(0x662828), // kolor startowy czerwonego
+                new Color(0x008000), // kolor zielonego gracza
+                new Color(0x204020), // kolor startowy zielonego
+                new Color(0x0000ff), // kolor niebieskiego gracza
+                new Color(0x203966), // kolor startowy niebieskiego
+                new Color(0xffff00), // kolor żółtego gracza
+                new Color(0x595916), // kolor startowy żółtego
+                new Color(0xffffff), // obwód strzałki
+                new Color(0x000000), // wypełnienie strzałki
+                new Color(0xffffff), // kolor linii łączącej pola
+                new Color(0xffffff), // kolor krawędzi pionków
+                Ustawienia.instance.emotki.chinczykAmoled);
+
+        private interface DelExc {
+            String getValue();
+            String getTranslated(Tlumaczenia t, Language l);
+            void serialize(OutputStream os);
+        }
 
         private final int flag;
-        private final Color bgColor;
-        private final Color textColor;
-        private final Emoji emoji;
+        @Getter(AccessLevel.PACKAGE) private final @Delegate(excludes = DelExc.class) ChinczykSkin skin;
 
-        Skin(int flag, Color bgColor, Color textColor, String emojiMarkdown) {
+        DefaultSkins(int flag,
+             Color textColor,
+             Color bgColor,
+             Color circleStroke,
+             Color circleFill,
+             Color redFill,
+             Color redStartFill,
+             Color greenFill,
+             Color greenStartFill,
+             Color blueFill,
+             Color blueStartFill,
+             Color yellowFill,
+             Color yellowStartFill,
+             Color arrowStroke,
+             Color arrowFill,
+             Color lineStroke,
+             Color pieceStroke,
+             String emojiMarkdown) {
             this.flag = flag;
-            this.bgColor = bgColor;
-            this.textColor = textColor;
-            emoji = emojiMarkdown == null || emojiMarkdown.isEmpty() ? null : Emoji.fromMarkdown(emojiMarkdown);
+            Emoji emoji = emojiMarkdown == null || emojiMarkdown.isEmpty() ? null : Emoji.fromMarkdown(emojiMarkdown);
+            skin = ChinczykSkin.of(textColor, bgColor, circleStroke, circleFill, redFill, redStartFill, greenFill,
+                    greenStartFill, blueFill, blueStartFill, yellowFill, yellowStartFill, arrowStroke, arrowFill,
+                    lineStroke, pieceStroke, emoji);
         }
 
-        public void fillBackground(Graphics g, int width, int height) {
-            Color h = g.getColor();
-            g.setColor(bgColor);
-            g.fillRect(0, 0, width, height);
-            g.setColor(h);
-        }
-
-        public static Skin fromRaw(long raw) {
-            for (Skin s : values()) if ((raw & s.flag) == s.flag) return s;
+        public static DefaultSkins fromRaw(long raw) {
+            for (DefaultSkins s : values()) if ((raw & s.flag) == s.flag) return s;
             return null;
         }
 
-        public String getKey() {
-            return "chinczyk.skin." + name().toLowerCase();
+        @Override
+        public String getValue() {
+            return name();
+        }
+
+        @Override
+        public String getTranslated(Tlumaczenia t, Language l) {
+            return t.get(l, "chinczyk.skin." + name().toLowerCase());
+        }
+
+        @Override
+        public void serialize(OutputStream os) throws IOException {
+            os.write(0);
+            writeLong(os, flag);
         }
     }
 }

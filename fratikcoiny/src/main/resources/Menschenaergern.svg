@@ -1,0 +1,63 @@
+<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="386" height="386">
+	<defs>
+		<circle r="12.4" stroke="#000" stroke-width="1.5" id="circle"/>
+		
+		<marker id="marker-w" refX="14" refY="14" markerWidth="28" markerHeight="28" markerUnits="userSpaceOnUse">
+			<use fill="#fff" x="14" y="14" xlink:href="#circle"/>
+		</marker>
+		<marker id="marker-r" refX="14" refY="14" markerWidth="28" markerHeight="28" markerUnits="userSpaceOnUse">
+			<use fill="#f00" x="14" y="14" xlink:href="#circle"/>
+		</marker>
+		<marker id="marker-g" refX="14" refY="14" markerWidth="28" markerHeight="28" markerUnits="userSpaceOnUse">
+			<use fill="#008000" x="14" y="14" xlink:href="#circle"/>
+		</marker>
+		<marker id="marker-b" refX="14" refY="14" markerWidth="28" markerHeight="28" markerUnits="userSpaceOnUse">
+			<use fill="#00f" x="14" y="14" xlink:href="#circle"/>
+		</marker>
+		<marker id="marker-y" refX="14" refY="14" markerWidth="28" markerHeight="28" markerUnits="userSpaceOnUse">
+			<use fill="#ff0" x="14" y="14" xlink:href="#circle"/>
+		</marker>
+		
+		<path id="arrow" d="M0 0 h30 l-5 -5 l20 5 l-20 5 l5 -5 z" fill="#000" stroke="#000" stroke-width="1.3" stroke-miterlimit="8"/>
+	</defs>
+	
+	<rect id="bg" x="1" y="1" width="384" height="384" fill="none" stroke="#000" stroke-width="2"/>
+	<path d="M25 159.4
+	h 33.6 h 33.6 h 33.6 h 33.6
+	v-33.6 v-33.6 v-33.6 v-33.6
+	h 33.6 h 33.6
+	v 33.6 v 33.6 v 33.6 v 33.6
+	h 33.6 h 33.6 h 33.6 h 33.6
+	v 33.6 v 33.6
+	h-33.6 h-33.6 h-33.6 h-33.6
+	v 33.6 v 33.6 v 33.6 v 33.6
+	h-33.6 h-33.6
+	v-33.6 v-33.6 v-33.6 v-33.6
+	h-33.6 h-33.6 h-33.6 h-33.6
+	v-33.6 z" id="line" fill="none" stroke="#000" stroke-width="2" marker-mid="url(#marker-w)" marker-end="url(#marker-w)"/>
+
+	<use id="rs" x="25" y="159.4" fill="#ffa07a" xlink:href="#circle"/>
+	<use id="gs" x="361" y="226.6" fill="#90ee90" xlink:href="#circle"/>
+	<use id="bs" x="226.6" y="25" fill="#6495ed" xlink:href="#circle"/>
+	<use id="ys" x="159.4" y="361" fill="#fffacd" xlink:href="#circle"/>
+	
+	<use x="20" y="134.4" xlink:href="#arrow"/>
+	<use x="366" y="251.6" xlink:href="#arrow" transform="rotate(180, 366 251.6)"/>
+	<use x="251.6" y="20" xlink:href="#arrow" transform="rotate(90, 251.6 20)"/>
+	<use x="134.4" y="366" xlink:href="#arrow" transform="rotate(270, 134.4 366)"/>
+	
+	<g fill="none" stroke="none">
+		<path d="M193 193 h-33.6 h-33.6 h-33.6 h-33.6" marker-mid="url(#marker-r)" marker-end="url(#marker-r)"/>
+		<path d="M25 25 h33.6 v33.6 h-33.6" marker-start="url(#marker-r)" marker-mid="url(#marker-r)" marker-end="url(#marker-r)"/>
+		
+		<path d="M193 193 h33.6 h33.6 h33.6 h33.6" marker-mid="url(#marker-g)" marker-end="url(#marker-g)"/>
+		<path d="M361 361 h-33.6 v-33.6 h33.6" marker-start="url(#marker-g)" marker-mid="url(#marker-g)" marker-end="url(#marker-g)"/>
+		
+		<path d="M193 193 v-33.6 v-33.6 v-33.6 v-33.6" marker-mid="url(#marker-b)" marker-end="url(#marker-b)"/>
+		<path d="M361 25 h-33.6 v33.6 h33.6" marker-start="url(#marker-b)" marker-mid="url(#marker-b)" marker-end="url(#marker-b)"/>
+		
+		<path d="M193 193 v33.6 v33.6 v33.6 v33.6" marker-mid="url(#marker-y)" marker-end="url(#marker-y)"/>
+		<path d="M25 361 h33.6 v-33.6 h-33.6" marker-start="url(#marker-y)" marker-mid="url(#marker-y)" marker-end="url(#marker-y)"/>
+	</g>
+</svg>
