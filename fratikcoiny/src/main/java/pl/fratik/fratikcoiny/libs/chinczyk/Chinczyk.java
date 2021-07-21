@@ -76,6 +76,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static net.dv8tion.jda.api.requests.ErrorResponse.UNKNOWN_INTERACTION;
+
 public class Chinczyk {
     private static final byte CHINCZYK_VERSION = 0x02;
     private static final byte[] CHINCZYK_HEADER = new byte[] {0x21, 0x37};
@@ -831,7 +833,7 @@ public class Chinczyk {
                             Language lang = players.values().stream().filter(p -> p.getUser().equals(e.getUser()))
                                     .findAny().map(Player::getLanguage).orElse(l);
                             e.reply(t.get(lang, "chinczyk.not.owner.start", executer.getAsMention()))
-                                    .setEphemeral(true).complete();
+                                    .setEphemeral(true).onErrorMap(UNKNOWN_INTERACTION::test, ex -> null).complete();
                             return;
                         }
                         if (!timeout.cancel(false)) return;
@@ -854,7 +856,7 @@ public class Chinczyk {
                             Language lang = players.values().stream().filter(p -> p.getUser().equals(e.getUser()))
                                     .findAny().map(Player::getLanguage).orElse(l);
                             e.reply(t.get(lang, "chinczyk.not.owner.abort", executer.getAsMention()))
-                                    .setEphemeral(true).complete();
+                                    .setEphemeral(true).onErrorMap(UNKNOWN_INTERACTION::test, ex -> null).complete();
                             return;
                         }
                         e.deferEdit().queue();
@@ -879,7 +881,7 @@ public class Chinczyk {
                             player.setControlHook(e.getHook());
                             player.setControlMessageId(control.getIdLong());
                         } catch (ErrorResponseException ex) {
-                            if (ex.getErrorResponse() == ErrorResponse.UNKNOWN_INTERACTION) {
+                            if (ex.getErrorResponse() == UNKNOWN_INTERACTION) {
                                 Player player = p.get();
                                 if (player.getControlHook() != null) {
                                     player.getControlHook().editOriginal(new MessageBuilder(t.get(player.getLanguage(),
@@ -902,11 +904,13 @@ public class Chinczyk {
                         if (place == null || players.containsKey(place)) return;
                         if (!e.getUser().equals(executer) &&
                                 players.values().stream().noneMatch(p -> p.getUser().equals(executer))) {
-                            e.reply(t.get(l, "chinczyk.executer.first", executer.getAsMention())).setEphemeral(true).complete();
+                            e.reply(t.get(l, "chinczyk.executer.first", executer.getAsMention()))
+                                    .setEphemeral(true).onErrorMap(UNKNOWN_INTERACTION::test, ex -> null).complete();
                             return;
                         }
                         if (players.values().stream().anyMatch(p -> p.getUser().equals(e.getUser()))) {
-                            e.reply(t.get(l, "chinczyk.already.playing", executer.getAsMention())).setEphemeral(true).complete();
+                            e.reply(t.get(l, "chinczyk.already.playing", executer.getAsMention()))
+                                    .setEphemeral(true).onErrorMap(UNKNOWN_INTERACTION::test, ex -> null).complete();
                             return;
                         }
                         try {
@@ -916,7 +920,7 @@ public class Chinczyk {
                             player.setControlMessageId(control.getIdLong());
                             players.put(place, player);
                         } catch (ErrorResponseException ex) {
-                            if (ex.getErrorResponse() != ErrorResponse.UNKNOWN_INTERACTION) errored(ex);
+                            if (ex.getErrorResponse() != UNKNOWN_INTERACTION) errored(ex);
                         } catch (Exception ex) {
                             errored(ex);
                         }
@@ -941,7 +945,8 @@ public class Chinczyk {
                 }
                 case LEAVE: {
                     if (e.getUser().equals(executer) && status != Status.IN_PROGRESS) {
-                        e.reply(t.get(player.getLanguage(), "chinczyk.owner.selfabort")).setEphemeral(true).complete();
+                        e.reply(t.get(player.getLanguage(), "chinczyk.owner.selfabort"))
+                                .setEphemeral(true).onErrorMap(UNKNOWN_INTERACTION::test, ex -> null).complete();
                         return;
                     }
                     e.deferEdit().queue();
