@@ -1203,7 +1203,7 @@ public class Chinczyk {
                         Language lang = players.values().stream().filter(p -> p.getUser().equals(e.getUser()))
                                 .findAny().map(Player::getLanguage).orElse(selectedLanguage);
                         e.reply(t.get(lang, "chinczyk.not.owner.language", executer.getAsMention()))
-                                .setEphemeral(true).complete();
+                                .setEphemeral(true).onErrorMap(UNKNOWN_INTERACTION::test, ex -> null).complete();
                         return;
                     }
                     l = selectedLanguage;
@@ -1244,7 +1244,7 @@ public class Chinczyk {
                     Language lang = players.values().stream().filter(p -> p.getUser().equals(e.getUser()))
                             .findAny().map(Player::getLanguage).orElse(l);
                     e.reply(t.get(lang, "chinczyk.not.owner.rules", executer.getAsMention()))
-                            .setEphemeral(true).complete();
+                            .setEphemeral(true).onErrorMap(UNKNOWN_INTERACTION::test, ex -> null).complete();
                     return;
                 }
                 rules.clear();
@@ -1270,7 +1270,7 @@ public class Chinczyk {
                 Language lang = players.values().stream().filter(p -> p.getUser().equals(e.getUser()))
                         .findAny().map(Player::getLanguage).orElse(l);
                 e.reply(t.get(lang, "chinczyk.not.owner.skin", executer.getAsMention()))
-                        .setEphemeral(true).complete();
+                        .setEphemeral(true).onErrorMap(UNKNOWN_INTERACTION::test, ex -> null).complete();
                 return;
             }
             e.deferEdit().queue();
