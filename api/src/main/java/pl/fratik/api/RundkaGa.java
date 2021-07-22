@@ -22,6 +22,7 @@ import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import io.undertow.server.RoutingHandler;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.*;
@@ -123,9 +124,8 @@ class RundkaGa {
                 }
                 Rundka rundka = rundkaDao.get(odp.getRundka());
                 eventBus.post(new RundkaNewAnswerEvent(odp));
-                Objects.requireNonNull(shardManager.getRoleById(Ustawienia.instance.gadmRole))
-                        .getManager().setMentionable(true).complete();
                 TextChannel ch = shardManager.getTextChannelById(rundka.getVoteChannel());
+                Message msg;
                 try {
                     EmbedBuilder eb = new EmbedBuilder();
                     eb.setAuthor(user.getAsTag(), null, user.getEffectiveAvatarUrl());
@@ -164,28 +164,27 @@ class RundkaGa {
                     MessageEmbed embed = eb.build();
                     if (ch == null) throw new NullPointerException("nie ma kanalu do glosowania");
                     if (embed.isSendable()) {
-                        Message msg = ch.sendMessage("<@&" + Ustawienia.instance.gadmRole + ">")
+                        msg = ch.sendMessage("<@&" + Ustawienia.instance.gadmRole + ">")
                                 .mentionRoles(Ustawienia.instance.gadmRole).embed(embed).complete();
-                        msg.addReaction(Objects.requireNonNull(fdev.getEmoteById(Ustawienia.instance.emotki.greenTick))).complete();
-                        msg.addReaction(Objects.requireNonNull(fdev.getEmoteById(Ustawienia.instance.emotki.redTick))).complete();
-                        msg.pin().complete();
-                        odp.setMessageId(msg.getId());
                     } else {
                         throw new IllegalStateException("yes");
                     }
                 } catch (Exception e) {
-                    Message msg = ch.sendMessage("<@&" + Ustawienia.instance.gadmRole + ">\n" +
+                    msg = ch.sendMessage("<@&" + Ustawienia.instance.gadmRole + ">\n" +
                             "Podanie jest za długie by wyświetlić je na kanale: " +
                             "zajrzyj na https://fratikbot.pl/rekru/podanie/" + odp.getRundka() + "/" + odp.getUserId())
                             .mentionRoles(Ustawienia.instance.gadmRole)
                             .complete();
-                    msg.addReaction(Objects.requireNonNull(fdev.getEmoteById(Ustawienia.instance.emotki.greenTick))).complete();
-                    msg.addReaction(Objects.requireNonNull(fdev.getEmoteById(Ustawienia.instance.emotki.redTick))).complete();
-                    msg.pin().complete();
-                    odp.setMessageId(msg.getId());
                 }
-                Objects.requireNonNull(shardManager.getRoleById(Ustawienia.instance.gadmRole))
-                        .getManager().setMentionable(false).complete();
+                msg.addReaction(Objects.requireNonNull(fdev.getEmoteById(Ustawienia.instance.emotki.greenTick))).complete();
+                msg.addReaction(Objects.requireNonNull(fdev.getEmoteById(Ustawienia.instance.emotki.redTick))).complete();
+                msg.pin().complete();
+                odp.setMessageId(msg.getId());
+                try {
+                    TextChannel talkChannel = shardManager.getTextChannelById(rundka.getVoteChannel());
+                    if (talkChannel != null)
+                        talkChannel.upsertPermissionOverride(mem).grant(Permission.VIEW_CHANNEL).complete();
+                } catch (Exception ignored) {}
                 rundka.getZgloszenia().add(odp);
                 rundkaDao.save(rundka);
             }
