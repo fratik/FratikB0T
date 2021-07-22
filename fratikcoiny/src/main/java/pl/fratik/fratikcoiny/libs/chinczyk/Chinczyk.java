@@ -296,11 +296,7 @@ public class Chinczyk {
             if (!Arrays.equals(CHINCZYK_HEADER, header)) throw new IOException("nieoczekiwany nagłówek");
             int version = is.read();
             if (version == -1) throw new EOFException();
-            if (version != CHINCZYK_VERSION) {
-                if (version != 2) throw new IOException("niezgodność wersji pliku");
-                //2 jest wspierane - po prostu ma pominięte pole ze skinem
-                //fixme - wywalić po następnym stable deployu
-            }
+            if (version != CHINCZYK_VERSION) throw new IOException("niezgodność wersji pliku");
             long executerId = readLong(is);
             try {
                 executer = sm.retrieveUserById(executerId).complete();
@@ -342,8 +338,7 @@ public class Chinczyk {
             int rawCheats = is.read();
             if (rawCheats == -1) throw new EOFException();
             cheats = rawCheats != 0;
-            if (version > 2) skin = ChinczykSkin.deserialize(is); //FIXME wywalic po stable deployu
-            else skin = DefaultSkins.DEFAULT;
+            skin = ChinczykSkin.deserialize(is);
             gameDuration = readUnsignedInt(is);
             Instant started = Instant.ofEpochMilli(readLong(is));
             Instant saved = Instant.ofEpochMilli(readLong(is));
