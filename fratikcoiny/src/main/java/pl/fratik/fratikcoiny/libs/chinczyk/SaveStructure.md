@@ -2,6 +2,7 @@
 
 ## Nagłówek:
 | Nazwa | Typ | Wielkość | Opis |
+| --- | --- | --- | --- |
 | Magic bytes | unsigned byte | 2 bajty | zawsze 0x21, 0x37 |
 | Wersja | unsigned byte | 1 bajt | wersja — obecnie 4 |
 | ID wykonawcy komendy | long | 8 bajtów | ID wykonawcy komendy |
@@ -21,6 +22,7 @@
 
 ## Zawartość:
 | Nazwa | Typ | Wielkość | Opis |
+| --- | --- | --- | --- |
 | Typ wydarzenia | unsigned byte | 1 bajt | Raw typ wydarzenia |
 | Miejsce gracza wykonującego wydarzenie | byte | 1 bajt | Miejsce gracza "odpowiedzialnego" za to wydarzenie, wg. offsetu (0 oznacza, że event nie ma przypisanego gracza) |
 | Wyrzucona liczba oczek | byte | 1 bajt | Wyrzucona liczba oczek (1-6, lub 0 jeżeli null) |
@@ -32,26 +34,31 @@
 
 ## Skin:
 | Nazwa | Typ | Wielkość | Opis |
+| --- | --- | --- | --- |
 | custom | boolean | 1 bajt | Czy jest to skin domyślny, czy skin własny |
 | dane | Skin domyślny / Skin własny | ? | patrz niżej |
 
 ## Skin domyślny:
 | Nazwa | Typ | Wielkość | Opis |
+| --- | --- | --- | --- |
 | Flaga | long | 8 bajtów | Wybrany skin domyślny, po fladze |
 
 ## Skin własny:
 | Nazwa | Typ | Wielkość | Opis |
+| --- | --- | --- | --- |
 | Klasa deserializująca | string | patrz string | Klasa, w której jest funkcja `public static Skin deserialize(InputStream is)`, użyta do deserializacji własnego skinu |
 | Długość danych | int | 4 bajty | Długość danych skina własnego (*n*) - **maksymalna długość skina to 2147483647 bajtów** |
 | Dane skina własnego | ? | *n* bajtów | Faktyczne dane skina - deserializacja jest zależna od implementacji. Zewnętrzne programy mogą pominąć *n* bajtów i ustawić skin domyślny. |
 
 ## String:
 | Nazwa | Typ | Wielkość | Opis |
+| --- | --- | --- | --- |
 | Długość | unsigned short | 2 bajty | Długość tekstu (*n*) - **maksymalna długość tekstu to 65535 znaków** |
 | Tekst | bajty w UTF-8 | *n* bajtów | Tekst |
 
 ## Gracz:
 | Nazwa | Typ | Wielkość | Opis |
+| --- | --- | --- | --- |
 | Miejsce | byte | 1 bajt | Miejsce na planszy, wg. offsetu (2 - BLUE, 12 - GREEN, 22 - YELLOW, 32 - RED) |
 | ID użytkownika | long | 8 bajtów | ID użytkownika |
 | Język | string | patrz opis string'a | Język gracza |
