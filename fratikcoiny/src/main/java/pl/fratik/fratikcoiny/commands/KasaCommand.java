@@ -36,7 +36,7 @@ public class KasaCommand extends MoneyCommand {
         name = "kasa";
         category = CommandCategory.MONEY;
         permissions.add(Permission.MESSAGE_EXT_EMOJI);
-        aliases = new String[] {"fc", "stan", "konto", "stankonta"};
+        aliases = new String[] {"fc", "stan", "konto", "stankonta", "bal"};
         uzycie = new Uzycie("czlonek", "member", false);
         allowPermLevelChange = false;
     }
