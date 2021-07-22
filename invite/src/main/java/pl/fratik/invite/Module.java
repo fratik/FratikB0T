@@ -22,9 +22,9 @@ import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import com.google.inject.Inject;
 import io.sentry.Sentry;
-import io.sentry.event.Event;
-import io.sentry.event.EventBuilder;
-import io.sentry.event.interfaces.ExceptionInterface;
+import io.sentry.SentryEvent;
+import io.sentry.SentryLevel;
+import io.sentry.protocol.Message;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.slf4j.Logger;
@@ -116,8 +116,13 @@ public class Module implements Modul {
                 e.setResponse(inv);
             } catch (Exception err) {
                 logger.error("Wystąpił błąd w wysyłaniu odpowiedzi!", err);
-                Sentry.capture(new EventBuilder().withMessage(err.getMessage()).withExtra("message", e.getMessage())
-                        .withLevel(Event.Level.ERROR).withSentryInterface(new ExceptionInterface(err)));
+                SentryEvent se = new SentryEvent();
+                Message message = new Message();
+                message.setMessage(e.getMessage());
+                se.setThrowable(err);
+                se.setMessage(message);
+                se.setLevel(SentryLevel.ERROR);
+                Sentry.captureEvent(se);
             }
         }
         logger.info("Nierozpoznana wiadomość: {}!", e.getMessage());

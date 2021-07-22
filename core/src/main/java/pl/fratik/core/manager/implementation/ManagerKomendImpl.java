@@ -128,7 +128,7 @@ public class ManagerKomendImpl implements ManagerKomend {
                 }
             } catch (Exception e) {
                 logger.error("Nie udało się zarejestrować subkomendy!", e);
-                Sentry.capture(e);
+                Sentry.captureException(e);
             }
         }
 
@@ -375,10 +375,7 @@ public class ManagerKomendImpl implements ManagerKomend {
                         eventBus.post(new CommandDispatchedEvent(context, false, System.currentTimeMillis() - millis));
                         //teraz nic nie robimy: nie reagujemy
                     } catch (Exception e) {
-                        Sentry.getContext().setUser(new io.sentry.event.User(event.getAuthor().getId(),
-                                UserUtil.formatDiscrim(event.getAuthor()), null, null));
-                        Sentry.capture(e);
-                        Sentry.clearContext();
+                        CommonErrors.captureException(context, e);
                         logger.error("Błąd w komendzie:", e);
                         CommonErrors.exception(context, e);
                     }

@@ -317,7 +317,7 @@ public class ManagerModulowImpl implements ManagerModulow {
                 if (odpowiedz) started.add(name);
             } catch (Exception e) {
                 logger.error("Błąd w trakcie startowania modułu: " + name, e);
-                Sentry.capture(e);
+                Sentry.captureException(e);
             }
         }
         return odpowiedz;
@@ -337,7 +337,7 @@ public class ManagerModulowImpl implements ManagerModulow {
                     ManagerKomendImpl.setLoadingModule(null);
                 } catch (Exception e) {
                     logger.error("Błąd w trakcie zatrzymywania modułu: " + name, e);
-                    Sentry.capture(e);
+                    Sentry.captureException(e);
                 }
                 czekamy.set(false);
             });
@@ -373,7 +373,7 @@ public class ManagerModulowImpl implements ManagerModulow {
                 Files.delete(tempFiles.get(name).toPath());
         } catch (IOException e) {
             logger.error("Błąd podczas wyładowywania modułu!", e);
-            Sentry.capture(e);
+            Sentry.captureException(e);
         }
         if (remove) {
             modules.entrySet().removeIf(e -> e.getKey().equals(name));
@@ -433,8 +433,7 @@ public class ManagerModulowImpl implements ManagerModulow {
             logger.warn("Nie udało się odczytać wersji rdzenia!");
         } catch (IllegalArgumentException e) {
             logger.warn("Nastąpiła niezgodność rdzenia - mogą wystąpić problemy!");
-            Sentry.getStoredClient().addExtra("uwagi",
-                    "co najmniej jeden z pluginów ma niezgodność wersji");
+            Sentry.getCurrentHub().setExtra("uwagi", "co najmniej jeden z pluginów ma niezgodność wersji");
         }
 
         if (description.getDependencies() != null)

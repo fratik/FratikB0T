@@ -20,9 +20,9 @@ package pl.fratik.core.service;
 import com.google.common.eventbus.EventBus;
 import com.google.common.util.concurrent.AbstractScheduledService;
 import io.sentry.Sentry;
-import io.sentry.event.Event;
-import io.sentry.event.EventBuilder;
-import io.sentry.event.interfaces.ExceptionInterface;
+import io.sentry.SentryEvent;
+import io.sentry.SentryLevel;
+import io.sentry.protocol.Message;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import net.dv8tion.jda.api.entities.PrivateChannel;
 import net.dv8tion.jda.api.entities.User;
@@ -88,10 +88,14 @@ public class ScheduleService extends AbstractScheduledService {
                     eventBus.post(new ScheduleEvent(sch.getScheduledBy(), sch.getContent()));
                 }
             } catch (Exception e) {
-                Sentry.capture(new EventBuilder().withLevel(Event.Level.ERROR).withMessage(e.getMessage())
-                        .withExtra("schedule", sch).withSentryInterface(new ExceptionInterface(e)));
+                SentryEvent se = new SentryEvent();
+                Message message = new Message();
+                message.setMessage(e.getMessage());
+                se.setLevel(SentryLevel.ERROR);
+                se.setMessage(message);
+                se.setExtra("schedule", sch);
+                Sentry.captureEvent(se);
                 LoggerFactory.getLogger(ScheduleService.class).error("Błąd w ScheduleService!", e);
-                Sentry.capture(e);
             }
             scheduleDao.delete(String.valueOf(sch.getId()));
         }

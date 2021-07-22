@@ -19,7 +19,6 @@ package pl.fratik.music.commands;
 
 import com.sedmelluq.discord.lavaplayer.tools.Units;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
-import io.sentry.Sentry;
 import lombok.AllArgsConstructor;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Message;
@@ -28,9 +27,9 @@ import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Uzycie;
+import pl.fratik.core.util.CommonErrors;
 import pl.fratik.core.util.EventWaiter;
 import pl.fratik.core.util.MessageWaiter;
-import pl.fratik.core.util.UserUtil;
 import pl.fratik.music.managers.ManagerMuzykiSerwera;
 import pl.fratik.music.managers.NowyManagerMuzyki;
 import pl.fratik.music.managers.SearchManager;
@@ -153,10 +152,7 @@ public class YoutubeCommand extends MusicCommand {
                         .reference(e.getMessage()).complete();
                 udaloSie.set(false);
             } catch (Exception error) {
-                Sentry.getContext().setUser(new io.sentry.event.User(context.getSender().getId(),
-                        UserUtil.formatDiscrim(context.getSender()), null, null));
-                Sentry.capture(error);
-                Sentry.clearContext();
+                CommonErrors.captureException(context, error);
                 context.getTextChannel().sendMessage(context.getTranslated("youtube.errored"))
                         .reference(e.getMessage()).complete();
                 udaloSie.set(false);

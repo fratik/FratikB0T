@@ -239,7 +239,7 @@ public class Chinczyk {
             }
         } catch (Exception e) {
             LoggerFactory.getLogger(Chinczyk.class).error("Nie udało się załadować czcionki i/lub planszy: ", e);
-            Sentry.capture(e);
+            Sentry.captureException(e);
             m = null;
             l = null;
             doc = null;
@@ -662,7 +662,7 @@ public class Chinczyk {
             return image;
         } catch (Exception e) {
             LoggerFactory.getLogger(getClass()).error("Wystąpił błąd podczas generacji planszy!", e);
-            Sentry.capture(e);
+            Sentry.captureException(e);
             return null;
         } finally {
             lock.unlock();
@@ -1368,12 +1368,11 @@ public class Chinczyk {
                     } catch (Exception ex) {
                         if (ex instanceof ErrorResponseException) return; //ignoruj błędy wysłania
                         try {
-                            Sentry.getContext().addExtra("state", Base64.getEncoder().encodeToString(captureState().toByteArray()));
+                            Sentry.getCurrentHub().setExtra("state", Base64.getEncoder().encodeToString(captureState().toByteArray()));
                         } catch (Exception ignored) {
                             // jak state sie nie zapisze to już trudno XD
                         }
-                        Sentry.capture(ex);
-                        Sentry.clearContext();
+                        Sentry.captureException(ex);
                     }
                 }, "ChinczykReplay-" + executer + '-' + channel.getId()).start();
             }
@@ -1386,7 +1385,7 @@ public class Chinczyk {
 
     private void errored(Exception e) {
         LoggerFactory.getLogger(getClass()).error("Wystąpił błąd!", e);
-        Sentry.capture(e);
+        Sentry.captureException(e);
         status = Status.ERRORED;
         String text = t.get(l, "chinczyk.errored");
         if (message != null)

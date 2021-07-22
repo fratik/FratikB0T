@@ -18,9 +18,8 @@
 package pl.fratik.core.command;
 
 import io.sentry.Sentry;
-import io.sentry.event.Event.Level;
-import io.sentry.event.EventBuilder;
-import io.sentry.event.interfaces.ExceptionInterface;
+import io.sentry.SentryEvent;
+import io.sentry.SentryLevel;
 import lombok.Getter;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
@@ -139,14 +138,7 @@ public class CommandContext {
     }
 
     public Message send(CharSequence message, boolean checkUrl) {
-        if (checkUrl && URLPATTERN.matcher(message).matches()) {
-            Exception blad = new Exception("Odpowiedź zawiera link!");
-            Sentry.getContext().setUser(new io.sentry.event.User(getSender().getId(),
-                    getSender().getName(), null, null));
-            Sentry.capture(new EventBuilder().withLevel(Level.WARNING).withMessage(blad.getMessage())
-                    .withExtra("wiadomosc", message).withSentryInterface(new ExceptionInterface(blad)));
-            Sentry.clearContext();
-        }
+        if (checkUrl && URLPATTERN.matcher(message).matches()) containsLinks();
         return event.getChannel().sendMessage(message).complete();
     }
 
@@ -156,14 +148,7 @@ public class CommandContext {
     }
 
     public void send(CharSequence message, Consumer<Message> callback) {
-        if (URLPATTERN.matcher(message).matches()) {
-            Exception blad = new Exception("Odpowiedź zawiera link!");
-            Sentry.getContext().setUser(new io.sentry.event.User(getSender().getId(),
-                    getSender().getName(), null, null));
-            Sentry.capture(new EventBuilder().withLevel(Level.WARNING).withMessage(blad.getMessage())
-                    .withExtra("wiadomosc", message).withSentryInterface(new ExceptionInterface(blad)));
-            Sentry.clearContext();
-        }
+        if (URLPATTERN.matcher(message).matches()) containsLinks();
         event.getChannel().sendMessage(message).queue(callback);
     }
 
@@ -199,14 +184,7 @@ public class CommandContext {
 
     public Message reply(CharSequence message, boolean checkUrl, ActionRow... actionRows) {
         if (actionRows == null) actionRows = new ActionRow[0];
-        if (checkUrl && URLPATTERN.matcher(message).matches()) {
-            Exception blad = new Exception("Odpowiedź zawiera link!");
-            Sentry.getContext().setUser(new io.sentry.event.User(getSender().getId(),
-                    getSender().getName(), null, null));
-            Sentry.capture(new EventBuilder().withLevel(Level.WARNING).withMessage(blad.getMessage())
-                    .withExtra("wiadomosc", message).withSentryInterface(new ExceptionInterface(blad)));
-            Sentry.clearContext();
-        }
+        if (checkUrl && URLPATTERN.matcher(message).matches()) containsLinks();
         try {
             if (!event.isFromGuild() || !event.getGuild().getSelfMember().hasPermission(event.getTextChannel(),
                     Permission.MESSAGE_HISTORY)) return event.getChannel().sendMessage(message)
@@ -238,17 +216,24 @@ public class CommandContext {
     }
 
     public void reply(CharSequence message, Consumer<Message> callback) {
-        if (URLPATTERN.matcher(message).matches()) {
-            Exception blad = new Exception("Odpowiedź zawiera link!");
-            Sentry.getContext().setUser(new io.sentry.event.User(getSender().getId(),
-                    getSender().getName(), null, null));
-            Sentry.capture(new EventBuilder().withLevel(Level.WARNING).withMessage(blad.getMessage())
-                    .withExtra("wiadomosc", message).withSentryInterface(new ExceptionInterface(blad)));
-            Sentry.clearContext();
-        }
+        if (URLPATTERN.matcher(message).matches()) containsLinks();
         event.getChannel().sendMessage(message).reference(getMessage()).queue(callback, e -> {
             if (isUnknownMessage(e)) event.getChannel().sendMessage(message).queue(callback);
         });
+    }
+
+    private void containsLinks() {
+        Exception blad = new Exception("Odpowiedź zawiera link!");
+        SentryEvent se = new SentryEvent();
+        io.sentry.protocol.User user = new io.sentry.protocol.User();
+        user.setUsername(UserUtil.formatDiscrim(getSender()));
+        user.setId(getSender().getId());
+        se.setUser(user);
+        se.setLevel(SentryLevel.WARNING);
+        io.sentry.protocol.Message msg = new io.sentry.protocol.Message();
+        msg.setMessage(blad.getMessage());
+        se.setMessage(msg);
+        Sentry.captureEvent(se);
     }
 
     public void reply(MessageEmbed message, Consumer<Message> callback) {

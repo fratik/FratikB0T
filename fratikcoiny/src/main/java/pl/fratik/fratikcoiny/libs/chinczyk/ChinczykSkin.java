@@ -18,6 +18,7 @@
 package pl.fratik.fratikcoiny.libs.chinczyk;
 
 import io.sentry.Sentry;
+import io.sentry.SentryEvent;
 import lombok.Getter;
 import net.dv8tion.jda.api.entities.Emoji;
 import org.apache.batik.transcoder.SVGAbstractTranscoder;
@@ -83,11 +84,12 @@ public interface ChinczykSkin {
             return (ChinczykSkin) m.invoke(null, bais);
         } catch (Exception e) {
             LoggerFactory.getLogger(ChinczykSkin.class).error("Nie udało się odczytać skina!", e);
-            Sentry.getContext().addExtra("skinDeserializer", deserializer);
-            Sentry.getContext().addExtra("skinSize", size);
-            Sentry.getContext().addExtra("skinData", Base64.getEncoder().encodeToString(baos.toByteArray()));
-            Sentry.capture(e);
-            Sentry.clearContext();
+            SentryEvent se = new SentryEvent();
+            se.setExtra("skinDeserializer", deserializer);
+            se.setExtra("skinSize", size);
+            se.setExtra("skinData", Base64.getEncoder().encodeToString(baos.toByteArray()));
+            se.setThrowable(e);
+            Sentry.captureEvent(se);
             return Chinczyk.DefaultSkins.DEFAULT;
         }
     }

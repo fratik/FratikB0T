@@ -18,8 +18,6 @@
 package pl.fratik.commands.narzedzia;
 
 import com.google.gson.JsonObject;
-import io.sentry.Sentry;
-import io.sentry.event.User;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.hypixel.api.HypixelAPI;
@@ -35,7 +33,6 @@ import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.util.CommonErrors;
 import pl.fratik.core.util.CommonUtil;
-import pl.fratik.core.util.UserUtil;
 
 import java.awt.*;
 import java.text.SimpleDateFormat;
@@ -70,27 +67,20 @@ public class HypixelCommand extends Command {
     @Override
     public boolean execute(@NotNull CommandContext context){
         //Player
-        String cos = null;
-        String player;
-        String wersja;
-        String tryb;
-        String jezyk;
+        String cos = null, player, wersja, tryb, jezyk;
         String ranga = "Member";
         Integer karma;
-        long last;
-        long first;
+        long last, first;
         int level = 100;
-        Date lastlogin;
-        Date firstlogin;
+        Date lastlogin, firstlogin;
         //Guild
         String name;
         String des;
         String tagname;
         String tagcolor;
-        Integer members;
-        long exp;
+        int members;
+        long exp, created;
         Integer coins;
-        long created;
         SimpleDateFormat date = new SimpleDateFormat("dd.MM.yyyy '@' HH:mm z", context.getLanguage().getLocale());
         if (Objects.equals(context.getArgs()[0], "player") || Objects.equals(context.getArgs()[0], "guild")) {
             cos = (String) context.getArgs()[0];
@@ -134,10 +124,7 @@ public class HypixelCommand extends Command {
                     }
                 }
             } catch (Exception e) {
-                Sentry.getContext().setUser(new User(context.getSender().getId(),
-                        UserUtil.formatDiscrim(context.getSender()), null, null));
-                Sentry.capture(e);
-                Sentry.clearContext();
+                CommonErrors.captureException(context, e);
                 context.reply(context.getTranslated("hypixel.error.playerapi"));
                 return false;
             }

@@ -59,6 +59,7 @@ import pl.fratik.core.util.*;
 import pl.fratik.core.webhook.WebhookManager;
 
 import java.io.*;
+import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.EnumSet;
@@ -168,10 +169,19 @@ class FratikB0T {
         }
 
         Ustawienia.instance = ustawienia;
-
         if (ustawienia.apiKeys.containsKey("sentry-dsn")) {
             logger.info("Włączam wsparcie Sentry...");
-            Sentry.init(ustawienia.apiKeys.get("sentry-dsn")).setRelease("FratikB0T@" + WERSJA);
+            String hostname = "s1";
+            try {
+                hostname = InetAddress.getLocalHost().getHostName();
+            } catch (Exception ignored) { }
+            final String fh = hostname;
+            Sentry.init(option -> {
+                option.setDsn(ustawienia.apiKeys.get("sentry-dsn"));
+                option.setRelease("FratikB0T@" + WERSJA);
+                option.setShutdownTimeout(5000);
+                option.setServerName(fh);
+            });
         }
 
         logger.info("Loguje się...");

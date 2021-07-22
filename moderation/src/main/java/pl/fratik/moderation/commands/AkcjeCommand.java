@@ -18,7 +18,6 @@
 package pl.fratik.moderation.commands;
 
 import com.google.common.eventbus.EventBus;
-import io.sentry.Sentry;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Message;
@@ -37,10 +36,7 @@ import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Kara;
 import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.manager.ManagerKomend;
-import pl.fratik.core.util.ButtonWaiter;
-import pl.fratik.core.util.ClassicEmbedPaginator;
-import pl.fratik.core.util.EventWaiter;
-import pl.fratik.core.util.UserUtil;
+import pl.fratik.core.util.*;
 import pl.fratik.moderation.entity.Case;
 import pl.fratik.moderation.entity.CaseRow;
 import pl.fratik.moderation.entity.CasesDao;
@@ -209,10 +205,7 @@ public class AkcjeCommand extends ModerationCommand {
                 }
                 throw err;
             } catch (Exception err) {
-                Sentry.getContext().setUser(new io.sentry.event.User(context.getSender().getId(),
-                        UserUtil.formatDiscrim(context.getSender()), null, null));
-                Sentry.capture(err);
-                Sentry.clearContext();
+                CommonErrors.captureException(context, err);
                 try {
                     e.getHook().editOriginal(context.getTranslated("akcje.reset.error")).complete();
                 } catch (ErrorResponseException ed) {

@@ -20,8 +20,9 @@ package pl.fratik.core.tlumaczenia;
 import com.google.common.base.Charsets;
 import com.google.common.eventbus.Subscribe;
 import io.sentry.Sentry;
-import io.sentry.event.Event;
-import io.sentry.event.EventBuilder;
+import io.sentry.SentryEvent;
+import io.sentry.SentryLevel;
+import io.sentry.protocol.Message;
 import lombok.Getter;
 import lombok.Setter;
 import net.dv8tion.jda.api.entities.Guild;
@@ -106,8 +107,14 @@ public class Tlumaczenia {
             if (property.equals(languages.get(Language.POLISH)
                     .getProperty("translation.empty", "translation.empty"))) property = "";
         }
-        if (property.equals(key))
-            Sentry.capture(new EventBuilder().withLevel(Event.Level.WARNING).withMessage(key + NOTTRA).build());
+        if (property.equals(key)) {
+            SentryEvent se = new SentryEvent();
+            Message message = new Message();
+            message.setMessage(key + NOTTRA);
+            se.setLevel(SentryLevel.WARNING);
+            se.setMessage(message);
+            Sentry.captureEvent(se);
+        }
         if (property.equals(languages.getOrDefault(l, languages.get(Language.POLISH))
                 .getProperty("translation.empty", languages.get(Language.POLISH)
                 .getProperty("translation.empty", "translation.empty"))) ||

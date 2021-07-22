@@ -17,9 +17,7 @@
 
 package pl.fratik.commands.narzedzia;
 
-import io.sentry.Sentry;
-import io.sentry.event.EventBuilder;
-import io.sentry.event.interfaces.ExceptionInterface;
+import io.sentry.SentryEvent;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.utils.MarkdownSanitizer;
@@ -30,6 +28,7 @@ import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.entity.Uzycie;
+import pl.fratik.core.util.CommonErrors;
 import pl.fratik.core.util.NetworkUtil;
 import pl.fratik.core.util.UserUtil;
 
@@ -85,8 +84,9 @@ public class McpremiumCommand extends Command {
             }
         } catch (Exception e) {
             context.reply(context.getTranslated("mcpremium.failed", nick));
-            Sentry.capture(new EventBuilder().withMessage(e.getMessage())
-                    .withSentryInterface(new ExceptionInterface(e)).withExtra("nick", nick));
+            SentryEvent se = new SentryEvent();
+            se.setExtra("nick", nick);
+            CommonErrors.captureException(context, e, se);
             return false;
         }
         EmbedBuilder eb = new EmbedBuilder();

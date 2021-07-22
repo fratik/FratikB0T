@@ -18,6 +18,8 @@
 package pl.fratik.core.util;
 
 import io.sentry.Sentry;
+import io.sentry.SentryEvent;
+import io.sentry.SentryLevel;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageChannel;
@@ -33,10 +35,23 @@ public class CommonErrors {
     private CommonErrors() {}
 
     public static void noPermissionBot(CommandContext context, Throwable e) {
-        Sentry.getContext().setUser(new io.sentry.event.User(context.getSender().getId(), UserUtil.formatDiscrim(context.getSender()), null, null));
-        Sentry.capture(e);
-        Sentry.clearContext();
+        captureException(context, e);
         context.reply("Bot nie ma wystarczających uprawnień do użycia tej komendy!");
+    }
+
+    public static void captureException(CommandContext context, Throwable e, SentryEvent event) {
+        io.sentry.protocol.User user = new io.sentry.protocol.User();
+        user.setId(context.getSender().getId());
+        user.setUsername(UserUtil.formatDiscrim(context.getSender()));
+        event.setUser(user);
+        event.setLevel(SentryLevel.ERROR);
+        event.setLogger(context.getCommand().getClass().getName());
+        event.setThrowable(e);
+        Sentry.captureEvent(event);
+    }
+
+    public static void captureException(CommandContext context, Throwable e) {
+        captureException(context, e, new SentryEvent());
     }
 
     public static void exception(CommandContext context, Throwable err) {

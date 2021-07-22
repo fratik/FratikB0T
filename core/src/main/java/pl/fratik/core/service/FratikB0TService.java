@@ -68,7 +68,7 @@ public class FratikB0TService extends AbstractIdleService {
             moduleManager.loadModules();
         } catch (Exception e) {
             logger.error("Oops, coś się popsuło!", e);
-            Sentry.capture(e);
+            Sentry.captureException(e);
             this.stopAsync();
             System.exit(1);
         }

@@ -436,7 +436,7 @@ public class LicznikPunktow {
             log.error("Redis nie odpowiada - nie można zapisać punktów!", ex);
         } catch (Exception e) {
             log.error("Wystąpił błąd przy zrzucaniu punktów", e);
-            Sentry.capture(e);
+            Sentry.captureException(e);
         } finally {
             lock = false;
         }

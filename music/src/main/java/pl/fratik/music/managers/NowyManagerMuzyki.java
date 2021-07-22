@@ -22,8 +22,7 @@ import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import io.sentry.Sentry;
-import io.sentry.event.EventBuilder;
-import io.sentry.event.interfaces.ExceptionInterface;
+import io.sentry.SentryEvent;
 import lavalink.client.LavalinkUtil;
 import lavalink.client.io.LavalinkSocket;
 import lavalink.client.io.Link;
@@ -140,9 +139,10 @@ public class NowyManagerMuzyki {
                 ManagerMuzykiSerwera mms = getManagerMuzykiSerwera(gild);
                 mms.loadQueue(queue);
             } catch (Exception e) {
-                Sentry.getContext().addExtra("queue", queue);
-                Sentry.capture(e);
-                Sentry.clearContext();
+                SentryEvent se = new SentryEvent();
+                se.setExtra("queue", queue);
+                se.setThrowable(e);
+                Sentry.captureEvent(se);
                 logger.error("Nie udało się załadować kolejki {}:", queue);
             }
             queueDao.delete(queue);
@@ -181,9 +181,12 @@ public class NowyManagerMuzyki {
             });
             return list;
         } catch (JSONException exc) {
-            if (td != null)
-                Sentry.capture(new EventBuilder().withSentryInterface(new ExceptionInterface(exc))
-                        .withMessage(exc.getMessage()).withExtra("JSON", td.toString()));
+            if (td != null) {
+                SentryEvent se = new SentryEvent();
+                se.setExtra("JSON", td.toString());
+                se.setThrowable(exc);
+                Sentry.captureEvent(se);
+            }
             throw exc;
         } catch (IOException exc) {
             throw new IllegalStateException(exc);

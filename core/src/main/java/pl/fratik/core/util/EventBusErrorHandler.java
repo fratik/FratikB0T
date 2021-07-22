@@ -34,7 +34,7 @@ public class EventBusErrorHandler implements SubscriberExceptionHandler {
 
     @Override
     public void handleException(@NotNull Throwable exception, @NotNull SubscriberExceptionContext context) {
-        Sentry.capture(exception);
+        Sentry.captureException(exception);
         if (logger.isWarnEnabled()) {
             logger.warn(message(context), exception);
         }

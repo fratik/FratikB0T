@@ -19,8 +19,6 @@ package pl.fratik.music.commands;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.wrapper.spotify.model_objects.specification.*;
-import io.sentry.Sentry;
-import io.sentry.event.User;
 import lavalink.client.io.Link;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.GuildVoiceState;
@@ -29,9 +27,9 @@ import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Uzycie;
+import pl.fratik.core.util.CommonErrors;
 import pl.fratik.core.util.CommonUtil;
 import pl.fratik.core.util.NamedThreadFactory;
-import pl.fratik.core.util.UserUtil;
 import pl.fratik.music.managers.ManagerMuzykiSerwera;
 import pl.fratik.music.managers.NowyManagerMuzyki;
 import pl.fratik.music.managers.SearchManager;
@@ -134,7 +132,7 @@ public class PlayCommand extends MusicCommand {
                                     Track track = (Track) item.getTrack();
                                     iteml.add(track.getArtists()[0].getName() + " " + track.getName());
                                 } catch (Exception e) {
-                                    Sentry.capture(e);
+                                    CommonErrors.captureException(context, e);
                                 }
                             }
 
@@ -159,11 +157,7 @@ public class PlayCommand extends MusicCommand {
                         context.send(context.getTranslated("play.spotify.search.nofound"));
                         return false;
                     } catch (Exception e) {
-                        Sentry.getContext().setUser(new User(context.getSender().getId(),
-                                UserUtil.formatDiscrim(context.getSender()), null, null));
-                        Sentry.getContext().addExtra("url", url);
-                        Sentry.capture(e);
-                        Sentry.clearContext();
+                        CommonErrors.captureException(context, e);
                         context.send(context.getTranslated("play.spotify.search.error"));
                         return false;
                     }

@@ -18,7 +18,8 @@
 package pl.fratik.moderation.utils;
 
 import io.sentry.Sentry;
-import io.sentry.event.User;
+import io.sentry.SentryEvent;
+import io.sentry.protocol.User;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageChannel;
@@ -179,11 +180,14 @@ public class WarnUtil {
             else cases -= c.getIleRazy();
         }
         if (cases < 0) {
-            Sentry.getContext().setUser(new User(userId, null, null, null));
-            Sentry.getContext().addExtra("warnCases", warnCases);
-            Sentry.getContext().addExtra("unwarnCases", unwarnCases);
-            Sentry.capture(new AssertionError("cases < 0"));
-            Sentry.clearContext();
+            SentryEvent se = new SentryEvent();
+            User user = new User();
+            user.setId(userId);
+            se.setUser(user);
+            se.setExtra("warnCases", warnCases);
+            se.setExtra("unwarnCases", unwarnCases);
+            se.setThrowable(new AssertionError("cases < 0"));
+            Sentry.captureEvent(se);
         }
         return cases;
     }

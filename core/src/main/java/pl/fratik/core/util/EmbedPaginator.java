@@ -19,6 +19,8 @@ package pl.fratik.core.util;
 
 import com.google.common.eventbus.EventBus;
 import io.sentry.Sentry;
+import io.sentry.SentryEvent;
+import io.sentry.protocol.User;
 import lombok.AccessLevel;
 import lombok.Getter;
 import net.dv8tion.jda.api.entities.Emoji;
@@ -110,16 +112,21 @@ public abstract class EmbedPaginator {
 
     private void handleException(Exception e) {
         LOGGER.error("Ładowanie strony nawaliło", e);
-        Sentry.getContext().setUser(new io.sentry.event.User(String.valueOf(userId), null,
-                null, null));
-        Sentry.capture(e);
-        Sentry.clearContext();
+        SentryEvent se = new SentryEvent();
+        User user = new User();
+        io.sentry.protocol.Message message = new io.sentry.protocol.Message();
+        message.setMessage(e.getMessage());
+        user.setId(String.valueOf(userId));
+        se.setUser(user);
+        se.setThrowable(e);
+        se.setMessage(message);
+        Sentry.captureEvent(se);
         String key = "generic.dynamicembedpaginator.error";
         if (e instanceof LoadingException) {
             if (((LoadingException) e).firstPage) key = "generic.dynamicembedpaginator.errorone";
             else if (((LoadingException) e).loading) key = "generic.lazyloading";
         }
-        message.getChannel().sendMessage(tlumaczenia.get(language, key))
+        this.message.getChannel().sendMessage(tlumaczenia.get(language, key))
                 .queue(m -> {
                     if (!(e instanceof LoadingException) || !((LoadingException) e).firstPage)
                         m.delete().queueAfter(5, TimeUnit.SECONDS);

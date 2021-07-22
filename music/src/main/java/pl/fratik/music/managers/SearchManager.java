@@ -94,7 +94,7 @@ public class SearchManager {
             } catch (Exception e2) {
                 logger.error("Nie udało się przeszukać YouTube'a przez lavalinka!", e);
             }
-            Sentry.capture(e);
+            Sentry.captureException(e);
         }
         return null;
     }

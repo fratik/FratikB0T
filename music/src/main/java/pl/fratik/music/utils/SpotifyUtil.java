@@ -112,7 +112,7 @@ public class SpotifyUtil {
         try {
             return e.build().execute();
         } catch (SpotifyWebApiException ex) {
-            Sentry.capture(ex);
+            Sentry.captureException(ex);
             return null;
         }
     }

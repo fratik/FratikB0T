@@ -17,8 +17,6 @@
 
 package pl.fratik.core.command;
 
-import io.sentry.Sentry;
-import io.sentry.event.User;
 import lombok.Getter;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.exceptions.InsufficientPermissionException;
@@ -31,9 +29,7 @@ import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.CommonErrors;
-import pl.fratik.core.util.UserUtil;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -104,20 +100,10 @@ public abstract class Command {
                     CommonErrors.noPermissionBot(context, e);
                 } catch (SilentExecutionFail e) {
                     throw e; // rethrow
-                } catch (InvocationTargetException e) {
-                    logger.error("Caught error while executing subcommand \"" + name + "\"", e.getCause());
-                    Sentry.getContext().setUser(new User(context.getSender().getId(),
-                            UserUtil.formatDiscrim(context.getSender()), null, null));
-                    Sentry.capture(e);
-                    Sentry.clearContext();
-                    CommonErrors.exception(context, e.getCause() != null ? e.getCause() : e);
                 } catch (Exception e) {
-                    logger.error("Caught error while executing command \"" + name + "\"", e);
-                    Sentry.getContext().setUser(new User(context.getSender().getId(),
-                            UserUtil.formatDiscrim(context.getSender()), null, null));
-                    Sentry.capture(e);
-                    Sentry.clearContext();
-                    CommonErrors.exception(context, e);
+                    logger.error("Caught error while executing command \"" + name + "\"", e.getCause());
+                    CommonErrors.captureException(context, e);
+                    CommonErrors.exception(context, e.getCause() != null ? e.getCause() : e);
                 }
                 return false;
             }
