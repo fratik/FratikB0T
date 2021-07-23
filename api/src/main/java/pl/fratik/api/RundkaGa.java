@@ -181,7 +181,7 @@ class RundkaGa {
                 msg.pin().complete();
                 odp.setMessageId(msg.getId());
                 try {
-                    TextChannel talkChannel = shardManager.getTextChannelById(rundka.getVoteChannel());
+                    TextChannel talkChannel = shardManager.getTextChannelById(rundka.getNormalChannel());
                     if (talkChannel != null)
                         talkChannel.upsertPermissionOverride(mem).grant(Permission.VIEW_CHANNEL).complete();
                 } catch (Exception ignored) {}
