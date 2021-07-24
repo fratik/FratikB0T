@@ -141,6 +141,7 @@ public class ZglosPrivCommand extends Command {
             eb.addField("Aby ukarać zgłoszoną osobę", "użyj \u2757 i podejmij właściwą akcję" +
                     " (gban albo blacklistpriv)", false);
             eb.addField("ID osoby zgłaszającej", context.getSender().getId(), false);
+            eb.addField("Po wciśnięciu przycisku Ukarz", "wykonaj akcję (gban lub blacklistpriv) na innym kanale.", false);
             eb.setFooter(id, null);
             Role popRole = Objects.requireNonNull(botgild.getRoleById(Ustawienia.instance.popRole));
             popRole.getManager().setMentionable(true).complete();
@@ -148,8 +149,7 @@ public class ZglosPrivCommand extends Command {
                     .sendMessage(popRole.getAsMention()).mention(popRole).embed(eb.build()).setActionRows(
                             ActionRow.of(
                                     Button.success("CLOSE", "Uniewinnij"),
-                                    Button.danger("ACTION", "Ukarz (po wciśnięciu " +
-                                            "wykonaj odpowiednią komendę (gban albo blacklistpriv) na innym kanalę)")
+                                    Button.danger("ACTION", "Ukarz")
                             )).complete();
             popRole.getManager().setMentionable(false).complete();
             priv.setZgloszone(true);
