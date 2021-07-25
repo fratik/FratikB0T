@@ -17,6 +17,7 @@
 
 package pl.fratik.moderation.listeners;
 
+import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.Subscribe;
 import lombok.Getter;
 import lombok.Setter;
@@ -126,6 +127,7 @@ public class LogListener {
     }
 
     @Subscribe
+    @AllowConcurrentEvents
     public void onMessageRemoved(MessageDeleteEvent messageDeleteEvent) {
         if (!messageDeleteEvent.isFromGuild()) return;
         LogMessage m = findMessage(messageDeleteEvent.getTextChannel(), messageDeleteEvent.getMessageId());
