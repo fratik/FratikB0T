@@ -180,14 +180,14 @@ public class DiscordBlackJack {
             eb.setAuthor(context.getTranslated("blackjack.end.won"));
             eb.setDescription(context.getTranslated("blackjack.end.won.desc",
                     emotkaFc.getAsMention(),
-                    playerBet, playerMoney + playerBet));
+                    playerBet, playerMoney ));
         }
         if (gameOver && winnerHand.equals(dealerHand)) {
             eb.setColor(Color.red);
             eb.setAuthor(context.getTranslated("blackjack.end.lost"));
             eb.setDescription(context.getTranslated("blackjack.end.lost.desc",
                     emotkaFc.getAsMention(),
-                    playerMoney - playerBet));
+                    playerMoney));
         }
         return eb.build();
     }
@@ -229,16 +229,16 @@ public class DiscordBlackJack {
     }
 
     private void dealerWins(boolean announce) {
-        gameOver=true;
+        gameOver = true;
         winnerHand = dealerHand;
-        endReveal(announce);
         playerMoney -= playerBet;
+        endReveal(announce);
     }
 
     private void playerWins() {
-        gameOver=true;
+        gameOver = true;
         winnerHand = playerHand;
-        endReveal();
         playerMoney += playerBet;
+        endReveal();
     }
 }
