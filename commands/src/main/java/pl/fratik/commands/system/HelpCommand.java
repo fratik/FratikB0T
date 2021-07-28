@@ -23,6 +23,7 @@ import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.ChannelType;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.Ustawienia;
 import pl.fratik.core.cache.Cache;
 import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.command.Command;
@@ -109,6 +110,10 @@ public class HelpCommand extends Command {
                 }
             });
             eb.setDescription(String.join("\n", opis));
+
+            eb.addField(context.getTranslated("help.pop.field.name"), context.getTranslated("help.pop.field.content",
+                    Ustawienia.instance.botGuildInvite, context.getPrefix()), false);
+
             context.reply(eb.build());
             return true;
         }
