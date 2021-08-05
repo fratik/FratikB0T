@@ -116,23 +116,23 @@ public interface ChinczykSkin {
 
     @Getter
     class SkinImpl implements ChinczykSkin {
-        protected final Color textColor;
-        protected final Color bgColor;
-        protected final Color circleStroke;
-        protected final Color circleFill;
-        protected final Color redFill;
-        protected final Color redStartFill;
-        protected final Color greenFill;
-        protected final Color greenStartFill;
-        protected final Color blueFill;
-        protected final Color blueStartFill;
-        protected final Color yellowFill;
-        protected final Color yellowStartFill;
-        protected final Color arrowStroke;
-        protected final Color arrowFill;
-        protected final Color lineStroke;
-        protected final Color pieceStroke;
-        protected final Emoji emoji;
+        protected Color textColor;
+        protected Color bgColor;
+        protected Color circleStroke;
+        protected Color circleFill;
+        protected Color redFill;
+        protected Color redStartFill;
+        protected Color greenFill;
+        protected Color greenStartFill;
+        protected Color blueFill;
+        protected Color blueStartFill;
+        protected Color yellowFill;
+        protected Color yellowStartFill;
+        protected Color arrowStroke;
+        protected Color arrowFill;
+        protected Color lineStroke;
+        protected Color pieceStroke;
+        protected Emoji emoji;
 
         protected SkinImpl(Color textColor,
                          Color bgColor,
@@ -170,6 +170,14 @@ public interface ChinczykSkin {
             this.emoji = emoji;
         }
 
+        public SkinImpl(ChinczykSkin skin) {
+            this(skin.getTextColor(), skin.getBgColor(), skin.getCircleStroke(), skin.getCircleFill(),
+                    skin.getRedFill(), skin.getRedStartFill(), skin.getGreenFill(), skin.getGreenStartFill(),
+                    skin.getBlueFill(), skin.getBlueStartFill(), skin.getYellowFill(), skin.getYellowStartFill(),
+                    skin.getArrowStroke(), skin.getArrowFill(), skin.getLineStroke(),
+                    skin.getPieceStroke(), skin.getEmoji());
+        }
+
         protected void drawBackground(Graphics g, int width, int height) {
             // do nadpisania przez super-klasy - domyślnie nie rób nic, a tło ustawiaj w #drawBoard
         }
@@ -196,7 +204,7 @@ public interface ChinczykSkin {
                     .setAttribute("fill", "#" + asHex(yellowFill));
             planszaSvg.getElementById("arrow").setAttribute("fill", "#" + asHex(arrowFill));
             planszaSvg.getElementById("arrow").setAttribute("stroke", "#" + asHex(arrowStroke));
-            planszaSvg.getElementById("bg").setAttribute("fill", bgColor == null ? "none" : "#" + asHex(bgColor));
+            planszaSvg.getElementById("bg").setAttribute("fill", getBgColor() == null ? "none" : "#" + asHex(getBgColor()));
             planszaSvg.getElementById("line").setAttribute("stroke", "#" + asHex(lineStroke));
             planszaSvg.getElementById("rs").setAttribute("fill", "#" + asHex(redStartFill));
             planszaSvg.getElementById("gs").setAttribute("fill", "#" + asHex(greenStartFill));
@@ -231,8 +239,8 @@ public interface ChinczykSkin {
         @Override
         public void serialize(OutputStream os) throws IOException {
             os.write(1);
+            writeString(os, getClass().getName());
             ByteArrayOutputStream skinData = new ByteArrayOutputStream();
-            writeString(skinData, getClass().getName());
             writeColor(skinData, textColor);
             writeColor(skinData, bgColor);
             writeColor(skinData, circleStroke);

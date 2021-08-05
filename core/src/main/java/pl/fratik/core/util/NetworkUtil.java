@@ -164,7 +164,7 @@ public class NetworkUtil {
         return res.body() == null ? null : new JSONObject(res.body().string());
     }
 
-    private static Response downloadResponse(String url) throws IOException {
+    public static Response downloadResponse(String url) throws IOException {
         Request req = new Request.Builder()
                 .header(UA, USER_AGENT)
                 .url(url)

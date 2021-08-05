@@ -34,6 +34,7 @@ import net.dv8tion.jda.api.events.interaction.SelectionMenuEvent;
 import net.dv8tion.jda.api.events.message.MessageBulkDeleteEvent;
 import net.dv8tion.jda.api.events.message.MessageDeleteEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.events.user.update.UserUpdateNameEvent;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
@@ -45,6 +46,7 @@ import net.dv8tion.jda.api.interactions.components.selections.SelectionMenu;
 import net.dv8tion.jda.api.requests.ErrorResponse;
 import net.dv8tion.jda.api.requests.restaction.MessageAction;
 import net.dv8tion.jda.api.sharding.ShardManager;
+import okhttp3.Response;
 import org.apache.batik.anim.dom.SAXSVGDocumentFactory;
 import org.apache.batik.util.XMLResourceDescriptor;
 import org.apache.commons.lang.StringUtils;
@@ -55,6 +57,8 @@ import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.NamedThreadFactory;
+import pl.fratik.core.util.NetworkUtil;
+import pl.fratik.core.util.UserUtil;
 import pl.fratik.fratikcoiny.entity.ChinczykState;
 import pl.fratik.fratikcoiny.entity.ChinczykStateDao;
 import pl.fratik.fratikcoiny.entity.ChinczykStats;
@@ -68,13 +72,12 @@ import java.lang.ref.SoftReference;
 import java.time.Instant;
 import java.util.List;
 import java.util.*;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static net.dv8tion.jda.api.requests.ErrorResponse.UNKNOWN_INTERACTION;
@@ -1298,6 +1301,31 @@ public class Chinczyk {
             availableSkins.put(skin.getValue(), skin);
             updateMainMessage(false);
         }
+        if (!availableSkins.containsKey("custom:") && e.getMessage().getContentRaw().equals("custom:") &&
+                e.getMessage().getAttachments().size() == 1 && UserUtil.isStaff(e.getAuthor(), e.getJDA().getShardManager())) {
+            BooleanSupplier canReact = () -> !(e.getChannel() instanceof GuildChannel) ||
+                    e.getGuild().getSelfMember().hasPermission((GuildChannel) e.getChannel(),
+                            Permission.MESSAGE_ADD_REACTION, Permission.MESSAGE_HISTORY);
+            Message.Attachment attachment = e.getMessage().getAttachments().get(0);
+            if (!attachment.isImage() || !(Objects.equals(attachment.getFileExtension(), "png") ||
+                    Objects.equals(attachment.getFileExtension(), "jpg") || Objects.equals(attachment.getFileExtension(), "jpeg"))) {
+                //nieprawidłowy typ pliku
+                if (canReact.getAsBoolean()) e.getMessage().addReaction("\u2753").onErrorMap(i -> null).queue();
+                return;
+            }
+            try (Response resp = NetworkUtil.downloadResponse(attachment.getUrl())) {
+                BufferedImage image = ImageIO.read(Objects.requireNonNull(resp.body()).byteStream());
+                if (image == null) throw new NullPointerException();
+                CustomBgSkin bgSkin = new CustomBgSkin(image);
+                availableSkins.put(bgSkin.getValue(), bgSkin);
+                updateMainMessage(false);
+            } catch (Exception ex) {
+                LoggerFactory.getLogger(getClass()).error("Nie udało się pobrać zdjęcia!", ex);
+                if (canReact.getAsBoolean()) e.getMessage().addReaction("\u274C").onErrorMap(i -> null).queue();
+                return;
+            }
+            if (canReact.getAsBoolean()) e.getMessage().addReaction("\uD83D\uDC4D").onErrorMap(i -> null).queue();
+        }
     }
     
     @Subscribe
@@ -1330,6 +1358,12 @@ public class Chinczyk {
             status = Status.LEFT_GUILD;
             aborted(null);
         }
+    }
+
+    @Subscribe
+    public void onNameUpdate(UserUpdateNameEvent e) {
+        if (message == null) return;
+        if (players.values().stream().anyMatch(p -> p.getUser().equals(e.getUser()))) updateMainMessage(true);
     }
 
     private void updateMainMessage(boolean rerenderBoard) {

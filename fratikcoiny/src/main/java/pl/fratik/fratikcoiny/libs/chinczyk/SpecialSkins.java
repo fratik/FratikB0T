@@ -80,11 +80,8 @@ public enum SpecialSkins implements ChinczykSkin {
 
     public class SpecialSkinImpl extends SkinImpl {
         public SpecialSkinImpl(ChinczykSkin skin) {
-            super(skin.getTextColor(), null, skin.getCircleStroke(), skin.getCircleFill(),
-                    skin.getRedFill(), skin.getRedStartFill(), skin.getGreenFill(), skin.getGreenStartFill(),
-                    skin.getBlueFill(), skin.getBlueStartFill(), skin.getYellowFill(), skin.getYellowStartFill(),
-                    skin.getArrowStroke(), skin.getArrowFill(), skin.getLineStroke(),
-                    skin.getPieceStroke(), skin.getEmoji());
+            super(skin);
+            bgColor = null;
         }
 
         @Override
