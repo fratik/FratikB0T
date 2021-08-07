@@ -89,7 +89,7 @@ public class AntiInviteListener {
         s = s.toLowerCase();
         return s.contains("discord.gg/") || s.contains("discord.io/") || s.contains("discord.me/") ||
                 s.contains("discord.com/invite/") || s.contains("discordapp.com/invite/") ||
-                s.contains("invite.gg/") || s.contains("dus.im/");
+                s.contains("invite.gg/") || s.contains("dus.im/") || s.contains("top.gg/servers/");
     }
 
     private synchronized void addKara(Message msg) {
