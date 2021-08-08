@@ -22,6 +22,7 @@ import com.google.inject.Inject;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import pl.fratik.commands.entity.BlacklistDao;
 import pl.fratik.commands.entity.PrivDao;
+import pl.fratik.commands.images.*;
 import pl.fratik.commands.narzedzia.*;
 import pl.fratik.commands.system.*;
 import pl.fratik.commands.zabawa.*;

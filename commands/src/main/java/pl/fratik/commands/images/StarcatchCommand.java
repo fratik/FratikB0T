@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package pl.fratik.commands.zabawa;
+package pl.fratik.commands.images;
 
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.User;
@@ -32,45 +32,42 @@ import pl.fratik.core.util.NetworkUtil;
 import java.io.IOException;
 import java.net.URLEncoder;
 
-public class HugCommand extends Command {
-    public HugCommand() {
-        name = "hug";
+public class StarcatchCommand extends Command {
+    public StarcatchCommand() {
+        name = "starcatch";
         category = CommandCategory.IMAGES;
-        uzycie = new Uzycie("uzytkownik", "user", true);
+        uzycie = new Uzycie("uzytkownik", "user");
+        aliases = new String[] {"photocatch"};
         permLevel = PermLevel.EVERYONE;
         permissions.add(Permission.MESSAGE_ATTACH_FILES);
         cooldown = 5;
-        aliases = new String[] {"tulas", "przytul"};
+        aliases = new String[] {"photocatch"};
         allowPermLevelChange = false;
         allowInDMs = true;
     }
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
-        User user = (User) context.getArgs()[0];
-        if (context.getSender().getId().equals(user.getId())){
-            context.reply(context.getTranslated("hug.selfhug"));
-            return false;
-        }
+        User user = context.getSender();
+        String cutMode = context.getMessage().getContentRaw().contains("--uncut") ||
+                context.getMessage().getContentRaw().contains("--mode=uncut") ? "uncut" : "cut";
+        boolean extended = context.getMessage().getContentRaw().contains("--extended");
+        if (context.getArgs().length != 0 && context.getArgs()[0] != null) user = (User) context.getArgs()[0];
         try {
             JSONObject zdjecie = NetworkUtil.getJson(Ustawienia.instance.apiUrls.get("image-server") +
-                            "/api/image/hug?avatarURL=" + URLEncoder.encode(
-                                    context.getSender()
-                                            .getEffectiveAvatarUrl().replace(".webp", ".png")
-                            + "?size=2048", "UTF-8") + "&avatarURL2=" + URLEncoder.encode(
-                    user.getEffectiveAvatarUrl().replace(".webp", ".png")
-                            + "?size=2048", "UTF-8"),
+                            "/api/image/starcatch?avatarURL=" + URLEncoder.encode(user.getEffectiveAvatarUrl()
+                            .replace(".webp", ".png") + "?size=2048", "UTF-8") +
+                            "&cutMode=" + cutMode + "&extended=" + extended,
                     Ustawienia.instance.apiKeys.get("image-server"));
             if (zdjecie == null || !zdjecie.getBoolean("success")) {
-                context.reply("Wystąpił błąd ze zdobyciem zdjęcia!");
+                context.reply(context.getTranslated("image.server.fail"));
                 return false;
             }
             byte[] img = NetworkUtil.getBytesFromBufferArray(zdjecie.getJSONObject("image").getJSONArray("data"));
-            context.getMessageChannel().sendFile(img, "hug.png").reference(context.getMessage()).queue();
+            context.getMessageChannel().sendFile(img, "starcatch.png").reference(context.getMessage()).queue();
         } catch (IOException | NullPointerException e) {
             context.reply(context.getTranslated("image.server.fail"));
         }
-
         return true;
     }
 }

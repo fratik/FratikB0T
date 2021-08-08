@@ -15,14 +15,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package pl.fratik.commands.zabawa;
+package pl.fratik.commands.images;
 
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.User;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
-import pl.fratik.core.Ustawienia;
 import pl.fratik.core.command.Command;
+import pl.fratik.core.Ustawienia;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.command.PermLevel;
@@ -31,40 +31,47 @@ import pl.fratik.core.util.NetworkUtil;
 
 import java.io.IOException;
 import java.net.URLEncoder;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
-public class StarcatchCommand extends Command {
-    public StarcatchCommand() {
-        name = "starcatch";
+public class EatCommand extends Command {
+    public EatCommand() {
+        name = "eat";
         category = CommandCategory.IMAGES;
-        uzycie = new Uzycie("uzytkownik", "user");
-        aliases = new String[] {"photocatch"};
+        LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
+        hmap.put("użytkownik", "user");
+        hmap.put("tekst", "string");
+        hmap.put("[...]", "string");
+        uzycie = new Uzycie(hmap, new boolean[] {true, true, false});
+        uzycieDelim = " ";
         permLevel = PermLevel.EVERYONE;
         permissions.add(Permission.MESSAGE_ATTACH_FILES);
         cooldown = 5;
-        aliases = new String[] {"photocatch"};
         allowPermLevelChange = false;
         allowInDMs = true;
     }
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
-        User user = context.getSender();
-        String cutMode = context.getMessage().getContentRaw().contains("--uncut") ||
-                context.getMessage().getContentRaw().contains("--mode=uncut") ? "uncut" : "cut";
-        boolean extended = context.getMessage().getContentRaw().contains("--extended");
-        if (context.getArgs().length != 0 && context.getArgs()[0] != null) user = (User) context.getArgs()[0];
+        User user = (User) context.getArgs()[0];
+        if (user == null) // jezeli tak sie w ogole da
+            user = context.getSender();
+        String tekst = Arrays.stream(Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length))
+                .map(e -> e == null ? "" : e).map(Objects::toString).collect(Collectors.joining(uzycieDelim));
         try {
             JSONObject zdjecie = NetworkUtil.getJson(Ustawienia.instance.apiUrls.get("image-server") +
-                            "/api/image/starcatch?avatarURL=" + URLEncoder.encode(user.getEffectiveAvatarUrl()
-                            .replace(".webp", ".png") + "?size=2048", "UTF-8") +
-                            "&cutMode=" + cutMode + "&extended=" + extended,
+                            "/api/image/eat?avatarURL=" + URLEncoder.encode(user.getEffectiveAvatarUrl()
+                            .replace(".webp", ".png") + "?size=2048", "UTF-8") + "&tekst=" +
+                            URLEncoder.encode(tekst, "UTF-8"),
                     Ustawienia.instance.apiKeys.get("image-server"));
             if (zdjecie == null || !zdjecie.getBoolean("success")) {
                 context.reply(context.getTranslated("image.server.fail"));
                 return false;
             }
             byte[] img = NetworkUtil.getBytesFromBufferArray(zdjecie.getJSONObject("image").getJSONArray("data"));
-            context.getMessageChannel().sendFile(img, "starcatch.png").reference(context.getMessage()).queue();
+            context.getMessageChannel().sendFile(img, "eat.png").reference(context.getMessage()).queue();
         } catch (IOException | NullPointerException e) {
             context.reply(context.getTranslated("image.server.fail"));
         }
