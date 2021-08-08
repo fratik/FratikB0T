@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package pl.fratik.commands.zabawa;
+package pl.fratik.commands.images;
 
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.User;
@@ -31,51 +31,54 @@ import pl.fratik.core.util.NetworkUtil;
 
 import java.io.IOException;
 import java.net.URLEncoder;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
-public class ChainCommand extends Command {
-    public ChainCommand() {
-        name = "chain";
-        category = CommandCategory.FUN;
+public class BlurpleCommand extends Command {
+    public BlurpleCommand() {
+        name = "blurple";
+        category = CommandCategory.IMAGES;
         LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
-        hmap.put("nalozku", "user");
-        hmap.put("obok", "user");
-        uzycie = new Uzycie(hmap, new boolean[] {true, false});
+        hmap.put("osoba", "user");
+        hmap.put("flagi", "string");
+        hmap.put("[...]", "string");
         uzycieDelim = " ";
+        uzycie = new Uzycie(hmap, new boolean[] {false, false, false});
         permLevel = PermLevel.EVERYONE;
         permissions.add(Permission.MESSAGE_ATTACH_FILES);
         cooldown = 5;
-        aliases = new String[] {"lozeczko"};
-        allowPermLevelChange = false;
         allowInDMs = true;
     }
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
-        User nalozku = (User) context.getArgs()[0];
-        User obok;
-        if  (context.getArgs().length > 1 && context.getArgs()[1] != null) {
-            obok = (User) context.getArgs()[1];
-        } else {
-            obok = context.getSender();
-        }
-        if (nalozku.getId().equals(obok.getId())) {
-            context.reply(context.getTranslated("chain.selfchain"));
-            return false;
+        User user = (User) context.getArgs()[0];
+        if (user == null) user = context.getSender();
+        boolean reverse = false;
+        boolean classic = false;
+        if (context.getArgs().length > 1 && context.getArgs()[1] != null) {
+            String arg = Arrays.stream(Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length))
+                    .map(e -> e == null ? "" : e).map(Objects::toString).collect(Collectors.joining(uzycieDelim)).toLowerCase();
+            if (arg.contains("-r") || arg.contains("--reverse") || arg.contains("—reverse")) {
+                reverse = true;
+            }
+            if (arg.contains("-c") || arg.contains("--classic") || arg.contains("—classic")) {
+                classic = true;
+            }
         }
         try {
-            JSONObject zdjecie = NetworkUtil.getJson(String.format("%s/api/image/chain?avatarURL=%s&avatarURL2=%s",
+            JSONObject zdjecie = NetworkUtil.getJson(String.format("%s/api/image/blurple?avatarURL=%s&reverse=%s&classic=%s",
                     Ustawienia.instance.apiUrls.get("image-server"),
-                    URLEncoder.encode(nalozku.getEffectiveAvatarUrl().replace(".webp", ".png")
-                            + "?size=2048", "UTF-8"),
-                    URLEncoder.encode(obok.getEffectiveAvatarUrl().replace(".webp", ".png")
-                            + "?size=2048", "UTF-8")), Ustawienia.instance.apiKeys.get("image-server"));
+                    URLEncoder.encode(user.getEffectiveAvatarUrl().replace(".webp", ".png")
+                            + "?size=2048", "UTF-8"), reverse, classic), Ustawienia.instance.apiKeys.get("image-server"));
             if (zdjecie == null || !zdjecie.getBoolean("success")) {
                 context.reply("Wystąpił błąd ze zdobyciem zdjęcia!");
                 return false;
             }
             byte[] img = NetworkUtil.getBytesFromBufferArray(zdjecie.getJSONObject("image").getJSONArray("data"));
-            context.getMessageChannel().sendFile(img, "chain.png").reference(context.getMessage()).queue();
+            context.getMessageChannel().sendFile(img, "blurple.png").reference(context.getMessage()).queue();
         } catch (IOException | NullPointerException e) {
             context.reply(context.getTranslated("image.server.fail"));
         }

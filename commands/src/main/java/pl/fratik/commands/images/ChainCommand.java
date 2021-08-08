@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package pl.fratik.commands.zabawa;
+package pl.fratik.commands.images;
 
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.User;
@@ -31,43 +31,55 @@ import pl.fratik.core.util.NetworkUtil;
 
 import java.io.IOException;
 import java.net.URLEncoder;
+import java.util.LinkedHashMap;
 
-public class StarcatchCommand extends Command {
-    public StarcatchCommand() {
-        name = "starcatch";
-        category = CommandCategory.FUN;
-        uzycie = new Uzycie("uzytkownik", "user");
-        aliases = new String[] {"photocatch"};
+public class ChainCommand extends Command {
+    public ChainCommand() {
+        name = "chain";
+        category = CommandCategory.IMAGES;
+        LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
+        hmap.put("nalozku", "user");
+        hmap.put("obok", "user");
+        uzycie = new Uzycie(hmap, new boolean[] {true, false});
+        uzycieDelim = " ";
         permLevel = PermLevel.EVERYONE;
         permissions.add(Permission.MESSAGE_ATTACH_FILES);
         cooldown = 5;
-        aliases = new String[] {"photocatch"};
+        aliases = new String[] {"lozeczko"};
         allowPermLevelChange = false;
         allowInDMs = true;
     }
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
-        User user = context.getSender();
-        String cutMode = context.getMessage().getContentRaw().contains("--uncut") ||
-                context.getMessage().getContentRaw().contains("--mode=uncut") ? "uncut" : "cut";
-        boolean extended = context.getMessage().getContentRaw().contains("--extended");
-        if (context.getArgs().length != 0 && context.getArgs()[0] != null) user = (User) context.getArgs()[0];
+        User nalozku = (User) context.getArgs()[0];
+        User obok;
+        if  (context.getArgs().length > 1 && context.getArgs()[1] != null) {
+            obok = (User) context.getArgs()[1];
+        } else {
+            obok = context.getSender();
+        }
+        if (nalozku.getId().equals(obok.getId())) {
+            context.reply(context.getTranslated("chain.selfchain"));
+            return false;
+        }
         try {
-            JSONObject zdjecie = NetworkUtil.getJson(Ustawienia.instance.apiUrls.get("image-server") +
-                            "/api/image/starcatch?avatarURL=" + URLEncoder.encode(user.getEffectiveAvatarUrl()
-                            .replace(".webp", ".png") + "?size=2048", "UTF-8") +
-                            "&cutMode=" + cutMode + "&extended=" + extended,
-                    Ustawienia.instance.apiKeys.get("image-server"));
+            JSONObject zdjecie = NetworkUtil.getJson(String.format("%s/api/image/chain?avatarURL=%s&avatarURL2=%s",
+                    Ustawienia.instance.apiUrls.get("image-server"),
+                    URLEncoder.encode(nalozku.getEffectiveAvatarUrl().replace(".webp", ".png")
+                            + "?size=2048", "UTF-8"),
+                    URLEncoder.encode(obok.getEffectiveAvatarUrl().replace(".webp", ".png")
+                            + "?size=2048", "UTF-8")), Ustawienia.instance.apiKeys.get("image-server"));
             if (zdjecie == null || !zdjecie.getBoolean("success")) {
-                context.reply(context.getTranslated("image.server.fail"));
+                context.reply("Wystąpił błąd ze zdobyciem zdjęcia!");
                 return false;
             }
             byte[] img = NetworkUtil.getBytesFromBufferArray(zdjecie.getJSONObject("image").getJSONArray("data"));
-            context.getMessageChannel().sendFile(img, "starcatch.png").reference(context.getMessage()).queue();
+            context.getMessageChannel().sendFile(img, "chain.png").reference(context.getMessage()).queue();
         } catch (IOException | NullPointerException e) {
             context.reply(context.getTranslated("image.server.fail"));
         }
+
         return true;
     }
 }

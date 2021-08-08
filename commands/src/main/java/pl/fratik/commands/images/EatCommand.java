@@ -15,14 +15,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package pl.fratik.commands.zabawa;
+package pl.fratik.commands.images;
 
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.User;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
-import pl.fratik.core.Ustawienia;
 import pl.fratik.core.command.Command;
+import pl.fratik.core.Ustawienia;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.command.PermLevel;
@@ -36,53 +36,45 @@ import java.util.LinkedHashMap;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-public class BlurpleCommand extends Command {
-    public BlurpleCommand() {
-        name = "blurple";
-        category = CommandCategory.FUN;
+public class EatCommand extends Command {
+    public EatCommand() {
+        name = "eat";
+        category = CommandCategory.IMAGES;
         LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
-        hmap.put("osoba", "user");
-        hmap.put("flagi", "string");
+        hmap.put("użytkownik", "user");
+        hmap.put("tekst", "string");
         hmap.put("[...]", "string");
+        uzycie = new Uzycie(hmap, new boolean[] {true, true, false});
         uzycieDelim = " ";
-        uzycie = new Uzycie(hmap, new boolean[] {false, false, false});
         permLevel = PermLevel.EVERYONE;
         permissions.add(Permission.MESSAGE_ATTACH_FILES);
         cooldown = 5;
+        allowPermLevelChange = false;
         allowInDMs = true;
     }
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
         User user = (User) context.getArgs()[0];
-        if (user == null) user = context.getSender();
-        boolean reverse = false;
-        boolean classic = false;
-        if (context.getArgs().length > 1 && context.getArgs()[1] != null) {
-            String arg = Arrays.stream(Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length))
-                    .map(e -> e == null ? "" : e).map(Objects::toString).collect(Collectors.joining(uzycieDelim)).toLowerCase();
-            if (arg.contains("-r") || arg.contains("--reverse") || arg.contains("—reverse")) {
-                reverse = true;
-            }
-            if (arg.contains("-c") || arg.contains("--classic") || arg.contains("—classic")) {
-                classic = true;
-            }
-        }
+        if (user == null) // jezeli tak sie w ogole da
+            user = context.getSender();
+        String tekst = Arrays.stream(Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length))
+                .map(e -> e == null ? "" : e).map(Objects::toString).collect(Collectors.joining(uzycieDelim));
         try {
-            JSONObject zdjecie = NetworkUtil.getJson(String.format("%s/api/image/blurple?avatarURL=%s&reverse=%s&classic=%s",
-                    Ustawienia.instance.apiUrls.get("image-server"),
-                    URLEncoder.encode(user.getEffectiveAvatarUrl().replace(".webp", ".png")
-                            + "?size=2048", "UTF-8"), reverse, classic), Ustawienia.instance.apiKeys.get("image-server"));
+            JSONObject zdjecie = NetworkUtil.getJson(Ustawienia.instance.apiUrls.get("image-server") +
+                            "/api/image/eat?avatarURL=" + URLEncoder.encode(user.getEffectiveAvatarUrl()
+                            .replace(".webp", ".png") + "?size=2048", "UTF-8") + "&tekst=" +
+                            URLEncoder.encode(tekst, "UTF-8"),
+                    Ustawienia.instance.apiKeys.get("image-server"));
             if (zdjecie == null || !zdjecie.getBoolean("success")) {
-                context.reply("Wystąpił błąd ze zdobyciem zdjęcia!");
+                context.reply(context.getTranslated("image.server.fail"));
                 return false;
             }
             byte[] img = NetworkUtil.getBytesFromBufferArray(zdjecie.getJSONObject("image").getJSONArray("data"));
-            context.getMessageChannel().sendFile(img, "blurple.png").reference(context.getMessage()).queue();
+            context.getMessageChannel().sendFile(img, "eat.png").reference(context.getMessage()).queue();
         } catch (IOException | NullPointerException e) {
             context.reply(context.getTranslated("image.server.fail"));
         }
-
         return true;
     }
 }
