@@ -51,7 +51,7 @@ public class GraficznaCommand extends Command {
 
     public GraficznaCommand(String name, String endpoint, String param, boolean preventOnSender) {
         this.name = name;
-        category = CommandCategory.FUN;
+        category = CommandCategory.IMAGES;
         permissions.add(Permission.MESSAGE_ATTACH_FILES);
 
         this.endpoint = endpoint;
@@ -65,7 +65,7 @@ public class GraficznaCommand extends Command {
 
     private GraficznaCommand(String name, String endpoint, String[] aliases, String param, boolean preventOnSender) {
         this.name = name;
-        category = CommandCategory.FUN;
+        category = CommandCategory.IMAGES;
         permissions.add(Permission.MESSAGE_ATTACH_FILES);
         this.aliases = aliases;
 
@@ -80,7 +80,7 @@ public class GraficznaCommand extends Command {
 
     private GraficznaCommand(String name, String endpoint, PermLevel permLvl, String param, boolean preventOnSender) {
         this.name = name;
-        category = CommandCategory.FUN;
+        category = CommandCategory.IMAGES;
         permissions.add(Permission.MESSAGE_ATTACH_FILES);
         permLevel = permLvl;
 

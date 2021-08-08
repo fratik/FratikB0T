@@ -35,7 +35,7 @@ import java.net.URLEncoder;
 public class HugCommand extends Command {
     public HugCommand() {
         name = "hug";
-        category = CommandCategory.FUN;
+        category = CommandCategory.IMAGES;
         uzycie = new Uzycie("uzytkownik", "user", true);
         permLevel = PermLevel.EVERYONE;
         permissions.add(Permission.MESSAGE_ATTACH_FILES);

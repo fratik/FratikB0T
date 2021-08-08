@@ -39,7 +39,7 @@ import java.util.stream.Collectors;
 public class EatCommand extends Command {
     public EatCommand() {
         name = "eat";
-        category = CommandCategory.FUN;
+        category = CommandCategory.IMAGES;
         LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
         hmap.put("użytkownik", "user");
         hmap.put("tekst", "string");

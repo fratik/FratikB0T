@@ -35,7 +35,7 @@ import java.net.URLEncoder;
 public class StarcatchCommand extends Command {
     public StarcatchCommand() {
         name = "starcatch";
-        category = CommandCategory.FUN;
+        category = CommandCategory.IMAGES;
         uzycie = new Uzycie("uzytkownik", "user");
         aliases = new String[] {"photocatch"};
         permLevel = PermLevel.EVERYONE;

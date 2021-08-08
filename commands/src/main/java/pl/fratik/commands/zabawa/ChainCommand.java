@@ -36,7 +36,7 @@ import java.util.LinkedHashMap;
 public class ChainCommand extends Command {
     public ChainCommand() {
         name = "chain";
-        category = CommandCategory.FUN;
+        category = CommandCategory.IMAGES;
         LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
         hmap.put("nalozku", "user");
         hmap.put("obok", "user");

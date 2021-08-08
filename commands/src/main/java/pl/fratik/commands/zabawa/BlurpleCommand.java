@@ -39,7 +39,7 @@ import java.util.stream.Collectors;
 public class BlurpleCommand extends Command {
     public BlurpleCommand() {
         name = "blurple";
-        category = CommandCategory.FUN;
+        category = CommandCategory.IMAGES;
         LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
         hmap.put("osoba", "user");
         hmap.put("flagi", "string");
