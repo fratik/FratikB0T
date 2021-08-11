@@ -429,7 +429,7 @@ public class ModLogListener {
 
     private GuildConfig getGuildConfig(long id) {
         GuildConfig savedGc = localGc.get();
-        if (savedGc.getGuildId().equals(Long.toUnsignedString(id))) return savedGc;
+        if (savedGc != null && savedGc.getGuildId().equals(Long.toUnsignedString(id))) return savedGc;
         else localGc.remove();
         GuildConfig gc = gcCache.get(Long.toUnsignedString(id), guildDao::get);
         localGc.set(gc);
