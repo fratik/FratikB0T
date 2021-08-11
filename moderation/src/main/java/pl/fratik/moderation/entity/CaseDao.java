@@ -243,16 +243,14 @@ public class CaseDao implements Dao<Case> {
 
     protected long getNextCaseId(long guildId, Connection con) throws SQLException {
         long caseId;
-        ResultSet resultSet;
         lock(guildId);
         try (PreparedStatement stmt = con.prepareStatement(
                 "INSERT INTO cases (id, data) VALUES (?, jsonb_object('caseId', 1)) ON CONFLICT (id) DO " +
-                        "UPDATE cases SET id = ?, data = data || jsonb_object('caseId', data->'caseId' + 1) " +
+                        "UPDATE SET data = data || jsonb_object('caseId', data->'caseId' + 1) " +
                         "RETURNING data->'caseId';")) {
             String x = Long.toUnsignedString(guildId);
             stmt.setString(1, x);
-            stmt.setString(2, x);
-            resultSet = stmt.executeQuery();
+            ResultSet resultSet = stmt.executeQuery();
             caseId = resultSet.getLong("caseId");
         } finally {
             unlock(guildId);
