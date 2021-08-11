@@ -391,10 +391,10 @@ public class ModLogListener {
         try {
             Message msg = user.openPrivateChannel().flatMap(chan -> chan.sendMessage(toSend)).complete();
             aCase.setDmMsgId(msg.getIdLong());
+            caseDao.save(aCase, true);
         } catch (Exception ignored) {
             // jeżeli nie uda się wysłać DMa, ignoruj
         }
-        caseDao.save(aCase);
         return aCase;
     }
 
