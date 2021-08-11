@@ -87,8 +87,8 @@ public class ReasonCommand extends ModerationCommand {
                 }
                 aCase.setValidTo(akcjaDo);
                 //noinspection ConstantConditions - ustawiane wyżej
-                scheduleDao.createNew(akcjaDo.toEpochMilli(), Long.toUnsignedString(aCase.getIssuerId()), Akcja.EVENT,
-                        new AutoAkcja(aCase.getCaseNumber(), aCase.getType().opposite(), Long.toUnsignedString(aCase.getGuildId())));
+                scheduleDao.save(scheduleDao.createNew(akcjaDo.toEpochMilli(), Long.toUnsignedString(aCase.getIssuerId()), Akcja.EVENT,
+                        new AutoAkcja(aCase.getCaseNumber(), aCase.getType().opposite(), Long.toUnsignedString(aCase.getGuildId()))));
             }
             ReasonUtils.parseFlags(aCase, powod, Case.Flaga.SILENT);
             caseDao.save(aCase);

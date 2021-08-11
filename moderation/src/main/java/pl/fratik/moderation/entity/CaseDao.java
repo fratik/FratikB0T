@@ -45,6 +45,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
+import static pl.fratik.moderation.serializer.CaseSerializer.*;
+
 public class CaseDao implements Dao<Case> {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private final EventBus eventBus;
@@ -77,8 +79,8 @@ public class CaseDao implements Dao<Case> {
     }
 
     public List<Case> getCasesByGuild(String id) {
-        return mapper.loadRaw("SELECT * FROM %s WHERE data->>'guildId' = ? " +
-                "ORDER BY (data->>'caseNumber')::bigint DESC;", id);
+        return mapper.loadRaw("SELECT * FROM %s WHERE data->>'" + GUILD_ID + "' = ? " +
+                "ORDER BY (data->>'" + CASE_NUMBER + "')::bigint DESC;", id);
     }
 
     public List<Case> getCasesByMember(Member mem) {
@@ -86,8 +88,8 @@ public class CaseDao implements Dao<Case> {
     }
 
     public List<Case> getCasesByMember(User user, Guild guild) {
-        return mapper.loadRaw("SELECT * FROM %s WHERE data->>'guildId' = ? AND data->>'userId' = ? " +
-                        "ORDER BY (data->>'caseNumber')::bigint DESC;",
+        return mapper.loadRaw("SELECT * FROM %s WHERE data->>'" + GUILD_ID + "' = ? AND data->>'" + USER_ID + "' = ? " +
+                        "ORDER BY (data->>'" + CASE_NUMBER + "')::bigint DESC;",
                 guild.getId(), user.getId());
     }
 
@@ -139,8 +141,7 @@ public class CaseDao implements Dao<Case> {
                     long caseId = getNextCaseId(aCase.getGuildId(), con);
                     final String pk = getId(aCase.getGuildId(), caseId);
                     final ObjectNode jsonTree = OBJECT_MAPPER.valueToTree(aCase);
-                    jsonTree.put("id", pk);
-                    jsonTree.put("caseNumber", caseId);
+                    jsonTree.put(CASE_NUMBER, caseId);
                     try (PreparedStatement c = con.prepareStatement("INSERT INTO " + aCase.getTableName() +
                             " (id, data) values (?, to_jsonb(?::jsonb));")) {
                         c.setObject(1, pk);
@@ -245,13 +246,14 @@ public class CaseDao implements Dao<Case> {
         long caseId;
         lock(guildId);
         try (PreparedStatement stmt = con.prepareStatement(
-                "INSERT INTO cases (id, data) VALUES (?, jsonb_object('caseId', 1)) ON CONFLICT (id) DO " +
-                        "UPDATE SET data = data || jsonb_object('caseId', data->'caseId' + 1) " +
+                "INSERT INTO cases (id, data) VALUES (?, jsonb_build_object('caseId', 1)) ON CONFLICT (id) DO " +
+                        "UPDATE SET data = cases.data || jsonb_build_object('caseId', (cases.data->'caseId')::integer + 1) " +
                         "RETURNING data->'caseId';")) {
             String x = Long.toUnsignedString(guildId);
             stmt.setString(1, x);
             ResultSet resultSet = stmt.executeQuery();
-            caseId = resultSet.getLong("caseId");
+            resultSet.next();
+            caseId = resultSet.getLong(1);
         } finally {
             unlock(guildId);
         }
@@ -261,7 +263,7 @@ public class CaseDao implements Dao<Case> {
     public void reset(long guildId) {
         pgStore.sql(con -> {
             lock(guildId);
-            try (PreparedStatement stmt = con.prepareStatement("DELETE FROM cases WHERE data->>'guildId' = ? OR id = ?;")) {
+            try (PreparedStatement stmt = con.prepareStatement("DELETE FROM cases WHERE data->>'" + GUILD_ID + "' = ? OR id = ?;")) {
                 stmt.setString(1, Long.toUnsignedString(guildId));
                 stmt.setString(2, Long.toUnsignedString(guildId));
                 stmt.execute();

@@ -45,10 +45,7 @@ import pl.fratik.moderation.entity.Case;
 import pl.fratik.moderation.entity.CaseDao;
 import pl.fratik.moderation.utils.ModLogBuilder;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -100,6 +97,7 @@ public class AkcjeCommand extends ModerationCommand {
     }
 
     public boolean sendCases(CommandContext context, User user, List<Case> mcases, Message m) {
+        Collections.sort(mcases);
         List<Case> warnCases = mcases.stream().filter(c -> c.getType() == Kara.WARN).collect(Collectors.toList());
         List<Case> unwarnCases = mcases.stream().filter(c -> c.getType() == Kara.UNWARN).collect(Collectors.toList());
         long warnow = 0;

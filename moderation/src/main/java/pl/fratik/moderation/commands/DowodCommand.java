@@ -167,8 +167,8 @@ public class DowodCommand extends ModerationCommand {
         }
         Case aCase;
         try {
-            int caseId = Integer.parseInt((String) context.getArgs()[0]);
-            aCase = caseDao.getLocked(CaseDao.getId(context.getGuild(), caseId));
+            aCase = caseDao.getLocked(CaseDao.getId(context.getGuild(), Long.parseLong((String) context.getArgs()[0])));
+            if (aCase == null) throw new NullPointerException();
         } catch (NumberFormatException | IndexOutOfBoundsException | NullPointerException e) {
             context.reply(context.getTranslated("dowod.invalid.case"));
             return false;

@@ -66,7 +66,7 @@ public class CaseSerializer extends StdSerializer<Case> {
         if (aCase.getMessageId() != null) jsonGenerator.writeNumberField(MESSAGE_ID, aCase.getMessageId());
         if (aCase.getDmMsgId() != null) jsonGenerator.writeNumberField(DM_MESSAGE_ID, aCase.getDmMsgId());
         if (aCase.getIssuerId() != null) jsonGenerator.writeNumberField(ISSUER_ID, aCase.getIssuerId());
-        jsonGenerator.writeStringField(REASON, aCase.getReason());
+        if (aCase.getReason() != null) jsonGenerator.writeStringField(REASON, aCase.getReason());
         if (aCase.getIleRazy() != 1) jsonGenerator.writeNumberField(COUNT, aCase.getIleRazy());
         jsonGenerator.writeNumberField(FLAGI, Case.Flaga.getRaw(aCase.getFlagi()));
         if (!aCase.getDowody().isEmpty()) {

@@ -41,6 +41,7 @@ import pl.fratik.core.manager.ManagerModulow;
 import pl.fratik.core.moduly.Modul;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.EventWaiter;
+import pl.fratik.core.util.GsonUtil;
 import pl.fratik.moderation.commands.*;
 import pl.fratik.moderation.entity.*;
 import pl.fratik.moderation.listeners.*;
@@ -110,7 +111,12 @@ public class Module implements Modul {
                         ResultSet set = stmt.executeQuery();
                         if (set.isBeforeFirst()) {
                             set.next();
-                            preMigrationVersion = set.getString("data");
+                            String data = set.getString("data");
+                            try {
+                                preMigrationVersion = GsonUtil.fromJSON(data, String.class);
+                            } catch (Exception e) {
+                                preMigrationVersion = data;
+                            }
                         }
                     }
                     Migration mig = Migration.fromVersionName(preMigrationVersion);
@@ -187,7 +193,7 @@ public class Module implements Modul {
         commands.add(new ZglosCommand(guildDao));
         commands.add(new RegulaminCommand());
         commands.add(new RolaCommand(guildDao));
-        commands.add(new NotatkaCommand(guildDao, caseDao, shardManager, managerKomend));
+        commands.add(new NotatkaCommand(caseDao));
         commands.add(new RolementionCommand());
         commands.add(new DowodCommand(guildDao, caseDao, managerKomend, eventWaiter, eventBus));
 

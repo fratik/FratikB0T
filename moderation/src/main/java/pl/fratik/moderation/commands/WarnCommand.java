@@ -24,6 +24,7 @@ import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.entity.Kara;
 import pl.fratik.core.entity.Uzycie;
+import pl.fratik.core.util.DurationUtil;
 import pl.fratik.core.util.UserUtil;
 import pl.fratik.moderation.entity.Case;
 import pl.fratik.moderation.entity.CaseDao;
@@ -86,6 +87,15 @@ public class WarnCommand extends ModerationCommand {
         }
         TemporalAccessor timestamp = Instant.now();
         Case aCase = new Case.Builder(uzytkownik, timestamp, Kara.WARN).setIssuerId(context.getSender().getIdLong()).build();
+        DurationUtil.Response durationResp;
+        try {
+            durationResp = DurationUtil.parseDuration(powod);
+        } catch (IllegalArgumentException e) {
+            context.reply(context.getTranslated("warn.max.duration"));
+            return false;
+        }
+        powod = durationResp.getTekst();
+        aCase.setValidTo(durationResp.getDoKiedy());
         ReasonUtils.parseFlags(aCase, powod);
         caseDao.createNew(null, aCase, false, context.getTextChannel(), context.getLanguage());
         context.reply(context.getTranslated("warn.success", UserUtil.formatDiscrim(uzytkownik),

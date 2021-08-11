@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.time.Instant;
 import java.time.temporal.TemporalAccessor;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 
 import static pl.fratik.moderation.serializer.CaseSerializer.*;
@@ -49,25 +50,37 @@ public class CaseDeserializer extends StdDeserializer<Case> {
     public Case deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
         ObjectNode elements = p.readValueAsTree();
         TemporalAccessor timestamp = Instant.ofEpochMilli(elements.get(TIMESTAMP).asLong());
+        long guildId = elements.get(GUILD_ID).asLong();
+        long userId = elements.get(USER_ID).asLong();
+        long caseNumber = elements.get(CASE_NUMBER).asLong();
+        String reason;
+        Long issuerId, messageId, dmMessageId;
+        int ileRazy;
+        TemporalAccessor validTo;
+        boolean valid = elements.get(VALID).asBoolean();
         Kara kara = Kara.getByNum(elements.get(KARA).asInt());
-        Case aCase = new Case.Builder(elements.get(GUILD_ID).asLong(), elements.get(USER_ID).asLong(), timestamp, kara).build();
-        aCase.setReason(elements.get(REASON).toString());
-        if (elements.has(ISSUER_ID)) aCase.setIssuerId(elements.get(ISSUER_ID).asLong());
-        if (elements.has(MESSAGE_ID)) aCase.setMessageId(elements.get(MESSAGE_ID).asLong());
-        aCase.setValid(elements.get(VALID).asBoolean());
-        if (elements.has(COUNT)) aCase.setIleRazy(elements.get(COUNT).asInt());
-        aCase.setFlagi(Case.Flaga.getFlagi(elements.get("flagi").asInt()));
-        if (elements.has(VALID_TO)) aCase.setValidTo(Instant.ofEpochMilli(elements.get(VALID_TO).asLong()));
-        if (elements.has(DM_MESSAGE_ID)) aCase.setDmMsgId(elements.get(DM_MESSAGE_ID).asLong());
+        if (kara == null) throw new NullPointerException();
+        EnumSet<Case.Flaga> flagi = Case.Flaga.getFlagi(elements.get(FLAGI).asInt());
+        if (elements.has(REASON)) reason = elements.get(REASON).asText();
+        else reason = null;
+        if (elements.has(ISSUER_ID)) issuerId = elements.get(ISSUER_ID).asLong();
+        else issuerId = null;
+        if (elements.has(MESSAGE_ID)) messageId = elements.get(MESSAGE_ID).asLong();
+        else messageId = null;
+        if (elements.has(COUNT)) ileRazy = elements.get(COUNT).asInt();
+        else ileRazy = 1;
+        if (elements.has(VALID_TO)) validTo = Instant.ofEpochMilli(elements.get(VALID_TO).asLong());
+        else validTo = null;
+        if (elements.has(DM_MESSAGE_ID)) dmMessageId = elements.get(DM_MESSAGE_ID).asLong();
+        else dmMessageId = null;
         List<Dowod> dowody = new ArrayList<>();
         if (elements.has(DOWODY)) {
             for (JsonNode dowodRaw : elements.get(DOWODY)) {
                 if (dowodRaw == null) continue;
                 ObjectNode dowod = (ObjectNode) dowodRaw;
-                dowody.add(new Dowod(dowod.get(DOWOD_ID).asLong(), dowod.get(DOWOD_ATTACHED_BY).asLong(), dowod.get(DOWOD_CONTENT).toString()));
+                dowody.add(new Dowod(dowod.get(DOWOD_ID).asLong(), dowod.get(DOWOD_ATTACHED_BY).asLong(), dowod.get(DOWOD_CONTENT).asText()));
             }
         }
-        aCase.setDowody(dowody);
-        return aCase;
+        return new Case(guildId + "." + caseNumber, guildId, userId, caseNumber, timestamp, kara, valid, validTo, messageId, dmMessageId, issuerId, reason, ileRazy, flagi, dowody);
     }
 }

@@ -38,7 +38,7 @@ public enum Migration {
         public void migrate(Connection con) throws SQLException, IOException {
             ObjectMapper objectMapper = new ObjectMapper();
             List<Case> cases = new ArrayList<>();
-            Map<String, String> masterMap = new HashMap<>();
+            Map<String, Long> masterMap = new HashMap<>();
             try (PreparedStatement stmt = con.prepareStatement("SELECT * FROM cases;")) {
                 ResultSet set = stmt.executeQuery();
                 if (!set.isBeforeFirst()) return;
@@ -58,20 +58,20 @@ public enum Migration {
                                 data.getMessageId() == null ? null : Long.parseUnsignedLong(data.getMessageId()),
                                 data.getDmMsgId() == null ? null : Long.parseUnsignedLong(data.getDmMsgId()),
                                 data.getIssuerId() == null ? null : Long.parseUnsignedLong(data.getIssuerId()),
-                                reason, data.getIleRazy() == null ? 1 : data.getIleRazy(), flagi, data.getDowody(), false);
+                                reason, data.getIleRazy() == null ? 1 : data.getIleRazy(), flagi, data.getDowody());
                         newCases.add(c);
                     }
                     cases.addAll(newCases);
-                    masterMap.put(Long.toUnsignedString(guildId), Long.toString(caseId));
+                    masterMap.put(Long.toUnsignedString(guildId), caseId);
                 }
             }
             try (PreparedStatement stmt = con.prepareStatement("DELETE FROM cases;")) {
                 stmt.execute();
             }
-            for (Map.Entry<String, String> e : masterMap.entrySet()) {
-                try (PreparedStatement stmt = con.prepareStatement("INSERT INTO cases (id, data) VALUES (?, jsonb_object('caseId', ?));")) {
+            for (Map.Entry<String, Long> e : masterMap.entrySet()) {
+                try (PreparedStatement stmt = con.prepareStatement("INSERT INTO cases (id, data) VALUES (?, jsonb_build_object('caseId', ?));")) {
                     stmt.setString(1, e.getKey());
-                    stmt.setString(2, e.getValue());
+                    stmt.setLong(2, e.getValue());
                     stmt.execute();
                 }
             }

@@ -232,7 +232,7 @@ public class ModLogListener {
         if (mem.getRoles().contains(muteRole)) { // MUTE
             if (lastCase == null || lastCase.getType() != Kara.UNMUTE) return;
             //zapisz mute'a jeżeli ostatnią karą jest unmute lub żadnej nie ma - aka jeżeli nie ma żadnego ważnego mute'a
-            if (knownCase.getType() == Kara.MUTE) aCase = knownCase;
+            if (knownCase != null && knownCase.getType() == Kara.MUTE) aCase = knownCase;
             else {
                 entry = findAuditLogEntry(guild, mem.getIdLong(), ActionType.MEMBER_ROLE_UPDATE, l -> {
                     AuditLogChange changeByKey = l.getChangeByKey(AuditLogKey.MEMBER_ROLES_ADD);
@@ -245,7 +245,7 @@ public class ModLogListener {
         } else { // UNMUTE
             if (lastCase != null && lastCase.getType() != Kara.MUTE) return;
             //zapisz unmute'a tylko jeżeli ostatnią karą jest mute - aka jeżeli jest ważny mute
-            if (knownCase.getType() == Kara.UNMUTE) aCase = knownCase;
+            if (knownCase != null && knownCase.getType() == Kara.UNMUTE) aCase = knownCase;
             else {
                 entry = findAuditLogEntry(guild, mem.getIdLong(), ActionType.MEMBER_ROLE_UPDATE, l -> {
                     AuditLogChange changeByKey = l.getChangeByKey(AuditLogKey.MEMBER_ROLES_REMOVE);
@@ -338,11 +338,16 @@ public class ModLogListener {
         Case aCase = caseDao.getLocked(CaseDao.getId(cnt.getGuildId(), cnt.getCaseId()));
         if (aCase == null) return; //?
         try {
-            aCase.setValid(false);
-            aCase.setValidTo(Instant.now());
             Kara adw = cnt.getAkcjaDoWykonania();
             Case newCase = new Case.Builder(aCase.getGuildId(), aCase.getUserId(), aCase.getValidTo(), adw)
                     .setIssuerId(Globals.clientId).setReasonKey("modlog.timed.reason." + adw.name().toLowerCase()).build();
+            if (adw == Kara.UNWARN) {
+                aCase.setValid(false);
+                aCase.setValidTo(Instant.now());
+                caseDao.createNew(aCase, newCase, false);
+            }
+            else if (adw == Kara.UNMUTE || adw == Kara.UNBAN)
+                getKnownCases().put(ModLogListener.generateKey(aCase.getUserId(), aCase.getGuildId()), newCase);
             if (adw == Kara.UNBAN) {
                 try {
                     g.unban(User.fromId(aCase.getUserId())).complete();
@@ -358,11 +363,6 @@ public class ModLogListener {
                     return;
                 }
             }
-            if (adw == Kara.UNWARN) caseDao.createNew(aCase, newCase, false);
-            else if (adw == Kara.UNMUTE || adw == Kara.UNBAN) {
-                caseDao.save(aCase, false);
-                getKnownCases().put(ModLogListener.generateKey(aCase.getUserId(), aCase.getGuildId()), newCase);
-            }
         } finally {
             caseDao.unlock(aCase);
         }
@@ -376,6 +376,7 @@ public class ModLogListener {
         if (g == null || !checkPermissions(g)) return;
         Case aCase = e.getCase();
         updateCaseMessage(aCase, resolveModLogChannel(getGuildConfig(aCase.getGuildId())));
+        updateDm(aCase, shardManager.retrieveUserById(aCase.getUserId()).onErrorMap(ex -> null).complete(), g);
     }
 
     private void saveCase(Case toModify, Case aCase, boolean sendDm) {
@@ -397,18 +398,14 @@ public class ModLogListener {
     }
 
     private Case updateCaseMessage(Case aCase, TextChannel mlogchan) {
-        if (mlogchan == null || aCase.getMessageId() != null) return aCase;
+        if (mlogchan == null || aCase.getMessageId() == null) return aCase;
         Message toSend = ModLogBuilder.generate(aCase, mlogchan.getGuild(), shardManager,
                 tlumaczenia.getLanguage(mlogchan.getGuild()), managerKomend, true, false, false);
         try {
             mlogchan.retrieveMessageById(aCase.getMessageId())
                     .flatMap(m -> m.editMessage(toSend).override(true)).complete();
         } catch (Exception e) {
-            try {
-                Message msg = mlogchan.sendMessage(toSend).complete();
-                aCase.setMessageId(msg.getIdLong());
-                caseDao.save(aCase);
-            } catch (Exception ignored) {}
+            return sendCaseMessage(aCase, mlogchan);
         }
         return aCase;
     }
@@ -423,6 +420,19 @@ public class ModLogListener {
             caseDao.save(aCase, true);
         } catch (Exception ignored) {
             // jeżeli nie uda się wysłać DMa, ignoruj
+        }
+        return aCase;
+    }
+
+    private Case updateDm(Case aCase, User user, Guild g) {
+        if (aCase.getIssuerId() == null || aCase.getDmMsgId() == null || user == null) return aCase;
+        Message toSend = ModLogBuilder.generate(aCase, g, shardManager, tlumaczenia.getLanguage(user),
+                null, true, false, true);
+        try {
+            user.openPrivateChannel().flatMap(chan -> chan.retrieveMessageById(aCase.getDmMsgId()))
+                    .flatMap(m -> m.editMessage(toSend).override(true)).complete();
+        } catch (Exception ignored) {
+            return sendDm(aCase, user, g);
         }
         return aCase;
     }

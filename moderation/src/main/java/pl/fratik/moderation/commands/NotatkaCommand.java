@@ -18,14 +18,11 @@
 package pl.fratik.moderation.commands;
 
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
-import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Kara;
 import pl.fratik.core.entity.Uzycie;
-import pl.fratik.core.manager.ManagerKomend;
 import pl.fratik.core.util.UserUtil;
 import pl.fratik.moderation.entity.Case;
 import pl.fratik.moderation.entity.CaseDao;
@@ -39,16 +36,10 @@ import java.util.stream.Collectors;
 
 public class NotatkaCommand extends ModerationCommand {
 
-    private final GuildDao guildDao;
     private final CaseDao caseDao;
-    private final ShardManager shardManager;
-    private final ManagerKomend managerKomend;
 
-    public NotatkaCommand(GuildDao guildDao, CaseDao casesDao, ShardManager shardManager, ManagerKomend managerKomend) {
-        this.guildDao = guildDao;
+    public NotatkaCommand(CaseDao casesDao) {
         this.caseDao = casesDao;
-        this.shardManager = shardManager;
-        this.managerKomend = managerKomend;
         name = "notatka";
         category = CommandCategory.MODERATION;
         uzycieDelim = " ";
@@ -87,7 +78,7 @@ public class NotatkaCommand extends ModerationCommand {
         }
         Case aCase = new Case.Builder(uzytkownik, Instant.now(), Kara.NOTATKA).setIssuerId(context.getSender().getIdLong()).build();
         ReasonUtils.parseFlags(aCase, powod);
-        caseDao.save(aCase);
+        caseDao.createNew(null, aCase, false);
         context.reply(context.getTranslated("notatka.success", UserUtil.formatDiscrim(uzytkownik)));
         return true;
     }

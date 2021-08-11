@@ -52,7 +52,7 @@ import java.util.stream.Collectors;
 @GIndex
 @JsonSerialize(using = CaseSerializer.class)
 @JsonDeserialize(using = CaseDeserializer.class)
-public class Case implements DatabaseEntity {
+public class Case implements DatabaseEntity, Comparable<Case> {
     @PrimaryKey
     private final String id; // guildId + '.' + caseNumber
     private final long guildId;
@@ -69,7 +69,6 @@ public class Case implements DatabaseEntity {
     @Setter private int ileRazy = 1;
     @Setter @NotNull private EnumSet<Flaga> flagi = EnumSet.noneOf(Flaga.class);
     @Setter @NotNull private List<Dowod> dowody = new ArrayList<>();
-    @Setter private boolean migrationFix = false;
 
     public String getReason(CommandContext ctx) {
         return getReason(ctx.getTlumaczenia(), ctx.getLanguage());
@@ -102,7 +101,14 @@ public class Case implements DatabaseEntity {
     public String getTableName() {
         return "cases";
     }
-    
+
+    @Override
+    public int compareTo(@NotNull Case o) { // 1 -> 2 -> 3 -> ...
+        Objects.requireNonNull(o);
+        if (getGuildId() != o.getGuildId()) throw new IllegalArgumentException("Nie można sortować spraw między serwerami!");
+        return Long.compare(getCaseNumber(), o.getCaseNumber());
+    }
+
     public static class Builder {
         private final Case aCase;
 
