@@ -20,17 +20,20 @@ package pl.fratik.moderation;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import com.google.inject.Inject;
-import net.dv8tion.jda.api.sharding.ShardManager;
+import io.sentry.Sentry;
 import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.Role;
-import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
+import net.dv8tion.jda.api.sharding.ShardManager;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.Globals;
 import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.command.Command;
-import pl.fratik.core.entity.*;
+import pl.fratik.core.entity.GuildDao;
+import pl.fratik.core.entity.Kara;
+import pl.fratik.core.entity.ScheduleDao;
+import pl.fratik.core.entity.UserDao;
 import pl.fratik.core.event.ModuleLoadedEvent;
 import pl.fratik.core.manager.ManagerBazyDanych;
 import pl.fratik.core.manager.ManagerKomend;
@@ -41,8 +44,12 @@ import pl.fratik.core.util.EventWaiter;
 import pl.fratik.moderation.commands.*;
 import pl.fratik.moderation.entity.*;
 import pl.fratik.moderation.listeners.*;
+import pl.fratik.moderation.utils.Migration;
 import pl.fratik.moderation.utils.ModLogBuilder;
 
+import java.io.IOException;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -69,10 +76,10 @@ public class Module implements Modul {
     private LinkListener linkListener;
     private AntiInviteListener antiInviteListener;
     private AntiRaidListener antiRaidListener;
-    private CasesDao casesDao;
+    private CaseDao caseDao;
     private PurgeDao purgeDao;
     private AutobanListener autobanListener;
-    private PublishListener publishListener;
+//    private PublishListener publishListener;
 
     public Module() {
         commands = new ArrayList<>();
@@ -80,31 +87,77 @@ public class Module implements Modul {
 
     @Override
     public boolean startUp() {
+        Logger logger = LoggerFactory.getLogger(getClass());
         LogMessage.setShardManager(shardManager);
         EnumSet<Permission> permList = Permission.getPermissions(Globals.permissions);
-        if (!permList.contains(Permission.VIEW_AUDIT_LOGS)) permList.add(Permission.VIEW_AUDIT_LOGS);
+        permList.add(Permission.VIEW_AUDIT_LOGS);
+        permList.add(Permission.MANAGE_SERVER);
+        permList.add(Permission.MANAGE_ROLES);
+        permList.add(Permission.BAN_MEMBERS);
+        permList.add(Permission.KICK_MEMBERS);
         if (Globals.permissions != Permission.getRaw(permList)) {
-            LoggerFactory.getLogger(Module.class).debug("Zmieniam long uprawnień: {} -> {}", Globals.permissions, Permission.getRaw(permList));
+            logger.debug("Zmieniam long uprawnień: {} -> {}", Globals.permissions, Permission.getRaw(permList));
             Globals.permissions = Permission.getRaw(permList);
         }
-        AutoAkcja.setShardManager(shardManager);
-        casesDao = new CasesDao(managerBazyDanych, eventBus);
+        logger.info("Rozpoczynam migrację spraw!");
+        try {
+            managerBazyDanych.getPgStore().sql(con -> {
+                final boolean autoCommit = con.getAutoCommit();
+                con.setAutoCommit(false);
+                try {
+                    String preMigrationVersion = null;
+                    try (PreparedStatement stmt = con.prepareStatement("SELECT * FROM cases WHERE id = 'version';")) {
+                        ResultSet set = stmt.executeQuery();
+                        if (set.isBeforeFirst()) {
+                            set.next();
+                            preMigrationVersion = set.getString("data");
+                        }
+                    }
+                    Migration mig = Migration.fromVersionName(preMigrationVersion);
+                    try {
+                        if (mig != null) {
+                            logger.info("Aktualna wersja: {}. Migruję do {}...", mig.getVersionKey(), Migration.getNewest().getVersionKey());
+                            mig.migrate(con);
+                        } else throw new IllegalArgumentException("Nieprawidłowa wersja!");
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                    String statement;
+                    if (preMigrationVersion == null)
+                        statement = "INSERT INTO cases (id, data) VALUES ('version', to_jsonb(?));";
+                    else statement = "UPDATE cases SET data = to_jsonb(?) WHERE id = 'version';";
+                    try (PreparedStatement stmt = con.prepareStatement(statement)) {
+                        stmt.setString(1, Migration.getNewest().getVersionKey());
+                        stmt.execute();
+                    }
+                    con.commit();
+                } catch (Throwable e) {
+                    con.rollback();
+                    throw e;
+                } finally {
+                    con.setAutoCommit(autoCommit);
+                }
+            });
+            logger.info("Migracja ukończona!");
+        } catch (Exception e) {
+            logger.error("Migracja nieudana!", e);
+            Sentry.capture(e);
+            return false;
+        }
+        caseDao = new CaseDao(managerBazyDanych, eventBus);
         purgeDao = new PurgeDao(managerBazyDanych, eventBus);
-        Case.setStaticVariables(casesDao, scheduleDao);
         ModLogBuilder.setTlumaczenia(tlumaczenia);
         ModLogBuilder.setGuildDao(guildDao);
         ModLogBuilder.setManagerKomend(managerKomend);
-        ModLogListener.setTlumaczenia(tlumaczenia);
-        ModLogListener.setManagerKomend(managerKomend);
         LogListener.setTlumaczenia(tlumaczenia);
-        modLogListener = new ModLogListener(guildDao, shardManager, casesDao);
+        modLogListener = new ModLogListener(shardManager, caseDao, guildDao, scheduleDao, tlumaczenia, managerKomend, redisCacheManager);
         logListener = new LogListener(guildDao, purgeDao, redisCacheManager);
-        przeklenstwaListener = new PrzeklenstwaListener(guildDao, tlumaczenia, managerKomend, shardManager, casesDao, redisCacheManager);
-        linkListener = new LinkListener(guildDao, tlumaczenia, managerKomend, shardManager, casesDao, redisCacheManager, eventBus);
-        autobanListener = new AutobanListener(guildDao, tlumaczenia);
-        antiInviteListener = new AntiInviteListener(guildDao, tlumaczenia, managerKomend, shardManager, casesDao, redisCacheManager);
+        przeklenstwaListener = new PrzeklenstwaListener(guildDao, tlumaczenia, managerKomend, shardManager, caseDao, redisCacheManager);
+        linkListener = new LinkListener(guildDao, tlumaczenia, managerKomend, shardManager, caseDao, redisCacheManager, eventBus);
+        autobanListener = new AutobanListener(guildDao, tlumaczenia, modLogListener);
+        antiInviteListener = new AntiInviteListener(guildDao, tlumaczenia, managerKomend, shardManager, caseDao, redisCacheManager);
         antiRaidListener = new AntiRaidListener(guildDao, shardManager, eventBus, tlumaczenia, redisCacheManager, managerKomend);
-        publishListener = new PublishListener(guildDao, tlumaczenia, managerKomend, shardManager, casesDao, redisCacheManager);
+//        publishListener = new PublishListener(guildDao, tlumaczenia, managerKomend, shardManager, caseDao, redisCacheManager);
 
         eventBus.register(this);
         eventBus.register(modLogListener);
@@ -114,29 +167,29 @@ public class Module implements Modul {
         eventBus.register(autobanListener);
         eventBus.register(antiInviteListener);
         eventBus.register(antiRaidListener);
-        eventBus.register(publishListener);
+//        eventBus.register(publishListener);
 
         commands = new ArrayList<>();
 
         commands.add(new PurgeCommand(logListener));
-        commands.add(new BanCommand(guildDao));
-        commands.add(new UnbanCommand());
-        commands.add(new KickCommand());
-        commands.add(new WarnCommand(guildDao, casesDao, shardManager, managerKomend));
-        commands.add(new UnwarnCommand(guildDao, casesDao, shardManager, managerKomend));
-        commands.add(new AkcjeCommand(casesDao, shardManager, eventWaiter, eventBus, managerKomend, guildDao));
-        commands.add(new ReasonCommand(guildDao, casesDao, shardManager, managerKomend));
+        commands.add(new BanCommand(modLogListener, scheduleDao));
+        commands.add(new UnbanCommand(modLogListener));
+        commands.add(new KickCommand(modLogListener));
+        commands.add(new WarnCommand(caseDao));
+        commands.add(new UnwarnCommand(caseDao));
+        commands.add(new AkcjeCommand(caseDao, shardManager, eventWaiter, eventBus, managerKomend, guildDao));
+        commands.add(new ReasonCommand(guildDao, caseDao));
         commands.add(new RolesCommand());
         commands.add(new HideCommand(guildDao, managerKomend));
         commands.add(new LockCommand(guildDao, managerKomend));
-        commands.add(new MuteCommand(guildDao));
-        commands.add(new UnmuteCommand(guildDao));
+        commands.add(new MuteCommand(guildDao, modLogListener));
+        commands.add(new UnmuteCommand(guildDao, modLogListener));
         commands.add(new ZglosCommand(guildDao));
         commands.add(new RegulaminCommand());
         commands.add(new RolaCommand(guildDao));
-        commands.add(new NotatkaCommand(guildDao, casesDao, shardManager, managerKomend));
+        commands.add(new NotatkaCommand(guildDao, caseDao, shardManager, managerKomend));
         commands.add(new RolementionCommand());
-        commands.add(new DowodCommand(guildDao, casesDao, shardManager, managerKomend, eventWaiter, eventBus));
+        commands.add(new DowodCommand(guildDao, caseDao, managerKomend, eventWaiter, eventBus));
 
         commands.forEach(managerKomend::registerCommand);
 
@@ -147,13 +200,6 @@ public class Module implements Modul {
 
     @Override
     public boolean shutDown() {
-        EnumSet<Permission> permList = Permission.getPermissions(Globals.permissions);
-        permList.remove(Permission.VIEW_AUDIT_LOGS);
-        if (Globals.permissions != Permission.getRaw(permList)) {
-            LoggerFactory.getLogger(Module.class).debug("Zmieniam long uprawnień: {} -> {}", Globals.permissions, Permission.getRaw(permList));
-            Globals.permissions = Permission.getRaw(permList);
-        }
-        if (modLogListener != null) modLogListener.cleanup();
         commands.forEach(managerKomend::unregisterCommand);
         antiRaidListener.shutdown();
         try {
@@ -165,7 +211,7 @@ public class Module implements Modul {
             eventBus.unregister(autobanListener);
             eventBus.unregister(antiInviteListener);
             eventBus.unregister(antiRaidListener);
-            eventBus.unregister(publishListener);
+//            eventBus.unregister(publishListener);
         } catch (Exception ignored) {
             /*lul*/
         }
@@ -174,44 +220,25 @@ public class Module implements Modul {
 
     @Subscribe
     private void onMemberJoin(GuildMemberJoinEvent e) {
-        if (!e.getGuild().getSelfMember().hasPermission(Permission.MANAGE_ROLES)) return;
-        CaseRow cases = casesDao.get(e.getGuild());
-        List<Case> cList = cases.getCases().stream().filter(c -> c.getType() == Kara.MUTE &&
-                c.getUserId().equals(e.getMember().getUser().getId()) && c.isValid()).collect(Collectors.toList());
-        GuildConfig gc = guildDao.get(e.getGuild());
-        Role rola;
-        try {
-            rola = e.getGuild().getRoleById(gc.getWyciszony());
-        } catch (Exception ignored) {
-            rola = null;
-        }
+        if (!modLogListener.checkPermissions(e)) return;
+        Role rola = modLogListener.getMuteRole(e.getGuild());
         if (rola == null) return;
+        List<Case> cList = caseDao.getCasesByMember(e.getMember()).stream().filter(c -> c.getType() == Kara.MUTE &&
+                c.isValid()).collect(Collectors.toList());
         if (cList.size() > 1) {
             for (Case aCase : cList) {
                 aCase.setValid(false);
-                aCase.setValidTo(Instant.now(), true);
-                Case c = new CaseBuilder().setUser(aCase.getUserId()).setGuild(aCase.getGuildId())
-                        .setCaseId(Case.getNextCaseId(cases)).setTimestamp(Instant.now()).setMessageId(null)
-                        .setKara(Kara.UNMUTE).createCase();
-                c.setIssuerId(String.valueOf(Globals.clientId));
-                c.setReason(tlumaczenia.get(tlumaczenia.getLanguage(e.getGuild()), "modlog.reason.twomutesoneuser"));
-                if (gc.getModLog() != null && !gc.getModLog().isEmpty()) {
-                    MessageEmbed em = ModLogBuilder.generate(c, e.getGuild(), shardManager,
-                            tlumaczenia.getLanguage(e.getGuild()), managerKomend, true, false);
-                    TextChannel mlog = shardManager.getTextChannelById(gc.getModLog());
-                    if (mlog != null && mlog.canTalk()) {
-                        mlog.sendMessage(em).complete();
-                        c.setMessageId(mlog.sendMessage(em).complete().getId());
-                    }
-                }
-                cases.getCases().add(c);
-                casesDao.save(cases);
+                aCase.setValidTo(Instant.now());
+                Case c = new Case.Builder(aCase.getGuildId(), aCase.getUserId(), Instant.now(), Kara.UNMUTE)
+                        .setIssuerId(Globals.clientId)
+                        .setReasonKey("modlog.reason.twomutesoneuser")
+                        .build();
+                caseDao.createNew(aCase, c, false);
             }
         } else if (cList.size() == 1) {
-            modLogListener.getIgnoredMutes().add(e.getUser().getId() + e.getGuild().getId());
             e.getGuild().addRoleToMember(e.getMember(), rola)
                     .reason(tlumaczenia.get(tlumaczenia.getLanguage(e.getGuild()), "modlog.reason.audit.autoreturnmute",
-                            cList.get(0).getCaseId())).queue();
+                            cList.get(0).getCaseNumber())).queue();
         }
     }
 

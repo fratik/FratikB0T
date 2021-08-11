@@ -19,11 +19,11 @@ package pl.fratik.moderation.listeners;
 
 import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.Subscribe;
-import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageUpdateEvent;
 import net.dv8tion.jda.api.sharding.ShardManager;
+import pl.fratik.core.Globals;
 import pl.fratik.core.cache.Cache;
 import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.command.PermLevel;
@@ -34,10 +34,7 @@ import pl.fratik.core.manager.ManagerKomend;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.UserUtil;
 import pl.fratik.moderation.entity.Case;
-import pl.fratik.moderation.entity.CaseBuilder;
-import pl.fratik.moderation.entity.CaseRow;
-import pl.fratik.moderation.entity.CasesDao;
-import pl.fratik.moderation.utils.ModLogBuilder;
+import pl.fratik.moderation.entity.CaseDao;
 import pl.fratik.moderation.utils.WarnUtil;
 
 import java.time.Instant;
@@ -49,15 +46,15 @@ public class AntiInviteListener {
     private final Tlumaczenia tlumaczenia;
     private final ManagerKomend managerKomend;
     private final ShardManager shardManager;
-    private final CasesDao casesDao;
+    private final CaseDao caseDao;
     private final Cache<GuildConfig> gcCache;
 
-    public AntiInviteListener(GuildDao guildDao, Tlumaczenia tlumaczenia, ManagerKomend managerKomend, ShardManager shardManager, CasesDao casesDao, RedisCacheManager redisCacheManager) {
+    public AntiInviteListener(GuildDao guildDao, Tlumaczenia tlumaczenia, ManagerKomend managerKomend, ShardManager shardManager, CaseDao caseDao, RedisCacheManager redisCacheManager) {
         this.guildDao = guildDao;
         this.tlumaczenia = tlumaczenia;
         this.managerKomend = managerKomend;
         this.shardManager = shardManager;
-        this.casesDao = casesDao;
+        this.caseDao = caseDao;
         gcCache = redisCacheManager.new CacheRetriever<GuildConfig>(){}.getCache();
     }
 
@@ -98,35 +95,18 @@ public class AntiInviteListener {
         try {
             msg.delete().queue();
             synchronized (msg.getGuild()) {
-                Case c = new CaseBuilder(msg.getGuild()).setUser(msg.getAuthor().getId()).setKara(Kara.WARN)
-                        .setTimestamp(Instant.now()).createCase();
-                c.setIssuerId(msg.getJDA().getSelfUser());
-                c.setReason(tlumaczenia.get(tlumaczenia.getLanguage(msg.getGuild()), "antiinvite.reason"));
-                String mlogchan = getModLogChan(msg.getGuild());
-                if (mlogchan == null || mlogchan.equals("")) mlogchan = "0";
-                TextChannel mlogc = shardManager.getTextChannelById(mlogchan);
-
-                if (!(mlogc == null || !mlogc.getGuild().getSelfMember().hasPermission(mlogc,
-                        Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_WRITE, Permission.MESSAGE_READ))) {
-                    Message m = mlogc.sendMessage(ModLogBuilder.generate(c,
-                            msg.getGuild(), shardManager, tlumaczenia.getLanguage(msg.getGuild()), managerKomend, true, false)).complete();
-                    c.setMessageId(m.getId());
-                }
-                CaseRow cr = casesDao.get(msg.getGuild());
-                cr.getCases().add(c);
-                msg.getChannel().sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(msg.getMember()),
-                        trans, msg.getAuthor().getAsMention(), WarnUtil.countCases(cr, msg.getAuthor().getId()),
-                        managerKomend.getPrefixes(msg.getGuild()).get(0))).queue();
-                casesDao.save(cr);
-                Member m = msg.getMember();
-                if (m == null) {
+                Member member = msg.getMember();
+                if (member == null) {
                     // to się nie stanie
                     return;
                 }
-                WarnUtil.takeAction(guildDao, casesDao, m, msg.getChannel(),
-                        tlumaczenia.getLanguage(msg.getGuild()), tlumaczenia, managerKomend);
+                Case c = new Case.Builder(member, Instant.now(), Kara.WARN).setIssuerId(Globals.clientId)
+                        .setReasonKey("antiinvite.reason").build();
+                caseDao.createNew(null, c, false, msg.getTextChannel(), tlumaczenia.getLanguage(member));
+                msg.getChannel().sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(member),
+                        trans, msg.getAuthor().getAsMention(), WarnUtil.countCases(caseDao.getCasesByMember(member), member.getId()),
+                        managerKomend.getPrefixes(msg.getGuild()).get(0))).queue();
             }
-
         } catch (Exception ignored) {
             // no i chuj, wylądował, wszystko poszło w pizdu
         }

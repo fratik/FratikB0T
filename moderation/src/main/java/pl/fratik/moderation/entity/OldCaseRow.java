@@ -25,8 +25,8 @@ import gg.amy.pgorm.annotations.PrimaryKey;
 import gg.amy.pgorm.annotations.Table;
 import lombok.Data;
 import pl.fratik.core.entity.DatabaseEntity;
-import pl.fratik.moderation.serializer.CaseDeserializer;
-import pl.fratik.moderation.serializer.CaseSerializer;
+import pl.fratik.moderation.serializer.OldCaseDeserializer;
+import pl.fratik.moderation.serializer.OldCaseSerializer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,13 +34,13 @@ import java.util.List;
 @Table("cases")
 @GIndex("guildId")
 @Data
-public class CaseRow implements DatabaseEntity {
+public class OldCaseRow implements DatabaseEntity {
 
     @PrimaryKey
     private final String guildId;
-    @JsonSerialize(using=CaseSerializer.class)
-    @JsonDeserialize(using=CaseDeserializer.class)
-    private List<Case> cases = new ArrayList<>();
+    @JsonSerialize(using = OldCaseSerializer.class)
+    @JsonDeserialize(using = OldCaseDeserializer.class)
+    private List<OldCase> cases = new ArrayList<>();
 
     @Override
     @JsonIgnore

@@ -28,16 +28,20 @@ import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.util.UserUtil;
 import pl.fratik.moderation.entity.Case;
 import pl.fratik.moderation.listeners.ModLogListener;
-import pl.fratik.moderation.entity.CaseBuilder;
 import pl.fratik.moderation.utils.ReasonUtils;
 
 import java.time.Instant;
-import java.util.*;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class UnbanCommand extends ModerationCommand {
+    private final ModLogListener modLogListener;
 
-    public UnbanCommand() {
+    public UnbanCommand(ModLogListener modLogListener) {
+        this.modLogListener = modLogListener;
         name = "unban";
         category = CommandCategory.MODERATION;
         uzycieDelim = " ";
@@ -63,19 +67,13 @@ public class UnbanCommand extends ModerationCommand {
             context.reply(context.getTranslated("unban.not.banned"));
             return false;
         }
-        Case aCase = new CaseBuilder().setUser(uzytkownik).setGuild(context.getGuild())
-                .setCaseId(Case.getNextCaseId(context.getGuild())).setTimestamp(Instant.now())
-                .setMessageId(null).setKara(Kara.UNBAN).createCase();
-        aCase.setIssuerId(context.getSender());
+        Case aCase = new Case.Builder(context.getGuild(), uzytkownik, Instant.now(), Kara.UNBAN)
+                .setIssuerId(context.getSender().getIdLong()).build();
         ReasonUtils.parseFlags(aCase, powod);
-        List<Case> caseList = ModLogListener.getKnownCases().getOrDefault(context.getGuild(), new ArrayList<>());
-        caseList.add(aCase);
-        ModLogListener.getKnownCases().put(context.getGuild(), caseList);
+        modLogListener.getKnownCases().put(ModLogListener.generateKey(uzytkownik, context.getGuild()), aCase);
         try {
             context.getGuild().unban(uzytkownik).reason(powod).complete();
         } catch (Exception e) {
-            caseList.remove(aCase);
-            ModLogListener.getKnownCases().put(context.getGuild(), caseList);
             context.reply(context.getTranslated("unban.failed"));
             return false;
         }

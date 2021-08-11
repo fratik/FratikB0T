@@ -18,25 +18,23 @@
 package pl.fratik.moderation.serializer;
 
 import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
-import pl.fratik.moderation.entity.Case;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import pl.fratik.core.entity.Kara;
-import pl.fratik.moderation.entity.CaseBuilder;
+import pl.fratik.moderation.entity.Case;
 import pl.fratik.moderation.entity.Dowod;
 
 import java.io.IOException;
 import java.time.Instant;
 import java.time.temporal.TemporalAccessor;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Objects;
 
-public class CaseDeserializer extends StdDeserializer<List<Case>> {
+import static pl.fratik.moderation.serializer.CaseSerializer.*;
 
-    private static final String VALIDTO = "validTo";
+public class CaseDeserializer extends StdDeserializer<Case> {
 
     protected CaseDeserializer() {
         this(null);
@@ -48,57 +46,28 @@ public class CaseDeserializer extends StdDeserializer<List<Case>> {
     }
 
     @Override
-    public List<Case> deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
-        List<LinkedHashMap<String, Object>> cases = p.readValueAs(new TypeReference<List<LinkedHashMap<String, Object>>>(){});
-        ArrayList<Case> caseList = new ArrayList<>();
-        for (LinkedHashMap<String, Object> elements : cases) {
-            TemporalAccessor timestamp;
-            try {
-                timestamp = Instant.ofEpochMilli(((Long) elements.get("timestamp")));
-            } catch (ClassCastException ignored) {
-                timestamp = Instant.ofEpochMilli(((Integer) elements.get("timestamp")));
+    public Case deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
+        ObjectNode elements = p.readValueAsTree();
+        TemporalAccessor timestamp = Instant.ofEpochMilli(elements.get(TIMESTAMP).asLong());
+        Kara kara = Kara.getByNum(elements.get(KARA).asInt());
+        Case aCase = new Case.Builder(elements.get(GUILD_ID).asLong(), elements.get(USER_ID).asLong(), timestamp, kara).build();
+        aCase.setReason(elements.get(REASON).toString());
+        if (elements.has(ISSUER_ID)) aCase.setIssuerId(elements.get(ISSUER_ID).asLong());
+        if (elements.has(MESSAGE_ID)) aCase.setMessageId(elements.get(MESSAGE_ID).asLong());
+        aCase.setValid(elements.get(VALID).asBoolean());
+        if (elements.has(COUNT)) aCase.setIleRazy(elements.get(COUNT).asInt());
+        aCase.setFlagi(Case.Flaga.getFlagi(elements.get("flagi").asInt()));
+        if (elements.has(VALID_TO)) aCase.setValidTo(Instant.ofEpochMilli(elements.get(VALID_TO).asLong()));
+        if (elements.has(DM_MESSAGE_ID)) aCase.setDmMsgId(elements.get(DM_MESSAGE_ID).asLong());
+        List<Dowod> dowody = new ArrayList<>();
+        if (elements.has(DOWODY)) {
+            for (JsonNode dowodRaw : elements.get(DOWODY)) {
+                if (dowodRaw == null) continue;
+                ObjectNode dowod = (ObjectNode) dowodRaw;
+                dowody.add(new Dowod(dowod.get(DOWOD_ID).asLong(), dowod.get(DOWOD_ATTACHED_BY).asLong(), dowod.get(DOWOD_CONTENT).toString()));
             }
-            Kara kara = Kara.getByNum((int) elements.get("kara"));
-            Case aCase = new CaseBuilder().setUser((String) elements.get("userId"))
-                    .setGuild((String) elements.get("guildId")).setCaseId((int) elements.get("caseId"))
-                    .setTimestamp(timestamp).setMessageId((String) elements.get("messageId"))
-                    .setKara(Objects.requireNonNull(kara)).createCase();
-            aCase.setReason((String) elements.get("reason"));
-            aCase.setIssuerId((String) elements.get("issuerId"));
-            aCase.setValid((boolean) elements.get("valid"));
-            if (elements.containsKey("ileRazy")) aCase.setIleRazy((Integer) elements.get("ileRazy"));
-            if (elements.containsKey("flagi")) {
-                try {
-                    aCase.setFlagi(Case.Flaga.getFlagi((Long) elements.get("flagi")));
-                } catch (ClassCastException ignored) {
-                    aCase.setFlagi(Case.Flaga.getFlagi((Integer) elements.get("flagi")));
-                }
-            }
-            try {
-                aCase.setValidTo(Instant.ofEpochMilli(((Long) elements.get(VALIDTO))), true);
-            } catch (ClassCastException ignored) {
-                if ((Integer) elements.get(VALIDTO) != 0)
-                    aCase.setValidTo(Instant.ofEpochMilli(((Integer) elements.get(VALIDTO))), true);
-            }
-            if (elements.containsKey("dmMsgId")) aCase.setDmMsgId((String) elements.get("dmMsgId"));
-            List<Dowod> dowody = new ArrayList<>();
-            if (elements.containsKey("dowody")) {
-                for (Object dowodRaw : (List<?>) elements.get("dowody")) {
-                    if (dowodRaw == null) continue;
-                    LinkedHashMap<?, ?> dowod = (LinkedHashMap<?, ?>) dowodRaw;
-                    long id;
-                    Object idRaw = dowod.get("id");
-                    if (idRaw instanceof Long) id = (Long) idRaw;
-                    else if (idRaw instanceof Integer) id = ((Integer) idRaw).longValue();
-                    else if (idRaw.getClass().equals(Long.TYPE)) id = (long) idRaw;
-                    else if (idRaw.getClass().equals(Integer.TYPE)) id = (long) ((int) idRaw);
-                    else throw new IllegalStateException("Nieprawidłowa klasa ID: " + idRaw.getClass().getName());
-                    dowody.add(new Dowod(id, (String) dowod.get("aby"), (String) dowod.get("cnt")));
-                }
-            }
-            aCase.setDowody(dowody);
-            caseList.add(aCase);
         }
-        return caseList;
+        aCase.setDowody(dowody);
+        return aCase;
     }
 }

@@ -23,6 +23,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ReasonUtils {
+    private ReasonUtils() {}
+
     public static void parseFlags(Case c, String reason, Case.Flaga... ignore) {
         String[] splatReason = reason.split(" ");
         List<String> parsedReason = new ArrayList<>();
@@ -34,6 +36,8 @@ public class ReasonUtils {
                 else c.getFlagi().add(f);
             }
         }
-        c.setReason(String.join(" ", parsedReason));
+        String r = String.join(" ", parsedReason);
+        if (r.startsWith("translate:")) r = "\\" + r;
+        c.setReason(r);
     }
 }

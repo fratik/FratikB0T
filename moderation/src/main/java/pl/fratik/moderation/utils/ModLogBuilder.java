@@ -19,7 +19,9 @@ package pl.fratik.moderation.utils;
 
 import lombok.Setter;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
@@ -37,6 +39,7 @@ import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.GuildUtil;
 import pl.fratik.core.util.UserUtil;
 import pl.fratik.moderation.entity.Case;
+import pl.fratik.moderation.entity.OldCase;
 
 import java.awt.*;
 import java.text.SimpleDateFormat;
@@ -54,7 +57,7 @@ public class ModLogBuilder {
     @Setter private static ManagerKomend managerKomend;
 
     @NotNull
-    public static MessageEmbed generate(@NotNull Case aCase, // UŻYWA COMPLETE!
+    public static MessageEmbed generate(@NotNull OldCase aCase, // UŻYWA COMPLETE!
                                         @NotNull Guild guild,
                                         @NotNull ShardManager sm,
                                         @NotNull Language lang,
@@ -82,7 +85,7 @@ public class ModLogBuilder {
     }
 
     @NotNull
-    public static MessageEmbed generate(@NotNull Case aCase,
+    public static MessageEmbed generate(@NotNull OldCase aCase,
                                         @NotNull Guild guild,
                                         @NotNull Language lang,
                                         @Nullable ManagerKomend managerKomend,
@@ -97,7 +100,7 @@ public class ModLogBuilder {
                 managerKomend == null || managerKomend.getPrefixes(guild).isEmpty() ? Ustawienia.instance.prefix :
                         managerKomend.getPrefixes(guild).get(0), aCase.getCaseId());
         else issuerStr = UserUtil.formatDiscrim(issuer);
-        if (modlog && aCase.getFlagi().contains(Case.Flaga.NOBODY)) {
+        if (modlog && aCase.getFlagi().contains(OldCase.Flaga.NOBODY)) {
             issuerStr = tlumaczenia.get(lang, "modlog.mod.hidden",
                     managerKomend == null || managerKomend.getPrefixes(guild).isEmpty() ? Ustawienia.instance.prefix :
                             managerKomend.getPrefixes(guild).get(0), aCase.getCaseId());
@@ -113,7 +116,7 @@ public class ModLogBuilder {
                                         String moderator,
                                         String reason,
                                         Color kolor,
-                                        int caseId,
+                                        long caseId,
                                         boolean valid,
                                         TemporalAccessor validTo,
                                         TemporalAccessor timestamp,
@@ -133,7 +136,7 @@ public class ModLogBuilder {
         eb
                 .setTimestamp(timestamp)
                 .setFooter(String.format(przyjaznaNazwa(lang, kara), "czas") + " | " +
-                        tlumaczenia.get(lang, "modlog.caseid", Integer.toString(caseId)), null);
+                        tlumaczenia.get(lang, "modlog.caseid", Long.toString(caseId)), null);
         if (kara == Kara.NOTATKA) {
             eb
                     .addField(tlumaczenia.get(lang, "modlog.responsible"), moderator, false)
@@ -167,6 +170,187 @@ public class ModLogBuilder {
                     false);
         }
         return eb.build();
+    }
+
+    @NotNull
+    public static Message generate(@NotNull Case aCase, // UŻYWA COMPLETE!
+                                   @NotNull Guild guild,
+                                   @NotNull ShardManager sm,
+                                   @NotNull Language lang,
+                                   @Nullable ManagerKomend managerKomend,
+                                   boolean modlog,
+                                   boolean akcje,
+                                   boolean dm) {
+        Long iId = aCase.getIssuerId();
+        User iUser = null;
+        if (iId != null) {
+            try {
+                iUser = sm.retrieveUserById(iId).complete();
+            } catch (ErrorResponseException er) {
+                if (er.getErrorResponse() != ErrorResponse.UNKNOWN_USER) throw er;
+                // else ignore
+            }
+        }
+        return generate(aCase, guild, lang, managerKomend, modlog, akcje,
+                dm, iUser, sm.retrieveUserById(aCase.getUserId()).complete());
+    }
+
+    @NotNull
+    public static EmbedBuilder generateEmbed(@NotNull Case aCase, // UŻYWA COMPLETE!
+                                   @NotNull Guild guild,
+                                   @NotNull ShardManager sm,
+                                   @NotNull Language lang,
+                                   @Nullable ManagerKomend managerKomend,
+                                   boolean modlog,
+                                   boolean akcje) {
+        Long iId = aCase.getIssuerId();
+        User iUser = null;
+        if (iId != null) {
+            try {
+                iUser = sm.retrieveUserById(iId).complete();
+            } catch (ErrorResponseException er) {
+                if (er.getErrorResponse() != ErrorResponse.UNKNOWN_USER) throw er;
+                // else ignore
+            }
+        }
+        return generateEmbed(aCase, guild, lang, managerKomend, modlog, akcje,
+                iUser, sm.retrieveUserById(aCase.getUserId()).complete());
+    }
+
+    @NotNull
+    public static Message generate(@NotNull Case aCase,
+                                   @NotNull Guild guild,
+                                   @NotNull Language lang,
+                                   @Nullable ManagerKomend managerKomend,
+                                   boolean modlog,
+                                   boolean akcje,
+                                   boolean dm,
+                                   @Nullable User issuer,
+                                   @NotNull User karany) {
+        String issuerStr;
+        String reason = aCase.getReason(tlumaczenia, lang);
+        if (reason == null || reason.isEmpty()) reason = tlumaczenia.get(lang, "modlog.reason.unknown");
+        if (issuer == null) issuerStr = tlumaczenia.get(lang, "modlog.mod.unknown",
+                managerKomend == null || managerKomend.getPrefixes(guild).isEmpty() ? Ustawienia.instance.prefix :
+                        managerKomend.getPrefixes(guild).get(0), aCase.getCaseNumber());
+        else issuerStr = UserUtil.formatDiscrim(issuer);
+        if (modlog && aCase.getFlagi().contains(Case.Flaga.NOBODY)) {
+            issuerStr = tlumaczenia.get(lang, "modlog.mod.hidden",
+                    managerKomend == null || managerKomend.getPrefixes(guild).isEmpty() ? Ustawienia.instance.prefix :
+                            managerKomend.getPrefixes(guild).get(0), aCase.getCaseNumber());
+        }
+        return generate(aCase.getType(), karany, issuerStr, reason,
+                aCase.getType().getKolor(), aCase.getCaseNumber(), aCase.isValid(), dm, aCase.getValidTo(),
+                aCase.getTimestamp(), aCase.getIleRazy(), lang, guild, (modlog || akcje) && !aCase.getDowody().isEmpty());
+    }
+
+    @NotNull
+    public static EmbedBuilder generateEmbed(@NotNull Case aCase,
+                                             @NotNull Guild guild,
+                                             @NotNull Language lang,
+                                             @Nullable ManagerKomend managerKomend,
+                                             boolean modlog,
+                                             boolean akcje,
+                                             @Nullable User issuer,
+                                             @NotNull User karany) {
+        String issuerStr;
+        String reason = aCase.getReason(tlumaczenia, lang);
+        if (reason == null || reason.isEmpty()) reason = tlumaczenia.get(lang, "modlog.reason.unknown");
+        if (issuer == null) issuerStr = tlumaczenia.get(lang, "modlog.mod.unknown",
+                managerKomend == null || managerKomend.getPrefixes(guild).isEmpty() ? Ustawienia.instance.prefix :
+                        managerKomend.getPrefixes(guild).get(0), aCase.getCaseNumber());
+        else issuerStr = UserUtil.formatDiscrim(issuer);
+        if (modlog && aCase.getFlagi().contains(Case.Flaga.NOBODY)) {
+            issuerStr = tlumaczenia.get(lang, "modlog.mod.hidden",
+                    managerKomend == null || managerKomend.getPrefixes(guild).isEmpty() ? Ustawienia.instance.prefix :
+                            managerKomend.getPrefixes(guild).get(0), aCase.getCaseNumber());
+        }
+        return generateEmbed(aCase.getType(), karany, issuerStr, reason,
+                aCase.getType().getKolor(), aCase.getCaseNumber(), aCase.isValid(), aCase.getValidTo(),
+                aCase.getTimestamp(), aCase.getIleRazy(), lang, guild, (modlog || akcje) && !aCase.getDowody().isEmpty());
+    }
+
+    @NotNull
+    public static Message generate(Kara kara,
+                                   User karany,
+                                   String moderator,
+                                   String reason,
+                                   Color kolor,
+                                   long caseNumber,
+                                   boolean valid,
+                                   boolean dm,
+                                   TemporalAccessor validTo,
+                                   TemporalAccessor timestamp,
+                                   int ileRazy,
+                                   Language lang,
+                                   Guild guild,
+                                   boolean hasProof) {
+        MessageBuilder mb = new MessageBuilder(generateEmbed(kara, karany, moderator, reason, kolor, caseNumber, valid,
+                validTo, timestamp, ileRazy, lang, guild, hasProof));
+        if (dm) mb.setContent(tlumaczenia.get(lang, "modlog.dm.msg", guild.getName()));
+        return mb.build();
+    }
+
+    @NotNull
+    public static EmbedBuilder generateEmbed(Kara kara,
+                                             User karany,
+                                             String moderator,
+                                             String reason,
+                                             Color kolor,
+                                             long caseNumber,
+                                             boolean valid,
+                                             TemporalAccessor validTo,
+                                             TemporalAccessor timestamp,
+                                             int ileRazy,
+                                             Language lang,
+                                             Guild guild,
+                                             boolean hasProof) {
+        if (tlumaczenia == null) throw new IllegalStateException("Tlumaczenia nie ustawione!");
+        EmbedBuilder eb = new EmbedBuilder()
+                .setColor(kolor);
+        if (karany == null) {
+            eb.setAuthor(tlumaczenia.get(lang, "modlog.unknown.user"));
+        } else {
+            eb.setAuthor(karany.getAsTag(), null,
+                    karany.getEffectiveAvatarUrl().replace(".webp", ".png"));
+        }
+        eb
+                .setTimestamp(timestamp)
+                .setFooter(String.format(przyjaznaNazwa(lang, kara), "czas") + " | " +
+                        tlumaczenia.get(lang, "modlog.caseid", Long.toString(caseNumber)), null);
+        if (kara == Kara.NOTATKA) {
+            eb
+                    .addField(tlumaczenia.get(lang, "modlog.responsible"), moderator, false)
+                    .addField(tlumaczenia.get(lang, "modlog.note"), reason, false);
+        } else {
+            eb
+                    .addField(tlumaczenia.get(lang, "modlog.responsible"), moderator, false)
+                    .addField(tlumaczenia.get(lang, "modlog.reason"), reason, false);
+        }
+        if (kara == Kara.MUTE || kara == Kara.BAN || kara == Kara.NOTATKA) {
+            eb.addField(tlumaczenia.get(lang, "modlog.active"), valid ?
+                    tlumaczenia.get(lang, "modlog.active.true") :
+                    tlumaczenia.get(lang, "modlog.active.false"), false);
+            if (validTo != null) {
+                GuildConfig gc = guildDao.get(guild);
+                SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy '@' HH:mm z", gc.getLanguage().getLocale());
+                sdf.setTimeZone(GuildUtil.getTimeZone(guild, gc));
+                eb.addField(tlumaczenia.get(lang, "modlog.active." + valid + ".to"),
+                        sdf.format(Date.from(Instant.from(validTo))), false);
+            }
+        }
+        if ((kara == Kara.WARN || kara == Kara.UNWARN) && ileRazy > 1) {
+            eb.addField(tlumaczenia.get(lang, "modlog.times.header"),
+                    tlumaczenia.get(lang, "modlog.times.content." + kara.name().toLowerCase() + "s", ileRazy),
+                    false);
+        }
+        if (hasProof) {
+            if (managerKomend == null) throw new IllegalStateException("managerKomend nie ustawiony!");
+            eb.addField(tlumaczenia.get(lang, "modlog.proof.header"),
+                    tlumaczenia.get(lang, "modlog.proof.content", managerKomend.getPrefixes(guild).get(0), caseNumber),
+                    false);
+        }
+        return eb;
     }
 
     private static String przyjaznaNazwa(Language l, Kara kara) {

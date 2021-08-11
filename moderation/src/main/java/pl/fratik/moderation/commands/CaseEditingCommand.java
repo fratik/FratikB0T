@@ -29,25 +29,25 @@ import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.manager.ManagerKomend;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
-import pl.fratik.moderation.entity.Case;
-import pl.fratik.moderation.entity.CaseRow;
-import pl.fratik.moderation.entity.CasesDao;
+import pl.fratik.moderation.entity.OldCase;
+import pl.fratik.moderation.entity.OldCaseRow;
+import pl.fratik.moderation.entity.OldCasesDao;
 import pl.fratik.moderation.utils.ModLogBuilder;
 
 import java.util.function.Consumer;
 
 public abstract class CaseEditingCommand extends ModerationCommand {
-    protected final CasesDao casesDao;
+    protected final OldCasesDao casesDao;
     protected final ShardManager shardManager;
     protected final ManagerKomend managerKomend;
 
-    protected CaseEditingCommand(CasesDao casesDao, ShardManager shardManager, ManagerKomend managerKomend) {
+    protected CaseEditingCommand(OldCasesDao casesDao, ShardManager shardManager, ManagerKomend managerKomend) {
         this.casesDao = casesDao;
         this.shardManager = shardManager;
         this.managerKomend = managerKomend;
     }
 
-    protected boolean updateCase(CommandContext context, String successMessage, String failMessage, CaseRow caseRow, TextChannel modLogChannel, Case aCase, GuildConfig gc) {
+    protected boolean updateCase(CommandContext context, String successMessage, String failMessage, OldCaseRow caseRow, TextChannel modLogChannel, OldCase aCase, GuildConfig gc) {
         if (modLogChannel == null || !context.getGuild().getSelfMember().hasPermission(modLogChannel,
                 Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_WRITE, Permission.MESSAGE_READ)) {
             context.reply(successMessage);
@@ -101,7 +101,7 @@ public abstract class CaseEditingCommand extends ModerationCommand {
         }
         if (aCase.getMessageId() == null) {
             aCase.setIssuerId(context.getSender().getId());
-            if (!aCase.getFlagi().contains(Case.Flaga.SILENT)) {
+            if (!aCase.getFlagi().contains(OldCase.Flaga.SILENT)) {
                 MessageEmbed embed = ModLogBuilder.generate(aCase, context.getGuild(),
                         gc.getLanguage(), managerKomend, true, false, finalIssuer, user);
                 modLogChannel.sendMessage(embed).queue(m -> {
@@ -124,7 +124,7 @@ public abstract class CaseEditingCommand extends ModerationCommand {
             }, throwableConsumer);
         }, error -> {
             aCase.setIssuerId(context.getSender().getId());
-            if (!aCase.getFlagi().contains(Case.Flaga.SILENT)) {
+            if (!aCase.getFlagi().contains(OldCase.Flaga.SILENT)) {
                 MessageEmbed embed = ModLogBuilder.generate(aCase, context.getGuild(), gc.getLanguage(), managerKomend,
                         true, false, finalIssuer, user);
                 modLogChannel.sendMessage(embed).queue(m -> {

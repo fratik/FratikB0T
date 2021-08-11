@@ -22,23 +22,30 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Role;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.CommandContext;
-import pl.fratik.core.entity.*;
+import pl.fratik.core.entity.GuildConfig;
+import pl.fratik.core.entity.GuildDao;
+import pl.fratik.core.entity.Kara;
+import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.util.UserUtil;
 import pl.fratik.moderation.entity.Case;
 import pl.fratik.moderation.listeners.ModLogListener;
-import pl.fratik.moderation.entity.CaseBuilder;
 import pl.fratik.moderation.utils.ReasonUtils;
 
 import java.time.Instant;
-import java.util.*;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class UnmuteCommand extends ModerationCommand {
 
     private final GuildDao guildDao;
+    private final ModLogListener modLogListener;
 
-    public UnmuteCommand(GuildDao guildDao) {
+    public UnmuteCommand(GuildDao guildDao, ModLogListener modLogListener) {
         this.guildDao = guildDao;
+        this.modLogListener = modLogListener;
         name = "unmute";
         uzycieDelim = " ";
         permissions.add(Permission.MANAGE_ROLES);
@@ -91,20 +98,14 @@ public class UnmuteCommand extends ModerationCommand {
             context.reply(context.getTranslated("unmute.not.muted"));
             return false;
         }
-        Case aCase = new CaseBuilder().setUser(uzytkownik.getUser()).setGuild(context.getGuild())
-                .setCaseId(Case.getNextCaseId(context.getGuild())).setTimestamp(Instant.now()).setMessageId(null)
-                .setKara(Kara.UNMUTE).createCase();
-        aCase.setIssuerId(context.getSender());
+        Case aCase = new Case.Builder(uzytkownik, Instant.now(), Kara.UNMUTE)
+                .setIssuerId(context.getSender().getIdLong()).build();
         ReasonUtils.parseFlags(aCase, powod);
-        List<Case> caseList = ModLogListener.getKnownCases().getOrDefault(context.getGuild(), new ArrayList<>());
-        caseList.add(aCase);
-        ModLogListener.getKnownCases().put(context.getGuild(), caseList);
+        modLogListener.getKnownCases().put(ModLogListener.generateKey(uzytkownik), aCase);
         try {
             context.getGuild().removeRoleFromMember(uzytkownik, rola).complete();
             context.reply(context.getTranslated("unmute.success", UserUtil.formatDiscrim(uzytkownik)));
         } catch (Exception ignored) {
-            caseList.remove(aCase);
-            ModLogListener.getKnownCases().put(context.getGuild(), caseList);
             context.reply(context.getTranslated("unmute.fail"));
         }
         return true;

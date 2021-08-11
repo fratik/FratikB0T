@@ -28,33 +28,33 @@ import pl.fratik.core.manager.ManagerBazyDanych;
 
 import java.util.List;
 
-public class CasesDao implements Dao<CaseRow> {
+public class OldCasesDao implements Dao<OldCaseRow> {
 
     private final EventBus eventBus;
-    private final PgMapper<CaseRow> mapper;
+    private final PgMapper<OldCaseRow> mapper;
 
-    public CasesDao(ManagerBazyDanych managerBazyDanych, EventBus eventBus) {
+    public OldCasesDao(ManagerBazyDanych managerBazyDanych, EventBus eventBus) {
         if (managerBazyDanych == null) throw new IllegalStateException("managerBazyDanych == null");
-        mapper = managerBazyDanych.getPgStore().mapSync(CaseRow.class);
+        mapper = managerBazyDanych.getPgStore().mapSync(OldCaseRow.class);
         this.eventBus = eventBus;
     }
 
     @Override
-    public CaseRow get(String id) {
+    public OldCaseRow get(String id) {
         return mapper.load(id).orElseGet(() -> newObject(id));
     }
 
-    public CaseRow get(Guild guild) {
+    public OldCaseRow get(Guild guild) {
         return get(guild.getId());
     }
 
     @Override
-    public List<CaseRow> getAll() {
+    public List<OldCaseRow> getAll() {
         return mapper.loadAll();
     }
 
     @Override
-    public void save(CaseRow toCos) {
+    public void save(OldCaseRow toCos) {
         ObjectMapper objMapper = new ObjectMapper();
         String jsoned;
         try { jsoned = objMapper.writeValueAsString(toCos); } catch (Exception ignored) { jsoned = toCos.toString(); }
@@ -64,7 +64,7 @@ public class CasesDao implements Dao<CaseRow> {
         eventBus.post(new DatabaseUpdateEvent(toCos));
     }
 
-    private CaseRow newObject(String id) {
-        return new CaseRow(id);
+    private OldCaseRow newObject(String id) {
+        return new OldCaseRow(id);
     }
 }

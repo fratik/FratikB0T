@@ -42,8 +42,7 @@ import pl.fratik.core.util.ClassicEmbedPaginator;
 import pl.fratik.core.util.EventWaiter;
 import pl.fratik.core.util.UserUtil;
 import pl.fratik.moderation.entity.Case;
-import pl.fratik.moderation.entity.CaseRow;
-import pl.fratik.moderation.entity.CasesDao;
+import pl.fratik.moderation.entity.CaseDao;
 import pl.fratik.moderation.utils.ModLogBuilder;
 
 import java.util.ArrayList;
@@ -55,15 +54,15 @@ import java.util.stream.Collectors;
 
 public class AkcjeCommand extends ModerationCommand {
 
-    private final CasesDao casesDao;
+    private final CaseDao caseDao;
     private final ShardManager shardManager;
     private final EventWaiter eventWaiter;
     private final EventBus eventBus;
     private final ManagerKomend managerKomend;
     private final GuildDao guildDao;
 
-    public AkcjeCommand(CasesDao casesDao, ShardManager shardManager, EventWaiter eventWaiter, EventBus eventBus, ManagerKomend managerKomend, GuildDao guildDao) {
-        this.casesDao = casesDao;
+    public AkcjeCommand(CaseDao caseDao, ShardManager shardManager, EventWaiter eventWaiter, EventBus eventBus, ManagerKomend managerKomend, GuildDao guildDao) {
+        this.caseDao = caseDao;
         this.shardManager = shardManager;
         this.eventWaiter = eventWaiter;
         this.eventBus = eventBus;
@@ -81,31 +80,37 @@ public class AkcjeCommand extends ModerationCommand {
     @Override
     public boolean execute(@NotNull CommandContext context) {
         Message m = context.reply(context.getTranslated("generic.loading"));
-        User tmpUser = null;
+        User user = null;
         Object[] args = context.getArgs();
-        if (args.length > 0 && args[0] != null) tmpUser = (User) args[0];
-        if (tmpUser == null) tmpUser = context.getSender();
-        CaseRow caseRow = casesDao.get(context.getGuild());
-        User user = tmpUser;
-        List<Case> mcases = caseRow.getCases().stream()
-                .filter(c -> c.getUserId().equals(user.getId())).collect(Collectors.toList());
+        if (args.length > 0 && args[0] != null) user = (User) args[0];
+        if (user == null) user = context.getSender();
+        return sendCases(context, user, caseDao.getCasesByMember(user, context.getGuild()), m);
+    }
+
+    @SubCommand(name = "admin", aliases = {"adm"})
+    public boolean adminMode(@NotNull CommandContext context) {
+        Message m = context.reply(context.getTranslated("generic.loading"));
+        User user = null;
+        Object[] args = context.getArgs();
+        if (args.length > 0 && args[0] != null) user = (User) args[0];
+        if (user == null) user = context.getSender();
+        User finalUser = user;
+        return sendCases(context, finalUser, caseDao.getCasesByGuild(context.getGuild()).stream()
+                .filter(c -> Objects.equals(c.getIssuerId(), finalUser.getIdLong())).collect(Collectors.toList()), m);
+    }
+
+    public boolean sendCases(CommandContext context, User user, List<Case> mcases, Message m) {
         List<Case> warnCases = mcases.stream().filter(c -> c.getType() == Kara.WARN).collect(Collectors.toList());
         List<Case> unwarnCases = mcases.stream().filter(c -> c.getType() == Kara.UNWARN).collect(Collectors.toList());
         long warnow = 0;
         long unwarnow = 0;
-        for (Case c : warnCases) {
-            if (c.getIleRazy() == null) warnow++;
-            else warnow += c.getIleRazy();
-        }
-        for (Case c : unwarnCases) {
-            if (c.getIleRazy() == null) unwarnow++;
-            else unwarnow += c.getIleRazy();
-        }
+        for (Case c : warnCases) warnow += c.getIleRazy();
+        for (Case c : unwarnCases) unwarnow += c.getIleRazy();
         long kickow = mcases.stream().filter(c -> c.getType() == Kara.KICK).count();
         long banow = mcases.stream().filter(c -> c.getType() == Kara.BAN).count();
         long mutow = mcases.stream().filter(c -> c.getType() == Kara.MUTE).count();
         long unmutow = mcases.stream().filter(c -> c.getType() == Kara.UNMUTE).count();
-        ArrayList<EmbedBuilder> strony = new ArrayList<>();
+        List<EmbedBuilder> strony = new ArrayList<>();
         strony.add(context.getBaseEmbed(UserUtil.formatDiscrim(user), user.getEffectiveAvatarUrl()
                 .replace(".webp", ".png"))
                 .addField(context.getTranslated("akcje.embed.warns"),
@@ -117,57 +122,9 @@ public class AkcjeCommand extends ModerationCommand {
                 .addField(context.getTranslated("akcje.embed.mutes"), String.valueOf(mutow), true)
                 .addField(context.getTranslated("akcje.embed.unmutes"), String.valueOf(unmutow), true)
                 .setDescription(context.getTranslated("akcje.embed.description")).setFooter("%s/%s", null));
-        for (Case aCase : caseRow.getCases().stream().filter(c -> c.getUserId().equals(user.getId())).collect(Collectors.toList())) {
-            EmbedBuilder eb = new EmbedBuilder(ModLogBuilder.generate(aCase, context.getGuild(), shardManager, context.getLanguage(), managerKomend, false, true));
-            eb.setFooter(Objects.requireNonNull(eb.build().getFooter()).getText() + " (%s/%s)", null);
-            strony.add(eb);
-        }
-        new ClassicEmbedPaginator(eventWaiter, strony, context.getSender(), context.getLanguage(),
-                context.getTlumaczenia(), eventBus).setCustomFooter(true).create(m);
-        return true;
-    }
-
-    @SubCommand(name = "admin", aliases = {"adm"})
-    public boolean adminMode(@NotNull CommandContext context) {
-        Message m = context.reply(context.getTranslated("generic.loading"));
-        User tmpUser = null;
-        Object[] args = context.getArgs();
-        if (args.length > 0 && args[0] != null) tmpUser = (User) args[0];
-        if (tmpUser == null) tmpUser = context.getSender();
-        CaseRow caseRow = casesDao.get(context.getGuild());
-        User user = tmpUser;
-        List<Case> mcases = caseRow.getCases().stream()
-                .filter(c -> c.getUserId().equals(user.getId())).collect(Collectors.toList());
-        List<Case> warnCases = mcases.stream().filter(c -> c.getType() == Kara.WARN).collect(Collectors.toList());
-        List<Case> unwarnCases = mcases.stream().filter(c -> c.getType() == Kara.UNWARN).collect(Collectors.toList());
-        long warnow = 0;
-        long unwarnow = 0;
-        for (Case c : warnCases) {
-            if (c.getIleRazy() == null) warnow++;
-            else warnow += c.getIleRazy();
-        }
-        for (Case c : unwarnCases) {
-            if (c.getIleRazy() == null) unwarnow++;
-            else unwarnow += c.getIleRazy();
-        }
-        long kickow = mcases.stream().filter(c -> c.getType() == Kara.KICK).count();
-        long banow = mcases.stream().filter(c -> c.getType() == Kara.BAN).count();
-        long mutow = mcases.stream().filter(c -> c.getType() == Kara.MUTE).count();
-        long unmutow = mcases.stream().filter(c -> c.getType() == Kara.UNMUTE).count();
-        ArrayList<EmbedBuilder> strony = new ArrayList<>();
-        strony.add(context.getBaseEmbed(UserUtil.formatDiscrim(user), user.getEffectiveAvatarUrl()
-                .replace(".webp", ".png"))
-                .addField(context.getTranslated("akcje.admin.embed.warns"),
-                        String.format(context.getTranslated("akcje.admin.embed.warns.content"),
-                                (warnow - unwarnow), warnow, unwarnow),
-                        true)
-                .addField(context.getTranslated("akcje.admin.embed.kicks"), String.valueOf(kickow), true)
-                .addField(context.getTranslated("akcje.admin.embed.bans"), String.valueOf(banow), true)
-                .addField(context.getTranslated("akcje.admin.embed.mutes"), String.valueOf(mutow), true)
-                .addField(context.getTranslated("akcje.admin.embed.unmutes"), String.valueOf(unmutow), true)
-                .setDescription(context.getTranslated("akcje.admin.embed.description")).setFooter("%s/%s", null));
-        for (Case aCase : caseRow.getCases().stream().filter(c -> Objects.equals(c.getIssuerId(), user.getId())).collect(Collectors.toList())) {
-            EmbedBuilder eb = new EmbedBuilder(ModLogBuilder.generate(aCase, context.getGuild(), shardManager, context.getLanguage(), managerKomend, false, true));
+        for (Case aCase : mcases) {
+            EmbedBuilder eb = ModLogBuilder.generateEmbed(aCase, context.getGuild(), shardManager,
+                    context.getLanguage(), managerKomend, false, true);
             eb.setFooter(Objects.requireNonNull(eb.build().getFooter()).getText() + " (%s/%s)", null);
             strony.add(eb);
         }
@@ -198,16 +155,8 @@ public class AkcjeCommand extends ModerationCommand {
                 return;
             }
             try {
-                CaseRow cd = casesDao.get(context.getGuild());
-                cd.setCases(new ArrayList<>());
-                casesDao.save(cd);
+                caseDao.reset(context.getGuild().getIdLong());
                 e.getHook().editOriginal(context.getTranslated("akcje.reset.complete")).completeAfter(1, TimeUnit.SECONDS);
-            } catch (ErrorResponseException err) {
-                if (err.getErrorResponse() == ErrorResponse.UNKNOWN_MESSAGE) {
-                    context.reply(context.getTranslated("akcje.reset.complete"));
-                    return;
-                }
-                throw err;
             } catch (Exception err) {
                 Sentry.getContext().setUser(new io.sentry.event.User(context.getSender().getId(),
                         UserUtil.formatDiscrim(context.getSender()), null, null));

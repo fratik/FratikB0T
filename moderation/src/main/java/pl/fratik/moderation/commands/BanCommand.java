@@ -26,25 +26,29 @@ import net.dv8tion.jda.api.requests.ErrorResponse;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
-import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Kara;
+import pl.fratik.core.entity.ScheduleDao;
 import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.util.DurationUtil;
 import pl.fratik.core.util.UserUtil;
 import pl.fratik.moderation.entity.Case;
-import pl.fratik.moderation.entity.CaseBuilder;
 import pl.fratik.moderation.listeners.ModLogListener;
 import pl.fratik.moderation.utils.ReasonUtils;
 
 import java.time.Instant;
-import java.util.*;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class BanCommand extends ModerationCommand {
 
-    private final GuildDao guildDao;
+    private final ModLogListener modLogListener;
+    private final ScheduleDao scheduleDao;
 
-    public BanCommand(GuildDao guildDao) {
+    public BanCommand(ModLogListener modLogListener, ScheduleDao scheduleDao) {
+        this.modLogListener = modLogListener;
+        this.scheduleDao = scheduleDao;
         name = "ban";
         category = CommandCategory.MODERATION;
         uzycieDelim = " ";
@@ -55,7 +59,6 @@ public class BanCommand extends ModerationCommand {
         hmap.put("[...]", "string");
         uzycie = new Uzycie(hmap, new boolean[] {true, false, false});
         aliases = new String[] {"b", "dzban", "BiletWJednąStronę", "syberia", "banujetypa", "zbanuj", "del", "delett", "b&"};
-        this.guildDao = guildDao;
     }
 
     @Override
@@ -103,29 +106,21 @@ public class BanCommand extends ModerationCommand {
         }
         powod = durationResp.getTekst();
         Instant banDo = durationResp.getDoKiedy();
-        CaseBuilder cb = new CaseBuilder().setUser(uzytkownik).setGuild(context.getGuild())
-                .setCaseId(Case.getNextCaseId(context.getGuild())).setTimestamp(Instant.now())
-                .setMessageId(null);
-        cb.setKara(Kara.BAN);
-        Case aCase = cb.createCase();
-        aCase.setIssuerId(context.getSender());
+        Case aCase = new Case.Builder(context.getGuild(), uzytkownik, Instant.now(), Kara.BAN).build();
+        aCase.setIssuerId(context.getSender().getIdLong());
         ReasonUtils.parseFlags(aCase, powod);
         aCase.setValidTo(banDo);
-        List<Case> caseList = ModLogListener.getKnownCases().getOrDefault(context.getGuild(), new ArrayList<>());
-        caseList.add(aCase);
-        ModLogListener.getKnownCases().put(context.getGuild(), caseList);
+        modLogListener.getKnownCases().put(ModLogListener.generateKey(uzytkownik, context.getGuild()), aCase);
         try {
-            context.getGuild().ban(uzytkownik, 0, aCase.getReason()).reason(aCase.getReason()).complete();
+            context.getGuild().ban(uzytkownik, 0, aCase.getReason(context)).reason(aCase.getReason(context)).complete();
             context.reply(context.getTranslated("ban.success", UserUtil.formatDiscrim(uzytkownik)));
+            return true;
         } catch (HierarchyException e) {
-            caseList.remove(aCase);
-            ModLogListener.getKnownCases().put(context.getGuild(), caseList);
             context.reply(context.getTranslated("ban.failed.hierarchy"));
+            return false;
         } catch (Exception e) {
-            caseList.remove(aCase);
-            ModLogListener.getKnownCases().put(context.getGuild(), caseList);
             context.reply(context.getTranslated("ban.failed"));
+            return false;
         }
-        return true;
     }
 }

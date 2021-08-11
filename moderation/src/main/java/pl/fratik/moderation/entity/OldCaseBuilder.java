@@ -25,7 +25,7 @@ import pl.fratik.core.entity.Kara;
 import java.time.temporal.TemporalAccessor;
 
 @SuppressWarnings("WeakerAccess")
-public class CaseBuilder {
+public class OldCaseBuilder {
     private String userId;
     private String guildId;
     private Integer caseId;
@@ -36,81 +36,81 @@ public class CaseBuilder {
     private String reason;
     private Integer ileRazy;
 
-    public CaseBuilder() {}
+    public OldCaseBuilder() {}
 
-    public CaseBuilder(Guild guild) {
+    public OldCaseBuilder(Guild guild) {
         guildId = guild.getId();
-        caseId = Case.getNextCaseId(guild);
+        caseId = OldCase.getNextCaseId(guild);
     }
 
-    public CaseBuilder setUser(String userId) {
+    public OldCaseBuilder setUser(String userId) {
         this.userId = userId;
         return this;
     }
 
-    public CaseBuilder setUser(User user) {
+    public OldCaseBuilder setUser(User user) {
         this.userId = user.getId();
         return this;
     }
 
-    public CaseBuilder setGuild(String guildId) {
+    public OldCaseBuilder setGuild(String guildId) {
         this.guildId = guildId;
         return this;
     }
 
-    public CaseBuilder setGuild(Guild guild) {
+    public OldCaseBuilder setGuild(Guild guild) {
         this.guildId = guild.getId();
         return this;
     }
 
-    public CaseBuilder setCaseId(int caseId) {
+    public OldCaseBuilder setCaseId(int caseId) {
         this.caseId = caseId;
         return this;
     }
 
-    public CaseBuilder setTimestamp(TemporalAccessor timestamp) {
+    public OldCaseBuilder setTimestamp(TemporalAccessor timestamp) {
         this.timestamp = timestamp;
         return this;
     }
 
-    public CaseBuilder setMessageId(String messageId) {
+    public OldCaseBuilder setMessageId(String messageId) {
         this.messageId = messageId;
         return this;
     }
 
-    public CaseBuilder setKara(Kara type) {
+    public OldCaseBuilder setKara(Kara type) {
         this.type = type;
         return this;
     }
 
-    public CaseBuilder setIssuer(User issuer) {
+    public OldCaseBuilder setIssuer(User issuer) {
         return setIssuer(issuer.getId());
     }
 
-    public CaseBuilder setIssuer(Member issuer) {
+    public OldCaseBuilder setIssuer(Member issuer) {
         return setIssuer(issuer.getUser());
     }
 
-    public CaseBuilder setIssuer(String issuerId) {
+    public OldCaseBuilder setIssuer(String issuerId) {
         this.issuerId = issuerId;
         return this;
     }
 
-    public CaseBuilder setReason(String reason) {
+    public OldCaseBuilder setReason(String reason) {
         this.reason = reason;
         return this;
     }
 
-    public CaseBuilder setIleRazy(Integer ileRazy) {
+    public OldCaseBuilder setIleRazy(Integer ileRazy) {
         this.ileRazy = ileRazy;
         return this;
     }
 
-    public Case createCase() {
+    public OldCase createCase() {
         if (userId == null || guildId == null || caseId == null || timestamp == null || type == null) {
             throw new IllegalArgumentException("Jeden lub więcej z argumentów jest null");
         }
-        Case c = new Case(userId, guildId, caseId, timestamp, messageId, type);
+        OldCase c = new OldCase(userId, guildId, caseId, timestamp, messageId, type);
         if (issuerId != null) c.setIssuerId(issuerId);
         if (reason != null) c.setReason(reason);
         if (ileRazy != null) c.setIleRazy(ileRazy);

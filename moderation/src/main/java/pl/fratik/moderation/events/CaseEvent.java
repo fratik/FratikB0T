@@ -15,21 +15,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package pl.fratik.moderation.entity;
+package pl.fratik.moderation.events;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import pl.fratik.core.entity.Kara;
-import pl.fratik.core.entity.ScheduleContent;
+import pl.fratik.moderation.entity.Case;
 
-@AllArgsConstructor
-@Data
-@EqualsAndHashCode(callSuper = true)
-public class AutoAkcja extends ScheduleContent {
-    private final long caseId;
-    private final Kara akcjaDoWykonania;
-    private final String guildId;
+public interface CaseEvent {
+    Case getCase();
 }
-
-

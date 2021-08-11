@@ -19,24 +19,14 @@ package pl.fratik.moderation.commands;
 
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.MessageEmbed;
-import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
-import pl.fratik.core.entity.GuildConfig;
-import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Kara;
 import pl.fratik.core.entity.Uzycie;
-import pl.fratik.core.manager.ManagerKomend;
 import pl.fratik.core.util.UserUtil;
 import pl.fratik.moderation.entity.Case;
-import pl.fratik.moderation.entity.CaseBuilder;
-import pl.fratik.moderation.entity.CaseRow;
-import pl.fratik.moderation.entity.CasesDao;
-import pl.fratik.moderation.utils.ModLogBuilder;
+import pl.fratik.moderation.entity.CaseDao;
 import pl.fratik.moderation.utils.ReasonUtils;
 import pl.fratik.moderation.utils.WarnUtil;
 
@@ -49,16 +39,10 @@ import java.util.stream.Collectors;
 
 public class WarnCommand extends ModerationCommand {
 
-    private final GuildDao guildDao;
-    private final CasesDao casesDao;
-    private final ShardManager shardManager;
-    private final ManagerKomend managerKomend;
+    private final CaseDao caseDao;
 
-    public WarnCommand(GuildDao guildDao, CasesDao casesDao, ShardManager shardManager, ManagerKomend managerKomend) {
-        this.guildDao = guildDao;
-        this.casesDao = casesDao;
-        this.shardManager = shardManager;
-        this.managerKomend = managerKomend;
+    public WarnCommand(CaseDao caseDao) {
+        this.caseDao = caseDao;
         name = "warn";
         category = CommandCategory.MODERATION;
         uzycieDelim = " ";
@@ -100,39 +84,12 @@ public class WarnCommand extends ModerationCommand {
             context.reply(context.getTranslated("warn.bot.cant.interact"));
             return false;
         }
-        GuildConfig gc = guildDao.get(context.getGuild());
-        CaseRow caseRow = casesDao.get(context.getGuild());
-        int caseId = Case.getNextCaseId(caseRow);
         TemporalAccessor timestamp = Instant.now();
-        Case aCase = new CaseBuilder().setUser(uzytkownik.getUser()).setGuild(context.getGuild()).setCaseId(caseId)
-                .setTimestamp(timestamp).setMessageId(null).setKara(Kara.WARN).createCase();
+        Case aCase = new Case.Builder(uzytkownik, timestamp, Kara.WARN).setIssuerId(context.getSender().getIdLong()).build();
         ReasonUtils.parseFlags(aCase, powod);
-        aCase.setIssuerId(context.getSender().getId());
-        TextChannel mlog = null;
-        if (gc.getModLog() != null && !gc.getModLog().equals("")) mlog = shardManager.getTextChannelById(gc.getModLog());
-        if (mlog == null || !context.getGuild().getSelfMember().hasPermission(mlog,
-                Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_WRITE, Permission.MESSAGE_READ)) {
-            caseRow.getCases().add(aCase);
-            context.reply(context.getTranslated("warn.success", UserUtil.formatDiscrim(uzytkownik),
-                    WarnUtil.countCases(caseRow, uzytkownik.getId())));
-            if (!aCase.getFlagi().contains(Case.Flaga.SILENT)) context.send(context.getTranslated("warn.nomodlogs", context.getPrefix()));
-            casesDao.save(caseRow);
-            WarnUtil.takeAction(guildDao, casesDao, uzytkownik, context.getTextChannel(), context.getLanguage(),
-                    context.getTlumaczenia(), managerKomend);
-            return true;
-        }
-        if (!aCase.getFlagi().contains(Case.Flaga.SILENT)) {
-            MessageEmbed embed = ModLogBuilder.generate(aCase, context.getGuild(), shardManager,
-                    gc.getLanguage(), managerKomend, true, false);
-            Message message = mlog.sendMessage(embed).complete();
-            aCase.setMessageId(message.getId());
-        }
-        caseRow.getCases().add(aCase);
+        caseDao.createNew(null, aCase, false, context.getTextChannel(), context.getLanguage());
         context.reply(context.getTranslated("warn.success", UserUtil.formatDiscrim(uzytkownik),
-                WarnUtil.countCases(caseRow, uzytkownik.getId())));
-        casesDao.save(caseRow);
-        WarnUtil.takeAction(guildDao, casesDao, uzytkownik, context.getTextChannel(), context.getLanguage(),
-                context.getTlumaczenia(), managerKomend);
+                WarnUtil.countCases(caseDao.getCasesByMember(uzytkownik), uzytkownik.getId())));
         return true;
     }
 }
