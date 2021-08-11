@@ -178,7 +178,7 @@ public class Module implements Modul {
         commands.add(new WarnCommand(caseDao));
         commands.add(new UnwarnCommand(caseDao));
         commands.add(new AkcjeCommand(caseDao, shardManager, eventWaiter, eventBus, managerKomend, guildDao));
-        commands.add(new ReasonCommand(guildDao, caseDao));
+        commands.add(new ReasonCommand(scheduleDao, caseDao));
         commands.add(new RolesCommand());
         commands.add(new HideCommand(guildDao, managerKomend));
         commands.add(new LockCommand(guildDao, managerKomend));
