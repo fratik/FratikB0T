@@ -230,7 +230,7 @@ public class ModLogListener {
         Kara type = null;
         Case knownCase = knownCases.get(key);
         if (mem.getRoles().contains(muteRole)) { // MUTE
-            if (lastCase == null || lastCase.getType() != Kara.UNMUTE) return;
+            if (lastCase != null && lastCase.getType() != Kara.UNMUTE) return;
             //zapisz mute'a jeżeli ostatnią karą jest unmute lub żadnej nie ma - aka jeżeli nie ma żadnego ważnego mute'a
             if (knownCase != null && knownCase.getType() == Kara.MUTE) aCase = knownCase;
             else {
@@ -243,7 +243,7 @@ public class ModLogListener {
                 type = Kara.MUTE;
             }
         } else { // UNMUTE
-            if (lastCase != null && lastCase.getType() != Kara.MUTE) return;
+            if (lastCase == null || lastCase.getType() != Kara.MUTE) return;
             //zapisz unmute'a tylko jeżeli ostatnią karą jest mute - aka jeżeli jest ważny mute
             if (knownCase != null && knownCase.getType() == Kara.UNMUTE) aCase = knownCase;
             else {
