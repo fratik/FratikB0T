@@ -86,7 +86,15 @@ public class ModLogListener {
     }
 
     public static String generateKey(User user, Guild guild) {
-        return user.getId() + guild.getId();
+        return generateKey(user.getId(), guild.getId());
+    }
+
+    public static String generateKey(long uid, long gid) {
+        return generateKey(Long.toUnsignedString(uid), Long.toUnsignedString(gid));
+    }
+
+    public static String generateKey(String uid, String gid) {
+        return uid + gid;
     }
 
     public boolean checkPermissions(GenericGuildEvent e) {
@@ -325,6 +333,8 @@ public class ModLogListener {
     public void onSchedule(ScheduleEvent e) {
         if (!(e.getContent() instanceof AutoAkcja)) return;
         AutoAkcja cnt = (AutoAkcja) e.getContent();
+        Guild g = shardManager.getGuildById(cnt.getGuildId());
+        if (g == null) return;
         Case aCase = caseDao.getLocked(CaseDao.getId(cnt.getGuildId(), cnt.getCaseId()));
         if (aCase == null) return; //?
         try {
@@ -333,7 +343,26 @@ public class ModLogListener {
             Kara adw = cnt.getAkcjaDoWykonania();
             Case newCase = new Case.Builder(aCase.getGuildId(), aCase.getUserId(), aCase.getValidTo(), adw)
                     .setIssuerId(Globals.clientId).setReasonKey("modlog.timed.reason." + adw.name().toLowerCase()).build();
-            caseDao.createNew(aCase, newCase, false);
+            if (adw == Kara.UNBAN) {
+                try {
+                    g.unban(User.fromId(aCase.getUserId())).complete();
+                } catch (Exception ignored) {
+                    // nie udało się, ignoruj
+                    return;
+                }
+            } else if (adw == Kara.UNMUTE) {
+                try {
+                    g.removeRoleFromMember(aCase.getUserId(), getMuteRole(g)).complete();
+                } catch (Exception ignored) {
+                    // nie udało się, ignoruj
+                    return;
+                }
+            }
+            if (adw == Kara.UNWARN) caseDao.createNew(aCase, newCase, false);
+            else if (adw == Kara.UNMUTE || adw == Kara.UNBAN) {
+                caseDao.save(aCase, false);
+                getKnownCases().put(ModLogListener.generateKey(aCase.getUserId(), aCase.getGuildId()), newCase);
+            }
         } finally {
             caseDao.unlock(aCase);
         }
