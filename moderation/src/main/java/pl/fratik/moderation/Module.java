@@ -259,11 +259,10 @@ public class Module implements Modul {
                         .build();
                 caseDao.createNew(aCase, c, false);
             }
-        } else if (cList.size() == 1) {
-            e.getGuild().addRoleToMember(e.getMember(), rola)
-                    .reason(tlumaczenia.get(tlumaczenia.getLanguage(e.getGuild()), "modlog.reason.audit.autoreturnmute",
-                            cList.get(0).getCaseNumber())).queue();
-        }
+        } else if (cList.size() != 1) return;
+        e.getGuild().addRoleToMember(e.getMember(), rola)
+                .reason(tlumaczenia.get(tlumaczenia.getLanguage(e.getGuild()), "modlog.reason.audit.autoreturnmute",
+                        cList.get(0).getCaseNumber())).queue();
     }
 
     @Subscribe
