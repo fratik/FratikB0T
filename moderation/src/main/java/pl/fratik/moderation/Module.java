@@ -228,6 +228,7 @@ public class Module implements Modul {
             new PurgeForApi(managerModulow.getModules().get("api"), shardManager, purgeDao, guildDao);
 
         if (shardManager.getShards().stream().anyMatch(s -> s.getStatus() != JDA.Status.CONNECTED)) return true;
+        if (connected) return true;
         connected = true;
         fixCases();
         return true;
