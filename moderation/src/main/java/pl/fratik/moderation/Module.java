@@ -297,17 +297,18 @@ public class Module implements Modul {
         for (Case aCase : caseDao.getAllNeedsUpdate()) {
             if (Thread.interrupted()) break;
             Case c = caseDao.getLocked(aCase.getId());
-            if (c == null || !c.isNeedsUpdate()) continue; // ?
-            if (shardManager.getShards().stream().anyMatch(s -> s.getStatus() != JDA.Status.CONNECTED)) {
-                connected = false;
-                break;
-            }
+            if (c == null) continue; // ?
 
             try {
+                if (shardManager.getShards().stream().anyMatch(s -> s.getStatus() != JDA.Status.CONNECTED)) {
+                    connected = false;
+                    break;
+                }
+                if (!c.isNeedsUpdate()) continue;
                 if (shardManager.getGuildById(aCase.getGuildId()) != null)
                     modLogListener.onUpdateCase(new UpdateCaseEvent(aCase, false));
                 c.setNeedsUpdate(false);
-                caseDao.save(c);
+                caseDao.save(c, true);
             } catch (Exception e) {
                 LoggerFactory.getLogger(getClass()).error("Nie udało się uaktualnić sprawy " + c.getId() + "!", e);
                 Sentry.getContext().addExtra("caseId", c.getId());

@@ -381,7 +381,8 @@ public class ModLogListener {
         if (g == null || !checkPermissions(g)) return;
         Case aCase = e.getCase();
         updateCaseMessage(aCase, resolveModLogChannel(getGuildConfig(aCase.getGuildId())));
-        updateDm(aCase, shardManager.retrieveUserById(aCase.getUserId()).onErrorMap(ex -> null).complete(), g);
+        if (!e.getCase().isNeedsUpdate())
+            updateDm(aCase, shardManager.retrieveUserById(aCase.getUserId()).onErrorMap(ex -> null).complete(), g);
     }
 
     private void saveCase(Case toModify, Case aCase, boolean sendDm) {
