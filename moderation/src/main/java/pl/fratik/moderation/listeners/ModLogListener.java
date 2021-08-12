@@ -314,9 +314,14 @@ public class ModLogListener {
             return;
         }
         if (!aCase.getFlagi().contains(Case.Flaga.SILENT)) {
-            sendCaseMessage(aCase, resolveModLogChannel(getGuildConfig(aCase.getGuildId())));
-            if (e.isSendDm() && getGuildConfig(aCase.getGuildId()).isWysylajDmOKickachLubBanach())
-                sendDm(aCase, user, g);
+            caseDao.lock(aCase);
+            try {
+                sendCaseMessage(aCase, resolveModLogChannel(getGuildConfig(aCase.getGuildId())));
+                if (e.isSendDm() && getGuildConfig(aCase.getGuildId()).isWysylajDmOKickachLubBanach())
+                    sendDm(aCase, user, g);
+            } finally {
+                caseDao.unlock(aCase);
+            }
         }
         if (aCase.getValidTo() != null && aCase.getIssuerId() != null) {
             scheduleDao.save(scheduleDao.createNew(Instant.from(aCase.getValidTo()).toEpochMilli(),
