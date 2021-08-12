@@ -319,10 +319,9 @@ public class ModLogListener {
                 sendDm(aCase, user, g);
         }
         if (aCase.getValidTo() != null && aCase.getIssuerId() != null) {
-            long data = Instant.from(aCase.getValidTo()).toEpochMilli();
-            if (data > Instant.now().toEpochMilli())
-                scheduleDao.save(scheduleDao.createNew(data, Long.toUnsignedString(aCase.getIssuerId()), Akcja.EVENT,
-                        new AutoAkcja(aCase.getCaseNumber(), aCase.getType().opposite(), Long.toUnsignedString(aCase.getGuildId()))));
+            scheduleDao.save(scheduleDao.createNew(Instant.from(aCase.getValidTo()).toEpochMilli(),
+                    Long.toUnsignedString(aCase.getIssuerId()), Akcja.EVENT, new AutoAkcja(aCase.getCaseNumber(),
+                            aCase.getType().opposite(), Long.toUnsignedString(aCase.getGuildId()))));
         }
         if (e.getCase().getType() == Kara.WARN || e.getCase().getType() == Kara.UNWARN)
             WarnUtil.takeAction(this, guildDao, caseDao, g.retrieveMember(user).complete(), e.getChannel(),
