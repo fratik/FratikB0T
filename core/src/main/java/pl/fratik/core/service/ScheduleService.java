@@ -23,6 +23,7 @@ import io.sentry.Sentry;
 import io.sentry.event.Event;
 import io.sentry.event.EventBuilder;
 import io.sentry.event.interfaces.ExceptionInterface;
+import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import net.dv8tion.jda.api.entities.PrivateChannel;
 import net.dv8tion.jda.api.entities.User;
@@ -54,6 +55,7 @@ public class ScheduleService extends AbstractScheduledService {
 
     @Override
     protected void runOneIteration() {
+        if (shardManager.getShards().stream().anyMatch(s -> s.getStatus() != JDA.Status.CONNECTED)) return;
         for (Schedule sch : scheduleDao.getAll()) {
             if (Instant.now().toEpochMilli() < sch.getData()) continue;
             try {
