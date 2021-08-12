@@ -293,11 +293,11 @@ public class Module implements Modul {
         }
     }
 
-    private void fixCases() {
+    private synchronized void fixCases() {
         for (Case aCase : caseDao.getAllNeedsUpdate()) {
             if (Thread.interrupted()) break;
             Case c = caseDao.getLocked(aCase.getId());
-            if (c == null) continue; // ?
+            if (c == null || !c.isNeedsUpdate()) continue; // ?
             if (shardManager.getShards().stream().anyMatch(s -> s.getStatus() != JDA.Status.CONNECTED)) {
                 connected = false;
                 break;
