@@ -22,8 +22,10 @@ import com.google.common.eventbus.Subscribe;
 import com.google.inject.Inject;
 import gg.amy.pgorm.PgStore;
 import io.sentry.Sentry;
+import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Role;
+import net.dv8tion.jda.api.events.StatusChangeEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.slf4j.Logger;
@@ -44,7 +46,11 @@ import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.EventWaiter;
 import pl.fratik.core.util.GsonUtil;
 import pl.fratik.moderation.commands.*;
-import pl.fratik.moderation.entity.*;
+import pl.fratik.moderation.entity.Case;
+import pl.fratik.moderation.entity.CaseDao;
+import pl.fratik.moderation.entity.LogMessage;
+import pl.fratik.moderation.entity.PurgeDao;
+import pl.fratik.moderation.events.UpdateCaseEvent;
 import pl.fratik.moderation.listeners.*;
 import pl.fratik.moderation.utils.Migration;
 import pl.fratik.moderation.utils.ModLogBuilder;
@@ -85,6 +91,7 @@ public class Module implements Modul {
     private PurgeDao purgeDao;
     private AutobanListener autobanListener;
 //    private PublishListener publishListener;
+    private boolean connected;
 
     public Module() {
         commands = new ArrayList<>();
@@ -217,8 +224,12 @@ public class Module implements Modul {
 
         commands.forEach(managerKomend::registerCommand);
 
-        new PurgeForApi(managerModulow.getModules().get("api"), shardManager, purgeDao, guildDao);
+        if (managerModulow.getModules().get("api") != null)
+            new PurgeForApi(managerModulow.getModules().get("api"), shardManager, purgeDao, guildDao);
 
+        if (shardManager.getShards().stream().anyMatch(s -> s.getStatus() != JDA.Status.CONNECTED)) return true;
+        connected = true;
+        fixCases();
         return true;
     }
 
@@ -269,6 +280,41 @@ public class Module implements Modul {
     private void onModuleLoad(ModuleLoadedEvent e) {
         if (e.getName().equals("api")) {
             new PurgeForApi(e.getModule(), shardManager, purgeDao, guildDao);
+        }
+    }
+
+    @Subscribe
+    private void onConnected(StatusChangeEvent e) {
+        if (connected) return;
+        if (shardManager.getShards().stream().allMatch(s -> s.getStatus() == JDA.Status.CONNECTED)) {
+            connected = true;
+            fixCases();
+        }
+    }
+
+    private void fixCases() {
+        for (Case aCase : caseDao.getAllNeedsUpdate()) {
+            if (Thread.interrupted()) break;
+            Case c = caseDao.getLocked(aCase.getId());
+            if (c == null) continue; // ?
+            if (shardManager.getShards().stream().anyMatch(s -> s.getStatus() != JDA.Status.CONNECTED)) {
+                connected = false;
+                break;
+            }
+
+            try {
+                if (shardManager.getGuildById(aCase.getGuildId()) != null)
+                    modLogListener.onUpdateCase(new UpdateCaseEvent(aCase, false));
+                c.setNeedsUpdate(false);
+                caseDao.save(c);
+            } catch (Exception e) {
+                LoggerFactory.getLogger(getClass()).error("Nie udało się uaktualnić sprawy " + c.getId() + "!", e);
+                Sentry.getContext().addExtra("caseId", c.getId());
+                Sentry.capture(e);
+                Sentry.clearContext();
+            } finally {
+                caseDao.unlock(c);
+            }
         }
     }
 

@@ -410,7 +410,7 @@ public class ModLogListener {
             mlogchan.retrieveMessageById(aCase.getMessageId())
                     .flatMap(m -> m.editMessage(toSend).override(true)).complete();
         } catch (Exception e) {
-            return sendCaseMessage(aCase, mlogchan);
+            if (!aCase.isNeedsUpdate()) return sendCaseMessage(aCase, mlogchan);
         }
         return aCase;
     }
@@ -437,7 +437,7 @@ public class ModLogListener {
             user.openPrivateChannel().flatMap(chan -> chan.retrieveMessageById(aCase.getDmMsgId()))
                     .flatMap(m -> m.editMessage(toSend).override(true)).complete();
         } catch (Exception ignored) {
-            return sendDm(aCase, user, g);
+            // ignoruj
         }
         return aCase;
     }

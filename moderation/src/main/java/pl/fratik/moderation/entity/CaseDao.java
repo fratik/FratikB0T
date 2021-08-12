@@ -98,6 +98,10 @@ public class CaseDao implements Dao<Case> {
         throw new UnsupportedOperationException();
     }
 
+    public List<Case> getAllNeedsUpdate() {
+        return mapper.loadRaw("SELECT * FROM %s WHERE data @> jsonb_build_object('" + NEEDS_UPDATE + "', true);");
+    }
+
     /**
      * Tworzy nową sprawę w bazie danych (wersja dla wszystkiego innego)
      * @param toModify Sprawa do edytowania w tej transakcji (np {@code setValid(false)} na istniejącej sprawie); może być {@code null}
