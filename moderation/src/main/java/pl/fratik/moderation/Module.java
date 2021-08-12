@@ -20,6 +20,7 @@ package pl.fratik.moderation;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import com.google.inject.Inject;
+import gg.amy.pgorm.PgStore;
 import io.sentry.Sentry;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Role;
@@ -49,12 +50,15 @@ import pl.fratik.moderation.utils.Migration;
 import pl.fratik.moderation.utils.ModLogBuilder;
 
 import java.io.IOException;
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 public class Module implements Modul {
@@ -102,49 +106,63 @@ public class Module implements Modul {
         }
         logger.info("Rozpoczynam migrację spraw!");
         try {
-            managerBazyDanych.getPgStore().sql(con -> {
-                final boolean autoCommit = con.getAutoCommit();
-                con.setAutoCommit(false);
-                try {
-                    String preMigrationVersion = null;
-                    try (PreparedStatement stmt = con.prepareStatement("SELECT * FROM cases WHERE id = 'version';")) {
-                        ResultSet set = stmt.executeQuery();
-                        if (set.isBeforeFirst()) {
-                            set.next();
-                            String data = set.getString("data");
-                            try {
-                                preMigrationVersion = GsonUtil.fromJSON(data, String.class);
-                            } catch (Exception e) {
-                                preMigrationVersion = data;
+            AtomicReference<SQLException> sqlEx = new AtomicReference<>(); // pgStore to gówno i tylko loguje SQLException
+            managerBazyDanych.getPgStore().sql(new PgStore.SqlConsumer<Connection>() {
+                @Override
+                public void accept(Connection con) {
+                    try {
+                        this.sql(con);
+                    } catch (SQLException ex) {
+                        sqlEx.set(ex);
+                    }
+                }
+
+                @Override
+                public void sql(Connection con) throws SQLException {
+                    final boolean autoCommit = con.getAutoCommit();
+                    con.setAutoCommit(false);
+                    try {
+                        String preMigrationVersion = null;
+                        try (PreparedStatement stmt = con.prepareStatement("SELECT * FROM cases WHERE id = 'version';")) {
+                            ResultSet set = stmt.executeQuery();
+                            if (set.isBeforeFirst()) {
+                                set.next();
+                                String data = set.getString("data");
+                                try {
+                                    preMigrationVersion = GsonUtil.fromJSON(data, String.class);
+                                } catch (Exception e) {
+                                    preMigrationVersion = data;
+                                }
                             }
                         }
+                        Migration mig = Migration.fromVersionName(preMigrationVersion);
+                        try {
+                            if (mig != null) {
+                                logger.info("Aktualna wersja: {}. Migruję do {}...", mig.getVersionKey(), Migration.getNewest().getVersionKey());
+                                mig.migrate(con);
+                            } else throw new IllegalArgumentException("Nieprawidłowa wersja!");
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                        String statement;
+                        if (preMigrationVersion == null)
+                            statement = "INSERT INTO cases (id, data) VALUES ('version', to_jsonb(?));";
+                        else statement = "UPDATE cases SET data = to_jsonb(?) WHERE id = 'version';";
+                        try (PreparedStatement stmt = con.prepareStatement(statement)) {
+                            stmt.setString(1, Migration.getNewest().getVersionKey());
+                            stmt.execute();
+                        }
+                        con.commit();
+                        logger.info("Migracja ukończona!");
+                    } catch (Throwable e) {
+                        con.rollback();
+                        throw e;
+                    } finally {
+                        con.setAutoCommit(autoCommit);
                     }
-                    Migration mig = Migration.fromVersionName(preMigrationVersion);
-                    try {
-                        if (mig != null) {
-                            logger.info("Aktualna wersja: {}. Migruję do {}...", mig.getVersionKey(), Migration.getNewest().getVersionKey());
-                            mig.migrate(con);
-                        } else throw new IllegalArgumentException("Nieprawidłowa wersja!");
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                    String statement;
-                    if (preMigrationVersion == null)
-                        statement = "INSERT INTO cases (id, data) VALUES ('version', to_jsonb(?));";
-                    else statement = "UPDATE cases SET data = to_jsonb(?) WHERE id = 'version';";
-                    try (PreparedStatement stmt = con.prepareStatement(statement)) {
-                        stmt.setString(1, Migration.getNewest().getVersionKey());
-                        stmt.execute();
-                    }
-                    con.commit();
-                } catch (Throwable e) {
-                    con.rollback();
-                    throw e;
-                } finally {
-                    con.setAutoCommit(autoCommit);
                 }
             });
-            logger.info("Migracja ukończona!");
+            if (sqlEx.get() != null) throw sqlEx.get();
         } catch (Exception e) {
             logger.error("Migracja nieudana!", e);
             Sentry.capture(e);

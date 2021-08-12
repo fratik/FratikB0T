@@ -69,6 +69,7 @@ public class Case implements DatabaseEntity, Comparable<Case> {
     @Setter private int ileRazy = 1;
     @Setter @NotNull private EnumSet<Flaga> flagi = EnumSet.noneOf(Flaga.class);
     @Setter @NotNull private List<Dowod> dowody = new ArrayList<>();
+    @Setter private boolean needsUpdate = false; // wiadomość o sprawie powinna zostać zaktualizowana; flaga awaryjna, do użycia w migracji
 
     public String getReason(CommandContext ctx) {
         return getReason(ctx.getTlumaczenia(), ctx.getLanguage());

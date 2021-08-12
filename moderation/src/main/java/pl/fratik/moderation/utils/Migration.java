@@ -19,6 +19,8 @@ package pl.fratik.moderation.utils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pl.fratik.moderation.entity.Case;
 import pl.fratik.moderation.entity.CaseDao;
 import pl.fratik.moderation.entity.OldCase;
@@ -46,19 +48,27 @@ public enum Migration {
                     List<Case> newCases = new ArrayList<>();
                     long caseId = 0;
                     long guildId = Long.parseUnsignedLong(set.getString("id"));
+                    Set<Long> uzyteNumery = new HashSet<>();
                     for (OldCase data : objectMapper.readValue(set.getString("data"), OldCaseRow.class).getCases()) {
                         EnumSet<Case.Flaga> flagi = EnumSet.noneOf(Case.Flaga.class);
                         flagi.addAll(data.getFlagi().stream().map(f -> Case.Flaga.valueOf(f.name())).collect(Collectors.toSet()));
                         String reason = data.getReason();
                         if (reason != null && reason.startsWith("translate:")) reason = "\\" + reason;
-                        Case c = new Case(CaseDao.getId(guildId, data.getCaseId()), guildId,
-                                Long.parseUnsignedLong(data.getUserId()), caseId = data.getCaseId(),
+                        caseId = data.getCaseId();
+                        while (uzyteNumery.contains(caseId)) {
+                            caseId++;
+                        }
+                        if (caseId != data.getCaseId())
+                            log.warn("{}: ID sprawy się nie zgadza! ID odczytane: {}; nowe ID: {}", guildId, data.getCaseId(), caseId);
+                        Case c = new Case(CaseDao.getId(guildId, caseId), guildId,
+                                Long.parseUnsignedLong(data.getUserId()), caseId,
                                 Objects.requireNonNull(data.getTimestamp()), data.getType(), data.isValid(),
                                 data.getValidTo(),
                                 data.getMessageId() == null ? null : Long.parseUnsignedLong(data.getMessageId()),
                                 data.getDmMsgId() == null ? null : Long.parseUnsignedLong(data.getDmMsgId()),
                                 data.getIssuerId() == null ? null : Long.parseUnsignedLong(data.getIssuerId()),
-                                reason, data.getIleRazy() == null ? 1 : data.getIleRazy(), flagi, data.getDowody());
+                                reason, data.getIleRazy() == null ? 1 : data.getIleRazy(), flagi, data.getDowody(), caseId != data.getCaseId());
+                        uzyteNumery.add(caseId);
                         newCases.add(c);
                     }
                     cases.addAll(newCases);
@@ -68,19 +78,21 @@ public enum Migration {
             try (PreparedStatement stmt = con.prepareStatement("DELETE FROM cases;")) {
                 stmt.execute();
             }
-            for (Map.Entry<String, Long> e : masterMap.entrySet()) {
-                try (PreparedStatement stmt = con.prepareStatement("INSERT INTO cases (id, data) VALUES (?, jsonb_build_object('caseId', ?));")) {
+            try (PreparedStatement stmt = con.prepareStatement("INSERT INTO cases (id, data) VALUES (?, jsonb_build_object('caseId', ?));")) {
+                for (Map.Entry<String, Long> e : masterMap.entrySet()) {
                     stmt.setString(1, e.getKey());
                     stmt.setLong(2, e.getValue());
-                    stmt.execute();
+                    stmt.addBatch();
                 }
+                stmt.executeBatch();
             }
-            for (Case c : cases) {
-                try (PreparedStatement stmt = con.prepareStatement("INSERT INTO cases (id, data) VALUES (?, to_jsonb(?::jsonb));")) {
+            try (PreparedStatement stmt = con.prepareStatement("INSERT INTO cases (id, data) VALUES (?, to_jsonb(?::jsonb));")) {
+                for (Case c : cases) {
                     stmt.setString(1, c.getId());
                     stmt.setString(2, objectMapper.writeValueAsString(c));
-                    stmt.execute();
+                    stmt.addBatch();
                 }
+                stmt.executeBatch();
             }
         }
     },
@@ -94,6 +106,8 @@ public enum Migration {
     public static Migration getNewest() {
         return V1;
     }
+
+    private static final Logger log = LoggerFactory.getLogger(Migration.class);
 
     @Getter private final String versionKey;
 

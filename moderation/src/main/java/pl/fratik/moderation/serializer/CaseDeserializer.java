@@ -78,9 +78,12 @@ public class CaseDeserializer extends StdDeserializer<Case> {
             for (JsonNode dowodRaw : elements.get(DOWODY)) {
                 if (dowodRaw == null) continue;
                 ObjectNode dowod = (ObjectNode) dowodRaw;
-                dowody.add(new Dowod(dowod.get(DOWOD_ID).asLong(), dowod.get(DOWOD_ATTACHED_BY).asLong(), dowod.get(DOWOD_CONTENT).asText()));
+                dowody.add(new Dowod(dowod.get(DOWOD_ID).asLong(), dowod.get(DOWOD_ATTACHED_BY).asLong(),
+                        dowod.get(DOWOD_CONTENT).asText()));
             }
         }
-        return new Case(guildId + "." + caseNumber, guildId, userId, caseNumber, timestamp, kara, valid, validTo, messageId, dmMessageId, issuerId, reason, ileRazy, flagi, dowody);
+        return new Case(guildId + "." + caseNumber, guildId, userId, caseNumber, timestamp, kara, valid, validTo,
+                messageId, dmMessageId, issuerId, reason, ileRazy, flagi, dowody,
+                elements.has(NEEDS_UPDATE) && elements.get(NEEDS_UPDATE).asBoolean());
     }
 }

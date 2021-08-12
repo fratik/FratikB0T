@@ -40,6 +40,7 @@ public class CaseSerializer extends StdSerializer<Case> {
     public static final String REASON = "r";
     public static final String COUNT = "cnt";
     public static final String FLAGI = "f";
+    public static final String NEEDS_UPDATE = "nu";
     public static final String DOWODY = "d";
     public static final String DOWOD_ID = "id";
     public static final String DOWOD_ATTACHED_BY = "aby";
@@ -81,6 +82,7 @@ public class CaseSerializer extends StdSerializer<Case> {
             }
             jsonGenerator.writeEndArray();
         }
+        if (aCase.isNeedsUpdate()) jsonGenerator.writeBooleanField(NEEDS_UPDATE, true);
         jsonGenerator.writeEndObject();
     }
 }
