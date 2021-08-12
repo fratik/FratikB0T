@@ -17,29 +17,18 @@
 
 package pl.fratik.moderation.commands;
 
-import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.sharding.ShardManager;
-import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.MessageEmbed;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
-import pl.fratik.core.entity.GuildConfig;
-import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Kara;
 import pl.fratik.core.entity.Uzycie;
-import pl.fratik.core.manager.ManagerKomend;
 import pl.fratik.core.util.UserUtil;
 import pl.fratik.moderation.entity.Case;
-import pl.fratik.moderation.entity.CaseRow;
-import pl.fratik.moderation.entity.CasesDao;
-import pl.fratik.moderation.entity.CaseBuilder;
-import pl.fratik.moderation.utils.ModLogBuilder;
+import pl.fratik.moderation.entity.CaseDao;
 import pl.fratik.moderation.utils.ReasonUtils;
 
 import java.time.Instant;
-import java.time.temporal.TemporalAccessor;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Objects;
@@ -47,16 +36,10 @@ import java.util.stream.Collectors;
 
 public class NotatkaCommand extends ModerationCommand {
 
-    private final GuildDao guildDao;
-    private final CasesDao casesDao;
-    private final ShardManager shardManager;
-    private final ManagerKomend managerKomend;
+    private final CaseDao caseDao;
 
-    public NotatkaCommand(GuildDao guildDao, CasesDao casesDao, ShardManager shardManager, ManagerKomend managerKomend) {
-        this.guildDao = guildDao;
-        this.casesDao = casesDao;
-        this.shardManager = shardManager;
-        this.managerKomend = managerKomend;
+    public NotatkaCommand(CaseDao casesDao) {
+        this.caseDao = casesDao;
         name = "notatka";
         category = CommandCategory.MODERATION;
         uzycieDelim = " ";
@@ -93,40 +76,10 @@ public class NotatkaCommand extends ModerationCommand {
             context.reply(context.getTranslated("notatka.bot.cant.interact"));
             return false;
         }
-        GuildConfig gc = guildDao.get(context.getGuild());
-        CaseRow caseRow = casesDao.get(context.getGuild());
-        int caseId = Case.getNextCaseId(caseRow);
-        TemporalAccessor timestamp = Instant.now();
-        Case aCase = new CaseBuilder().setUser(uzytkownik.getUser()).setGuild(context.getGuild()).setCaseId(caseId)
-                .setTimestamp(timestamp).setMessageId(null).setKara(Kara.NOTATKA).createCase();
+        Case aCase = new Case.Builder(uzytkownik, Instant.now(), Kara.NOTATKA).setIssuerId(context.getSender().getIdLong()).build();
         ReasonUtils.parseFlags(aCase, powod);
-        aCase.setIssuerId(context.getSender().getId());
-        String mlogchanStr = gc.getModLog();
-        if (mlogchanStr == null || mlogchanStr.equals("")) mlogchanStr = "0";
-        TextChannel mlogchan = shardManager.getTextChannelById(mlogchanStr);
-        if (mlogchan == null || !mlogchan.getGuild().getSelfMember().hasPermission(mlogchan,
-                Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_WRITE, Permission.MESSAGE_READ)) {
-            context.reply(context.getTranslated("notatka.success", UserUtil.formatDiscrim(uzytkownik)));
-            if (!aCase.getFlagi().contains(Case.Flaga.SILENT)) context.reply(context.getTranslated("notatka.nomodlogs", context.getPrefix()));
-            caseRow.getCases().add(aCase);
-            casesDao.save(caseRow);
-            return false;
-        }
-        if (!aCase.getFlagi().contains(Case.Flaga.SILENT)) {
-            MessageEmbed embed = ModLogBuilder.generate(aCase, context.getGuild(), shardManager,
-                    gc.getLanguage(), managerKomend, true, false);
-            mlogchan.sendMessage(embed).queue(message -> {
-                context.reply(context.getTranslated("notatka.success", UserUtil.formatDiscrim(uzytkownik)), m -> {
-                });
-                aCase.setMessageId(message.getId());
-                caseRow.getCases().add(aCase);
-                casesDao.save(caseRow);
-            });
-        } else {
-            context.reply(context.getTranslated("notatka.success", UserUtil.formatDiscrim(uzytkownik)), m -> {});
-            caseRow.getCases().add(aCase);
-            casesDao.save(caseRow);
-        }
+        caseDao.createNew(null, aCase, false);
+        context.reply(context.getTranslated("notatka.success", UserUtil.formatDiscrim(uzytkownik)));
         return true;
     }
 }

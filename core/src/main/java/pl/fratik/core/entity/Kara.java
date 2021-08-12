@@ -65,4 +65,18 @@ public enum Kara {
             default: return null;
         }
     }
+
+    public Kara opposite() {
+        return opposite(this);
+    }
+
+    public static Kara opposite(Kara type) {
+        switch (type) {
+            case BAN:
+                return Kara.UNBAN;
+            case MUTE: return Kara.UNMUTE;
+            case WARN: return Kara.UNWARN;
+            default: return null;
+        }
+    }
 }

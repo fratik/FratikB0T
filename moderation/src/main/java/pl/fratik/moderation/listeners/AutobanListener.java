@@ -20,43 +20,38 @@ package pl.fratik.moderation.listeners;
 import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.Subscribe;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
+import pl.fratik.core.Globals;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Kara;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.moderation.entity.Case;
-import pl.fratik.moderation.entity.CaseBuilder;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
 
 public class AutobanListener {
 
     private final GuildDao guildDao;
     private final Tlumaczenia tlumaczenia;
+    private final ModLogListener modLogListener;
 
-    public AutobanListener(GuildDao guildDao, Tlumaczenia tlumaczenia) {
+    public AutobanListener(GuildDao guildDao, Tlumaczenia tlumaczenia, ModLogListener modLogListener) {
         this.guildDao = guildDao;
         this.tlumaczenia = tlumaczenia;
+        this.modLogListener = modLogListener;
     }
 
     @Subscribe
     @AllowConcurrentEvents
     public void onGuildMemberJoinEvent(GuildMemberJoinEvent e) {
         GuildConfig gc = guildDao.get(e.getGuild());
-        if (gc.getAutoban()) {
-            Case aCase = new CaseBuilder().setUser(e.getUser()).setGuild(e.getGuild())
-                    .setCaseId(Case.getNextCaseId(e.getGuild())).setTimestamp(Instant.now())
-                    .setMessageId(null).setKara(Kara.BAN).createCase();
-            aCase.setIssuerId(e.getJDA().getSelfUser());
-            aCase.setReason(tlumaczenia.get(tlumaczenia.getLanguage(e.getGuild()), "autoban.case.reason"));
-            List<Case> caseList = ModLogListener.getKnownCases().getOrDefault(e.getGuild(), new ArrayList<>());
-            caseList.add(aCase);
+        if (gc.getAutoban() != null && gc.getAutoban()) {
+            Case aCase = new Case.Builder(e.getMember(), Instant.now(), Kara.BAN).setIssuerId(Globals.clientId)
+                    .setReasonKey("autoban.case.reason").build();
+            modLogListener.getKnownCases().put(ModLogListener.generateKey(e.getMember()), aCase);
             e.getGuild().ban(e.getMember(), 0,
                     tlumaczenia.get(tlumaczenia.getLanguage(e.getGuild()), "autoban.audit.reason"))
                     .reason(tlumaczenia.get(tlumaczenia.getLanguage(e.getGuild()), "autoban.audit.reason")).complete();
-            ModLogListener.getKnownCases().put(e.getGuild(), caseList);
         }
     }
 }

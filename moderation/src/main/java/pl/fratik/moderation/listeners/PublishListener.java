@@ -33,7 +33,7 @@ import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.manager.ManagerKomend;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
-import pl.fratik.moderation.entity.CasesDao;
+import pl.fratik.moderation.entity.OldCasesDao;
 
 import java.util.concurrent.TimeUnit;
 
@@ -43,12 +43,12 @@ public class PublishListener {
     private final Tlumaczenia tlumaczenia;
     private final ManagerKomend managerKomend;
     private final ShardManager shardManager;
-    private final CasesDao casesDao;
+    private final OldCasesDao casesDao;
     private final Cache<GuildConfig> gcCache;
 
     private static final String EMOTE = "\uD83D\uDCE3";
 
-    public PublishListener(GuildDao guildDao, Tlumaczenia tlumaczenia, ManagerKomend managerKomend, ShardManager shardManager, CasesDao casesDao, RedisCacheManager redisCacheManager) {
+    public PublishListener(GuildDao guildDao, Tlumaczenia tlumaczenia, ManagerKomend managerKomend, ShardManager shardManager, OldCasesDao casesDao, RedisCacheManager redisCacheManager) {
         this.guildDao = guildDao;
         this.tlumaczenia = tlumaczenia;
         this.managerKomend = managerKomend;

@@ -17,20 +17,14 @@
 
 package pl.fratik.moderation.commands;
 
-import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
-import pl.fratik.core.entity.GuildConfig;
-import pl.fratik.core.entity.GuildDao;
-import pl.fratik.core.entity.Uzycie;
-import pl.fratik.core.manager.ManagerKomend;
+import pl.fratik.core.entity.*;
 import pl.fratik.core.util.DurationUtil;
+import pl.fratik.moderation.entity.AutoAkcja;
 import pl.fratik.moderation.entity.Case;
-import pl.fratik.moderation.entity.CaseRow;
-import pl.fratik.moderation.entity.CasesDao;
+import pl.fratik.moderation.entity.CaseDao;
 import pl.fratik.moderation.utils.ReasonUtils;
 
 import java.time.Instant;
@@ -39,13 +33,13 @@ import java.util.LinkedHashMap;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-public class ReasonCommand extends CaseEditingCommand {
+public class ReasonCommand extends ModerationCommand {
+    private final ScheduleDao scheduleDao;
+    private final CaseDao caseDao;
 
-    private final GuildDao guildDao;
-
-    public ReasonCommand(GuildDao guildDao, CasesDao casesDao, ShardManager shardManager, ManagerKomend managerKomend) {
-        super(casesDao, shardManager, managerKomend);
-        this.guildDao = guildDao;
+    public ReasonCommand(ScheduleDao scheduleDao, CaseDao caseDao) {
+        this.scheduleDao = scheduleDao;
+        this.caseDao = caseDao;
         name = "reason";
         category = CommandCategory.MODERATION;
         uzycieDelim = " ";
@@ -62,34 +56,47 @@ public class ReasonCommand extends CaseEditingCommand {
         Integer caseId = (Integer) context.getArgs()[0];
         String reason = Arrays.stream(Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length))
                 .map(e -> e == null ? "" : e).map(Objects::toString).collect(Collectors.joining(uzycieDelim));
-        GuildConfig gc = guildDao.get(context.getGuild());
-        CaseRow caseRow = casesDao.get(context.getGuild());
-        if (caseRow.getCases().size() < caseId || (caseRow.getCases().size() >= caseId - 1 &&
-                caseRow.getCases().get(caseId - 1) == null)) {
+        Case aCase = caseDao.getLocked(CaseDao.getId(context.getGuild(), caseId));
+        if (aCase == null) {
             context.reply(context.getTranslated("reason.invalid.case"));
             return false;
         }
-        DurationUtil.Response durationResp;
         try {
-            durationResp = DurationUtil.parseDuration(reason);
-        } catch (IllegalArgumentException e) {
-            context.reply(context.getTranslated("reason.max.duration"));
-            return false;
+            DurationUtil.Response durationResp;
+            try {
+                durationResp = DurationUtil.parseDuration(reason);
+            } catch (IllegalArgumentException e) {
+                context.reply(context.getTranslated("reason.max.duration"));
+                return false;
+            }
+            String powod = durationResp.getTekst();
+            Instant akcjaDo = durationResp.getDoKiedy();
+            if (powod.equals("")) {
+                context.reply(context.getTranslated("reason.reason.empty"));
+                return false;
+            }
+            aCase.setIssuerId(context.getSender().getIdLong());
+            aCase.getFlagi().remove(Case.Flaga.NOBODY); // usuwa -n, -n może zostać ponownie dodane w parseFlags
+            if (akcjaDo != null) {
+                if (aCase.getValidTo() != null) {
+                    for (Schedule schedule : scheduleDao.getByDate(Instant.from(aCase.getValidTo()).toEpochMilli())) {
+                        if (schedule.getContent() instanceof AutoAkcja &&
+                                ((AutoAkcja) schedule.getContent()).getCaseId() == aCase.getCaseNumber())
+                            scheduleDao.delete(Integer.toString(schedule.getId()));
+                    }
+                }
+                aCase.setValidTo(akcjaDo);
+                //noinspection ConstantConditions - ustawiane wyżej
+                scheduleDao.save(scheduleDao.createNew(akcjaDo.toEpochMilli(), Long.toUnsignedString(aCase.getIssuerId()), Akcja.EVENT,
+                        new AutoAkcja(aCase.getCaseNumber(), aCase.getType().opposite(), Long.toUnsignedString(aCase.getGuildId()))));
+            }
+            ReasonUtils.parseFlags(aCase, powod, Case.Flaga.SILENT);
+            caseDao.save(aCase);
+            context.send(context.getTranslated("reason.success"));
+            return true;
+        } finally {
+            caseDao.unlock(aCase);
         }
-        String powod = durationResp.getTekst();
-        Instant akcjaDo = durationResp.getDoKiedy();
-        if (powod.equals("")) {
-            context.reply(context.getTranslated("reason.reason.empty"));
-            return false;
-        }
-        Case aCase = caseRow.getCases().get(caseId - 1);
-        aCase.getFlagi().remove(Case.Flaga.NOBODY); // usuwa -n, -n może zostać ponownie dodane w parseFlags
-        if (akcjaDo != null) aCase.setValidTo(akcjaDo);
-        @Nullable TextChannel modLogChannel = gc.getModLog() != null && !Objects.equals(gc.getModLog(), "") ?
-                context.getGuild().getTextChannelById(gc.getModLog()) : null;
-        ReasonUtils.parseFlags(aCase, powod, Case.Flaga.SILENT);
-        return updateCase(context, context.getTranslated("reason.success"), context.getTranslated("reason.failed"),
-                caseRow, modLogChannel, aCase, gc);
     }
 
 }

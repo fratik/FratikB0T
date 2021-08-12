@@ -21,12 +21,13 @@ import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.Subscribe;
 import com.google.gson.reflect.TypeToken;
 import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.message.GenericMessageEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.MessageUpdateEvent;
+import net.dv8tion.jda.api.requests.restaction.MessageAction;
 import net.dv8tion.jda.api.sharding.ShardManager;
+import pl.fratik.core.Globals;
 import pl.fratik.core.cache.Cache;
 import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.entity.GuildConfig;
@@ -37,10 +38,7 @@ import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.CommonUtil;
 import pl.fratik.core.util.GsonUtil;
 import pl.fratik.moderation.entity.Case;
-import pl.fratik.moderation.entity.CaseBuilder;
-import pl.fratik.moderation.entity.CaseRow;
-import pl.fratik.moderation.entity.CasesDao;
-import pl.fratik.moderation.utils.ModLogBuilder;
+import pl.fratik.moderation.entity.CaseDao;
 import pl.fratik.moderation.utils.WarnUtil;
 
 import javax.annotation.Nonnull;
@@ -56,14 +54,14 @@ public class PrzeklenstwaListener {
     private final Tlumaczenia tlumaczenia;
     private final ManagerKomend managerKomend;
     private final ShardManager shardManager;
-    private final CasesDao casesDao;
+    private final CaseDao caseDao;
     private final Cache<GuildConfig> gcCache;
-    public PrzeklenstwaListener(GuildDao guildDao, Tlumaczenia tlumaczenia, ManagerKomend managerKomend, ShardManager shardManager, CasesDao casesDao, RedisCacheManager redisCacheManager) {
+    public PrzeklenstwaListener(GuildDao guildDao, Tlumaczenia tlumaczenia, ManagerKomend managerKomend, ShardManager shardManager, CaseDao caseDao, RedisCacheManager redisCacheManager) {
         this.guildDao = guildDao;
         this.tlumaczenia = tlumaczenia;
         this.managerKomend = managerKomend;
         this.shardManager = shardManager;
-        this.casesDao = casesDao;
+        this.caseDao = caseDao;
         gcCache = redisCacheManager.new CacheRetriever<GuildConfig>(){}.getCache();
         try {
             String data = CommonUtil.fromStream(getClass().getResourceAsStream("/przeklenstwa.json"));
@@ -100,43 +98,20 @@ public class PrzeklenstwaListener {
         for (String przeklenstwo : przeklenstwa) {
             boolean res = processWord(przeklenstwo, content);
             if (res) {
-                synchronized (e.getGuild()) {
-                    Case c = new CaseBuilder(e.getGuild()).setUser(e.getAuthor().getId()).setKara(Kara.WARN)
-                            .setTimestamp(Instant.now()).createCase();
-                    c.setIssuerId(e.getJDA().getSelfUser());
-                    c.setReason(tlumaczenia.get(tlumaczenia.getLanguage(e.getGuild()), "antiswear.reason"));
-                    String mlogchanStr = getModLogChan(e.getGuild());
-                    if (mlogchanStr == null || mlogchanStr.equals("")) mlogchanStr = "0";
-                    TextChannel mlogchan = shardManager.getTextChannelById(mlogchanStr);
-                    if (!(mlogchan == null || !mlogchan.getGuild().getSelfMember().hasPermission(mlogchan,
-                            Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_WRITE, Permission.MESSAGE_READ))) {
-                        Message m = mlogchan.sendMessage(ModLogBuilder.generate(c,
-                                e.getGuild(), shardManager, tlumaczenia.getLanguage(e.getGuild()), managerKomend, true, false))
-                                .complete();
-                        c.setMessageId(m.getId());
-                    }
-                    CaseRow cr = casesDao.get(e.getGuild());
-                    cr.getCases().add(c);
-                    boolean deleteSwearMessage = gc.isDeleteSwearMessage();
-                    if (deleteSwearMessage) {
-                        e.getChannel().sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(e.getMember()),
-                                "antiswear.notice", e.getAuthor().getAsMention(),
-                                WarnUtil.countCases(cr, e.getAuthor().getId()),
-                                managerKomend.getPrefixes(e.getGuild()).get(0))).queue();
-                    } else {
-                        e.getChannel().sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(e.getMember()),
-                                "antiswear.notice", e.getAuthor().getAsMention(),
-                                WarnUtil.countCases(cr, e.getAuthor().getId()),
-                                managerKomend.getPrefixes(e.getGuild()).get(0))).reference(e.getMessage()).queue();
-                    }
-                    casesDao.save(cr);
-                    WarnUtil.takeAction(guildDao, casesDao, e.getMember(), e.getChannel(),
-                            tlumaczenia.getLanguage(e.getGuild()), tlumaczenia, managerKomend);
-                    if (deleteSwearMessage) {
-                        try {
-                            e.getMessage().delete().complete();
-                        } catch (Exception ignored) { }
-                    }
+                Case c = new Case.Builder(e.getMember(), Instant.now(), Kara.WARN).setIssuerId(Globals.clientId)
+                        .setReasonKey("antiswear.reason").build();
+                caseDao.createNew(null, c, false);
+                MessageAction m = e.getChannel().sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(e.getMember()),
+                        "antiswear.notice", e.getAuthor().getAsMention(),
+                        WarnUtil.countCases(caseDao.getCasesByMember(e.getMember()), e.getAuthor().getId()),
+                        managerKomend.getPrefixes(e.getGuild()).get(0)));
+                boolean deleteSwearMessage = gc.isDeleteSwearMessage();
+                if (deleteSwearMessage) m.queue();
+                else m.reference(e.getMessage()).queue();
+                if (deleteSwearMessage) {
+                    try {
+                        e.getMessage().delete().complete();
+                    } catch (Exception ignored) { }
                 }
                 return;
             }

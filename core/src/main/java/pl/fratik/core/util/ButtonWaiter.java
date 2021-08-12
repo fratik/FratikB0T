@@ -20,6 +20,8 @@ package pl.fratik.core.util;
 import lombok.Getter;
 import lombok.Setter;
 import net.dv8tion.jda.api.events.interaction.ButtonClickEvent;
+import net.dv8tion.jda.api.exceptions.ErrorResponseException;
+import net.dv8tion.jda.api.requests.ErrorResponse;
 import pl.fratik.core.command.CommandContext;
 
 import java.util.concurrent.TimeUnit;
@@ -49,13 +51,22 @@ public class ButtonWaiter {
     protected boolean checkReaction(ButtonClickEvent event) {
         if (event.getMessageIdLong() != messageId) return false;
         boolean validUser = event.getUser().equals(context.getSender());
-        if (!validUser) event.reply(context.getTlumaczenia().get(context.getTlumaczenia().getLanguage(event.getMember()),
-                "buttonwaiter.invalid.user", context.getSender().getAsMention())).setEphemeral(true).queue();
-        else {
-            if (type == ResponseType.REPLY) event.deferReply().queue();
-            else if (type == ResponseType.EDIT) event.deferEdit().queue();
+        if (!validUser) {
+            event.reply(context.getTlumaczenia().get(context.getTlumaczenia().getLanguage(event.getMember()),
+                    "buttonwaiter.invalid.user", context.getSender().getAsMention())).setEphemeral(true).queue();
+            return false;
         }
-        return validUser;
+        else {
+            try {
+                if (type == ResponseType.REPLY) event.deferReply().complete();
+                else if (type == ResponseType.REPLY_EPHEMERAL) event.deferReply(true).complete();
+                else if (type == ResponseType.EDIT) event.deferEdit().complete();
+            } catch (ErrorResponseException ex) {
+                if (ex.getErrorResponse() == ErrorResponse.UNKNOWN_INTERACTION) return false;
+                throw ex;
+            }
+        }
+        return true;
     }
 
     private void handleReaction(ButtonClickEvent event) {
@@ -70,6 +81,7 @@ public class ButtonWaiter {
 
     public enum ResponseType {
         EDIT,
-        REPLY
+        REPLY,
+        REPLY_EPHEMERAL
     }
 }

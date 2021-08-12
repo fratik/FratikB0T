@@ -17,144 +17,179 @@
 
 package pl.fratik.moderation.entity;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import gg.amy.pgorm.annotations.GIndex;
+import gg.amy.pgorm.annotations.PrimaryKey;
+import gg.amy.pgorm.annotations.Table;
+import lombok.*;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.User;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.entity.Akcja;
+import pl.fratik.core.command.CommandContext;
+import pl.fratik.core.entity.DatabaseEntity;
 import pl.fratik.core.entity.Kara;
-import pl.fratik.core.entity.Schedule;
-import pl.fratik.core.entity.ScheduleDao;
+import pl.fratik.core.tlumaczenia.Language;
+import pl.fratik.core.tlumaczenia.Tlumaczenia;
+import pl.fratik.moderation.serializer.CaseDeserializer;
+import pl.fratik.moderation.serializer.CaseSerializer;
 
 import javax.annotation.Nullable;
-import java.time.Instant;
+import java.nio.charset.StandardCharsets;
 import java.time.temporal.TemporalAccessor;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
+@Table("cases")
 @Getter
 @ToString
+@EqualsAndHashCode
 @AllArgsConstructor
-public class Case {
+@RequiredArgsConstructor
+@GIndex
+@JsonSerialize(using = CaseSerializer.class)
+@JsonDeserialize(using = CaseDeserializer.class)
+public class Case implements DatabaseEntity, Comparable<Case> {
+    @PrimaryKey
+    private final String id; // guildId + '.' + caseNumber
+    private final long guildId;
+    private final long userId;
+    private final long caseNumber;
+    @NotNull private final TemporalAccessor timestamp;
+    @NotNull private final Kara type;
+    @Setter private boolean valid = true;
+    @Setter @Nullable private TemporalAccessor validTo;
+    @Setter @Nullable private Long messageId;
+    @Setter @Nullable private Long dmMsgId;
+    @Setter @Nullable private Long issuerId;
+    @Setter @Nullable private String reason;
+    @Setter private int ileRazy = 1;
+    @Setter @NotNull private EnumSet<Flaga> flagi = EnumSet.noneOf(Flaga.class);
+    @Setter @NotNull private List<Dowod> dowody = new ArrayList<>();
+    @Setter private boolean needsUpdate = false; // wiadomość o sprawie powinna zostać zaktualizowana; flaga awaryjna, do użycia w migracji
 
-    private static CasesDao casesDao;
-    private static ScheduleDao scheduleDao;
-
-    @NotNull  private final String userId;
-    @NotNull  private final String guildId;
-    @Nullable private final TemporalAccessor timestamp;
-    @NotNull  private final Kara type;
-              private final int caseId;
-    @Setter   private       boolean valid = true;
-    @Nullable private       TemporalAccessor validTo;
-    @Setter   private       String messageId;
-    @Setter
-    @Nullable private       String dmMsgId;
-    @Nullable private       String issuerId;
-    @Setter
-    @Nullable private       String reason;
-    @Setter
-    @Nullable private       Integer ileRazy;
-    @Setter
-    @NotNull  private       EnumSet<Flaga> flagi = EnumSet.noneOf(Flaga.class);
-    @Setter
-    @NotNull  private       List<Dowod> dowody = new ArrayList<>();
-
-    Case(@NotNull String userId, @NotNull String guildId, int caseId, @Nullable TemporalAccessor timestamp, String messageId, @NotNull Kara type) {
-        this.userId = userId;
-        this.guildId = guildId;
-        this.caseId = caseId;
-        this.timestamp = timestamp;
-        this.messageId = messageId;
-        this.type = type;
+    public String getReason(CommandContext ctx) {
+        return getReason(ctx.getTlumaczenia(), ctx.getLanguage());
     }
 
-    public static int getNextCaseId(Guild guild) {
-        if (casesDao == null) throw new IllegalStateException("casesDao jest nie ustawiony!");
-        return getNextCaseId(casesDao.get(guild));
-    }
-
-    public static int getNextCaseId(@NotNull CaseRow caseRow) {
-        int lastId = 0;
-        for (Case aCase : caseRow.getCases()) {
-            lastId = Math.max(aCase.caseId, lastId);
+    public String getReason(Tlumaczenia t, Language l) {
+        if (reason == null) return null;
+        if (reason.startsWith("\\translate:")) return reason.substring(1);
+        if (reason.startsWith("translate:")) {
+            l = l == null ? Language.DEFAULT : l;
+            String key;
+            String[] arguments;
+            Pattern p = Pattern.compile("^translate:(.+?):(.*)$");
+            Matcher m = p.matcher(reason);
+            if (m.matches()) {
+                key = m.group(1);
+                arguments = Arrays.stream(m.group(2).split(";"))
+                        .map(a -> new String(Base64.getDecoder().decode(a), StandardCharsets.UTF_8)).toArray(String[]::new);
+            } else {
+                key = reason.substring(10);
+                arguments = null;
+            }
+            if (arguments != null) return t.get(l, key, arguments);
+            else return t.get(l, key);
         }
-        return lastId + 1;
+        return reason;
     }
 
-    public static Case getCaseById(int caseId, Guild guild) {
-        if (casesDao == null) throw new IllegalStateException("casesDao jest nie ustawiony");
-        return getCaseById(caseId, casesDao.get(guild));
+    @Override
+    public String getTableName() {
+        return "cases";
     }
 
-    @SuppressWarnings("WeakerAccess")
-    public static Case getCaseById(int caseId, CaseRow caseRow) {
-        return getCaseById(caseId, caseRow.getCases());
+    @Override
+    public int compareTo(@NotNull Case o) { // 1 -> 2 -> 3 -> ...
+        Objects.requireNonNull(o);
+        if (getGuildId() != o.getGuildId()) throw new IllegalArgumentException("Nie można sortować spraw między serwerami!");
+        return Long.compare(getCaseNumber(), o.getCaseNumber());
     }
 
-    public static Case getCaseById(int caseId, List<Case> cList) {
-        for (Case aCase : cList) if (aCase.getCaseId() == caseId) return aCase;
-        return null;
-    }
+    public static class Builder {
+        private final Case aCase;
 
-    public static void setStaticVariables(CasesDao casesDao, ScheduleDao scheduleDao) {
-        Case.casesDao = casesDao;
-        Case.scheduleDao = scheduleDao;
-    }
-
-    public void setIssuerId(@Nullable String issuerId) {
-        this.issuerId = issuerId;
-    }
-
-    public void setIssuerId(@NotNull User issuer) {
-        this.issuerId = issuer.getId();
-    }
-
-    public void setValidTo(TemporalAccessor validTo) {
-        setValidTo(validTo, false);
-    }
-
-    public void setValidTo(TemporalAccessor validTo, boolean deser) {
-        if (deser) {
-            this.validTo = validTo;
-            return;
+        public Builder(Member mem, TemporalAccessor timestamp, Kara type) {
+            this(mem.getGuild(), mem.getUser(), timestamp, type);
         }
-        Instant inst = null;
-        if (this.validTo != null) {
-            inst = Instant.from(this.validTo);
-        }
-        this.validTo = validTo;
-        if (validTo == null) {
-            if (inst == null) return;
-            scheduleDao.getByDate(inst.toEpochMilli()).stream().filter(
-                    s -> s.getAkcja() == Akcja.EVENT && s.getContent() instanceof AutoAkcja &&
-                            ((AutoAkcja) s.getContent()).getCaseId() == caseId
-            ).findFirst().ifPresent(sch -> scheduleDao.delete(String.valueOf(sch.getId())));
-            return;
-        }
-        Instant inst2 = Instant.from(validTo);
-        if (inst != null && inst.equals(inst2)) return;
-        Schedule sch = null;
-        if (inst != null) sch = scheduleDao.getByDate(inst.toEpochMilli()).stream().filter(
-                s -> s.getAkcja() == Akcja.EVENT && s.getContent() instanceof AutoAkcja &&
-                        ((AutoAkcja) s.getContent()).getCaseId() == caseId).findFirst().orElse(null);
-        if (sch == null) {
-            sch = scheduleDao.createNew(inst2.toEpochMilli(), issuerId, Akcja.EVENT, new AutoAkcja(caseId,
-                    Objects.requireNonNull(opposite(type)), guildId));
-        }
-        sch.setData(inst2.toEpochMilli());
-        scheduleDao.save(sch);
-    }
 
-    private Kara opposite(Kara type) {
-        switch (type) {
-            case BAN:
-                return Kara.UNBAN;
-            case MUTE: return Kara.UNMUTE;
-            case WARN: return Kara.UNWARN;
-            default: return null;
+        public Builder(Guild guild, User user, TemporalAccessor timestamp, Kara type) {
+            this(guild.getIdLong(), user.getIdLong(), timestamp, type);
+        }
+
+        public Builder(long guildId, long userId, TemporalAccessor timestamp, Kara type) {
+            aCase = new Case(null, guildId, userId, -1, timestamp, type);
+        }
+        
+        public Builder setValidTo(TemporalAccessor validTo) {
+            aCase.setValidTo(validTo);
+            return this;
+        }
+        
+        public Builder setMessageId(Long messageId) {
+            aCase.setMessageId(messageId);
+            return this;
+        }
+        
+        public Builder setDmMsgId(Long dmMsgId) {
+            aCase.setDmMsgId(dmMsgId);
+            return this;
+        }
+
+        public Builder setIssuerId(Long issuerId) {
+            aCase.setIssuerId(issuerId);
+            return this;
+        }
+
+        public Builder setReason(String reason, boolean escape) {
+            if (escape && reason != null && reason.startsWith("translate:")) reason = "\\" + reason;
+            aCase.setReason(reason);
+            return this;
+        }
+
+        public Builder setReasonKey(String key) {
+            return setReason("translate:" + key, false);
+        }
+
+        public Builder setReasonKey(String key, String... args) {
+            return setReason("translate:" + key + ":" +
+                    Arrays.stream(args).map(a -> Base64.getEncoder().encodeToString(a.getBytes(StandardCharsets.UTF_8)))
+                            .collect(Collectors.joining(";")), false);
+        }
+
+        public Builder setIleRazy(Integer ileRazy) {
+            aCase.setIleRazy(ileRazy);
+            return this;
+        }
+
+        public Builder setFlags(Flaga... flags) {
+            aCase.getFlagi().clear();
+            aCase.getFlagi().addAll(Arrays.asList(flags));
+            return this;
+        }
+
+        public Builder addFlags(Flaga... flags) {
+            aCase.getFlagi().addAll(Arrays.asList(flags));
+            return this;
+        }
+
+        public Builder setDowody(Dowod... dowod) {
+            aCase.getDowody().clear();
+            aCase.getDowody().addAll(Arrays.asList(dowod));
+            return this;
+        }
+
+        public Builder addDowod(Dowod... dowod) {
+            aCase.getDowody().addAll(Arrays.asList(dowod));
+            return this;
+        }
+
+        public Case build() {
+            return aCase;
         }
     }
 
@@ -172,7 +207,7 @@ public class Case {
 
         Flaga(int offset, char shortName, String[] longNames) {
             this.offset = offset;
-            this.raw = 1 << offset;
+            this.raw = 1L << offset;
             this.shortName = shortName;
             this.longNames = longNames == null ? new String[0] : longNames;
         }

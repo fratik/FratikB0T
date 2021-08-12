@@ -31,7 +31,6 @@ import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.util.DurationUtil;
 import pl.fratik.core.util.UserUtil;
 import pl.fratik.moderation.entity.Case;
-import pl.fratik.moderation.entity.CaseBuilder;
 import pl.fratik.moderation.listeners.ModLogListener;
 import pl.fratik.moderation.utils.ReasonUtils;
 
@@ -42,9 +41,11 @@ import java.util.stream.Collectors;
 public class MuteCommand extends ModerationCommand {
 
     private final GuildDao guildDao;
+    private final ModLogListener modLogListener;
 
-    public MuteCommand(GuildDao guildDao) {
+    public MuteCommand(GuildDao guildDao, ModLogListener modLogListener) {
         this.guildDao = guildDao;
+        this.modLogListener = modLogListener;
         name = "mute";
         uzycieDelim = " ";
         permissions.add(Permission.MANAGE_ROLES);
@@ -112,21 +113,15 @@ public class MuteCommand extends ModerationCommand {
         }
         powod = durationResp.getTekst();
         muteDo = durationResp.getDoKiedy();
-        Case aCase = new CaseBuilder().setUser(uzytkownik.getUser()).setGuild(context.getGuild())
-                .setCaseId(Case.getNextCaseId(context.getGuild())).setTimestamp(Instant.now()).setMessageId(null)
-                .setKara(Kara.MUTE).createCase();
-        aCase.setIssuerId(context.getSender());
+        Case aCase = new Case.Builder(uzytkownik, Instant.now(), Kara.MUTE)
+                .setIssuerId(context.getSender().getIdLong()).build();
         ReasonUtils.parseFlags(aCase, powod);
         aCase.setValidTo(muteDo);
-        List<Case> caseList = ModLogListener.getKnownCases().getOrDefault(context.getGuild(), new ArrayList<>());
-        caseList.add(aCase);
-        ModLogListener.getKnownCases().put(context.getGuild(), caseList);
+        modLogListener.getKnownCases().put(ModLogListener.generateKey(uzytkownik), aCase);
         try {
             context.getGuild().addRoleToMember(uzytkownik, rola).complete();
             context.reply(context.getTranslated("mute.success", UserUtil.formatDiscrim(uzytkownik)));
         } catch (Exception ignored) {
-            caseList.remove(aCase);
-            ModLogListener.getKnownCases().put(context.getGuild(), caseList);
             context.reply(context.getTranslated("mute.fail"));
         }
         return true;
@@ -169,7 +164,8 @@ public class MuteCommand extends ModerationCommand {
             }
             guildDao.save(gc);
             return rola;
-        } catch (Exception ignored1) {
+        } catch (Exception ex) {
+            if (ex instanceof InterruptedException) Thread.currentThread().interrupt();
             msg.editMessage(context.getTranslated("mute.no.mute.role.cant.create")).queue();
             return null;
         }

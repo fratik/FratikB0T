@@ -31,7 +31,7 @@ import java.util.List;
 @AllArgsConstructor
 public class Dowod {
     private final long id;
-    private final String attachedBy;
+    private final long attachedBy;
     private final String content;
 
     public static long getNextId(List<Dowod> dowody) {

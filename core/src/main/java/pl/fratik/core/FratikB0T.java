@@ -290,6 +290,8 @@ class FratikB0T {
 
                 if (shardManager.getGuildById(Ustawienia.instance.botGuild) != null) Globals.inFratikDev = true;
 
+                glownyService.awaitHealthy();
+
                 shardManager.setStatus(OnlineStatus.ONLINE);
                 shardManager.setActivity(Activity.playing("Dzień doberek! | v" + WERSJA));
                 statusService.startAsync();

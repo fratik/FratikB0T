@@ -190,6 +190,10 @@ public class GuildConfig implements DatabaseEntity {
         return wyplaty;
     }
 
+    public boolean isWysylajDmOKickachLubBanach() {
+        return wysylajDmOKickachLubBanach == null || wysylajDmOKickachLubBanach;
+    }
+
     @Transient
     @JsonIgnore
     @Override

@@ -23,21 +23,24 @@ import net.dv8tion.jda.api.exceptions.HierarchyException;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.command.CommandContext;
-import pl.fratik.moderation.entity.Case;
 import pl.fratik.core.entity.Kara;
 import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.util.UserUtil;
+import pl.fratik.moderation.entity.Case;
 import pl.fratik.moderation.listeners.ModLogListener;
-import pl.fratik.moderation.entity.CaseBuilder;
 import pl.fratik.moderation.utils.ReasonUtils;
 
 import java.time.Instant;
-import java.util.*;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class KickCommand extends ModerationCommand {
+    private final ModLogListener modLogListener;
 
-    public KickCommand() {
+    public KickCommand(ModLogListener modLogListener) {
+        this.modLogListener = modLogListener;
         name = "kick";
         category = CommandCategory.MODERATION;
         uzycieDelim = " ";
@@ -74,24 +77,16 @@ public class KickCommand extends ModerationCommand {
             context.reply(context.getTranslated("kick.bot.cant.interact"));
             return false;
         }
-        Case aCase = new CaseBuilder().setUser(uzytkownik.getUser()).setGuild(context.getGuild())
-                .setCaseId(Case.getNextCaseId(context.getGuild())).setTimestamp(Instant.now()).setMessageId(null)
-                .setKara(Kara.KICK).createCase();
-        aCase.setIssuerId(context.getSender());
+        Case aCase = new Case.Builder(uzytkownik, Instant.now(), Kara.KICK)
+                .setIssuerId(context.getSender().getIdLong()).build();
         ReasonUtils.parseFlags(aCase, powod);
-        List<Case> caseList = ModLogListener.getKnownCases().getOrDefault(context.getGuild(), new ArrayList<>());
-        caseList.add(aCase);
-        ModLogListener.getKnownCases().put(context.getGuild(), caseList);
+        modLogListener.getKnownCases().put(ModLogListener.generateKey(uzytkownik), aCase);
         try {
-            context.getGuild().kick(uzytkownik).reason(aCase.getReason()).complete();
+            context.getGuild().kick(uzytkownik).reason(aCase.getReason(context)).complete();
             context.reply(context.getTranslated("kick.success", UserUtil.formatDiscrim(uzytkownik)));
         } catch (HierarchyException e) {
-            caseList.remove(aCase);
-            ModLogListener.getKnownCases().put(context.getGuild(), caseList);
             context.reply(context.getTranslated("kick.failed.hierarchy"));
         } catch (Exception e) {
-            caseList.remove(aCase);
-            ModLogListener.getKnownCases().put(context.getGuild(), caseList);
             context.reply(context.getTranslated("kick.failed"));
         }
         return true;

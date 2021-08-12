@@ -15,21 +15,26 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package pl.fratik.moderation.entity;
+package pl.fratik.moderation.events;
 
 import lombok.AllArgsConstructor;
-import lombok.Data;
 import lombok.EqualsAndHashCode;
-import pl.fratik.core.entity.Kara;
-import pl.fratik.core.entity.ScheduleContent;
+import lombok.Getter;
+import lombok.ToString;
+import pl.fratik.moderation.entity.Case;
 
 @AllArgsConstructor
-@Data
-@EqualsAndHashCode(callSuper = true)
-public class AutoAkcja extends ScheduleContent {
-    private final long caseId;
-    private final Kara akcjaDoWykonania;
-    private final String guildId;
+@ToString
+@EqualsAndHashCode
+public class UpdateCaseEvent implements CaseEvent {
+    private final Case aCase;
+    /**
+     * {@code true} oznacza, że zmieniły się tylko wewnętrzne wartości (np. ID wiadomości)
+     */
+    @Getter private final boolean internalChange;
+
+    @Override
+    public Case getCase() {
+        return aCase;
+    }
 }
-
-
