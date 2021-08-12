@@ -182,7 +182,6 @@ public class ModLogListener {
                 lastCase = aCase;
             }
         }
-        if (lastCase == null) return;
         Case unbanCase = knownCases.get(key);
         if (unbanCase == null) {
             TemporalAccessor timestamp = Instant.now();
@@ -200,8 +199,10 @@ public class ModLogListener {
             }
             unbanCase = new Case.Builder(guild, user, timestamp, Kara.UNBAN).setIssuerId(issuerId).setReason(reason, true).build();
         }
-        lastCase.setValid(false);
-        lastCase.setValidTo(unbanCase.getValidTo());
+        if (lastCase != null) {
+            lastCase.setValid(false);
+            lastCase.setValidTo(unbanCase.getValidTo());
+        }
         saveCase(lastCase, unbanCase, false);
     }
 
