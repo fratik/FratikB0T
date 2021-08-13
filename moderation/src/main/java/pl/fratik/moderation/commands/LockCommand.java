@@ -37,6 +37,7 @@ public class LockCommand extends ModerationCommand {
     private final ManagerKomend managerKomend;
 
     public LockCommand(GuildDao guildDao, ManagerKomend managerKomend) {
+        super(false);
         this.guildDao = guildDao;
         this.managerKomend = managerKomend;
         name = "lock";

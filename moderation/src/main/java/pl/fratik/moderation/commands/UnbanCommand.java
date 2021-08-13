@@ -41,6 +41,7 @@ public class UnbanCommand extends ModerationCommand {
     private final ModLogListener modLogListener;
 
     public UnbanCommand(ModLogListener modLogListener) {
+        super(true);
         this.modLogListener = modLogListener;
         name = "unban";
         category = CommandCategory.MODERATION;

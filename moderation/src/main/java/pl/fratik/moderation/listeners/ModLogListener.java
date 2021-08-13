@@ -97,15 +97,15 @@ public class ModLogListener {
         return uid + gid;
     }
 
-    public boolean checkPermissions(GenericGuildEvent e) {
+    public static boolean checkPermissions(GenericGuildEvent e) {
         return checkPermissions(e.getGuild());
     }
 
-    public boolean checkPermissions(GenericRoleEvent e) {
+    public static boolean checkPermissions(GenericRoleEvent e) {
         return checkPermissions(e.getGuild());
     }
 
-    public boolean checkPermissions(Guild g) {
+    public static boolean checkPermissions(Guild g) {
         return g.getSelfMember().hasPermission(Permission.VIEW_AUDIT_LOGS, Permission.MANAGE_ROLES,
                 Permission.BAN_MEMBERS, Permission.KICK_MEMBERS, Permission.MANAGE_SERVER);
     }

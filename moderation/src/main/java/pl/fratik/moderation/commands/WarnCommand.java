@@ -43,6 +43,7 @@ public class WarnCommand extends ModerationCommand {
     private final CaseDao caseDao;
 
     public WarnCommand(CaseDao caseDao) {
+        super(true);
         this.caseDao = caseDao;
         name = "warn";
         category = CommandCategory.MODERATION;

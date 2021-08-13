@@ -47,6 +47,7 @@ public class BanCommand extends ModerationCommand {
     private final ScheduleDao scheduleDao;
 
     public BanCommand(ModLogListener modLogListener, ScheduleDao scheduleDao) {
+        super(true);
         this.modLogListener = modLogListener;
         this.scheduleDao = scheduleDao;
         name = "ban";

@@ -29,6 +29,7 @@ import java.util.ArrayList;
 public class RolesCommand extends ModerationCommand {
 
     public RolesCommand() {
+        super(false);
         name = "roles";
         category = CommandCategory.MODERATION;
         aliases = new String[] {"listarol", "listarang"};

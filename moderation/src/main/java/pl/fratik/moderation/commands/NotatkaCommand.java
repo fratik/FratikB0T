@@ -39,6 +39,7 @@ public class NotatkaCommand extends ModerationCommand {
     private final CaseDao caseDao;
 
     public NotatkaCommand(CaseDao casesDao) {
+        super(true);
         this.caseDao = casesDao;
         name = "notatka";
         category = CommandCategory.MODERATION;

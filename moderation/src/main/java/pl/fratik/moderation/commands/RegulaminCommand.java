@@ -34,6 +34,7 @@ import java.util.regex.Pattern;
 public class RegulaminCommand extends ModerationCommand {
 
     public RegulaminCommand() {
+        super(false);
         name = "regulamin";
         category = CommandCategory.MODERATION;
         uzycie = new Uzycie("zasada", "integer", true);

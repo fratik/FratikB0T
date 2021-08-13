@@ -37,6 +37,7 @@ public class RolaCommand extends ModerationCommand {
     private final GuildDao guildDao;
 
     public RolaCommand(GuildDao guildDao) {
+        super(false);
         this.guildDao = guildDao;
         name = "rola";
         category = CommandCategory.MODERATION;

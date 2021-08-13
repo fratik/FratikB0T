@@ -19,9 +19,16 @@ package pl.fratik.moderation.commands;
 
 import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandCategory;
+import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.command.PermLevel;
+import pl.fratik.moderation.listeners.ModLogListener;
 
 abstract class ModerationCommand extends Command {
+    protected final boolean needsPerms;
+
+    protected ModerationCommand(boolean needsPerms) {
+        this.needsPerms = needsPerms;
+    }
 
     @Override
     public CommandCategory getCategory() {
@@ -41,5 +48,15 @@ abstract class ModerationCommand extends Command {
     @Override
     public boolean isAllowPermLevelEveryone() {
         return false;
+    }
+
+    @Override
+    public boolean preExecute(CommandContext context) {
+        if (!context.isDirect() && !context.getTextChannel().canTalk()) return false;
+        if (needsPerms && !ModLogListener.checkPermissions(context.getGuild())) {
+            context.reply(context.getTranslated("moderation.bot.no.permissions"));
+            return false;
+        }
+        return super.preExecute(context);
     }
 }

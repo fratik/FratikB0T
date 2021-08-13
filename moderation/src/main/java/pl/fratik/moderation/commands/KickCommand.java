@@ -40,6 +40,7 @@ public class KickCommand extends ModerationCommand {
     private final ModLogListener modLogListener;
 
     public KickCommand(ModLogListener modLogListener) {
+        super(true);
         this.modLogListener = modLogListener;
         name = "kick";
         category = CommandCategory.MODERATION;

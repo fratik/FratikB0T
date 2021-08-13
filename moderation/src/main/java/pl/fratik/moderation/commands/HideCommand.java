@@ -37,6 +37,7 @@ public class HideCommand extends ModerationCommand {
     private final ManagerKomend managerKomend;
 
     public HideCommand(GuildDao guildDao, ManagerKomend managerKomend) {
+        super(false);
         this.guildDao = guildDao;
         this.managerKomend = managerKomend;
         name = "hide";

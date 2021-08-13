@@ -38,6 +38,7 @@ public class ReasonCommand extends ModerationCommand {
     private final CaseDao caseDao;
 
     public ReasonCommand(ScheduleDao scheduleDao, CaseDao caseDao) {
+        super(true);
         this.scheduleDao = scheduleDao;
         this.caseDao = caseDao;
         name = "reason";

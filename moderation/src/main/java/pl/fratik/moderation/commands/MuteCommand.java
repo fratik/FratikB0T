@@ -44,6 +44,7 @@ public class MuteCommand extends ModerationCommand {
     private final ModLogListener modLogListener;
 
     public MuteCommand(GuildDao guildDao, ModLogListener modLogListener) {
+        super(true);
         this.guildDao = guildDao;
         this.modLogListener = modLogListener;
         name = "mute";

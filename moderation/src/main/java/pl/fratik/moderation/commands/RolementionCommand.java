@@ -34,6 +34,7 @@ import java.util.stream.Collectors;
 
 public class RolementionCommand extends ModerationCommand {
     public RolementionCommand() {
+        super(false);
         name = "rolemention";
         permLevel = PermLevel.ADMIN;
         cooldown = 10;

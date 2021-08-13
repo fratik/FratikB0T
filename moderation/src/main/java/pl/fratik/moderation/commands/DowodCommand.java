@@ -57,6 +57,7 @@ public class DowodCommand extends ModerationCommand {
                         ManagerKomend managerKomend,
                         EventWaiter eventWaiter,
                         EventBus eventBus) {
+        super(true);
         this.guildDao = guildDao;
         this.caseDao = caseDao;
         this.managerKomend = managerKomend;

@@ -39,6 +39,7 @@ public class ZglosCommand extends ModerationCommand {
     private final GuildDao guildDao;
 
     public ZglosCommand(GuildDao guildDao) {
+        super(false);
         this.guildDao = guildDao;
         name = "zglos";
         permLevel = PermLevel.EVERYONE;

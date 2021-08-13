@@ -44,6 +44,7 @@ public class UnmuteCommand extends ModerationCommand {
     private final ModLogListener modLogListener;
 
     public UnmuteCommand(GuildDao guildDao, ModLogListener modLogListener) {
+        super(true);
         this.guildDao = guildDao;
         this.modLogListener = modLogListener;
         name = "unmute";

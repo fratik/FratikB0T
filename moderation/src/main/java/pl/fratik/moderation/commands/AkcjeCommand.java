@@ -59,6 +59,7 @@ public class AkcjeCommand extends ModerationCommand {
     private final GuildDao guildDao;
 
     public AkcjeCommand(CaseDao caseDao, ShardManager shardManager, EventWaiter eventWaiter, EventBus eventBus, ManagerKomend managerKomend, GuildDao guildDao) {
+        super(true);
         this.caseDao = caseDao;
         this.shardManager = shardManager;
         this.eventWaiter = eventWaiter;

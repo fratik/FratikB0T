@@ -40,6 +40,7 @@ public class UnwarnCommand extends ModerationCommand {
     private final CaseDao caseDao;
 
     public UnwarnCommand(CaseDao caseDao) {
+        super(true);
         this.caseDao = caseDao;
         name = "unwarn";
         category = CommandCategory.MODERATION;

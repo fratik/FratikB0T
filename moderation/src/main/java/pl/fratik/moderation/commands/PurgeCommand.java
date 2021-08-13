@@ -43,6 +43,7 @@ public class PurgeCommand extends ModerationCommand { //TODO: 1000 wiadomosci dl
     @Getter private static HashMap<String, String> znanePurge = new HashMap<>();
 
     public PurgeCommand(LogListener logListener) {
+        super(false);
         this.logListener = logListener;
         name = "purge";
         category = CommandCategory.MODERATION;
