@@ -100,7 +100,7 @@ public class PrzeklenstwaListener {
             if (res) {
                 Case c = new Case.Builder(e.getMember(), Instant.now(), Kara.WARN).setIssuerId(Globals.clientId)
                         .setReasonKey("antiswear.reason").build();
-                caseDao.createNew(null, c, false);
+                caseDao.createNew(null, c, false, e.getTextChannel(), tlumaczenia.getLanguage(e.getMember()));
                 MessageAction m = e.getChannel().sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(e.getMember()),
                         "antiswear.notice", e.getAuthor().getAsMention(),
                         WarnUtil.countCases(caseDao.getCasesByMember(e.getMember()), e.getAuthor().getId()),

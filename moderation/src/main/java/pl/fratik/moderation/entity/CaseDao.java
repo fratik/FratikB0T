@@ -38,6 +38,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -52,7 +53,7 @@ public class CaseDao implements Dao<Case> {
     private final EventBus eventBus;
     private final PgStore pgStore;
     private final PgMapper<Case> mapper;
-    private final Map<String, ReentrantLock> locks = new HashMap<>();
+    private final Map<String, ReentrantLock> locks = Collections.synchronizedMap(new HashMap<>());
 
     public CaseDao(ManagerBazyDanych managerBazyDanych, EventBus eventBus) {
         if (managerBazyDanych == null) throw new IllegalStateException("managerBazyDanych == null");
@@ -132,14 +133,11 @@ public class CaseDao implements Dao<Case> {
                 con.setAutoCommit(false);
                 try {
                     if (toModify != null) {
-                        lock(toModify);
                         try (PreparedStatement c = con.prepareStatement("UPDATE " + aCase.getTableName() +
                                 " SET data = to_jsonb(?::jsonb) WHERE id = ?;")) {
                             c.setString(1, OBJECT_MAPPER.writeValueAsString(toModify));
                             c.setObject(2, toModify.getId());
                             c.execute();
-                        } finally {
-                            unlock(toModify);
                         }
                     }
                     long caseId = getNextCaseId(aCase.getGuildId(), con);
@@ -217,14 +215,18 @@ public class CaseDao implements Dao<Case> {
     }
 
     private void unlock(String id) {
-        ReentrantLock lock = locks.get(id);
-        if (lock == null) return;
-        lock.unlock();
-        if (lock.getHoldCount() == 0) locks.remove(id);
+        synchronized (locks) {
+            ReentrantLock lock = locks.get(id);
+            if (lock == null) return;
+            lock.unlock();
+            if (lock.getHoldCount() == 0) locks.remove(id);
+        }
     }
 
     private ReentrantLock getLock(String id) {
-        return locks.computeIfAbsent(id, i -> new ReentrantLock());
+        synchronized (locks) {
+            return locks.computeIfAbsent(id, i -> new ReentrantLock());
+        }
     }
 
     @Override

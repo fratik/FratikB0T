@@ -158,7 +158,7 @@ public class LinkListener {
         }
         Case c = new Case.Builder(e.getMember(), Instant.now(), Kara.WARN).setIssuerId(Globals.clientId)
                 .setReasonKey("antilink.reason").build();
-        caseDao.createNew(null, c, false);
+        caseDao.createNew(null, c, false, e.getTextChannel(), tlumaczenia.getLanguage(e.getMember()));
         e.getChannel().sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(e.getMember()),
                 "antilink.notice", e.getAuthor().getAsMention(),
                 WarnUtil.countCases(caseDao.getCasesByMember(e.getMember()), e.getAuthor().getId()),

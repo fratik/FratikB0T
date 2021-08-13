@@ -328,7 +328,7 @@ public class ModLogListener {
                     Long.toUnsignedString(aCase.getIssuerId()), Akcja.EVENT, new AutoAkcja(aCase.getCaseNumber(),
                             aCase.getType().opposite(), Long.toUnsignedString(aCase.getGuildId()))));
         }
-        if (e.getCase().getType() == Kara.WARN || e.getCase().getType() == Kara.UNWARN)
+        if (e.getCase().getType() == Kara.WARN)
             WarnUtil.takeAction(this, guildDao, caseDao, g.retrieveMember(user).complete(), e.getChannel(),
                     e.getLanguage(), tlumaczenia, managerKomend);
     }
