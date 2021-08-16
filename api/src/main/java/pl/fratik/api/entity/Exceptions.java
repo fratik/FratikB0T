@@ -26,6 +26,7 @@ public abstract class Exceptions {
         UNAUTHORIZED(401),              // Nie zalogowany
         FORBIDDEN(403),                 // Brak dostępu
         UNKNOWN_ERROR(500),             // Nieznany błąd
+        NO_BODY(1016),                  // Brak ,,body'' w requeście
 
         NO_PARAM(1002),                 // Brakuje parametru(-ow) w requescie
         NOT_IN_FDEV(1003),              // Bot nie na fdevie

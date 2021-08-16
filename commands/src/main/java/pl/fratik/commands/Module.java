@@ -25,6 +25,7 @@ import pl.fratik.commands.entity.PrivDao;
 import pl.fratik.commands.images.*;
 import pl.fratik.commands.narzedzia.*;
 import pl.fratik.commands.system.*;
+import pl.fratik.commands.util.CustomEmbedManager;
 import pl.fratik.commands.zabawa.*;
 import pl.fratik.core.Ustawienia;
 import pl.fratik.core.cache.RedisCacheManager;
@@ -155,6 +156,11 @@ public class Module implements Modul {
         commands.add(new ShipCommand());
 //        commands.add(new AdministratorzyCommand(guildDao, redisCacheManager));
         commands.add(new SasinCommand());
+
+        if (managerModulow.getModules().get("api") != null) {
+            CustomEmbedManager cem = new CustomEmbedManager(redisCacheManager, managerModulow.getModules().get("api"));
+            commands.add(new EmbedCommand(cem, webhookManager));
+        }
 
         listener = new MemberListener(guildDao, eventBus, redisCacheManager);
         eventBus.register(listener);
