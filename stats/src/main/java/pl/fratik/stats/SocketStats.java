@@ -17,97 +17,114 @@
 
 package pl.fratik.stats;
 
-import io.socket.client.Ack;
-import io.socket.emitter.Emitter;
-import net.dv8tion.jda.api.JDA;
+import com.google.common.eventbus.Subscribe;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.events.channel.text.TextChannelCreateEvent;
+import net.dv8tion.jda.api.events.channel.text.TextChannelDeleteEvent;
+import net.dv8tion.jda.api.events.channel.voice.VoiceChannelCreateEvent;
+import net.dv8tion.jda.api.events.channel.voice.VoiceChannelDeleteEvent;
+import net.dv8tion.jda.api.events.guild.GuildJoinEvent;
+import net.dv8tion.jda.api.events.guild.GuildLeaveEvent;
+import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
+import net.dv8tion.jda.api.events.guild.member.GuildMemberRemoveEvent;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import pl.fratik.api.SocketAdapter;
-import pl.fratik.api.SocketEvent;
-import pl.fratik.core.Statyczne;
+import pl.fratik.api.SocketManager;
 import pl.fratik.core.cache.Cache;
 import pl.fratik.core.cache.RedisCacheManager;
-import pl.fratik.core.util.CommonUtil;
-import pl.fratik.core.util.GsonUtil;
+import pl.fratik.core.event.CommandDispatchEvent;
+import pl.fratik.core.util.NamedThreadFactory;
 import pl.fratik.stats.entity.CommandCountStats;
 import pl.fratik.stats.entity.GuildCountStats;
 
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Comparator;
+import java.math.RoundingMode;
+import java.util.HashSet;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import static pl.fratik.core.util.CommonUtil.round;
 
 public class SocketStats implements SocketAdapter {
     private final Module stats;
+    private final GuildStats guildStats;
     private final ShardManager shardManager;
     private final Cache<List<GuildCountStats>> cacheGuilds;
     private final Cache<List<CommandCountStats>> cacheCommands;
+    private final Set<SocketManager.Connection> subscribedConnections = new HashSet<>();
+    private final ScheduledExecutorService executor;
 
-    public SocketStats(Module stats, ShardManager shardManager, RedisCacheManager rcm) {
+    public SocketStats(Module stats, GuildStats guildStats, ShardManager shardManager, RedisCacheManager rcm) {
         this.stats = stats;
+        this.guildStats = guildStats;
         this.shardManager = shardManager;
         cacheGuilds = rcm.new CacheRetriever<List<GuildCountStats>>(){}.getCache();
         cacheCommands = rcm.new CacheRetriever<List<CommandCountStats>>(){}.getCache();
+        executor = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("SocketStats"));
+        executor.scheduleAtFixedRate(() -> {
+            long free = Runtime.getRuntime().freeMemory();
+            long total = Runtime.getRuntime().totalMemory();
+            updateSocketStats("memoryUsage", round((double) (total - free) / 1024 / 1024, 2, RoundingMode.HALF_UP));
+        }, 15, 15, TimeUnit.SECONDS);
     }
 
-    @SocketEvent
-    public void retrieveStats(Emitter.Listener e, Ack ack) {
-        int guilds = shardManager.getGuilds().size();
-        int members = shardManager.getGuilds().stream().map(Guild::getMemberCount).reduce(Integer::sum)
-                .orElse(0);
-        int textChannels = shardManager.getTextChannels().size();
-        int voiceChannels = shardManager.getVoiceChannels().size();
-        List<GuildCountStats> tmpGcs;
-        List<CommandCountStats> tmpCcs;
-        JDA szard = shardManager.getShardById(0);
-        if (szard == null) throw new IllegalStateException("bot nie załadowany poprawnie");
-        List<GuildCountStats> kesz = cacheGuilds.getIfPresent(szard.getSelfUser().getId());
-        List<CommandCountStats> kesz2 = cacheCommands.getIfPresent(szard.getSelfUser().getId());
-        if (kesz != null) {
-            tmpGcs = new ArrayList<>();
-            kesz.sort(Comparator.comparingLong(GuildCountStats::getDate).reversed());
-            for (int i = 0; i < kesz.size(); i++) {
-                tmpGcs.add(kesz.get(i));
-                if (i == 29) break;
-            }
-        } else {
-            tmpGcs = stats.getGuildCountStatsDao().getAll();
-            cacheGuilds.put(szard.getSelfUser().getId(), tmpGcs);
-        }
-        if (kesz2 != null) {
-            tmpCcs = kesz2;
-        } else {
-            tmpCcs = stats.getCommandCountStatsDao().getAll();
-            cacheCommands.put(szard.getSelfUser().getId(), tmpCcs);
-        }
-        List<GuildStats.Wrappers.GuildCountWrapper> gcs = tmpGcs.stream().map(GuildStats.Wrappers.GuildCountWrapper::new)
-                .sorted(Comparator.comparingLong(GuildStats.Wrappers.GuildCountWrapper::getDate).reversed()).peek(o -> {
-                    if (o.getDate() == stats.getCurrentStorageDate()) o.setCount(shardManager.getGuilds().size());
-                }).collect(Collectors.toList());
-        List<GuildStats.Wrappers.CommandStatsWrapper> ccs = tmpCcs.stream().map(GuildStats.Wrappers.CommandStatsWrapper::new)
-                .sorted(Comparator.comparingLong(GuildStats.Wrappers.CommandStatsWrapper::getDate).reversed()).peek(cecees -> {
-                    if (cecees.getDate() == stats.getCurrentStorageDate())
-                        cecees.setCount(cecees.getCount() + stats.getKomend());
-                }).collect(Collectors.toList());
-        int guildsSummmary = 0;
-        int commandsSummary = 0;
-        int lastGuildCount = 0;
-        for (int i = 0; i < gcs.size(); i++) {
-            if (i > 0) {
-                guildsSummmary += lastGuildCount - gcs.get(i).getCount();
-            }
-            lastGuildCount = gcs.get(i).getCount();
-            commandsSummary += CommonUtil.supressException(ccs::get, i) == null ? 0 : ccs.get(i).getCount();
-            if (i == 29) break;
-        }
-        GuildStats.Wrappers.Stats srats = new GuildStats.Wrappers.Stats(guilds, (double) guildsSummmary / Math.min(gcs.size(), 30), ccs.get(0).getCount(),
-                commandsSummary, (double) commandsSummary / Math.min(ccs.size(), 30), members,
-                textChannels, voiceChannels,
-                Instant.now().toEpochMilli() - (Statyczne.startDate.toInstant().getEpochSecond() * 1000));
+    private void updateSocketStats(String changedField, Object content) {
+        Set<SocketManager.Connection> cons = new HashSet<>(subscribedConnections);
+        for (SocketManager.Connection con : cons)
+            con.sendMessage(getChannelName(), changedField, content);
+    }
 
-        srats.getGuilds().addAll(gcs);
-        srats.getCommands().addAll(ccs);
-        ack.call(GsonUtil.toJSON(srats));
+    @Override
+    public void subscribe(SocketManager.Connection connection) {
+        subscribedConnections.add(connection);
+    }
+
+    @Override
+    public void unsubscribe(SocketManager.Connection connection) {
+        subscribedConnections.remove(connection);
+    }
+
+    private void updateGuildCount() {
+        updateSocketStats("servers", shardManager.getGuilds().size());
+        //todo średnia
+    }
+
+    private void updateTextCount() {
+        updateSocketStats("text", shardManager.getTextChannels().size());
+    }
+
+    private void updateVoiceCount() {
+        updateSocketStats("voice", shardManager.getVoiceChannels().size());
+    }
+
+    private void updateCommandCount() {
+        //todo
+    }
+
+    private void updateMemberCount() {
+        updateSocketStats("members",
+                shardManager.getGuilds().stream().map(Guild::getMemberCount).reduce(Integer::sum).orElse(0));
+    }
+
+    @Subscribe public void onNewGuild(GuildJoinEvent e) { updateGuildCount(); }
+    @Subscribe public void onLeftGuild(GuildLeaveEvent e) { updateGuildCount(); }
+    @Subscribe public void onChannelCreate(TextChannelCreateEvent e) { updateTextCount(); }
+    @Subscribe public void onChannelDelete(TextChannelDeleteEvent e) { updateTextCount(); }
+    @Subscribe public void onChannelCreate(VoiceChannelCreateEvent e) { updateVoiceCount(); }
+    @Subscribe public void onChannelDelete(VoiceChannelDeleteEvent e) { updateVoiceCount(); }
+    @Subscribe public void onCommand(CommandDispatchEvent e) { updateCommandCount(); }
+    @Subscribe public void onMemberJoin(GuildMemberJoinEvent e) { updateMemberCount(); }
+    @Subscribe public void onMemberLeave(GuildMemberRemoveEvent e) { updateMemberCount(); }
+
+    @Override
+    public String getChannelName() {
+        return "stats";
+    }
+
+    @Override
+    protected void finalize() throws Throwable {
+        executor.shutdown();
     }
 }

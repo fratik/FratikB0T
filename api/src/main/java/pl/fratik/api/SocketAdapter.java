@@ -17,5 +17,24 @@
 
 package pl.fratik.api;
 
+import lombok.Getter;
+import pl.fratik.api.entity.Exceptions;
+
 public interface SocketAdapter {
+    String getChannelName();
+    default void subscribe(SocketManager.Connection connection) throws RegisterException {}
+    default void unsubscribe(SocketManager.Connection connection) {}
+
+    @Getter
+    class RegisterException extends Exception {
+        private final Exceptions.Codes exceptionCode;
+
+        public RegisterException() {
+            this(null);
+        }
+
+        public RegisterException(Exceptions.Codes exceptionCode) {
+            this.exceptionCode = exceptionCode;
+        }
+    }
 }

@@ -57,9 +57,11 @@ public class Ustawienia {
     public String popRole = "423855296415268865";
     public String zglosPrivChannel = "423759965048668160";
     public String botGuildInvite = "";
-    public String host = "127.0.0.1";
     public String botUrl = "https://fratikbot.pl";
+    public String host = "127.0.0.1";
     public int port = 8080;
+    public String wsHost = "127.0.0.1";
+    public int wsPort = 4000;
     public LogSettings logSettings = new LogSettings();
     public FdevStats fdevStats = new FdevStats();
     @SerializedName("allowedIPs")

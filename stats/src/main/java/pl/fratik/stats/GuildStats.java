@@ -17,6 +17,7 @@
 
 package pl.fratik.stats;
 
+import com.google.common.eventbus.EventBus;
 import io.undertow.server.RoutingHandler;
 import lombok.Data;
 import lombok.Getter;
@@ -51,6 +52,7 @@ public class GuildStats {
 
     private final Module stats;
     private final Modul api;
+    private final EventBus eventBus;
     private final ShardManager shardManager;
     private final Cache<List<MembersStats>> cacheMms;
     private final Cache<List<MessagesStats>> cacheMsgs;
@@ -58,9 +60,10 @@ public class GuildStats {
     private final Cache<List<CommandCountStats>> cacheCommands;
     private SocketStats adapter;
 
-    GuildStats(Module stats, Modul api, ShardManager shardManager, RedisCacheManager redisCacheManager) {
+    GuildStats(Module stats, Modul api, EventBus eventBus, ShardManager shardManager, RedisCacheManager redisCacheManager) {
         this.stats = stats;
         this.api = api;
+        this.eventBus = eventBus;
         this.shardManager = shardManager;
         cacheMms = redisCacheManager.new CacheRetriever<List<MembersStats>>(){}.getCache();
         cacheMsgs = redisCacheManager.new CacheRetriever<List<MessagesStats>>(){}.getCache();
@@ -70,8 +73,9 @@ public class GuildStats {
         try {
             routes = ((pl.fratik.api.Module) api).getRoutes();
             SocketManager socketManager = ((pl.fratik.api.Module) api).getSocketManager();
-            adapter = new SocketStats(stats, shardManager, redisCacheManager);
+            adapter = new SocketStats(stats, this, shardManager, redisCacheManager);
             socketManager.registerAdapter(adapter);
+            eventBus.register(adapter);
         } catch (Exception | NoClassDefFoundError e) {
             LoggerFactory.getLogger(GuildStats.class).error("Nie udało się doczepić do modułu api!", e);
             return;
@@ -208,6 +212,7 @@ public class GuildStats {
             try {
                 SocketManager socketManager = ((pl.fratik.api.Module) api).getSocketManager();
                 socketManager.unregisterAdapter(adapter);
+                eventBus.unregister(this);
             } catch (Exception | NoClassDefFoundError e) {
                 LoggerFactory.getLogger(GuildStats.class).error("Nie udało się odczepić od modułu api!", e);
             }

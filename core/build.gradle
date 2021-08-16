@@ -90,7 +90,6 @@ dependencies {
     api 'org.apache.xmlgraphics:batik-dom:1.14'
     api 'org.apache.xmlgraphics:batik-transcoder:1.14'
     api 'org.apache.xmlgraphics:batik-svgrasterizer:1.14'
-    api 'io.socket:socket.io-client:1.0.1'
     testImplementation group: 'junit', name: 'junit', version: '4.13.1'
 }
 
