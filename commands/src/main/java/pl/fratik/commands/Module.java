@@ -158,7 +158,7 @@ public class Module implements Modul {
         commands.add(new SasinCommand());
 
         if (managerModulow.getModules().get("api") != null) {
-            CustomEmbedManager cem = new CustomEmbedManager(redisCacheManager, managerModulow.getModules().get("api"));
+            CustomEmbedManager cem = new CustomEmbedManager(redisCacheManager, managerModulow.getModules().get("api"), shardManager);
             commands.add(new EmbedCommand(cem, webhookManager));
         }
 

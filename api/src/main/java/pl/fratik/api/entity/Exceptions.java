@@ -42,7 +42,7 @@ public abstract class Exceptions {
         NO_RUNDKA(1011),                // Nie ma żadnej aktywnej rundki
 
         INVALID_PURGE_ID(1012),         // Złe ID purga
-        PURGE_NO_REQUESTER_ID(1013),    // Brak Requester-ID dla prywatnego purge
+        NO_REQUESTER_ID(1013),          // Brak Requester-ID
 
         JOIN_BANNED(1014),              // Użytkownik jest zbanowany
         JOIN_ERROR(1015);               // Błąd przy dołączaniu

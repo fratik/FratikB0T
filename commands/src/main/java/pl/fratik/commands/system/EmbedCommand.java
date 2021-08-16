@@ -44,7 +44,7 @@ public class EmbedCommand extends Command {
 
     @Override
     public boolean execute(CommandContext context) {
-        if (context.getArgs().length == 0) {
+        if (context.getArgs().length == 0 || context.getArgs()[0] == null) {
             context.send(context.getTranslated("embed.info", Ustawienia.instance.botUrl));
             return false;
         }
@@ -53,8 +53,13 @@ public class EmbedCommand extends Command {
             context.send(context.getTranslated("embed.notfound"));
             return false;
         }
-//        webhookManager.send(WebhookEmbedBuilder.fromJDA(eb.build()).build(), context.getTextChannel(), context.getMember());
-        //FIXME z rebase: nie uzywac tu webhook managera, normalnie odpowiedziec w systemie slashow
+        try {
+//            webhookManager.send(WebhookEmbedBuilder.fromJDA(eb.build()).build(), context.getTextChannel(), context.getMember());
+            //FIXME z rebase: nie uzywac tu webhook managera, normalnie odpowiedziec w systemie slashow
+        } catch (Exception e) {
+            context.send(context.getTranslated("embed.error", e.getMessage()));
+            return false;
+        }
         return true;
     }
 
