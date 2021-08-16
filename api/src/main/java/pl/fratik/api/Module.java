@@ -35,8 +35,6 @@ import io.undertow.server.RoutingHandler;
 import io.undertow.server.handlers.BlockingHandler;
 import io.undertow.server.handlers.PathHandler;
 import io.undertow.util.Headers;
-import io.undertow.websockets.core.AbstractReceiveListener;
-import io.undertow.websockets.core.StreamSourceFrameChannel;
 import io.undertow.websockets.core.WebSocketChannel;
 import io.undertow.websockets.core.WebSockets;
 import lombok.AllArgsConstructor;
@@ -110,6 +108,7 @@ public class Module implements Modul {
     @Inject private RedisCacheManager redisCacheManager;
 
     private Undertow undertow;
+    private Undertow undertowWs;
     @Getter private RoutingHandler routes;
     @Getter private SocketManager socketManager;
     private Map<String, WscWrapper> webSocketChannels = new HashMap<>();
@@ -537,6 +536,28 @@ public class Module implements Modul {
             Exchange.body().sendJson(ex, m);
         });
 
+        routes.get("/api/websocketAuth", ex -> {
+            String userId = Exchange.queryParams().queryParam(ex, "userId").orElse(null);
+            if (userId == null || userId.isEmpty()) {
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARAM);
+                return;
+            }
+            try {
+                User user = shardManager.retrieveUserById(userId).complete();
+                Exchange.body().sendJson(ex, (Object) SocketManager.generateUserAuthString(user.getIdLong()));
+            } catch (Exception e) {
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.INVALID_USER);
+            }
+        });
+        routes.get("/api/websocketInvalidate", ex -> {
+            String userId = Exchange.queryParams().queryParam(ex, "userId").orElse(null);
+            if (userId == null || userId.isEmpty()) {
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARAM);
+                return;
+            }
+            Exchange.body().sendJson(ex, socketManager.invalidate(userId));
+        });
+
         Rundka rundka = rundkaDao.getAll().stream().filter(Rundka::isTrwa).findAny().orElse(null);
         if (rundka != null) {
             RundkaCommand.setNumerRundy(rundka.getIdRundki());
@@ -544,10 +565,16 @@ public class Module implements Modul {
         }
         undertow = Undertow.builder()
                 .setServerOption(UndertowOptions.ALLOW_EQUALS_IN_COOKIE_VALUE, true)
-                .setHandler(getWebSocketHandler())
-                .addHttpListener(Ustawienia.instance.port, Ustawienia.instance.host/*, wrapWithMiddleware(routes)*/)
+                .addHttpListener(Ustawienia.instance.port, Ustawienia.instance.host, wrapWithMiddleware(routes))
                 .build();
         undertow.start();
+        socketManager = new SocketManager(shardManager);
+        undertowWs = Undertow.builder()
+                .setServerOption(UndertowOptions.ALLOW_EQUALS_IN_COOKIE_VALUE, true)
+                .setHandler(getWebSocketHandler())
+                .addHttpListener(Ustawienia.instance.wsPort, Ustawienia.instance.wsHost)
+                .build();
+        undertowWs.start();
         rundkaGa = new RundkaGa(this, eventBus, rundkaDao, shardManager);
         eventBus.register(this);
         eventBus.register(rundkaGa);
@@ -555,69 +582,65 @@ public class Module implements Modul {
 //        commands.add(new TestCommand(eventBus));
         commands.forEach(managerKomend::registerCommand);
 
-        socketManager = new SocketManager(shardManager);
-        socketManager.start();
-
         return true;
     }
 
     private PathHandler getWebSocketHandler() {
-        return path().addPrefixPath("/rundka/websocket", websocket((exchange, channel) -> {
-            LOGGER.info("Nowe połączenie websocketa rundek: {}", channel.getSourceAddress().getHostString());
-            String userId = Exchange.queryParams().queryParam(exchange, "userId").orElse(null);
-            if (userId == null || userId.isEmpty()) {
-                LOGGER.info("Websocket rundek {} nie podał ID użytkownika, zamykam", userId);
-                WebSockets.sendText(Exceptions.Codes.getJson(Exceptions.Codes.NO_PARAM), channel, null);
-                try {
-                    channel.close();
-                } catch (IOException e) {
-                    //ignore
-                }
-                return;
-            }
-            try {
-                if (shardManager.retrieveUserById(userId).complete() == null) {
-                    LOGGER.info("Websocket rundek {} podał nieprawidłowe ID użytkownika, zamykam", userId);
-                    WebSockets.sendText(Exceptions.Codes.getJson(Exceptions.Codes.INVALID_USER), channel, null);
-                    try {
-                        channel.close();
-                    } catch (IOException e) {
-                        //ignore
-                    }
-                    return;
-                }
-            } catch (Exception e) {
-                LOGGER.info("Websocket rundek {} podał nieprawidłowe ID użytkownika, zamykam", userId);
-                WebSockets.sendText(Exceptions.Codes.getJson(Exceptions.Codes.INVALID_USER), channel, null);
-                try {
-                    channel.close();
-                } catch (IOException e1) {
-                    //ignore
-                }
-                return;
-            }
-            if (!RundkaCommand.isRundkaOn()) {
-                LOGGER.info("{} próbował się zalogować do websocketa, ale rundki nie ma, zamykam",
-                        channel.getSourceAddress().getHostString());
-                WebSockets.sendText(Exceptions.Codes.getJson(Exceptions.Codes.NO_RUNDKA), channel, null);
-                try {
-                    channel.close();
-                } catch (IOException e) {
-                    //ignore
-                }
-                return;
-            }
-            webSocketChannels.put(channel.getSourceAddress().toString(), new WscWrapper(channel, userId));
-            channel.getReceiveSetter().set(new AbstractReceiveListener() {
-                @Override
-                protected void onClose(WebSocketChannel webSocketChannel, StreamSourceFrameChannel channel) throws IOException {
-                    LOGGER.info("Websocket rundek {} się rozłączył", webSocketChannel.getSourceAddress().getHostString());
-                    webSocketChannels.values().removeIf(wsc -> wsc.ch.equals(webSocketChannel));
-                    super.onClose(webSocketChannel, channel);
-                }
-            });
-            channel.resumeReceives();
-        })).addPrefixPath("/", wrapWithMiddleware(routes));
+        return path().addPrefixPath("/", websocket(socketManager));
+//            LOGGER.info("Nowe połączenie websocketa rundek: {}", channel.getSourceAddress().getHostString());
+//            String userId = Exchange.queryParams().queryParam(exchange, "userId").orElse(null);
+//            if (userId == null || userId.isEmpty()) {
+//                LOGGER.info("Websocket rundek {} nie podał ID użytkownika, zamykam", userId);
+//                WebSockets.sendText(Exceptions.Codes.getJson(Exceptions.Codes.NO_PARAM), channel, null);
+//                try {
+//                    channel.close();
+//                } catch (IOException e) {
+//                    //ignore
+//                }
+//                return;
+//            }
+//            try {
+//                if (shardManager.retrieveUserById(userId).complete() == null) {
+//                    LOGGER.info("Websocket rundek {} podał nieprawidłowe ID użytkownika, zamykam", userId);
+//                    WebSockets.sendText(Exceptions.Codes.getJson(Exceptions.Codes.INVALID_USER), channel, null);
+//                    try {
+//                        channel.close();
+//                    } catch (IOException e) {
+//                        //ignore
+//                    }
+//                    return;
+//                }
+//            } catch (Exception e) {
+//                LOGGER.info("Websocket rundek {} podał nieprawidłowe ID użytkownika, zamykam", userId);
+//                WebSockets.sendText(Exceptions.Codes.getJson(Exceptions.Codes.INVALID_USER), channel, null);
+//                try {
+//                    channel.close();
+//                } catch (IOException e1) {
+//                    //ignore
+//                }
+//                return;
+//            }
+//            if (!RundkaCommand.isRundkaOn()) {
+//                LOGGER.info("{} próbował się zalogować do websocketa, ale rundki nie ma, zamykam",
+//                        channel.getSourceAddress().getHostString());
+//                WebSockets.sendText(Exceptions.Codes.getJson(Exceptions.Codes.NO_RUNDKA), channel, null);
+//                try {
+//                    channel.close();
+//                } catch (IOException e) {
+//                    //ignore
+//                }
+//                return;
+//            }
+//            webSocketChannels.put(channel.getSourceAddress().toString(), new WscWrapper(channel, userId));
+//            channel.getReceiveSetter().set(new AbstractReceiveListener() {
+//                @Override
+//                protected void onClose(WebSocketChannel webSocketChannel, StreamSourceFrameChannel channel) throws IOException {
+//                    LOGGER.info("Websocket rundek {} się rozłączył", webSocketChannel.getSourceAddress().getHostString());
+//                    webSocketChannels.values().removeIf(wsc -> wsc.ch.equals(webSocketChannel));
+//                    super.onClose(webSocketChannel, channel);
+//                }
+//            });
+//            channel.resumeReceives();
     }
 
     public static JsonObject getJson(HttpServerExchange ex) throws IOException {
@@ -641,6 +664,7 @@ public class Module implements Modul {
     @Override
     public boolean shutDown() {
         undertow.stop();
+        undertowWs.stop();
         for (WscWrapper c : webSocketChannels.values()) {
             try {
                 c.ch.close();

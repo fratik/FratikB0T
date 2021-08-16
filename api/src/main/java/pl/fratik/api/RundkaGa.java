@@ -119,7 +119,7 @@ class RundkaGa {
                 if (fdev == null) throw new NullPointerException("FDev null");
                 Member mem = fdev.getMember(user);
                 if (mem == null) {
-                    Exchange.body().sendJson(ex, Exceptions.Codes.getJson(Exceptions.Codes.NOT_IN_FDEV), 400);
+                    Exchange.body().sendJson(ex, Exceptions.Codes.NOT_IN_FDEV.getJson(), 400);
                     return;
                 }
                 Rundka rundka = rundkaDao.get(odp.getRundka());

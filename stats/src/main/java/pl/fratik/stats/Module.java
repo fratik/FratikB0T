@@ -72,7 +72,7 @@ public class Module implements Modul {
         executorSche.scheduleAtFixedRate(this::zrzut, 15, 15, TimeUnit.MINUTES);
         eventBus.register(this);
         if (managerModulow.getModules().get("api") != null) {
-            gs = new GuildStats(this, managerModulow.getModules().get("api"), shardManager, redisCacheManager);
+            gs = new GuildStats(this, managerModulow.getModules().get("api"), eventBus, shardManager, redisCacheManager);
             eventBus.register(gs);
         }
         return true;
@@ -185,7 +185,7 @@ public class Module implements Modul {
     private void onModuleLoad(ModuleLoadedEvent e) {
         if (e.getName().equals("api")) {
             if (gs != null) eventBus.unregister(gs);
-            gs = new GuildStats(this, e.getModule(), shardManager, redisCacheManager);
+            gs = new GuildStats(this, e.getModule(), eventBus, shardManager, redisCacheManager);
             eventBus.register(gs);
         }
     }
