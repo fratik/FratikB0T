@@ -17,6 +17,7 @@
 
 package pl.fratik.commands.util;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import io.undertow.server.RoutingHandler;
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -32,8 +33,8 @@ import pl.fratik.core.cache.Cache;
 import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.moduly.Modul;
 import pl.fratik.core.util.GsonUtil;
-import pl.fratik.core.util.UserUtil;
 
+import java.awt.*;
 import java.util.Random;
 
 public class CustomEmbedManager {
@@ -67,7 +68,13 @@ public class CustomEmbedManager {
 
             try {
                 User user = shardManager.retrieveUserById(requester).complete();
+
+                JsonElement colorElement = json.get("color");
+                if (colorElement != null) json.remove("color");
+
                 EmbedBuilder eb = GsonUtil.fromJSON(json.toString(), EmbedBuilder.class);
+                if (colorElement != null) eb.setColor(Color.decode(colorElement.getAsString()));
+
                 eb.setFooter(user.getAsTag(), user.getEffectiveAvatarUrl());
                 int code = RADOM.nextInt(1_000_000);
                 embeds.put(String.valueOf(code), eb);
