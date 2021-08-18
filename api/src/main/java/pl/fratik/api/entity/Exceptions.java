@@ -54,7 +54,8 @@ public abstract class Exceptions {
         WS_INVALID_CHANNEL(2003, 4001),           // Nieprawidłowy kanał
         WS_INVALID_SIGNATURE(2004, 4001),         // Nieprawidłowy podpis (logowanie)
         WS_NOT_LOGGED_IN(2005, 4002),             // Niezalogowany
-        WS_LOGGED_OUT(2006, 4002);                // Zewnętrzne źródło wylogowało
+        WS_LOGGED_OUT(2006, 4003),                // Zewnętrzne źródło wylogowało
+        WS_TIMEOUT(2007, 4004);                   // Timeout
 
         @Getter private final int code;
         @Getter private final int httpCode;

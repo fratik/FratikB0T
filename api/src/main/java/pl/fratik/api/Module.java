@@ -84,6 +84,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -544,18 +545,22 @@ public class Module implements Modul {
             }
             try {
                 User user = shardManager.retrieveUserById(userId).complete();
-                Exchange.body().sendJson(ex, (Object) SocketManager.generateUserAuthString(user.getIdLong()));
+                JsonObject obj = new JsonObject();
+                obj.addProperty("authStr", socketManager.generateUserAuthString(user.getIdLong()));
+                obj.addProperty("publicKey", Base64.getEncoder().encodeToString(SocketManager.getKeyPair().getPublicKey()));
+                obj.addProperty("wsTimeout", TimeUnit.MILLISECONDS.convert(15, TimeUnit.MINUTES));
+                Exchange.body().sendJson(ex, obj.toString());
             } catch (Exception e) {
                 Exchange.body().sendErrorCode(ex, Exceptions.Codes.INVALID_USER);
             }
         });
-        routes.get("/api/websocketInvalidate", ex -> {
-            String userId = Exchange.queryParams().queryParam(ex, "userId").orElse(null);
-            if (userId == null || userId.isEmpty()) {
+        routes.post("/api/websocketInvalidate", ex -> {
+            Set<String> identifiers = Exchange.body().parseJson(ex, new TypeReference<Set<String>>() {});
+            if (identifiers == null || identifiers.contains(null)) {
                 Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_PARAM);
                 return;
             }
-            Exchange.body().sendJson(ex, socketManager.invalidate(userId));
+            Exchange.body().sendJson(ex, socketManager.invalidate(identifiers));
         });
 
         Rundka rundka = rundkaDao.getAll().stream().filter(Rundka::isTrwa).findAny().orElse(null);
