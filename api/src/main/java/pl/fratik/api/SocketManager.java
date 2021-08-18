@@ -29,17 +29,28 @@ import io.undertow.websockets.spi.WebSocketHttpExchange;
 import lombok.Getter;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.sharding.ShardManager;
-import net.dv8tion.jda.api.utils.MiscUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.xnio.ChannelListener;
 import pl.fratik.api.entity.Exceptions;
+import pl.fratik.core.util.ExpiringHashMap;
 import pl.fratik.core.util.GsonUtil;
+import pl.fratik.core.util.NamedThreadFactory;
+import pl.fratik.core.util.StreamUtil;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.lang.reflect.Method;
-import java.nio.charset.StandardCharsets;
+import java.nio.ByteBuffer;
+import java.nio.channels.Channel;
+import java.security.SecureRandom;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -49,12 +60,15 @@ public class SocketManager implements WebSocketConnectionCallback, SocketAdapter
     private final ShardManager shardManager;
     private final Map<SocketAdapter, Map<String, Method>> events = new HashMap<>();
     private final Map<String, SocketAdapter> channels = new HashMap<>();
-    private static final TweetNaclFast.Signature.KeyPair keyPair = TweetNaclFast.Signature.keyPair();
-    private static final AtomicLong nonce = new AtomicLong();
+    @Getter private static final TweetNaclFast.Signature.KeyPair keyPair = TweetNaclFast.Signature.keyPair();
+    private static final SecureRandom random = new SecureRandom();
     private final Set<Connection> connections = new HashSet<>();
+    private final Map<Long, Set<String>> identifierMap = new ExpiringHashMap<>(60, TimeUnit.SECONDS);
+    private final ScheduledExecutorService executor;
 
     public SocketManager(ShardManager shardManager) {
         this.shardManager = shardManager;
+        this.executor = Executors.newScheduledThreadPool(4, new NamedThreadFactory("SocketManagerTimeout"));
         registerAdapter(this);
     }
 
@@ -94,12 +108,29 @@ public class SocketManager implements WebSocketConnectionCallback, SocketAdapter
         connections.add(new Connection(channel));
     }
 
-    public static String generateUserAuthString(long id) {
+    public String generateUserAuthString(long id) {
         TweetNaclFast.Signature sig = new TweetNaclFast.Signature(keyPair.getPublicKey(), keyPair.getSecretKey());
-        return Base64.getEncoder().encodeToString(sig.sign((id + "." + nonce.getAndUpdate(h -> {
-            if (h >= 4294967295L) h = 0;
-            return ++h;
-        })).getBytes(StandardCharsets.UTF_8)));
+        byte[] uid = new byte[32];
+        random.nextBytes(uid);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try {
+            StreamUtil.writeLong(baos, id);
+            baos.write(uid);
+        } catch (IOException e) {
+            // większa szansa jest że Sasin odda pieniądze niż że tu wyjebie IOException
+        }
+        String identifier = Base64.getEncoder().encodeToString(uid);
+        if (identifierMap.getOrDefault(id, Collections.emptySet()).stream().anyMatch(i -> Objects.equals(i, identifier)) ||
+                connections.stream().anyMatch(con -> Objects.equals(con.getIdentifier(), identifier))) {
+            // generuj aż identifier będzie unikalny
+            return generateUserAuthString(id);
+        }
+        identifierMap.compute(id, (i, set) -> {
+            if (set == null) set = new HashSet<>();
+            set.add(identifier);
+            return set;
+        });
+        return Base64.getEncoder().encodeToString(sig.sign(baos.toByteArray()));
     }
 
     @Override
@@ -107,14 +138,10 @@ public class SocketManager implements WebSocketConnectionCallback, SocketAdapter
         return null;
     }
 
-    public int invalidate(String userId) {
-        return invalidate(MiscUtil.parseSnowflake(userId));
-    }
-
-    public int invalidate(long userId) {
+    public int invalidate(Set<String> identifiers) {
         int closed = 0;
         for (Connection con : new HashSet<>(connections)) {
-            if (con.getAuthenticatedUser().getIdLong() != userId) continue;
+            if (con.getIdentifier() == null || !identifiers.contains(con.getIdentifier())) continue;
             try {
                 con.close(Exceptions.Codes.WS_LOGGED_OUT);
             } catch (IOException e) {
@@ -130,12 +157,25 @@ public class SocketManager implements WebSocketConnectionCallback, SocketAdapter
         private final WebSocketChannel channel;
         private final Set<String> subscribedChannels = new HashSet<>();
         private User authenticatedUser;
+        private String identifier;
+        private ScheduledFuture<?> ping;
+        private ScheduledFuture<?> timeout;
+        private ScheduledFuture<?> closer;
 
         private Connection(WebSocketChannel channel) {
             this.channel = channel;
             logger.info("Nowe połączenie do WebSocket'a! {} {}", channel.getSourceAddress().getHostString(), this);
+            timeout = executor.schedule(this::timeout, 10, TimeUnit.SECONDS);
             channel.getReceiveSetter().set(this);
+            channel.getCloseSetter().set(new CloseListener<>());
             channel.resumeReceives();
+        }
+
+        private class CloseListener<T extends Channel> implements ChannelListener<T> { // type parametry to gówno XD
+            @Override
+            public void handleEvent(T channel) {
+                onClose();
+            }
         }
 
         @Override
@@ -186,9 +226,10 @@ public class SocketManager implements WebSocketConnectionCallback, SocketAdapter
             }
         }
 
-        @Override
-        protected void onClose(WebSocketChannel webSocketChannel, StreamSourceFrameChannel channel) throws IOException {
+        protected void onClose() {
             logger.info("Kanał {} zamknięty!", this);
+            if (timeout != null) timeout.cancel(false);
+            if (ping != null) ping.cancel(false);
             subscribedChannels.stream().map(SocketManager.this.channels::get).forEach(a -> a.unsubscribe(this));
             connections.remove(this);
         }
@@ -217,12 +258,13 @@ public class SocketManager implements WebSocketConnectionCallback, SocketAdapter
 
         private void handleLogin(JsonElement content) throws IOException {
             byte[] signed;
+            Set<String> channels;
             try {
                 JsonObject obj = content.getAsJsonObject();
                 JsonElement txt = obj.get("txt");
                 if (txt.isJsonNull()) signed = null;
                 else signed = Base64.getDecoder().decode(txt.getAsString());
-                Set<String> channels = StreamSupport.stream(obj.get("ch").getAsJsonArray().spliterator(), false)
+                channels = StreamSupport.stream(obj.get("ch").getAsJsonArray().spliterator(), false)
                         .map(JsonElement::getAsString).collect(Collectors.toSet());
                 if (channels.stream().anyMatch(s -> !SocketManager.this.channels.containsKey(s))) {
                     close(Exceptions.Codes.WS_INVALID_CHANNEL);
@@ -230,11 +272,6 @@ public class SocketManager implements WebSocketConnectionCallback, SocketAdapter
                 }
                 subscribedChannels.stream().map(SocketManager.this.channels::get).forEach(a -> a.unsubscribe(this));
                 subscribedChannels.clear();
-                channels.add(null);
-                subscribe(channels);
-            } catch (RegisterException e) {
-                close(e.getExceptionCode());
-                return;
             } catch (Exception e) {
                 close(Exceptions.Codes.WS_INVALID_MESSAGE_FORMAT);
                 return;
@@ -242,6 +279,9 @@ public class SocketManager implements WebSocketConnectionCallback, SocketAdapter
             User user;
             if (signed == null) {
                 user = null;
+                if (timeout != null && !timeout.cancel(false)) return;
+                timeout = null;
+                identifier = null;
                 logger.info("{} - anonimowe połączenie", this);
             } else try {
                 TweetNaclFast.Signature sig = new TweetNaclFast.Signature(keyPair.getPublicKey(), null);
@@ -250,16 +290,58 @@ public class SocketManager implements WebSocketConnectionCallback, SocketAdapter
                     close(Exceptions.Codes.WS_INVALID_SIGNATURE);
                     return;
                 }
-                String[] split = new String(opened, StandardCharsets.UTF_8).split("\\.");
-                user = shardManager.retrieveUserById(MiscUtil.parseSnowflake(split[0])).complete();
-                int nonce = Integer.parseUnsignedInt(split[1]);
-                logger.debug("{} - zalogowano do WebSocketa {} (nonce: {})", this, user, nonce);
+                ByteArrayInputStream bais = new ByteArrayInputStream(opened);
+                long id = StreamUtil.readLong(bais);
+                byte[] uid = new byte[bais.available()];
+                if (bais.read(uid) != uid.length) throw new EOFException();
+                String identifier = Base64.getEncoder().encodeToString(uid);
+                if (!identifierMap.getOrDefault(id, Collections.emptySet()).remove(identifier))
+                    throw new IllegalArgumentException();
+                user = shardManager.retrieveUserById(id).complete();
+                logger.debug("{} - zalogowano do WebSocketa {} (identifier: {})", this, user, identifier);
                 authenticatedUser = user;
+                this.identifier = identifier;
+                if (timeout != null && !timeout.cancel(false)) return; // nieudany cancel znaczy że timeout wykonany
+                timeout = executor.schedule(this::timeout, 15, TimeUnit.MINUTES);
             } catch (Exception e) {
                 close(Exceptions.Codes.WS_INVALID_SIGNATURE);
                 return;
             }
+            if (ping != null) ping.cancel(false);
+            ping = executor.scheduleAtFixedRate(this::ping, 10, 10, TimeUnit.SECONDS);
+            try {
+                channels.add(null);
+                subscribe(channels);
+            } catch (RegisterException e) {
+                close(e.getExceptionCode());
+                return;
+            }
             sendRawMessage(0, false, false, null, null, user == null ? null : new JsonPrimitive(user.getId()));
+        }
+
+        private void ping() {
+            logger.debug("{} - pinguje", this);
+            WebSockets.sendPing(ByteBuffer.allocate(0), channel, null);
+            if (closer == null) closer = executor.schedule(this::timeout, 6, TimeUnit.SECONDS);
+        }
+
+        @Override
+        protected void onFullPongMessage(WebSocketChannel channel, BufferedBinaryMessage message) throws IOException {
+            logger.debug("{} - pong otrzymany", this);
+            if (closer != null) {
+                closer.cancel(false);
+                closer = null;
+            }
+            super.onFullPongMessage(channel, message);
+        }
+
+        private void timeout() {
+            logger.info("{} - timeout", this);
+            try {
+                close(Exceptions.Codes.WS_TIMEOUT);
+            } catch (Exception e) {
+                logger.error("a", e);
+            }
         }
 
         private void handleSubOrUnsub(JsonElement content, boolean sub) throws IOException {
@@ -324,8 +406,11 @@ public class SocketManager implements WebSocketConnectionCallback, SocketAdapter
         }
 
         public void close(Exceptions.Codes err) throws IOException {
-            WebSockets.sendText(Exceptions.Codes.getJson(err), channel, null);
-            close(err.getHttpCode());
+            try {
+                WebSockets.sendTextBlocking(Exceptions.Codes.getJson(err), channel);
+            } finally {
+                close(err.getHttpCode());
+            }
         }
 
         public void close(int code) throws IOException {
