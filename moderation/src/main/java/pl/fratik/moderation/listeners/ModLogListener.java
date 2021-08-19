@@ -59,6 +59,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 import java.util.function.Predicate;
 
+import static net.dv8tion.jda.api.requests.ErrorResponse.UNKNOWN_MEMBER;
+
 public class ModLogListener {
     @Getter private final Map<String, Case> knownCases = new ExpiringHashMap<>(30, TimeUnit.SECONDS);
     private final LeaveHandler leaveHandler = new LeaveHandler();
@@ -328,8 +330,9 @@ public class ModLogListener {
                     Long.toUnsignedString(aCase.getIssuerId()), Akcja.EVENT, new AutoAkcja(aCase.getCaseNumber(),
                             aCase.getType().opposite(), Long.toUnsignedString(aCase.getGuildId()))));
         }
-        if (e.getCase().getType() == Kara.WARN)
-            WarnUtil.takeAction(this, guildDao, caseDao, g.retrieveMember(user).complete(), e.getChannel(),
+        Member mem = g.retrieveMember(user).onErrorMap(UNKNOWN_MEMBER::test, t -> null).complete();
+        if (e.getCase().getType() == Kara.WARN && mem != null)
+            WarnUtil.takeAction(this, guildDao, caseDao, mem, e.getChannel(),
                     e.getLanguage(), tlumaczenia, managerKomend);
     }
 
@@ -341,7 +344,7 @@ public class ModLogListener {
         Guild g = shardManager.getGuildById(cnt.getGuildId());
         if (g == null) return;
         Case aCase = caseDao.getLocked(CaseDao.getId(cnt.getGuildId(), cnt.getCaseId()));
-        if (aCase == null) return; //?
+        if (aCase == null || aCase.getValidTo() == null) return; //?
         try {
             Kara adw = cnt.getAkcjaDoWykonania();
             Case newCase = new Case.Builder(aCase.getGuildId(), aCase.getUserId(), aCase.getValidTo(), adw)
