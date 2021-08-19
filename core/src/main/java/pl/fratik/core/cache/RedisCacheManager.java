@@ -35,6 +35,7 @@ import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.ScanParams;
 import redis.clients.jedis.ScanResult;
 
+import java.io.Closeable;
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -43,6 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 public class RedisCacheManager {
@@ -64,7 +66,7 @@ public class RedisCacheManager {
         this.jedisPool = jedisPool;
     }
 
-    public <T> T get(String key, TypeToken<T> holds, String customName, Function<? super String, ? extends T> mappingFunction) {
+    public <T> T get(String key, TypeToken<T> holds, String customName, Function<String, ? extends T> mappingFunction) {
         return get(key, holds, customName, mappingFunction, 300);
     }
 
@@ -73,24 +75,24 @@ public class RedisCacheManager {
     }
 
     public <T> T getRaw(String dbkey, TypeToken<T> holds) {
-        try (Jedis jedis = jedisPool.getResource()) {
-            String dane = jedis.get(dbkey);
+        try (WrappedJedis wrappedJedis = getJedis()) {
+            String dane = wrappedJedis.getJedis().get(dbkey);
             if (dane == null) return null;
             return GsonUtil.fromJSON(dane, holds.getType());
         }
     }
 
-    public <T> T get(String key, TypeToken<T> holds, String customName, Function<? super String, ? extends T> mappingFunction, int expiry) {
-        try (Jedis jedis = jedisPool.getResource()) {
+    public <T> T get(String key, TypeToken<T> holds, String customName, Function<String, ? extends T> mappingFunction, int expiry) {
+        try (WrappedJedis wrappedJedis = getJedis()) {
             String dbkey = getDbkey(key, holds, customName);
-            String dane = jedis.get(dbkey);
+            String dane = wrappedJedis.getJedis().get(dbkey);
             if (dane == null) {
                 T v = mappingFunction.apply(key);
-                jedis.set(dbkey, GsonUtil.toJSON(v));
+                wrappedJedis.getJedis().set(dbkey, GsonUtil.toJSON(v));
                 if (expiry > 0) {
                     scheduleAsync(() -> {
-                        try (Jedis j = jedisPool.getResource()) {
-                            j.expire(dbkey, expiry);
+                        try (WrappedJedis wJ = getJedis()) {
+                            wJ.getJedis().expire(dbkey, expiry);
                         }
                     });
                 }
@@ -100,19 +102,19 @@ public class RedisCacheManager {
         }
     }
 
-    public <T> void putAll(TypeToken<T> holds, String customName, Map<? extends String, ? extends T> map) {
+    public <T> void putAll(TypeToken<T> holds, String customName, Map<String, ? extends T> map) {
         putAll(holds, customName, map, 300);
     }
 
-    public <T> void putAll(TypeToken<T> holds, String customName, Map<? extends String, ? extends T> map, int expiry) {
-        try (Jedis jedis = jedisPool.getResource()) {
+    public <T> void putAll(TypeToken<T> holds, String customName, Map<String, ? extends T> map, int expiry) {
+        try (WrappedJedis wrappedJedis = getJedis()) {
             for (Map.Entry<? extends String, ? extends T> ent : map.entrySet()) {
                 String dbkey = getDbkey(ent.getKey(), holds, customName);
-                jedis.set(dbkey, GsonUtil.toJSON(ent.getValue()));
+                wrappedJedis.getJedis().set(dbkey, GsonUtil.toJSON(ent.getValue()));
                 if (expiry > 0) {
                     scheduleAsync(() -> {
-                        try (Jedis j = jedisPool.getResource()) {
-                            j.expire(dbkey, expiry);
+                        try (WrappedJedis wJ = getJedis()) {
+                            wJ.getJedis().expire(dbkey, expiry);
                         }
                     });
                 }
@@ -125,13 +127,13 @@ public class RedisCacheManager {
     }
 
     public <T> void put(String key, TypeToken<T> holds, String customName, T value, int expiry) {
-        try (Jedis jedis = jedisPool.getResource()) {
+        try (WrappedJedis wrappedJedis = getJedis()) {
             String dbkey = getDbkey(key, holds, customName);
-            jedis.set(dbkey, GsonUtil.toJSON(value));
+            wrappedJedis.getJedis().set(dbkey, GsonUtil.toJSON(value));
             if (expiry > 0) {
                 scheduleAsync(() -> {
-                    try (Jedis j = jedisPool.getResource()) {
-                        j.expire(dbkey, expiry);
+                    try (WrappedJedis wJ = getJedis()) {
+                        wJ.getJedis().expire(dbkey, expiry);
                     }
                 });
             }
@@ -143,16 +145,16 @@ public class RedisCacheManager {
     }
 
     public <T> void invalidate(Object key, Class<T> holds, String customName) {
-        try (Jedis jedis = jedisPool.getResource()) {
+        try (WrappedJedis wrappedJedis = getJedis()) {
             String dbkey = getDbkey(key, holds, customName);
-            jedis.del(dbkey);
+            wrappedJedis.getJedis().del(dbkey);
         }
     }
 
     public <T> void invalidate(Object key, TypeToken<T> holds, String customName) {
-        try (Jedis jedis = jedisPool.getResource()) {
+        try (WrappedJedis wrappedJedis = getJedis()) {
             String dbkey = getDbkey(key, holds, customName);
-            jedis.del(dbkey);
+            wrappedJedis.getJedis().del(dbkey);
         }
     }
 
@@ -170,15 +172,15 @@ public class RedisCacheManager {
         for (Object dbkey : dbKeys)
             str.add(dbkey.toString());
         if (str.isEmpty()) return;
-        try (Jedis jedis = jedisPool.getResource()) {
-            jedis.del(str.toArray(new String[]{}));
+        try (WrappedJedis wrappedJedis = getJedis()) {
+            wrappedJedis.getJedis().del(str.toArray(new String[]{}));
         }
     }
 
     public <T> long ttl(Object key, TypeToken<T> holds, String customName) {
-        try (Jedis jedis = jedisPool.getResource()) {
+        try (WrappedJedis wrappedJedis = getJedis()) {
             String dbkey = getDbkey(key, holds, customName);
-            return jedis.ttl(dbkey);
+            return wrappedJedis.getJedis().ttl(dbkey);
         }
     }
 
@@ -223,11 +225,11 @@ public class RedisCacheManager {
 
     public List<String> scanAll(String pattern, TypeToken<?> holds, String customName) {
         List<String> keys = new ArrayList<>();
-        try (Jedis jedis = jedisPool.getResource()) {
+        try (WrappedJedis wrappedJedis = getJedis()) {
             String match = getDbkey(pattern, holds, customName);
             String cursor = "0";
             do {
-                ScanResult<String> xd = jedis.scan(cursor, new ScanParams().match(match));
+                ScanResult<String> xd = wrappedJedis.getJedis().scan(cursor, new ScanParams().match(match));
                 keys.addAll(xd.getResult());
                 cursor = xd.getStringCursor();
             } while (!cursor.equals("0"));
@@ -239,11 +241,11 @@ public class RedisCacheManager {
         private final String customName;
         private boolean canHandleErrors = false;
 
-        public CacheRetriever() {
+        protected CacheRetriever() {
             this(null);
         }
 
-        public CacheRetriever(String customName) {
+        protected CacheRetriever(String customName) {
             this.customName = customName;
         }
 
@@ -278,6 +280,46 @@ public class RedisCacheManager {
             invalidate(field.get(de), de.getClass(), null);
         } catch (Exception ex) {
             LoggerFactory.getLogger(getClass()).warn("wielki błąd", ex);
+        }
+    }
+
+    private WrappedJedis getJedis() {
+        return new WrappedJedis(getJedisPool());
+    }
+
+    private static class WrappedJedis implements Closeable {
+        private static final ThreadLocal<Jedis> threadLocalJedis = new ThreadLocal<>();
+        private static final ThreadLocal<AtomicInteger> threadLocalCount = new ThreadLocal<>();
+
+        public WrappedJedis(JedisPool pool) {
+            Jedis jedis = threadLocalJedis.get();
+            if (jedis == null) threadLocalJedis.set(pool.getResource());
+            increment();
+        }
+
+        private Jedis getJedis() {
+            return threadLocalJedis.get();
+        }
+
+        private void increment() {
+            if (threadLocalCount.get() == null) threadLocalCount.set(new AtomicInteger(1));
+            else threadLocalCount.get().incrementAndGet();
+        }
+
+        private void decrement() {
+            if (threadLocalCount.get() == null) return; // ???????
+            threadLocalCount.get().decrementAndGet();
+        }
+
+        @Override
+        public void close() {
+            if (threadLocalJedis.get() == null) throw new IllegalStateException("nie ma instancji jedisa?");
+            decrement();
+            if (threadLocalCount.get() == null || threadLocalCount.get().get() <= 0) {
+                threadLocalJedis.get().close();
+                threadLocalJedis.remove();
+                threadLocalCount.remove();
+            }
         }
     }
 }

@@ -79,6 +79,12 @@ public class NetworkUtil {
     }
 
     public static ContentInformation contentInformation(String url, boolean cache) {
+        return contentInformation(url, cache, 0);
+    }
+
+    public static ContentInformation contentInformation(String url, boolean cache, int run) {
+        if (run >= 7) return null; // za dużo redirectów, ignoruj
+        int incrRun = run + 1;
         final Supplier<ContentInformation> getter = () -> {
             AtomicReference<ContentInformation> ci = new AtomicReference<>();
             OkHttpClient client = new OkHttpClient.Builder(NetworkUtil.client).eventListener(new EventListener() {
@@ -114,14 +120,16 @@ public class NetworkUtil {
                         .findFirst().map(el -> el.attr("content")).orElse(null);
                 String videoUrl = doc.head().getElementsByTag("meta").stream().filter(el -> el.attr("property").equals("og:video") ||
                         el.attr("property").equals("og:video:url")).findFirst().map(el -> el.attr("content")).orElse(null);
-                if (imageUrl != null && imageUrl.contains(".gif")) return contentInformation(imageUrl, cache);
-                else if (videoUrl != null) return contentInformation(videoUrl, cache);
+                if (imageUrl != null && imageUrl.contains(".gif")) return contentInformation(imageUrl, cache, incrRun);
+                else if (videoUrl != null) return contentInformation(videoUrl, cache, incrRun);
                 return ogCi;
             } catch (IOException e) {
                 return ci.get();
             }
         };
-        if (cache && ciCache != null) return ciCache.get(encodeURIComponent(url), unused -> getter.get());
+        if (cache && ciCache != null) {
+            return ciCache.get(encodeURIComponent(url), unused -> getter.get());
+        }
         else return getter.get();
     }
 

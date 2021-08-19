@@ -49,7 +49,7 @@ public class RedisCache<V> implements Cache<V> {
         }
     }
 
-    private V get0(String key, Function<? super String, ? extends V> mappingFunction, int expiry) {
+    private V get0(String key, Function<String, ? extends V> mappingFunction, int expiry) {
         try {
             return rcm.get(key, holds, customName, mappingFunction, expiry);
         } catch (JedisException ex) {
@@ -73,7 +73,7 @@ public class RedisCache<V> implements Cache<V> {
     }
 
     @Override
-    public V get(@Nonnull String key, @Nonnull Function<? super String, ? extends V> mappingFunction) {
+    public V get(@Nonnull String key, @Nonnull Function<String, ? extends V> mappingFunction) {
         return get0(key, mappingFunction, expiry);
     }
 
@@ -108,7 +108,7 @@ public class RedisCache<V> implements Cache<V> {
     }
 
     @Override
-    public void putAll(@Nonnull Map<? extends String, ? extends V> map) {
+    public void putAll(@Nonnull Map<String, ? extends V> map) {
         try {
             rcm.putAll(holds, customName, map, expiry);
         } catch (JedisException ex) {
