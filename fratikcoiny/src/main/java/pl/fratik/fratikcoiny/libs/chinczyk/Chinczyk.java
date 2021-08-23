@@ -46,10 +46,14 @@ import net.dv8tion.jda.api.interactions.components.selections.SelectionMenu;
 import net.dv8tion.jda.api.requests.ErrorResponse;
 import net.dv8tion.jda.api.requests.restaction.MessageAction;
 import net.dv8tion.jda.api.sharding.ShardManager;
+import net.dv8tion.jda.api.utils.data.DataObject;
+import net.dv8tion.jda.internal.utils.Checks;
 import okhttp3.Response;
 import org.apache.batik.anim.dom.SAXSVGDocumentFactory;
 import org.apache.batik.util.XMLResourceDescriptor;
 import org.apache.commons.lang.StringUtils;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.svg.SVGDocument;
 import pl.fratik.core.Ustawienia;
@@ -64,6 +68,7 @@ import pl.fratik.fratikcoiny.entity.ChinczykStateDao;
 import pl.fratik.fratikcoiny.entity.ChinczykStats;
 import pl.fratik.fratikcoiny.util.ImageUtils;
 
+import javax.annotation.Nonnull;
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -770,7 +775,7 @@ public class Chinczyk {
         int values = 0;
         for (Rules r : Rules.values()) {
             if (r.isCheat() && !cheats) continue;
-            options.add(SelectOption.of(t.get(l, r.getKey()), r.name())
+            options.add(LongSelectOption.of(t.get(l, r.getKey()), r.name())
                     .withDescription(t.get(l, r.getDescriptionKey()))
                     .withDefault(rules.contains(r)));
             values++;
@@ -2182,6 +2187,84 @@ public class Chinczyk {
         public void serialize(OutputStream os) throws IOException {
             os.write(0);
             writeLong(os, flag);
+        }
+    }
+
+    private static class LongSelectOption extends SelectOption {
+        private final String label;
+        private final String description;
+
+        protected LongSelectOption(@NotNull String label, @NotNull String value) {
+            this(label, value, null, false, null);
+        }
+
+        protected LongSelectOption(@NotNull String label, @NotNull String value, @Nullable String description, boolean isDefault, @Nullable Emoji emoji) {
+            super("dummylabel", value, null, isDefault, emoji);
+            Checks.notEmpty(label, "Label");
+            Checks.notLonger(label, 100, "Label");
+            if (description != null) Checks.notLonger(description, 100, "Description");
+            this.label = label;
+            this.description = description;
+        }
+
+        @NotNull
+        @Override
+        public DataObject toData() {
+            DataObject object = DataObject.empty();
+            object.put("label", label);
+            object.put("value", getValue());
+            object.put("default", isDefault());
+            if (getEmoji() != null)
+                object.put("emoji", getEmoji());
+            if (description != null && !description.isEmpty())
+                object.put("description", description);
+            return object;
+        }
+
+        @NotNull
+        @Override
+        public String getLabel() {
+            return label;
+        }
+
+        @Nullable
+        @Override
+        public String getDescription() {
+            return description;
+        }
+
+        @NotNull
+        @Override
+        public LongSelectOption withDefault(boolean isDefault) {
+            return new LongSelectOption(label, getValue(), description, isDefault, getEmoji());
+        }
+
+        @NotNull
+        @Override
+        public LongSelectOption withDescription(@Nullable String description) {
+            return new LongSelectOption(label, getValue(), description, isDefault(), getEmoji());
+        }
+
+        @NotNull
+        @Override
+        public SelectOption withEmoji(@Nullable Emoji emoji) {
+            return new LongSelectOption(label, getValue(), description, isDefault(), emoji);
+        }
+
+        @NotNull
+        @Override
+        public SelectOption withLabel(@NotNull String label) {
+            return new LongSelectOption(label, getValue(), description, isDefault(), getEmoji());
+        }
+
+        @NotNull
+        @Override
+        public SelectOption withValue(@NotNull String value) {
+            return new LongSelectOption(label, value, description, isDefault(), getEmoji());
+        }
+
+        public static LongSelectOption of(@Nonnull String label, @Nonnull String value) {
+            return new LongSelectOption(label, value);
         }
     }
 }
