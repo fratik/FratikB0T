@@ -1156,7 +1156,7 @@ public class Chinczyk {
             }
             rolled = null;
             if (isTimeout.get() == Boolean.FALSE && timeout != null && !timeout.isCancelled() && !timeout.cancel(false)) return;
-            timeout = executor.schedule(this::timeout, 1, TimeUnit.MINUTES);
+            timeout = executor.schedule(this::timeout, rules.contains(Rules.LONGER_TIMEOUT) ? 15 : 1, TimeUnit.MINUTES);
             updateMainMessage(isTimeout.get() == Boolean.TRUE || eventStorage.getLastEvent() == null || eventStorage.getLastEvent().getType() != null);
             updateControlMessages();
         } finally {
@@ -2039,7 +2039,11 @@ public class Chinczyk {
         /**
          * 1 opuszcza start - wyrzucenie 1 (tak jak 6) opuszcza pole startowe
          */
-        ONE_LEAVES_HOME(1<<6, "chinczyk.rule.one.leaves");
+        ONE_LEAVES_HOME(1<<6, "chinczyk.rule.one.leaves"),
+        /**
+         * Dłuższy timeout - kiedy jesteś kurwa w pociągu do Bydgoszczy i net nie wyrabia
+         */
+        LONGER_TIMEOUT(1<<7, "chinczyk.rule.longer.timeout");
 
         @Getter private final int flag;
         @Getter private final boolean cheat;
