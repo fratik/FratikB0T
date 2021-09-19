@@ -171,20 +171,20 @@ public class CoronastatsCommand extends Command {
     }
 
     private void addFields(EmbedBuilder eb, CommandContext ctx, JSONObject staty, boolean paginated) {
-        eb.addField(ctx.getTranslated("coronastats.cases"), parseNumber(staty.getInt("cases"), ctx.getLanguage()), true);
-        eb.addField(ctx.getTranslated("coronastats.deaths"), parseNumber(staty.getInt("deaths"), ctx.getLanguage()), true);
-        eb.addField(ctx.getTranslated("coronastats.recovered"), parseNumber(staty.getInt("recovered"), ctx.getLanguage()), true);
-        eb.addField(ctx.getTranslated("coronastats.cases.today"), parseNumber(staty.getInt("todayCases"), ctx.getLanguage()), true);
-        eb.addField(ctx.getTranslated("coronastats.deaths.today"), parseNumber(staty.getInt("todayDeaths"), ctx.getLanguage()), true);
-        eb.addField(ctx.getTranslated("coronastats.active"), parseNumber(staty.getInt("active"), ctx.getLanguage()), true);
-        eb.addField(ctx.getTranslated("coronastats.critical"), parseNumber(staty.getInt("critical"), ctx.getLanguage()), true);
-        eb.addField(ctx.getTranslated("coronastats.tests"), parseNumber(staty.getInt("tests"), ctx.getLanguage()), true);
+        eb.addField(ctx.getTranslated("coronastats.cases"), parseNumber(staty.getLong("cases"), ctx.getLanguage()), true);
+        eb.addField(ctx.getTranslated("coronastats.deaths"), parseNumber(staty.getLong("deaths"), ctx.getLanguage()), true);
+        eb.addField(ctx.getTranslated("coronastats.recovered"), parseNumber(staty.getLong("recovered"), ctx.getLanguage()), true);
+        eb.addField(ctx.getTranslated("coronastats.cases.today"), parseNumber(staty.getLong("todayCases"), ctx.getLanguage()), true);
+        eb.addField(ctx.getTranslated("coronastats.deaths.today"), parseNumber(staty.getLong("todayDeaths"), ctx.getLanguage()), true);
+        eb.addField(ctx.getTranslated("coronastats.active"), parseNumber(staty.getLong("active"), ctx.getLanguage()), true);
+        eb.addField(ctx.getTranslated("coronastats.critical"), parseNumber(staty.getLong("critical"), ctx.getLanguage()), true);
+        eb.addField(ctx.getTranslated("coronastats.tests"), parseNumber(staty.getLong("tests"), ctx.getLanguage()), true);
         eb.setFooter((paginated ? " (%s/%s) | " : "") + ctx.getTranslated("coronastats.updated"));
         eb.setColor(getColor(staty.getInt("active")));
         eb.setTimestamp(Instant.ofEpochMilli(staty.getLong("updated")));
     }
 
-    private String parseNumber(int num, Language language) {
+    private String parseNumber(long num, Language language) {
         return NumberFormat.getInstance(language.getLocale()).format(num);
     }
 
