@@ -60,14 +60,19 @@ public class GuildConfig implements DatabaseEntity {
     private List<String> prefixes = new ArrayList<>();
     @ConfigField(holdsEntity = ConfigField.Entities.ROLE)
     private String adminRole = "";
+    @ConfigField(required = true)
     private Boolean antiswear = false;
+    @ConfigField(required = true)
     private Boolean antiLink = false;
+    @ConfigField(required = true)
     private Boolean autoban = false;
     @ConfigField(holdsEntity = ConfigField.Entities.ROLE)
     private List<String> autorole = new ArrayList<>();
+    @ConfigField(required = true)
     private Boolean autoroleZa1szaWiadomosc = false;
     @ConfigField(holdsEntity = ConfigField.Entities.STRING)
     private List<String> customAntiSwearWords = new ArrayList<>();
+    @ConfigField(required = true, max = 730)
     private Integer dlugoscTymczasowegoBanaZaWarny = 3;
     @ConfigField(holdsEntity = ConfigField.Entities.CHANNEL)
     private String fullLogs = "";
@@ -85,34 +90,51 @@ public class GuildConfig implements DatabaseEntity {
     private List<String> linkchannels = new ArrayList<>();
     @ConfigField(holdsEntity = ConfigField.Entities.CHANNEL)
     private List<String> nolvlchannelchange = new ArrayList<>();
+    @ConfigField(required = true)
     private Boolean warnAdminLubModTraciRange = true;
+    @ConfigField(required = true, max = 100)
     private Integer warnyNaBan = 15;
+    @ConfigField(required = true, max = 100)
     private Integer warnyNaKick = 5;
+    @ConfigField(required = true, max = 100)
     private Integer warnyNaTymczasowegoBana = 10;
+    @ConfigField(required = true, max = 1000)
     private Integer maxRoliDoSamododania = 0;
     @Deprecated
+    @ConfigField(dontDisplayInSettings = true)
     private Boolean wymagajWeryfikacjiDwuetapowej = false;
+    @ConfigField(required = true)
     private Boolean wysylajDmOKickachLubBanach = true;
     @ConfigField(dontDisplayInSettings = true)
     private Boolean zapamietajRole = false;
     @ConfigField(holdsEntity = ConfigField.Entities.ROLE)
     private String djRole = "";
+    @ConfigField(required = true)
     private Boolean tylkoDjWGoreMozeDodawacPiosenki = false;
     @ConfigField(holdsEntity = ConfigField.Entities.COMMAND)
     private List<String> disabledCommands = new ArrayList<>();
-    @ConfigField(holdsEntity = ConfigField.Entities.CHANNEL, dontDisplayInSettings = true)
+    @ConfigField(holdsEntity = ConfigField.Entities.CHANNEL)
     private String kanalMuzyczny = "";
+    @ConfigField(required = true)
     private Boolean punktyWlaczone = true;
     private String lvlupMessagesCustomChannel = null;
+    @ConfigField(required = true)
     private Boolean ukryjZgsr = false;
+    @ConfigField(required = true)
     private Boolean antiInvite = true;
+    @ConfigField(required = true)
     private Boolean antiRaid = false;
+    @ConfigField(required = true)
     private Boolean antiRaidExtreme = false;
+    @ConfigField(required = true, max = 100)
     private Integer antiRaidCzulosc = 50;
     @ConfigField(holdsEntity = ConfigField.Entities.CHANNEL)
     private List<String> kanalyGdzieAntiRaidNieDziala = new ArrayList<>();
+    @ConfigField(dontDisplayInSettings = true)
     private Map<Integer, String> roleZaPoziomy = new HashMap<>();
+    @ConfigField(dontDisplayInSettings = true)
     private String wyciszony;
+    @ConfigField(dontDisplayInSettings = true)
     private String timezone = "default";
     @ConfigField(holdsEntity = ConfigField.Entities.ROLE)
     private List<String> uzytkownicyMogaNadacSobieTeRange = new ArrayList<>();
@@ -127,22 +149,35 @@ public class GuildConfig implements DatabaseEntity {
     private Boolean wysylajOgloszenia = false;
     @ConfigField(dontDisplayInSettings = true)
     private String liczekKanal = "";
+    @ConfigField(dontDisplayInSettings = true)
     private Map<String, Webhook> webhooki = new HashMap<>();
+    @ConfigField(max = 1500)
     private String lvlUpMessage;
+    @ConfigField(required = true)
     private Boolean resetujOstrzezeniaPrzyBanie = true;
+    @ConfigField(dontDisplayInSettings = true)
     private Map<String, PermLevel> cmdPermLevelOverrides = new HashMap<>();
     @ConfigField(dontDisplayInSettings = true)
     private Map<Integer, String> roleZaZaproszenia = new HashMap<>();
+    @ConfigField(required = true)
     private Boolean lvlUpNotify = true;
+    @ConfigField(required = true)
     private Boolean trackInvites = false;
+    @ConfigField(required = true)
     private Boolean deleteSwearMessage = false;
+    @ConfigField(required = true)
     private Boolean deleteLinkMessage = false;
+    @ConfigField(required = true)
     private Boolean cytujFbot = false;
+    @ConfigField(dontDisplayInSettings = true)
     private Boolean publikujReakcja = false;
+    @ConfigField(required = true)
     private Boolean antiLinkMediaAllowed = true;
+    @ConfigField(required = true)
     private Boolean antiLinkIgnoreAdmins = false;
     @ConfigField(holdsEntity = ConfigField.Entities.ROLE)
     private List<String> antiLinkIgnoreRoles = new ArrayList<>();
+    @ConfigField(dontDisplayInSettings = true)
     private Map<String, Wyplata> wyplaty = new HashMap<>();
 
     // TODO: 09/04/2020 można to zrobić dla każdego Boolean'a, ale to już kwestia kosmetyki kodu chyba

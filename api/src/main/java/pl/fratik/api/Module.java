@@ -496,32 +496,36 @@ public class Module implements Modul {
             }
             Language lang = getLang(ex);
             if (lang == null) return;
-            Map<String, GuildSchema> map = new HashMap<>();
+            Map<String, Map<?, ?>> map = new HashMap<>();
 
-            GuildConfig def = guildDao.get(guildId);
+            GuildConfig def = new GuildConfig(guildId);
             for (Field field : GuildConfig.class.getDeclaredFields()) {
                 String id = field.getName();
 
                 String s = tlumaczenia.get(lang, String.format("guildconfig.%s.name", id), true);
                 if (s.equals(String.format("guildconfig.%s.name", id))) continue;
 
-                GuildSchema gs = new GuildSchema();
+                Map<String, Object> gs = new HashMap<>();
                 String type = field.getType().getSimpleName();
-                if (type.equals("List")) gs.setArray(true);
-                if (type.equals("Boolean")) {
-                    try {
-                        gs.setDefaultt((Boolean) GuildConfig.getValue(field, def));
-                    } catch (Exception ignored) { }
-                }
+                try {
+                    gs.put("default", GuildConfig.getValue(field, def));
+                } catch (Exception ignored) { }
+                gs.put("array", type.equals("List"));
 
                 ConfigField ann = field.getDeclaredAnnotation(ConfigField.class);
                 if (ann != null) {
+                    if (ann.dontDisplayInSettings()) continue;
                     ConfigField.Entities ent = ann.holdsEntity();
-                    if (ent != ConfigField.Entities.NULL) gs.setType(ent.name().toLowerCase());
+                    if (ent != ConfigField.Entities.NULL) gs.put("type", ent.name().toLowerCase());
+                    if (type.equalsIgnoreCase("String") || type.equalsIgnoreCase("Integer")) {
+                        gs.put("min", ann.min());
+                        gs.put("max", ann.max());
+                    }
+                    gs.put("required", ann.required());
                 }
-                if (gs.getType() == null) gs.setType(type.toLowerCase());
-                gs.setNazwa(s);
-                gs.setOpis(tlumaczenia.get(lang, String.format("guildconfig.%s.desc", id)));
+                gs.computeIfAbsent("type", k -> type.toLowerCase());
+                gs.put("nazwa", s);
+                gs.put("opis", tlumaczenia.get(lang, String.format("guildconfig.%s.desc", id)));
                 map.put(id, gs);
             }
 
@@ -806,23 +810,6 @@ public class Module implements Modul {
 
     private enum Status {
         GLOBALADMIN, ZGA, DEV
-    }
-
-
-    @Data
-    @AllArgsConstructor
-    private static class GuildSchema {
-        public GuildSchema() { }
-
-        private String nazwa;
-        private String opis;
-        private String type;
-        private boolean array = false;
-        private boolean nieWymagaModyfikacji = false;
-
-        @SerializedName("default")
-        @JsonProperty("default")
-        private boolean defaultt = false;
     }
 
 }

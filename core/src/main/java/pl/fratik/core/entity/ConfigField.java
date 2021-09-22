@@ -29,6 +29,9 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ConfigField {
     boolean dontDisplayInSettings() default false;
+    boolean required() default false;
+    int min() default 0;
+    int max() default Integer.MAX_VALUE;
 
     Entities holdsEntity() default Entities.NULL;
 
