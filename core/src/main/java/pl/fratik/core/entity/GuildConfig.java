@@ -56,7 +56,7 @@ public class GuildConfig implements DatabaseEntity {
     @ConfigField(dontDisplayInSettings = true)
     private Language language = Language.POLISH;
 
-    @ConfigField(holdsEntity = ConfigField.Entities.STRING)
+    @ConfigField(holdsEntity = ConfigField.Entities.STRING, max = 50, maxElements = 25)
     private List<String> prefixes = new ArrayList<>();
     @ConfigField(holdsEntity = ConfigField.Entities.ROLE)
     private String adminRole = "";
@@ -70,7 +70,7 @@ public class GuildConfig implements DatabaseEntity {
     private List<String> autorole = new ArrayList<>();
     @ConfigField(required = true)
     private Boolean autoroleZa1szaWiadomosc = false;
-    @ConfigField(holdsEntity = ConfigField.Entities.STRING)
+    @ConfigField(holdsEntity = ConfigField.Entities.STRING, max = 100, maxElements = 2000)
     private List<String> customAntiSwearWords = new ArrayList<>();
     @ConfigField(required = true, max = 730)
     private Integer dlugoscTymczasowegoBanaZaWarny = 3;

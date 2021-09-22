@@ -32,6 +32,7 @@ public @interface ConfigField {
     boolean required() default false;
     int min() default 0;
     int max() default Integer.MAX_VALUE;
+    int maxElements() default -1;
 
     Entities holdsEntity() default Entities.NULL;
 

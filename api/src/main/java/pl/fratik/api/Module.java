@@ -516,14 +516,15 @@ public class Module implements Modul {
                 if (ann != null) {
                     if (ann.dontDisplayInSettings()) continue;
                     ConfigField.Entities ent = ann.holdsEntity();
-                    if (ent != ConfigField.Entities.NULL) gs.put("type", ent.name().toLowerCase());
+                    if (ent != ConfigField.Entities.NULL) type = ent.name();
                     if (type.equalsIgnoreCase("String") || type.equalsIgnoreCase("Integer")) {
                         gs.put("min", ann.min());
                         gs.put("max", ann.max());
                     }
+                    if (ann.maxElements() != -1) gs.put("maxElements", ann.maxElements());
                     gs.put("required", ann.required());
                 }
-                gs.computeIfAbsent("type", k -> type.toLowerCase());
+                gs.put("type", type.toLowerCase());
                 gs.put("nazwa", s);
                 gs.put("opis", tlumaczenia.get(lang, String.format("guildconfig.%s.desc", id)));
                 map.put(id, gs);
