@@ -66,6 +66,7 @@ public class GuildConfig implements DatabaseEntity {
     @ConfigField(holdsEntity = ConfigField.Entities.ROLE)
     private List<String> autorole = new ArrayList<>();
     private Boolean autoroleZa1szaWiadomosc = false;
+    @ConfigField(holdsEntity = ConfigField.Entities.STRING)
     private List<String> customAntiSwearWords = new ArrayList<>();
     private Integer dlugoscTymczasowegoBanaZaWarny = 3;
     @ConfigField(holdsEntity = ConfigField.Entities.CHANNEL)

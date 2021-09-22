@@ -17,6 +17,7 @@
 
 package pl.fratik.api;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Ordering;
@@ -518,7 +519,7 @@ public class Module implements Modul {
                     ConfigField.Entities ent = ann.holdsEntity();
                     if (ent != ConfigField.Entities.NULL) gs.setType(ent.name().toLowerCase());
                 }
-                if (gs.getType() == null) gs.setType(type);
+                if (gs.getType() == null) gs.setType(type.toLowerCase());
                 gs.setNazwa(s);
                 gs.setOpis(tlumaczenia.get(lang, String.format("guildconfig.%s.desc", id)));
                 map.put(id, gs);
@@ -820,6 +821,7 @@ public class Module implements Modul {
         private boolean nieWymagaModyfikacji = false;
 
         @SerializedName("default")
+        @JsonProperty("default")
         private boolean defaultt = false;
     }
 
