@@ -117,6 +117,7 @@ public class GuildConfig implements DatabaseEntity {
     private String kanalMuzyczny = "";
     @ConfigField(required = true)
     private Boolean punktyWlaczone = true;
+    @ConfigField(holdsEntity = ConfigField.Entities.CHANNEL)
     private String lvlupMessagesCustomChannel = null;
     @ConfigField(required = true)
     private Boolean ukryjZgsr = false;
