@@ -24,6 +24,7 @@ import io.sentry.event.interfaces.ExceptionInterface;
 import lombok.Getter;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
@@ -35,6 +36,7 @@ import pl.fratik.core.Ustawienia;
 import pl.fratik.core.entity.ArgsMissingException;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
+import pl.fratik.core.util.CommonUtil;
 import pl.fratik.core.util.UserUtil;
 
 import javax.annotation.CheckReturnValue;
@@ -152,7 +154,7 @@ public class CommandContext {
 
 //    @Deprecated
     public Message send(MessageEmbed message) {
-        return event.getChannel().sendMessage(message).complete();
+        return event.getChannel().sendMessage(new MessageBuilder(message).build()).complete();
     }
 
     public void send(CharSequence message, Consumer<Message> callback) {
@@ -168,7 +170,7 @@ public class CommandContext {
     }
 
     public void send(MessageEmbed message, Consumer<Message> callback) {
-        event.getChannel().sendMessage(message).queue(callback);
+        event.getChannel().sendMessage(new MessageBuilder(message).build()).queue(callback);
     }
 
     public Message reply(CharSequence message) {
@@ -208,7 +210,7 @@ public class CommandContext {
             Sentry.clearContext();
         }
         try {
-            if (!event.isFromGuild() || !event.getGuild().getSelfMember().hasPermission(event.getTextChannel(),
+            if (event.isFromGuild() && !event.getGuild().getSelfMember().hasPermission(getGuildChannel(),
                     Permission.MESSAGE_HISTORY)) return event.getChannel().sendMessage(message)
                     .setActionRows(actionRows).complete();
             return event.getChannel().sendMessage(message).setActionRows(actionRows).reference(getMessage()).complete();
@@ -229,10 +231,11 @@ public class CommandContext {
 
     public Message reply(MessageEmbed message, ActionRow... actionRows) {
         if (actionRows == null) actionRows = new ActionRow[0];
+        Message msg = new MessageBuilder(message).build();
         try {
-            return event.getChannel().sendMessage(message).reference(getMessage()).setActionRows(actionRows).complete();
+            return event.getChannel().sendMessage(msg).reference(getMessage()).setActionRows(actionRows).complete();
         } catch (ErrorResponseException e) {
-            if (isUnknownMessage(e)) return event.getChannel().sendMessage(message).setActionRows(actionRows).complete();
+            if (isUnknownMessage(e)) return event.getChannel().sendMessage(msg).setActionRows(actionRows).complete();
             throw e;
         }
     }
@@ -252,8 +255,9 @@ public class CommandContext {
     }
 
     public void reply(MessageEmbed message, Consumer<Message> callback) {
-        event.getChannel().sendMessage(message).reference(getMessage()).queue(callback, e -> {
-            if (isUnknownMessage(e)) event.getChannel().sendMessage(message).queue(callback);
+        Message msg = new MessageBuilder(message).build();
+        event.getChannel().sendMessage(msg).reference(getMessage()).queue(callback, e -> {
+            if (isUnknownMessage(e)) event.getChannel().sendMessage(msg).queue(callback);
         });
     }
 
@@ -320,5 +324,13 @@ public class CommandContext {
                 .setAuthor(authorText, null, authorImageUrl)
                 .setFooter("© " + shard.getSelfUser().getName(),
                         UserUtil.getAvatarUrl(shard.getSelfUser()));
+    }
+
+    public boolean canTalk() {
+        return CommonUtil.canTalk(getMessageChannel());
+    }
+
+    public GuildChannel getGuildChannel() {
+        return event.isFromGuild() ? (GuildChannel) event.getChannel() : null;
     }
 }

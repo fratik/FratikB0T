@@ -79,11 +79,11 @@ public class LogListener {
     public void onMessage(MessageReceivedEvent messageReceivedEvent) {
         if (!messageReceivedEvent.isFromGuild()) return;
         try {
-            List<LogMessage> messages = cache.get(messageReceivedEvent.getTextChannel().getId(), c -> new ArrayList<>());
+            List<LogMessage> messages = cache.get(messageReceivedEvent.getChannel().getId(), c -> new ArrayList<>());
             if (messages == null) throw new IllegalStateException("messages == null mimo compute'owania");
             if (messages.size() > 100) messages.remove(0);
             messages.add(new LogMessage(messageReceivedEvent.getMessage()));
-            cache.put(messageReceivedEvent.getTextChannel().getId(), messages);
+            cache.put(messageReceivedEvent.getChannel().getId(), messages);
         } catch (JedisException e) {
             log.error("Redis nie odpowiada prawidłowo!", e);
         }
@@ -93,9 +93,9 @@ public class LogListener {
     public void onMessageEdit(MessageUpdateEvent messageUpdateEvent) {
         if (!messageUpdateEvent.isFromGuild()) return;
         try {
-            List<LogMessage> messages = cache.get(messageUpdateEvent.getTextChannel().getId(), c -> new ArrayList<>());
+            List<LogMessage> messages = cache.get(messageUpdateEvent.getChannel().getId(), c -> new ArrayList<>());
             if (messages == null) throw new IllegalStateException("messages == null mimo compute'owania");
-            Message m = findMessage(messageUpdateEvent.getTextChannel(), messageUpdateEvent.getMessageId(), false, messages);
+            Message m = findMessage(messageUpdateEvent.getChannel(), messageUpdateEvent.getMessageId(), false, messages);
             if (m == null) {
                 if (messages.size() > 100) messages.remove(0);
                 messages.add(new LogMessage(messageUpdateEvent.getMessage()));
@@ -103,7 +103,7 @@ public class LogListener {
                 return;
             }
             messages.set(messages.indexOf(m), new LogMessage(messageUpdateEvent.getMessage()));
-            cache.put(messageUpdateEvent.getTextChannel().getId(), messages);
+            cache.put(messageUpdateEvent.getChannel().getId(), messages);
             if (znaneAkcje.contains(messageUpdateEvent.getMessageId())) {
                 znaneAkcje.remove(messageUpdateEvent.getMessageId());
                 return;
@@ -120,7 +120,7 @@ public class LogListener {
                 return;
             }
             MessageEmbed embed = generateEmbed(LogType.EDIT, messageUpdateEvent.getMessage(), null, m.getContentRaw(), false);
-            try {channel.sendMessage(embed).queue();} catch (Exception ignored) {/*lul*/}
+            try {channel.sendMessageEmbeds(embed).queue();} catch (Exception ignored) {/*lul*/}
         } catch (JedisException e) {
             log.error("Redis nie odpowiada prawidłowo!", e);
         }
@@ -130,7 +130,7 @@ public class LogListener {
     @AllowConcurrentEvents
     public void onMessageRemoved(MessageDeleteEvent messageDeleteEvent) {
         if (!messageDeleteEvent.isFromGuild()) return;
-        LogMessage m = findMessage(messageDeleteEvent.getTextChannel(), messageDeleteEvent.getMessageId());
+        LogMessage m = findMessage(messageDeleteEvent.getChannel(), messageDeleteEvent.getMessageId());
         if (m == null) {
             znaneAkcje.remove(messageDeleteEvent.getMessageId());
             return;
@@ -155,14 +155,14 @@ public class LogListener {
             }
             MessageEmbed embed = generateEmbed(LogType.DELETE, m, deletedBy, m.getContentRaw(), false);
             try {
-                channel.sendMessage(embed).queue();
+                channel.sendMessageEmbeds(embed).queue();
             } catch (Exception ignored) {
                 /*lul*/
             }
         } catch (Exception e) {
             MessageEmbed embed = generateEmbed(LogType.DELETE, m, null, m.getContentRaw(), true);
             try {
-                channel.sendMessage(embed).queue();
+                channel.sendMessageEmbeds(embed).queue();
             } catch (Exception ignored) {
                 /*lul*/
             }
@@ -208,7 +208,7 @@ public class LogListener {
                 purgerId != null ? messageBulkDeleteEvent.getJDA().retrieveUserById(purgerId).complete() : null,
                 !errored ? Ustawienia.instance.botUrl + "/purges/" + purge.getId() : null, errored);
         try {
-            channel.sendMessage(embed).queue();
+            channel.sendMessageEmbeds(embed).queue();
         } catch (Exception ignored) {
             /*lul*/
         }
@@ -226,11 +226,11 @@ public class LogListener {
         }
     }
 
-    private LogMessage findMessage(TextChannel channel, String id) {
+    private LogMessage findMessage(MessageChannel channel, String id) {
         return findMessage(channel, id, true);
     }
 
-    private LogMessage findMessage(TextChannel channel, String id, boolean delete) {
+    private LogMessage findMessage(MessageChannel channel, String id, boolean delete) {
         try {
             List<LogMessage> kesz = Objects.requireNonNull(cache.get(channel.getId(), c -> new ArrayList<>()));
             return findMessage(channel, id, delete, kesz);
@@ -240,7 +240,7 @@ public class LogListener {
         }
     }
 
-    private LogMessage findMessage(TextChannel channel, String id, boolean delete, List<LogMessage> kesz) {
+    private LogMessage findMessage(MessageChannel channel, String id, boolean delete, List<LogMessage> kesz) {
         try {
             for (LogMessage m : kesz)
                 if (m.getId().equals(id)) {

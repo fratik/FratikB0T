@@ -19,6 +19,7 @@ package pl.fratik.moderation.commands;
 
 import com.google.common.collect.Lists;
 import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.ChannelType;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.requests.restaction.PermissionOverrideAction;
 import org.jetbrains.annotations.NotNull;
@@ -41,10 +42,19 @@ public class HideCommand extends ModerationCommand {
         this.guildDao = guildDao;
         this.managerKomend = managerKomend;
         name = "hide";
-        aliases = new String[] {"unhide", "ukryj", "schowaj", "zachowajdlaadministracji"};
+        aliases = new String[]{"unhide", "ukryj", "schowaj", "zachowajdlaadministracji"};
         category = CommandCategory.MODERATION;
         permLevel = PermLevel.ADMIN;
         permissions.add(Permission.MANAGE_PERMISSIONS);
+    }
+
+    @Override
+    public boolean preExecute(CommandContext context) {
+        if (context.getMessageChannel().getType() != ChannelType.TEXT) {
+            context.reply(context.getTranslated("generic.text.only"));
+            return false;
+        }
+        return super.preExecute(context);
     }
 
     @Override

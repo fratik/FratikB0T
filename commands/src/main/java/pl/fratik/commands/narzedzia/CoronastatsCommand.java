@@ -73,7 +73,7 @@ public class CoronastatsCommand extends Command {
         cal.add(Calendar.DAY_OF_MONTH, -1);
         Instant dwaDniTemu = cal.toInstant();
         boolean paginated = context.getGuild().getSelfMember()
-                .hasPermission(context.getTextChannel(), Permission.MESSAGE_MANAGE);
+                .hasPermission(context.getGuildChannel(), Permission.MESSAGE_MANAGE);
         if (context.getArgs().length == 0 || context.getArgs()[0] == null) {
             try {
                 JSONObject staty = NetworkUtil.getJson("https://corona.lmao.ninja/v3/covid-19/all");
@@ -166,7 +166,7 @@ public class CoronastatsCommand extends Command {
             }
         }
         new DynamicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(),
-                context.getTlumaczenia(), eventBus).setCustomFooter(true).create(context.getTextChannel(), context.getMessage());
+                context.getTlumaczenia(), eventBus).setCustomFooter(true).create(context.getMessageChannel(), context.getMessage());
         return true;
     }
 

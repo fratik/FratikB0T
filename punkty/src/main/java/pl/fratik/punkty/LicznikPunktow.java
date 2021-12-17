@@ -184,7 +184,10 @@ public class LicznikPunktow {
     @AllowConcurrentEvents
     public void onMessage(MessageReceivedEvent event) {
         try {
-            if (event.getChannel().getType() != ChannelType.TEXT || !event.isFromGuild()) {
+            if (event.getChannel().getType() != ChannelType.TEXT &&
+                    event.getChannel().getType() != ChannelType.GUILD_NEWS_THREAD &&
+                    event.getChannel().getType() != ChannelType.GUILD_PRIVATE_THREAD &&
+                    event.getChannel().getType() != ChannelType.GUILD_PUBLIC_THREAD) {
                 log.debug("Kanał gdzie {} napisał nie jest kanałem tekstowym, nie liczę punktu", event.getAuthor());
                 return;
             }

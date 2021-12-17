@@ -167,7 +167,7 @@ public class StarManager {
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public static boolean checkPermissions(TextChannel kanal) {
-        return kanal.getGuild().getSelfMember().hasPermission(kanal, Permission.MESSAGE_WRITE,
+        return kanal.getGuild().getSelfMember().hasPermission(kanal, Permission.MESSAGE_SEND,
                 Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_HISTORY);
     }
 }

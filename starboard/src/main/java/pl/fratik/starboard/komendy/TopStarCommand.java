@@ -39,8 +39,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 
 public class TopStarCommand extends Command {
 
@@ -65,8 +63,7 @@ public class TopStarCommand extends Command {
 
     @Override
     public boolean execute(@NotNull CommandContext context) {
-        Future<Message> msgFuture = context.getTextChannel().sendMessage(context.getTranslated("generic.loading"))
-                .reference(context.getMessage()).submit();
+        Message msg = context.reply(context.getTranslated("generic.loading"));
         StarsData std = starDataDao.get(context.getGuild());
         Map<String, Integer> stars = new HashMap<>();
         for (StarData sd : std.getStarData().values()) {
@@ -75,15 +72,6 @@ public class TopStarCommand extends Command {
             }
         }
         stars = MapUtil.sortByValueAsc(stars);
-        Message msg;
-        try {
-            msg = msgFuture.get();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return false;
-        } catch (ExecutionException e) {
-            return false;
-        }
         List<EmbedBuilder> pages = new ArrayList<>();
         int i = 0;
         int miejsce = 0;

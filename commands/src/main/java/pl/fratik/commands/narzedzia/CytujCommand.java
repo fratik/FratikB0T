@@ -374,14 +374,14 @@ public class CytujCommand extends Command {
             });
         }
         if (webhookOnly) return; // jeżeli tylko webhook, a doszliśmy tu to anuluj
-        MessageAction ma = ch.sendMessage(eb.build()).allowedMentions(alments);
+        MessageAction ma = ch.sendMessageEmbeds(eb.build()).allowedMentions(alments);
         if (trescCytatu != null && !trescCytatu.isEmpty()) {
             trescCytatu = URL_PATTERN.matcher(trescCytatu).replaceAll("[URL]");
             ma = ma.content("**" + UserUtil.formatDiscrim(execMsg.getAuthor()) + "**: " + trescCytatu);
         }
         ma.queue();
         if (!msg.getEmbeds().isEmpty()) {
-            ch.sendMessage(msg.getEmbeds().get(0)).complete();
+            ch.sendMessageEmbeds(msg.getEmbeds().get(0)).complete();
         }
         try {
             if ((trescCytatu != null && !trescCytatu.isEmpty()) || webhookManager.hasWebhook(ch)) {

@@ -69,7 +69,7 @@ class TagsManager {
 
     @Subscribe
     public void onMessage(MessageReceivedEvent e) {
-        if (!e.isFromType(ChannelType.TEXT)) return;
+        if (!e.isFromGuild()) return;
         @NotNull Tags tagi = Objects.requireNonNull(tagsCache.get(e.getGuild().getId(), tagsDao::get));
         Tag tag = getTagByName(getFirstWord(e.getMessage()), tagi);
         if (tag == null) return;
@@ -79,9 +79,9 @@ class TagsManager {
         try {
             SelfUser su = e.getJDA().getSelfUser();
             webhookManager.send(new WebhookMessageBuilder().setContent(tag.getContent()).setAvatarUrl(su.getAvatarUrl())
-                    .setAllowedMentions(AllowedMentions.none()).setUsername(su.getName()).build(), e.getTextChannel());
+                    .setAllowedMentions(AllowedMentions.none()).setUsername(su.getName()).build(), (GuildChannel) e.getChannel());
         } catch (Exception err) {
-            e.getChannel().sendMessage(generateEmbed(tag, tlumaczenia.getLanguage(e.getMember()), e.getGuild())).queue();
+            e.getChannel().sendMessageEmbeds(generateEmbed(tag, tlumaczenia.getLanguage(e.getMember()), e.getGuild())).queue();
         }
         try {
             Emoji reakcja = managerKomend.getReakcja(e.getMessage().getAuthor(), true);

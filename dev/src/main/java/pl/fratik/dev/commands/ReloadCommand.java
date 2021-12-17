@@ -67,19 +67,19 @@ public class ReloadCommand extends Command {
             eb.setDescription(eb.getDescriptionBuilder().toString().replace(pytajnik +  ODMO,
                     rtick.getAsMention() + ODMO + ": moduł nie znaleziony"));
             eb.setColor(Color.red);
-            msg.editMessage(eb.build()).override(true).complete();
+            msg.editMessageEmbeds(eb.build()).override(true).complete();
             return false;
         }
         if (context.getArgs()[0].equals("core")) {
             eb.setDescription(eb.getDescriptionBuilder().toString().replace(pytajnik +  ODMO,
                     rtick.getAsMention() + ODMO + ": moduł core nie może być przeładowany"));
             eb.setColor(Color.red);
-            msg.editMessage(eb.build()).override(true).complete();
+            msg.editMessageEmbeds(eb.build()).override(true).complete();
             return false;
         }
         eb.setDescription(eb.getDescriptionBuilder().toString().replace(pytajnik +  ODMO,
                 gtick.getAsMention() + ODMO));
-        msg.editMessage(eb.build()).override(true).complete();
+        msg.editMessageEmbeds(eb.build()).override(true).complete();
         try {
             boolean odp = managerModulow.stopModule((String) context.getArgs()[0]);
             if (!odp) throw new Exception("Unload modułu nieudany - sprawdź konsolę.");
@@ -89,12 +89,12 @@ public class ReloadCommand extends Command {
             eb.setDescription(eb.getDescriptionBuilder().toString().replace(pytajnik +  UNLOAD,
                     rtick.getAsMention() + " Unload: " + e.getMessage()));
             eb.setColor(Color.red);
-            msg.editMessage(eb.build()).override(true).complete();
+            msg.editMessageEmbeds(eb.build()).override(true).complete();
             return false;
         }
         eb.setDescription(eb.getDescriptionBuilder().toString().replace(pytajnik +  UNLOAD,
                 gtick.getAsMention() + UNLOAD));
-        msg.editMessage(eb.build()).override(true).complete();
+        msg.editMessageEmbeds(eb.build()).override(true).complete();
         try {
             managerModulow.load(path.getAbsolutePath());
             boolean odp = managerModulow.startModule((String) context.getArgs()[0]);
@@ -104,13 +104,13 @@ public class ReloadCommand extends Command {
             eb.setDescription(eb.getDescriptionBuilder().toString().replace(pytajnik +  LOAD,
                     rtick.getAsMention() + LOAD + ": " + e.getMessage()));
             eb.setColor(Color.red);
-            msg.editMessage(eb.build()).override(true).complete();
+            msg.editMessageEmbeds(eb.build()).override(true).complete();
             return false;
         }
         eb.setDescription(eb.getDescriptionBuilder().toString().replace(pytajnik +  LOAD,
                 gtick.getAsMention() + LOAD));
         eb.setColor(Color.green);
-        msg.editMessage(eb.build()).override(true).complete();
+        msg.editMessageEmbeds(eb.build()).override(true).complete();
         return true;
     }
 }

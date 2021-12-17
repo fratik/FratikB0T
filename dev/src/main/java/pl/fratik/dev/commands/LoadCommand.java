@@ -65,19 +65,19 @@ public class LoadCommand extends Command {
             eb.setDescription(eb.getDescriptionBuilder().toString().replace(pytajnik +  SPSC,
                     rtick.getAsMention() + SPSC + ": ścieżka nie istnieje"));
             eb.setColor(Color.red);
-            msg.editMessage(eb.build()).override(true).complete();
+            msg.editMessageEmbeds(eb.build()).override(true).complete();
             return false;
         }
         if (managerModulow.isLoaded(managerModulow.getDescription(path).getName())) {
             eb.setDescription(eb.getDescriptionBuilder().toString().replace(pytajnik +  SPSC,
                     rtick.getAsMention() + SPSC + ": moduł jest już wczytany"));
             eb.setColor(Color.red);
-            msg.editMessage(eb.build()).override(true).complete();
+            msg.editMessageEmbeds(eb.build()).override(true).complete();
             return false;
         }
         eb.setDescription(eb.getDescriptionBuilder().toString().replace(pytajnik +  SPSC,
                 gtick.getAsMention() + SPSC));
-        msg.editMessage(eb.build()).override(true).complete();
+        msg.editMessageEmbeds(eb.build()).override(true).complete();
         try {
             managerModulow.load(path.getAbsolutePath());
             boolean odp = managerModulow.startModule(managerModulow.getDescription(path).getName());
@@ -87,13 +87,13 @@ public class LoadCommand extends Command {
             eb.setDescription(eb.getDescriptionBuilder().toString().replace(pytajnik +  WCZ,
                     rtick.getAsMention() + WCZ + ": " + e.getMessage()));
             eb.setColor(Color.red);
-            msg.editMessage(eb.build()).override(true).complete();
+            msg.editMessageEmbeds(eb.build()).override(true).complete();
             return false;
         }
         eb.setDescription(eb.getDescriptionBuilder().toString().replace(pytajnik +  WCZ,
                 gtick.getAsMention() + WCZ));
         eb.setColor(Color.green);
-        msg.editMessage(eb.build()).override(true).complete();
+        msg.editMessageEmbeds(eb.build()).override(true).complete();
         return true;
     }
 }

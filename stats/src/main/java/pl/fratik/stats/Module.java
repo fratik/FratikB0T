@@ -177,7 +177,6 @@ public class Module implements Modul {
 
     @Subscribe
     private void onGuildLeave(GuildLeaveEvent e) {
-        if (!e.getGuild().isAvailable()) return;
         wiadomosci.remove(e.getGuild().getId());
     }
 

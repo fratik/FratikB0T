@@ -21,7 +21,7 @@ import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.Subscribe;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageUpdateEvent;
+import net.dv8tion.jda.api.events.message.MessageUpdateEvent;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import pl.fratik.core.Globals;
 import pl.fratik.core.cache.Cache;
@@ -32,6 +32,7 @@ import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Kara;
 import pl.fratik.core.manager.ManagerKomend;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
+import pl.fratik.core.util.CommonUtil;
 import pl.fratik.core.util.UserUtil;
 import pl.fratik.moderation.entity.Case;
 import pl.fratik.moderation.entity.CaseDao;
@@ -61,9 +62,9 @@ public class AntiInviteListener {
     @Subscribe
     @AllowConcurrentEvents
     public void onMessage(MessageReceivedEvent e) {
-        if (!e.isFromType(ChannelType.TEXT) || e.getMember() == null || e.getAuthor().isBot() ||
-                !e.getTextChannel().canTalk()) return;
-        if (!isAntiinvite(e.getGuild()) || isIgnored(e.getTextChannel())) return;
+        if (e.isFromType(ChannelType.PRIVATE) || e.getMember() == null || e.getAuthor().isBot() ||
+                !CommonUtil.canTalk(e.getChannel())) return;
+        if (!isAntiinvite(e.getGuild()) || isIgnored((GuildChannel) e.getChannel())) return;
         if (!e.getGuild().getSelfMember().canInteract(e.getMember())) return;
         if (UserUtil.getPermlevel(e.getMember(), guildDao, shardManager, PermLevel.OWNER).getNum() >= 1) return;
 
@@ -72,10 +73,10 @@ public class AntiInviteListener {
 
     @Subscribe
     @AllowConcurrentEvents
-    public void onEdit(GuildMessageUpdateEvent e) {
-        if (e.getMember() == null || e.getAuthor().isBot() ||
-                !e.getChannel().canTalk()) return;
-        if (!isAntiinvite(e.getGuild()) || isIgnored(e.getChannel())) return;
+    public void onEdit(MessageUpdateEvent e) {
+        if (e.getMember() == null || e.getAuthor().isBot() || !e.isFromGuild() ||
+                !CommonUtil.canTalk(e.getChannel())) return;
+        if (!isAntiinvite(e.getGuild()) || isIgnored((GuildChannel) e.getChannel())) return;
         if (!e.getGuild().getSelfMember().canInteract(e.getMember())) return;
         if (UserUtil.getPermlevel(e.getMember(), guildDao, shardManager, PermLevel.OWNER).getNum() >= 1) return;
 
@@ -118,7 +119,7 @@ public class AntiInviteListener {
         return a != null && a;
     }
 
-    private boolean isIgnored(TextChannel channel) {
+    private boolean isIgnored(GuildChannel channel) {
         List<String> id = gcCache.get(channel.getGuild().getId(), guildDao::get).getKanalyGdzieAntiInviteNieDziala();
         if (id != null) return id.contains(channel.getId());
         return false;

@@ -52,7 +52,7 @@ abstract class ModerationCommand extends Command {
 
     @Override
     public boolean preExecute(CommandContext context) {
-        if (!context.isDirect() && !context.getTextChannel().canTalk()) return false;
+        if (!context.isDirect() && !context.canTalk()) return false;
         if (needsPerms && !ModLogListener.checkPermissions(context.getGuild())) {
             context.reply(context.getTranslated("moderation.bot.no.permissions"));
             return false;

@@ -103,7 +103,7 @@ public class TekstCommand extends MusicCommand {
                         context.getTlumaczenia(), eventBus).create(loading);
                 return true;
             }
-            loading.editMessage(new EmbedBuilder().setTitle(p.title, p.website)
+            loading.editMessageEmbeds(new EmbedBuilder().setTitle(p.title, p.website)
                     .setThumbnail(p.imageLink).setColor(CommonUtil.getPrimColorFromImageUrl(p.imageLink))
                     .setDescription(p.slowa).build()).override(true).complete();
             return true;

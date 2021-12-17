@@ -163,7 +163,7 @@ public class PopCommand extends Command {
             Role role = context.getGuild().createRole().setColor(decode("#f11515"))
                     .setName(context.getTranslated("pop.role.name")).setMentionable(false).complete();
             context.getTextChannel().createPermissionOverride(role)
-                    .setAllow(Permission.MESSAGE_WRITE, Permission.VIEW_CHANNEL).complete();
+                    .setAllow(Permission.MESSAGE_SEND, Permission.VIEW_CHANNEL).complete();
             Invite invite = context.getTextChannel().createInvite().setMaxAge(86400).setMaxUses(5)
                     .reason(context.getTranslated("pop.invite.reason")).complete();
             //skonwertowane z js
@@ -185,7 +185,7 @@ public class PopCommand extends Command {
             TextChannel ch = fdev.getTextChannelById(Ustawienia.instance.popChannel);
             if (ch == null) throw new IllegalStateException("nie ma popChannel/nieprawidłowy");
             Message msg = ch.sendMessage("<@&" + Ustawienia.instance.popRole + ">\nhttp://discord.gg/" +
-                            invite.getCode()).embed(eb.build()).mentionRoles(Ustawienia.instance.popRole).complete();
+                            invite.getCode()).setEmbeds(eb.build()).mentionRoles(Ustawienia.instance.popRole).complete();
             popRole.getManager().setMentionable(false).complete();
             msg.addReaction("\uD83D\uDDD1").queue();
             context.reply(context.getTranslated("pop.success"));
@@ -214,6 +214,10 @@ public class PopCommand extends Command {
         }
         if (UserUtil.getPermlevel(context.getMember(), guildDao, shardManager).getNum() < PermLevel.MOD.getNum()) {
             context.reply(context.getTranslated("pop.no.perms", context.getPrefix()));
+            return false;
+        }
+        if (context.getMessageChannel().getType() != ChannelType.TEXT) {
+            context.reply(context.getTranslated("pop.only.text", context.getPrefix()));
             return false;
         }
         return super.preExecute(context);

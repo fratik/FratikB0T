@@ -17,10 +17,20 @@
 
 package pl.fratik.core.command;
 
+import net.dv8tion.jda.api.entities.ChannelType;
+import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.entities.ThreadChannel;
+
 public abstract class NsfwCommand extends Command {
     @Override
     public boolean preExecute(CommandContext context) {
-        if (!context.getTextChannel().isNSFW()) {
+        boolean isNsfw;
+        if (context.getMessageChannel().getType() == ChannelType.TEXT) isNsfw = context.getTextChannel().isNSFW();
+        else if (context.getMessageChannel() instanceof ThreadChannel &&
+                ((ThreadChannel) context.getMessageChannel()).getParentChannel() instanceof TextChannel)
+            isNsfw = ((TextChannel) ((ThreadChannel) context.getMessageChannel()).getParentChannel()).isNSFW();
+        else isNsfw = false;
+        if (!isNsfw) {
             context.reply(context.getTranslated("generic.not.nsfw"));
             return false;
         }

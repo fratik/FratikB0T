@@ -67,7 +67,7 @@ public class Ustawienia {
     public String translationUrl = "https://translate.fratikbot.pl";
 
     public static class GamesClass {
-        public Activity.ActivityType type = Activity.ActivityType.DEFAULT;
+        public Activity.ActivityType type = Activity.ActivityType.PLAYING;
         public List<String> games = Arrays.asList("Shard {SHARD}/{SHARDS}", "v{VERSION}", "{USERS:ALL} użytkowników", "{SERVERS:ALL} serwerów", "{PREFIX}help", "{PREFIX}pop aby zawołać wsparcie bota", "{PREFIX}dashboard", "discord.gg/CZ8pXah \uD83D\uDE03");
     }
 

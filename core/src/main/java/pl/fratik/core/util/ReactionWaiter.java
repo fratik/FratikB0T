@@ -19,7 +19,6 @@ package pl.fratik.core.util;
 
 import lombok.Getter;
 import lombok.Setter;
-import net.dv8tion.jda.api.entities.ChannelType;
 import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
 import pl.fratik.core.command.CommandContext;
 
@@ -44,7 +43,7 @@ public class ReactionWaiter {
     }
 
     protected boolean checkReaction(MessageReactionAddEvent event) {
-        return event.isFromType(ChannelType.TEXT) && event.getTextChannel().equals(context.getTextChannel())
+        return event.isFromType(context.getMessageChannel().getType()) && event.getChannel().equals(context.getMessageChannel())
                 && event.getUser().equals(context.getSender());
     }
 

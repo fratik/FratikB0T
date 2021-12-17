@@ -22,10 +22,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.eventbus.EventBus;
 import gg.amy.pgorm.PgMapper;
 import gg.amy.pgorm.PgStore;
-import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.entities.*;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.entity.Dao;
 import pl.fratik.core.event.DatabaseUpdateEvent;
@@ -123,7 +120,7 @@ public class CaseDao implements Dao<Case> {
      * @param language Język członka serwera
      * @return Dodana sprawa z poprawnym ID
      */
-    public Case createNew(Case toModify, Case aCase, boolean sendDm, TextChannel channel, Language language) {
+    public Case createNew(Case toModify, Case aCase, boolean sendDm, MessageChannel channel, Language language) {
         lock(aCase.getGuildId());
         try {
             AtomicReference<Case> createdCase = new AtomicReference<>();

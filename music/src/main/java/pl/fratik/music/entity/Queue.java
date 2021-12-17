@@ -24,8 +24,8 @@ import gg.amy.pgorm.annotations.GIndex;
 import gg.amy.pgorm.annotations.PrimaryKey;
 import gg.amy.pgorm.annotations.Table;
 import lombok.Data;
+import net.dv8tion.jda.api.entities.AudioChannel;
 import net.dv8tion.jda.api.entities.MessageChannel;
-import net.dv8tion.jda.api.entities.VoiceChannel;
 import pl.fratik.core.entity.DatabaseEntity;
 import pl.fratik.music.managers.ManagerMuzykiSerwera;
 import pl.fratik.music.serializer.QueueDeserializer;
@@ -50,7 +50,7 @@ public class Queue implements DatabaseEntity {
     private long aktualnaPozycja;
     private boolean pauza;
     private RepeatMode repeatMode;
-    private VoiceChannel voiceChannel;
+    private AudioChannel voiceChannel;
     private int volume;
 
     public void autoSave(ManagerMuzykiSerwera mms) {

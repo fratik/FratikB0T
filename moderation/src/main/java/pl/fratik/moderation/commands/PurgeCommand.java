@@ -19,6 +19,7 @@ package pl.fratik.moderation.commands;
 
 import lombok.Getter;
 import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.ChannelType;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageHistory;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
@@ -53,6 +54,15 @@ public class PurgeCommand extends ModerationCommand { //TODO: 1000 wiadomosci dl
         permissions.add(Permission.MESSAGE_MANAGE);
         znanePurge = new HashMap<>(); //NOSONAR
         aliases = new String[] {"usunwiad", "clear", "usunwiadomosci", "usun", "usunwiadomosciztegokanalu", "usuwam", "clearpruge", "czysc", "backspace", "delete"};
+    }
+
+    @Override
+    public boolean preExecute(CommandContext context) {
+        if (context.getMessageChannel().getType() != ChannelType.TEXT) {
+            context.reply(context.getTranslated("generic.text.only")); //todo - purge może być wspierane ale jestem leniwą prukwą
+            return false;
+        }
+        return super.preExecute(context);
     }
 
     @Override

@@ -36,8 +36,10 @@ import pl.fratik.core.event.DatabaseUpdateEvent;
 
 import java.awt.*;
 import java.net.URLEncoder;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Optional;
 import java.util.TimeZone;
 
 public class UserUtil {
@@ -45,6 +47,7 @@ public class UserUtil {
     @Setter private static Cache<GuildConfig> gcCache;
     @Setter private static Cache<GbanData> gbanCache;
     @Setter private static Cache<String> timeZoneCache;
+    @Setter private static Cache<Integer> colorCache;
 
     @Setter private static GbanDao gbanDao;
 
@@ -165,6 +168,10 @@ public class UserUtil {
     }
 
     public static Color getPrimColor(User user) {
+        Integer cached = colorCache.getIfPresent(user.getId());
+        if (cached == null)
+            user.retrieveProfile().queue(p -> colorCache.put(user.getId(), p.getAccentColorRaw()));
+        if (cached != null && cached != User.DEFAULT_ACCENT_COLOR_RAW) return new Color(cached);
         try {
             JSONObject zdjecie = NetworkUtil.getJson(Ustawienia.instance.apiUrls.get("image-server") +
                             "/api/image/primColor?imageURL=" + URLEncoder.encode(user.getEffectiveAvatarUrl()

@@ -122,7 +122,7 @@ public class OsuCommand extends Command {
                     DurationUtil.humanReadableFormat(u.getTotalSecondsPlayed() * 1000, false),
                     true);
             eb.setColor(context.getMember().getColorRaw());
-            mes.editMessage(eb.build()).override(true).complete();
+            mes.editMessageEmbeds(eb.build()).override(true).complete();
         } catch (OsuAPIException | MalformedURLException e) {
             mes.editMessage(context.getTranslated("osu.error")).queue();
             return false;

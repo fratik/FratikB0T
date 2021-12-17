@@ -247,7 +247,7 @@ public class ManagerKomendImpl implements ManagerKomend {
     }
 
     private void prefixReminder(MessageReceivedEvent event, List<String> prefixes) {
-        if (!event.getTextChannel().canTalk()) {
+        if (!CommonUtil.canTalk(event.getChannel())) {
             event.getMessage().addReaction("\u274c").queue();
             return;
         }
@@ -494,7 +494,10 @@ public class ManagerKomendImpl implements ManagerKomend {
     @AllowConcurrentEvents
     public void handleMessage(MessageReceivedEvent event) {
         if (event.getAuthor().isBot()) return;
-        if (event.getChannelType() == ChannelType.TEXT) {
+        if (event.getChannelType() == ChannelType.TEXT ||
+                event.getChannelType() == ChannelType.GUILD_NEWS_THREAD ||
+                event.getChannelType() == ChannelType.GUILD_PUBLIC_THREAD ||
+                event.getChannelType() == ChannelType.GUILD_PRIVATE_THREAD) {
             this.handleGuild(event);
         } else if (event.getChannelType() == ChannelType.PRIVATE) {
             this.handlePrivate(event);

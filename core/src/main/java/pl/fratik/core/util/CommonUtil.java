@@ -17,10 +17,8 @@
 
 package pl.fratik.core.util;
 
-import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.MessageActivity;
-import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import net.dv8tion.jda.internal.entities.AbstractMessage;
 import org.json.JSONObject;
@@ -251,5 +249,12 @@ public class CommonUtil {
             hexColor = "000000".substring(0, 6 - hexColor.length()) + hexColor;
         }
         return hexColor;
+    }
+
+    public static boolean canTalk(MessageChannel chan) {
+        if (chan instanceof GuildMessageChannel) return ((GuildMessageChannel) chan).canTalk();
+        if (chan.getType() == ChannelType.GROUP || chan.getType() == ChannelType.PRIVATE)
+            return true;
+        return false;
     }
 }

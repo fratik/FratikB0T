@@ -27,7 +27,7 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
-import net.dv8tion.jda.api.events.channel.text.TextChannelDeleteEvent;
+import net.dv8tion.jda.api.events.channel.ChannelDeleteEvent;
 import net.dv8tion.jda.api.events.guild.GuildLeaveEvent;
 import net.dv8tion.jda.api.events.interaction.ButtonClickEvent;
 import net.dv8tion.jda.api.events.interaction.SelectionMenuEvent;
@@ -36,6 +36,7 @@ import net.dv8tion.jda.api.events.message.MessageDeleteEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.user.update.UserUpdateNameEvent;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
+import net.dv8tion.jda.api.exceptions.InsufficientPermissionException;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.Button;
@@ -45,6 +46,7 @@ import net.dv8tion.jda.api.interactions.components.selections.SelectOption;
 import net.dv8tion.jda.api.interactions.components.selections.SelectionMenu;
 import net.dv8tion.jda.api.requests.ErrorResponse;
 import net.dv8tion.jda.api.requests.restaction.MessageAction;
+import net.dv8tion.jda.api.requests.restaction.ThreadChannelAction;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import okhttp3.Response;
 import org.apache.batik.anim.dom.SAXSVGDocumentFactory;
@@ -82,11 +84,12 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static net.dv8tion.jda.api.requests.ErrorResponse.UNKNOWN_CHANNEL;
 import static net.dv8tion.jda.api.requests.ErrorResponse.UNKNOWN_INTERACTION;
 import static pl.fratik.core.util.StreamUtil.*;
 
 public class Chinczyk {
-    private static final byte CHINCZYK_VERSION = 0x04;
+    private static final byte CHINCZYK_VERSION = 0x05;
     private static final byte[] CHINCZYK_HEADER = new byte[] {0x21, 0x37};
     private static final Map<String, String> BOARD_COORDS;
     private static final String FILE_NAME = "board";
@@ -139,6 +142,8 @@ public class Chinczyk {
     @Getter private boolean cheats; // tu nic nie ma 👀
     private ChinczykSkin skin;
     private final Map<String, ChinczykSkin> availableSkins;
+    private ThreadChannel thread;
+    private boolean threadCreated;
 
     public static boolean canBeUsed() {
         return mulish != null && plansza != null && lato != null && WIDTH != -1 && HEIGHT != -1;
@@ -301,7 +306,9 @@ public class Chinczyk {
             if (!Arrays.equals(CHINCZYK_HEADER, header)) throw new IOException("nieoczekiwany nagłówek");
             int version = is.read();
             if (version == -1) throw new EOFException();
-            if (version != CHINCZYK_VERSION) throw new IOException("niezgodność wersji pliku");
+            if (version != CHINCZYK_VERSION) {
+                if (version != 4) throw new IOException("niezgodność wersji pliku");
+            }
             long executerId = readLong(is);
             try {
                 executer = sm.retrieveUserById(executerId).complete();
@@ -344,6 +351,10 @@ public class Chinczyk {
             if (rawCheats == -1) throw new EOFException();
             cheats = rawCheats != 0;
             skin = ChinczykSkin.deserialize(is);
+            if (version != 4) {
+                long threadId = readLong(is);
+                if (threadId != 0) thread = ((GuildChannel) channel).getGuild().getThreadChannelById(threadId);
+            } else threadCreated = true; // by nie stworzył wątku
             gameDuration = readUnsignedInt(is);
             Instant started = Instant.ofEpochMilli(readLong(is));
             Instant saved = Instant.ofEpochMilli(readLong(is));
@@ -937,6 +948,7 @@ public class Chinczyk {
                             e.deferReply(true).complete();
                             Player player = new Player(place, e.getUser(), e.getHook());
                             Message control = e.getHook().sendMessage(generateControlMessage(player)).setEphemeral(true).complete();
+                            if (thread != null) thread.addThreadMember(e.getMember()).onErrorMap(ex -> null).complete();
                             player.setControlMessageId(control.getIdLong());
                             players.put(place, player);
                         } catch (ErrorResponseException ex) {
@@ -1171,6 +1183,10 @@ public class Chinczyk {
             // nic
         }
         try {
+            if (thread != null) thread.delete().complete();
+            thread = null;
+        } catch (Exception ignored) {}
+        try {
             endCallback.accept(this);
         } catch (Exception ignored) {}
         if (message != null) message.editMessage(t.get(l, key == null ? "chinczyk.aborted" : key)).override(true).queue();
@@ -1291,7 +1307,8 @@ public class Chinczyk {
             lock.lock();
             try {
                 cheats = true;
-                if (!e.isFromGuild() || e.getGuild().getSelfMember().hasPermission(e.getTextChannel(), Permission.MESSAGE_ADD_REACTION))
+                if (!e.isFromGuild() || e.getGuild().getSelfMember().hasPermission((GuildChannel) e.getChannel(),
+                        Permission.MESSAGE_ADD_REACTION))
                     e.getMessage().addReaction("\uD83D\uDC40").onErrorMap(err -> null).complete();
                 updateMainMessage(false);
             } finally {
@@ -1347,7 +1364,7 @@ public class Chinczyk {
     }
     
     @Subscribe
-    public void onChannelDelete(TextChannelDeleteEvent e) {
+    public void onChannelDelete(ChannelDeleteEvent e) {
         if (e.getChannel().getIdLong() == getChannel().getIdLong()) {
             status = Status.CANCELLED;
             aborted(null);
@@ -1375,9 +1392,15 @@ public class Chinczyk {
             ImageIO.write(renderBoard(), "png", baos);
             byte[] board = baos.toByteArray();
             String fileName = FILE_NAME + ".png";
-            if (message == null) message = channel.sendMessage(generateMessage(fileName))
-                    .referenceById(referenceMessageId).addFile(board, fileName).complete();
-            else {
+            if (message == null) {
+                message = channel.sendMessage(generateMessage(fileName))
+                        .referenceById(referenceMessageId).addFile(board, fileName).complete();
+                if ((!threadCreated && thread == null) && channel.getType() == ChannelType.TEXT)
+                    thread = ((ThreadChannelAction) message.createThreadChannel(t.get(l, "chinczyk.thread.name")))
+                            .setAutoArchiveDuration(ThreadChannel.AutoArchiveDuration.TIME_1_HOUR)
+                            .onErrorMap(err -> null).complete();
+                threadCreated = true;
+            } else {
                 Message msg = generateMessage(fileName);
                 MessageAction ma = message.editMessage(msg);
                 if (rerenderBoard) ma = ma.retainFiles(Collections.emptySet()).addFile(board, fileName);
@@ -1389,14 +1412,11 @@ public class Chinczyk {
                     try {
                         BoardReplayRenderer renderer = renderReplay();
                         if (renderer == null) return;
-                        MessageAction ma = message.reply(t.get(l, "chinczyk.replay"));
-                        try {
-                            //noinspection ResultOfMethodCallIgnored
-                            ma.addFile(renderer.getStream(), "chinczykreplay." + renderer.getFormatExtension());
-                        } catch (Exception ex) {
-                            return; //plik za duży, ignoruj
-                        }
-                        ma.complete();
+                        InputStream rendererStream = renderer.getStream();
+                        ByteArrayOutputStream powtorkaBaos = new ByteArrayOutputStream();
+                        int read;
+                        while ((read = rendererStream.read()) != -1) powtorkaBaos.write(read);
+                        sendReplay(renderer, powtorkaBaos);
                     } catch (Exception ex) {
                         if (ex instanceof ErrorResponseException) return; //ignoruj błędy wysłania
                         try {
@@ -1414,6 +1434,29 @@ public class Chinczyk {
         } finally {
             lock.unlock();
         }
+    }
+
+    private void sendReplay(BoardReplayRenderer renderer, ByteArrayOutputStream powtorka) {
+        MessageAction ma;
+        if (thread == null) ma = message.reply(t.get(l, "chinczyk.replay"));
+        else ma = thread.sendMessage(t.get(l, "chinczyk.replay"));
+        try {
+            //noinspection ResultOfMethodCallIgnored
+            ma.addFile(powtorka.toByteArray(), "chinczykreplay." + renderer.getFormatExtension());
+        } catch (Exception ex) {
+            return; // za duży, ignoruj
+        }
+        try {
+            Message msg = ma.complete();
+            if (thread != null) msg.pin().complete();
+        } catch (ErrorResponseException ex) {
+            if (ex.getErrorResponse() == UNKNOWN_CHANNEL) {
+                thread = null;
+                sendReplay(renderer, powtorka);
+                return;
+            }
+            if (ex.getErrorResponse() != ErrorResponse.MISSING_PERMISSIONS) throw ex;
+        } catch (InsufficientPermissionException ignored) {}
     }
 
     private void errored(Exception e) {
@@ -1645,6 +1688,7 @@ public class Chinczyk {
             writeLong(baos, Rules.toRaw(rules));
             baos.write(cheats ? 1 : 0);
             skin.serialize(baos);
+            writeLong(baos, thread == null ? 0 : thread.getIdLong());
             writeUnsignedInt(baos, gameDuration);
             writeLong(baos, start.toEpochMilli());
             writeLong(baos, now.toEpochMilli());

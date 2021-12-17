@@ -52,6 +52,7 @@ import pl.fratik.core.util.NetworkUtil;
 import javax.security.auth.login.LoginException;
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.FutureTask;
 import java.util.stream.Collectors;
@@ -158,8 +159,16 @@ public class Rule34Command extends NsfwCommand {
         List<FutureTask<EmbedBuilder>> pages = new ArrayList<>();
         for (int i = 0; i <= count / limit; i++) {
             int finalI = i;
-            strony.put(i, new FutureTask<>(() -> GsonUtil.fromJSON(NetworkUtil.download(url + "&"+ pgq + "=" +
-                    finalI), postCls)));
+            strony.put(i, new FutureTask<>(() -> {
+                String download = new String(NetworkUtil.download(url + "&" + pgq + "=" + finalI), StandardCharsets.UTF_8);
+                try {
+                    return GsonUtil.fromJSON(download, postCls);
+                } catch (JsonParseException ex) {
+                    logger.error("chujwdupei", ex);
+                    logger.error(download);
+                    throw ex;
+                }
+            }));
         }
         int strona = -1;
         for (int i = 0; i < count; i++) {

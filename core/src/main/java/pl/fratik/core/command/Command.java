@@ -21,6 +21,7 @@ import io.sentry.Sentry;
 import io.sentry.event.User;
 import lombok.Getter;
 import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.GuildChannel;
 import net.dv8tion.jda.api.exceptions.InsufficientPermissionException;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -65,7 +66,7 @@ public abstract class Command {
     private ArrayList<Permission> getBasicPermissions() {
         ArrayList<Permission> list = new ArrayList<>();
         list.add(Permission.VIEW_CHANNEL);
-        list.add(Permission.MESSAGE_WRITE);
+        list.add(Permission.MESSAGE_SEND);
         return list;
     }
 
@@ -75,7 +76,7 @@ public abstract class Command {
     }
 
     public boolean preExecute(CommandContext context) {
-        if (!context.isDirect() && !context.getTextChannel().canTalk())
+        if (!context.isDirect() && !context.canTalk())
             return false;
 
         if (context.getRawArgs().length != 0) {
@@ -123,7 +124,7 @@ public abstract class Command {
             }
         }
 
-        if (!context.isDirect() && !context.getGuild().getSelfMember().hasPermission(context.getTextChannel(), permissions)) {
+        if (!context.isDirect() && !context.getGuild().getSelfMember().hasPermission((GuildChannel) context.getMessageChannel(), permissions)) {
             context.reply(context.getTranslated("generic.no.botpermission", permissions.stream().map((Permission::getName)).collect(Collectors.joining(", "))));
             return false;
         }

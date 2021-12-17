@@ -146,7 +146,7 @@ public class ZglosPrivCommand extends Command {
             Role popRole = Objects.requireNonNull(botgild.getRoleById(Ustawienia.instance.popRole));
             popRole.getManager().setMentionable(true).complete();
             Objects.requireNonNull(shardManager.getTextChannelById(Ustawienia.instance.zglosPrivChannel))
-                    .sendMessage(popRole.getAsMention()).mention(popRole).embed(eb.build()).setActionRows(
+                    .sendMessage(popRole.getAsMention()).mention(popRole).setEmbeds(eb.build()).setActionRows(
                             ActionRow.of(
                                     Button.success("CLOSE", "Uniewinnij"),
                                     Button.danger("ACTION", "Ukarz")

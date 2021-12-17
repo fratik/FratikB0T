@@ -138,13 +138,13 @@ public class EvalCommand extends Command {
                 eb.addField("\ud83d\udce4 INPUT", codeBlock("js", (String) context.getArgs()[0]), false);
                 eb.addField("\ud83d\udce5 OUTPUT", "Output evala został ukryty bo zawiera prywatne " +
                         "dane: sprawdź konsolę!", false);
-                message.editMessage(eb.build()).override(true).queue();
+                message.editMessageEmbeds(eb.build()).override(true).queue();
             } else {
                 EmbedBuilder eb = new EmbedBuilder();
                 eb.setColor(Color.GREEN);
                 eb.addField("\ud83d\udce4 INPUT", codeBlock("js", (String) context.getArgs()[0]), false);
                 eb.addField("\ud83d\udce5 OUTPUT", codeBlock(e), false);
-                message.editMessage(eb.build()).override(true).queue();
+                message.editMessageEmbeds(eb.build()).override(true).queue();
             }
         } catch (Exception e) {
             logger.error("Eval error:", e);
@@ -152,7 +152,7 @@ public class EvalCommand extends Command {
             eb.setColor(Color.RED);
             eb.addField("\ud83d\udce4 INPUT", codeBlock("js", (String) context.getArgs()[0]), false);
             eb.addField("\u2620\ufe0f ERROR", codeBlock(e.toString()), false);
-            message.editMessage(eb.build()).override(true).queue();
+            message.editMessageEmbeds(eb.build()).override(true).queue();
         }
         return true;
     }

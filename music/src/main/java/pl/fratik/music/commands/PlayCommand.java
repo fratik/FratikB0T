@@ -23,8 +23,8 @@ import io.sentry.Sentry;
 import io.sentry.event.User;
 import lavalink.client.io.Link;
 import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.AudioChannel;
 import net.dv8tion.jda.api.entities.GuildVoiceState;
-import net.dv8tion.jda.api.entities.VoiceChannel;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.entity.GuildDao;
@@ -83,7 +83,7 @@ public class PlayCommand extends MusicCommand {
         }
         GuildVoiceState memVS = context.getMember().getVoiceState();
         GuildVoiceState selfVS = context.getGuild().getSelfMember().getVoiceState();
-        if (memVS == null || !memVS.inVoiceChannel()) {
+        if (memVS == null || !memVS.inAudioChannel()) {
             context.reply(context.getTranslated("play.not.connected"));
             return false;
         }
@@ -92,7 +92,7 @@ public class PlayCommand extends MusicCommand {
             context.reply(context.getTranslated("music.different.channels"));
             return false;
         }
-        VoiceChannel kanal = memVS.getChannel();
+        AudioChannel kanal = memVS.getChannel();
         if (kanal == null) throw new IllegalStateException("połączony ale nie na kanale, co do");
         EnumSet<Permission> upr = context.getGuild().getSelfMember().getPermissions(kanal);
         if (!Stream.of(Permission.VIEW_CHANNEL, Permission.VOICE_CONNECT, Permission.VOICE_SPEAK).allMatch(upr::contains)) {

@@ -129,9 +129,13 @@ public class MuteCommand extends ModerationCommand {
     }
 
     private Role createMuteRole(CommandContext context, GuildConfig gc) {
-        Message msg = context.getTextChannel().sendMessage(context.getTranslated("mute.no.mute.role")).complete();
+        Message msg = context.send(context.getTranslated("mute.no.mute.role"));
         try {
-            Role rola = context.getGuild().createRole().setName("Wyciszony").complete();
+            EnumSet<Permission> perms = EnumSet.copyOf(context.getGuild().getPublicRole().getPermissions());
+            perms.remove(Permission.MESSAGE_SEND);
+            perms.remove(Permission.MESSAGE_ADD_REACTION);
+            perms.remove(Permission.MESSAGE_SEND_IN_THREADS);
+            Role rola = context.getGuild().createRole().setName("Wyciszony").setPermissions(perms).complete();
             context.getGuild().modifyRolePositions(true).selectPosition(rola)
                     .moveTo(context.getGuild().getSelfMember().getRoles().get(0).getPosition() - 1);
             gc.setWyciszony(rola.getId());
@@ -144,8 +148,8 @@ public class MuteCommand extends ModerationCommand {
                     continue;
                 }
                 try { //NOSONAR
-                    channel.putPermissionOverride(rola)
-                            .setDeny(Permission.MESSAGE_WRITE, Permission.MESSAGE_ADD_REACTION).complete();
+                    channel.getPermissionContainer().putPermissionOverride(rola).setDeny(Permission.MESSAGE_SEND,
+                            Permission.MESSAGE_ADD_REACTION, Permission.MESSAGE_SEND_IN_THREADS).complete();
                 } catch (Exception e) {
                     failed.add(channel);
                 }

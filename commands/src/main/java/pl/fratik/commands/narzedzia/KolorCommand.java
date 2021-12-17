@@ -109,7 +109,7 @@ public class KolorCommand extends Command {
             eb.addField("RGB", String.join(", ", rgb), true);
             eb.addField("Hex", "#" + CommonUtil.asHex(color), true);
             if (getCssName(color) != null) eb.addField("CSS", getCssName(color), true);
-            context.getMessageChannel().sendMessage(eb.build()).addFile(baos.toByteArray(), CommonUtil.asHex(color) + ".png")
+            context.getMessageChannel().sendMessageEmbeds(eb.build()).addFile(baos.toByteArray(), CommonUtil.asHex(color) + ".png")
                     .reference(context.getMessage()).queue();
             baos.close();
         } catch (IOException e) {

@@ -88,12 +88,12 @@ public abstract class EmbedPaginator {
     protected abstract int getPageCount();
 
     protected void rerender() throws LoadingException {
-        addReactions(message.editMessage(currentEmbed = render(pageNo))).override(true).queue();
+        addReactions(message.editMessageEmbeds(currentEmbed = render(pageNo))).override(true).queue();
     }
 
     public void create(MessageChannel channel, String referenceMessageId) {
         try {
-            MessageAction action = channel.sendMessage(currentEmbed = render(pageNo));
+            MessageAction action = channel.sendMessageEmbeds(currentEmbed = render(pageNo));
             if (referenceMessageId != null) action = action.referenceById(referenceMessageId);
             action = addReactions(action);
             action.override(true).queue(msg -> {
@@ -104,11 +104,11 @@ public abstract class EmbedPaginator {
                 }
             });
         } catch (Exception e) {
-            handleException(e);
+            handleException(e, channel);
         }
     }
 
-    private void handleException(Exception e) {
+    private void handleException(Exception e, MessageChannel channel) {
         LOGGER.error("Ładowanie strony nawaliło", e);
         Sentry.getContext().setUser(new io.sentry.event.User(String.valueOf(userId), null,
                 null, null));
@@ -119,7 +119,7 @@ public abstract class EmbedPaginator {
             if (((LoadingException) e).firstPage) key = "generic.dynamicembedpaginator.errorone";
             else if (((LoadingException) e).loading) key = "generic.lazyloading";
         }
-        message.getChannel().sendMessage(tlumaczenia.get(language, key))
+        channel.sendMessage(tlumaczenia.get(language, key))
                 .queue(m -> {
                     if (!(e instanceof LoadingException) || !((LoadingException) e).firstPage)
                         m.delete().queueAfter(5, TimeUnit.SECONDS);
@@ -129,7 +129,7 @@ public abstract class EmbedPaginator {
     public void create(Message message) {
         eventBus.post(new PluginMessageEvent("core", PMSTO, PMZAADD + message.getId()));
         try {
-            addReactions(message.editMessage(currentEmbed = render(pageNo))).override(true).queue(msg -> {
+            addReactions(message.editMessageEmbeds(currentEmbed = render(pageNo))).override(true).queue(msg -> {
                 this.message = msg;
                 messageId = msg.getIdLong();
                 if (getPageCount() != 1) {
@@ -137,7 +137,7 @@ public abstract class EmbedPaginator {
                 }
             });
         } catch (LoadingException e) {
-            handleException(e);
+            handleException(e, message.getChannel());
         }
     }
 
@@ -239,10 +239,10 @@ public abstract class EmbedPaginator {
 
         eventBus.post(new PluginMessageEvent("core", PMSTO, PMZAADD + message.getId()));
         try {
-            addReactions(message.editMessage(currentEmbed = render(pageNo))).override(true).queue(msg -> waitForReaction());
+            addReactions(message.editMessageEmbeds(currentEmbed = render(pageNo))).override(true).queue(msg -> waitForReaction());
         } catch (LoadingException e) {
             pageNo = oldPageNo;
-            addReactions(message.editMessage(currentEmbed)).override(true).queue(msg -> waitForReaction());
+            addReactions(message.editMessageEmbeds(currentEmbed)).override(true).queue(msg -> waitForReaction());
         }
     }
 
@@ -256,10 +256,10 @@ public abstract class EmbedPaginator {
         eventBus.post(new PluginMessageEvent("core", PMSTO, PMZAADD + event.getMessage().getId()));
         event.getMessage().delete().queue();
         try {
-            addReactions(message.editMessage(currentEmbed = render(pageNo))).override(true).queue(msg -> waitForReaction());
+            addReactions(message.editMessageEmbeds(currentEmbed = render(pageNo))).override(true).queue(msg -> waitForReaction());
         } catch (LoadingException e) {
             pageNo = oldPageNo;
-            addReactions(message.editMessage(currentEmbed)).override(true).queue(msg -> waitForReaction());
+            addReactions(message.editMessageEmbeds(currentEmbed)).override(true).queue(msg -> waitForReaction());
         }
     }
 
@@ -267,7 +267,7 @@ public abstract class EmbedPaginator {
         if (shutdown) return false;
         try {
             return (Integer.parseInt(e.getMessage().getContentRaw()) >= 1 && Integer.parseInt(e.getMessage().getContentRaw()) <= getPageCount()) &&
-                    e.isFromGuild() && e.getTextChannel().equals(message.getTextChannel())
+                    e.isFromGuild() && e.getChannel().equals(message.getChannel())
                     && e.getAuthor().getIdLong() == userId;
         } catch (Exception ignored) {
             return false;

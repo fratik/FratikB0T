@@ -133,7 +133,7 @@ public class OgloszenieCommand extends Command {
                     TextChannel channel = null;
                     if (admc != null && !admc.isEmpty()) channel = gu.getTextChannelById(admc);
                     if (channel != null) channel.sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(gu),
-                            "ogloszenie.auto.repost", managerKomend.getPrefixes(gu).get(0))).embed(eb.build())
+                            "ogloszenie.auto.repost", managerKomend.getPrefixes(gu).get(0))).setEmbeds(eb.build())
                             .complete();
                     if (channel == null) nieMaKanalu.getAndAdd(1);
                 } catch (Exception e1) {

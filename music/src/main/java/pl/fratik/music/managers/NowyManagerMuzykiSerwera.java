@@ -28,10 +28,7 @@ import lavalink.client.player.event.PlayerEventListenerAdapter;
 import lombok.Getter;
 import lombok.Setter;
 import net.dv8tion.jda.api.MessageBuilder;
-import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.MessageChannel;
-import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.entities.VoiceChannel;
+import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.GenericEvent;
 import net.dv8tion.jda.api.events.guild.voice.GenericGuildVoiceEvent;
 import net.dv8tion.jda.api.exceptions.InsufficientPermissionException;
@@ -67,7 +64,7 @@ public class NowyManagerMuzykiSerwera implements ManagerMuzykiSerwera {
     private final ScheduledExecutorService executorService;
     private boolean init;
     private final java.util.Queue<Piosenka> kolejka = new ConcurrentLinkedQueue<>();
-    @Getter private VoiceChannel channel;
+    @Getter private AudioChannel channel;
     private IPlayer player;
     @Getter private Piosenka aktualnaPiosenka;
     @Getter @Setter private MessageChannel announceChannel;
@@ -119,7 +116,7 @@ public class NowyManagerMuzykiSerwera implements ManagerMuzykiSerwera {
     }
 
     @Override
-    public void connect(VoiceChannel channel) {
+    public void connect(AudioChannel channel) {
         this.channel = channel;
         link = lavaClient.getLink(guild);
         if (init) throw new IllegalStateException("Już połączony!");

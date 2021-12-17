@@ -18,7 +18,7 @@
 package pl.fratik.moderation.events;
 
 import lombok.*;
-import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.entities.MessageChannel;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.moderation.entity.Case;
 
@@ -29,7 +29,7 @@ import pl.fratik.moderation.entity.Case;
 public class NewCaseEvent implements CaseEvent {
     private final Case aCase;
     @Getter private final boolean sendDm;
-    @Getter private TextChannel channel;
+    @Getter private MessageChannel channel;
     @Getter private Language language;
 
     @Override

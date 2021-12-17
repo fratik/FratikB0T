@@ -20,10 +20,7 @@ package pl.fratik.starboard;
 import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.Subscribe;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.MessageEmbed;
-import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
 import net.dv8tion.jda.api.events.message.react.MessageReactionRemoveAllEvent;
 import net.dv8tion.jda.api.events.message.react.MessageReactionRemoveEvent;
@@ -88,7 +85,12 @@ public class StarboardListener {
                             .queue(m -> m.delete().queueAfter(15, TimeUnit.SECONDS));
                     return;
                 }
-                if (event.getTextChannel().isNSFW() && !getChannel(event.getGuild()).isNSFW()) {
+                boolean isNsfw;
+                if (event.getChannel() instanceof ThreadChannel)
+                    isNsfw = ((TextChannel) ((ThreadChannel) event.getChannel()).getParentChannel()).isNSFW();
+                else if (event.getChannel() instanceof TextChannel) isNsfw = event.getTextChannel().isNSFW();
+                else isNsfw = false;
+                if (isNsfw && !getChannel(event.getGuild()).isNSFW()) {
                     Language l = tlumaczenia.getLanguage(message.getMember());
                     toIgnore.add(event.getMessageId());
                     event.getReaction().removeReaction(event.getUser()).queue(null, throwableConsumer);
@@ -231,7 +233,7 @@ public class StarboardListener {
         if (!StarManager.checkPermissions(starboardChannel)) return;
         if (event.getStarboardMessageId() == null) {
             if (event.getGwiazdki() < starDataDao.get(event.getMessage().getGuild()).getStarThreshold()) return;
-            starboardChannel.sendMessage(embedRenderer(event.getMessage(), event.getGwiazdki()))
+            starboardChannel.sendMessageEmbeds(embedRenderer(event.getMessage(), event.getGwiazdki()))
                     .override(true).queue(msg -> {
                         StarsData std = starDataDao.get(event.getMessage().getGuild());
                         std.getStarData().get(event.getMessage().getId()).setStarboardMessageId(msg.getId());
@@ -249,8 +251,8 @@ public class StarboardListener {
                             starDataDao.save(std);
                             return;
                         }
-                        message.editMessage(embedRenderer(event.getMessage(), event.getGwiazdki())).override(true).queue();
-                        }, ignored -> starboardChannel.sendMessage(embedRenderer(event.getMessage(), event.getGwiazdki()))
+                        message.editMessageEmbeds(embedRenderer(event.getMessage(), event.getGwiazdki())).override(true).queue();
+                        }, ignored -> starboardChannel.sendMessageEmbeds(embedRenderer(event.getMessage(), event.getGwiazdki()))
                             .override(true).queue(msg -> {
                                 StarsData std = starDataDao.get(event.getMessage().getGuild());
                                 std.getStarData().get(event.getMessage().getId()).setStarboardMessageId(msg.getId());

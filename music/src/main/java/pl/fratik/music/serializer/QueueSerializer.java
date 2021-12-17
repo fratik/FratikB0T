@@ -23,8 +23,8 @@ import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
+import net.dv8tion.jda.api.entities.AudioChannel;
 import net.dv8tion.jda.api.entities.MessageChannel;
-import net.dv8tion.jda.api.entities.VoiceChannel;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.music.entity.Piosenka;
 import pl.fratik.music.entity.Queue;
@@ -90,7 +90,7 @@ public class QueueSerializer extends StdSerializer<Queue> {
 
         ParsedQueue(String id, List<Piosenka> piosenki, boolean autoZapisane, //NOSONAR
                     MessageChannel announceChannel, Piosenka aktualnaPiosenka, long aktualnaPozycja,
-                    boolean pauza, RepeatMode repeatMode, VoiceChannel voiceChannel, int volume) {
+                    boolean pauza, RepeatMode repeatMode, AudioChannel voiceChannel, int volume) {
             this.id = id;
             this.piosenki = piosenki.stream().map(p -> new ParsedPiosenka(p.getAudioTrack().getInfo().uri,
                     p.getRequester(), p.getRequesterLanguage())).collect(Collectors.toList());

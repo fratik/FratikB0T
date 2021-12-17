@@ -127,11 +127,15 @@ public class DowodCommand extends ModerationCommand {
             if (usunAliasy.contains(context.getRawArgs()[0])) {
                 String idR = context.getRawArgs()[1];
                 String[] id = idR.split("-");
-                Case aCase;
+                String caseId;
                 try {
-                    aCase = caseDao.getLocked(CaseDao.getId(context.getGuild(), Integer.parseInt(id[0])));
-                    if (aCase == null) throw new NullPointerException("e");
-                } catch (NumberFormatException | IndexOutOfBoundsException | NullPointerException e) {
+                    caseId = CaseDao.getId(context.getGuild(), Long.parseLong(id[0]));
+                } catch (NumberFormatException | IndexOutOfBoundsException e) {
+                    context.reply(context.getTranslated("dowod.invalid.case"));
+                    return false;
+                }
+                Case aCase = caseDao.getLocked(caseId);
+                if (aCase == null) {
                     context.reply(context.getTranslated("dowod.invalid.case"));
                     return false;
                 }
@@ -166,11 +170,15 @@ public class DowodCommand extends ModerationCommand {
                 }
             }
         }
-        Case aCase;
+        String caseId;
         try {
-            aCase = caseDao.getLocked(CaseDao.getId(context.getGuild(), Long.parseLong((String) context.getArgs()[0])));
-            if (aCase == null) throw new NullPointerException();
-        } catch (NumberFormatException | IndexOutOfBoundsException | NullPointerException e) {
+            caseId = CaseDao.getId(context.getGuild(), Long.parseLong((String) context.getArgs()[0]));
+        } catch (NumberFormatException | IndexOutOfBoundsException e) {
+            context.reply(context.getTranslated("dowod.invalid.case"));
+            return false;
+        }
+        Case aCase = caseDao.getLocked(caseId);
+        if (aCase == null) {
             context.reply(context.getTranslated("dowod.invalid.case"));
             return false;
         }

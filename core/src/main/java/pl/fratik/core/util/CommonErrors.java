@@ -78,7 +78,7 @@ public class CommonErrors {
                 plvl.getNum(), tlumaczenia.get(language, plvl.getLanguageKey()));
         baseEmbed.addField(tlumaczenia.get(language, "generic.command.permlevel"), plvlval, false);
         try {
-            channel.sendMessage(baseEmbed.build()).reference(refMessage).queue();
+            channel.sendMessageEmbeds(baseEmbed.build()).reference(refMessage).queue();
         } catch (InsufficientPermissionException e) {
             channel.sendMessage(tlumaczenia.get(language, "generic.usage") + "\n" + prefix + command.getName() +
                     " " + tlumaczenia.get(language,command.getName().toLowerCase() + ".help.uzycie") + "")

@@ -23,6 +23,7 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.ThreadChannel;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
@@ -143,6 +144,11 @@ public class ChinczykCommand extends Command {
     protected boolean execute(@NotNull CommandContext context) {
         if (instances.stream().anyMatch(i -> i.getChannel().equals(context.getMessageChannel()))) {
             context.reply(context.getTranslated("chinczyk.game.in.progress"));
+            return false;
+        }
+        if (context.getMessageChannel() instanceof ThreadChannel &&
+                instances.stream().anyMatch(i -> i.getChannel().equals(((ThreadChannel) context.getMessageChannel()).getParentChannel()))) {
+            context.reply(context.getTranslated("chinczyk.parent.game.in.progress"));
             return false;
         }
         instances.add(new Chinczyk(context, eventBus, this::endCallback));

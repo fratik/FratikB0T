@@ -151,7 +151,7 @@ class TextPaginator {
     private boolean checkMessage(MessageReceivedEvent e) {
         try {
             return (Integer.parseInt(e.getMessage().getContentRaw()) >= 1 && Integer.parseInt(e.getMessage().getContentRaw()) <= pages.size()) &&
-                    e.isFromType(ChannelType.TEXT) && e.getTextChannel().equals(message.getTextChannel())
+                    e.isFromType(ChannelType.TEXT) && e.getChannel().equals(message.getChannel())
                     && e.getAuthor().getIdLong() == userId;
         } catch (Exception ignored) {
             return false;

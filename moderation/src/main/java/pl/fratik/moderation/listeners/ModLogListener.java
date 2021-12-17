@@ -494,7 +494,7 @@ public class ModLogListener {
         if (mlogchanStr == null || mlogchanStr.equals("")) mlogchanStr = "0";
         TextChannel mlogchan = shardManager.getTextChannelById(mlogchanStr);
         if (mlogchan == null || !mlogchan.getGuild().getSelfMember().hasPermission(mlogchan,
-                Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_WRITE, Permission.MESSAGE_READ))
+                Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_SEND, Permission.VIEW_CHANNEL))
             return null;
         else return mlogchan;
     }

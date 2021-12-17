@@ -264,9 +264,10 @@ class FratikB0T {
                 eventBus.register(redisCacheManager);
                 UserUtil.setGcCache(redisCacheManager.new CacheRetriever<GuildConfig>(){}.getCache());
                 UserUtil.setGbanCache(redisCacheManager.new CacheRetriever<GbanData>(){}.getCache());
-                UserUtil.setTimeZoneCache(redisCacheManager.new CacheRetriever<String>(){}.getCache());
+                UserUtil.setTimeZoneCache(redisCacheManager.new CacheRetriever<String>("utz"){}.getCache());
+                UserUtil.setColorCache(redisCacheManager.new CacheRetriever<Integer>(){}.getCache(900));
                 GuildUtil.setGbanCache(redisCacheManager.new CacheRetriever<GbanData>(){}.getCache());
-                GuildUtil.setTimeZoneCache(redisCacheManager.new CacheRetriever<String>(){}.getCache());
+                GuildUtil.setTimeZoneCache(redisCacheManager.new CacheRetriever<String>("gtz"){}.getCache());
                 NetworkUtil.setUpContentInformationCache(redisCacheManager);
                 Tlumaczenia.setShardManager(shardManager);
                 Tlumaczenia tlumaczenia = new Tlumaczenia(userDao, guildDao, redisCacheManager);

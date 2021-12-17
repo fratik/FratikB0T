@@ -374,7 +374,9 @@ public class Module implements Modul {
             }
             List<pl.fratik.api.entity.Channel> channels = new ArrayList<>();
             for (GuildChannel c : guild.getChannels()) {
-                channels.add(new pl.fratik.api.entity.Channel(c.getName(), c.getId(), c.getPositionRaw(), c.getType(),
+                if (!(c instanceof IPositionableChannel)) continue;
+                channels.add(new pl.fratik.api.entity.Channel(c.getName(), c.getId(),
+                        ((IPositionableChannel) c).getPositionRaw(), c.getType(),
                         c instanceof TextChannel && ((TextChannel) c).canTalk()));
             }
             Exchange.body().sendJson(ex, channels);

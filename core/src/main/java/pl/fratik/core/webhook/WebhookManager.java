@@ -21,21 +21,25 @@ import club.minnced.discord.webhook.WebhookClient;
 import club.minnced.discord.webhook.WebhookClientBuilder;
 import club.minnced.discord.webhook.exception.HttpException;
 import club.minnced.discord.webhook.receive.ReadonlyMessage;
+import club.minnced.discord.webhook.send.AllowedMentions;
 import club.minnced.discord.webhook.send.WebhookMessage;
 import club.minnced.discord.webhook.send.WebhookMessageBuilder;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.SelfUser;
-import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.entities.Webhook;
+import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.exceptions.PermissionException;
+import okhttp3.OkHttpClient;
+import okhttp3.RequestBody;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class WebhookManager {
@@ -48,36 +52,39 @@ public class WebhookManager {
         this.guildDao = guildDao;
     }
 
-    public void send(String cnt, TextChannel channel) {
+    public void send(String cnt, @NotNull GuildChannel channel) {
         SelfUser su = channel.getJDA().getSelfUser();
         send(new WebhookMessageBuilder().setContent(cnt).setAvatarUrl(su.getAvatarUrl())
                 .setUsername(su.getName()).build(), channel);
     }
 
-    public ReadonlyMessage send(WebhookMessage m, TextChannel channel) {
+    public ReadonlyMessage send(WebhookMessage m, GuildChannel channel) {
+        Long threadId;
+        if (channel instanceof ThreadChannel) threadId = channel.getIdLong();
+        else threadId = null;
         GuildConfig.Webhook whc = getWebhook(channel);
-        try (WebhookClient wh = new WebhookClientBuilder(Long.parseLong(whc.getId()), whc.getToken()).setWait(true).build()) {
+        try (WebhookClient wh = new WebhookThreadClientBuilder(Long.parseLong(whc.getId()), whc.getToken(), threadId).setWait(true).build()) {
             return wh.send(m).get();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return null;
         } catch (ExecutionException e) {
-            if (e.getCause() instanceof HttpException) {
-                if (((HttpException) e.getCause()).getCode() == 404) {
-                    try {
-                        createWebhook(channel, true);
-                        return send(m, channel);
-                    } catch (Exception ignored) {
-                        return null;
-                    }
+            if (e.getCause() instanceof HttpException && ((HttpException) e.getCause()).getCode() == 404) {
+                try {
+                    if (channel instanceof TextChannel) createWebhook((TextChannel) channel, true);
+                    else if (channel instanceof ThreadChannel)
+                        createWebhook((TextChannel) ((ThreadChannel) channel).getParentChannel(), true);
+                    return send(m, channel);
+                } catch (Exception ignored) {
+                    return null;
                 }
             }
             throw new RuntimeException(e);
         }
     }
 
-    public GuildConfig.Webhook getWebhook(TextChannel channel) {
-        return whCache.get(channel.getId(), id -> {
+    public GuildConfig.Webhook getWebhook(GuildChannel channel) {
+        return whCache.get(resolveId(channel), id -> {
             Map<String, GuildConfig.Webhook> whki = guildDao.get(channel.getGuild()).getWebhooki();
             if (whki == null) {
                 GuildConfig gc = guildDao.get(channel.getGuild());
@@ -88,18 +95,25 @@ public class WebhookManager {
             GuildConfig.Webhook tak = whki.get(id);
             if (tak == null) {
                 try {
-                    tak = createWebhook(channel, false);
+                    if (channel instanceof TextChannel) tak = createWebhook((TextChannel) channel, false);
+                    else if (channel instanceof ThreadChannel)
+                        tak = createWebhook((TextChannel) ((ThreadChannel) channel).getParentChannel(), false);
                 } catch (PermissionException ignored) {}
             }
             return tak;
         });
     }
 
-    public boolean hasWebhook(TextChannel channel) {
-        GuildConfig.Webhook wh = whCache.getIfPresent(channel.getId());
+    private String resolveId(GuildChannel channel) {
+        if (channel instanceof ThreadChannel) return ((ThreadChannel) channel).getParentChannel().getId();
+        else return channel.getId();
+    }
+
+    public boolean hasWebhook(GuildChannel channel) {
+        GuildConfig.Webhook wh = whCache.getIfPresent(resolveId(channel));
         if (wh == null) {
             Map<String, GuildConfig.Webhook> whki = guildDao.get(channel.getGuild()).getWebhooki();
-            if (whki != null) return whki.containsKey(channel.getId());
+            if (whki != null) return whki.containsKey(resolveId(channel));
             else return false;
         }
         return true;
@@ -122,5 +136,46 @@ public class WebhookManager {
         guildDao.save(gc);
         if (clearCache) whCache.invalidate(channel.getId());
         return whc;
+    }
+
+    private static class WebhookThreadClientBuilder extends WebhookClientBuilder {
+        private final Long threadId;
+
+        public WebhookThreadClientBuilder(long id, @NotNull String token, @Nullable Long threadId) {
+            super(id, token);
+            this.threadId = threadId;
+        }
+
+        @Override
+        public @NotNull WebhookThreadClient build() {
+            OkHttpClient client = this.client == null ? new OkHttpClient() : this.client;
+            ScheduledExecutorService pool = this.pool != null ? this.pool : getDefaultPool(id, threadFactory, isDaemon);
+            return new WebhookThreadClient(id, token, threadId, parseMessage, client, pool, allowedMentions);
+        }
+    }
+
+    private static class WebhookThreadClient extends WebhookClient {
+        private final Long threadId;
+
+        protected WebhookThreadClient(long id, String token, Long threadId, boolean parseMessage, OkHttpClient client, ScheduledExecutorService pool, AllowedMentions mentions) {
+            super(id, token, parseMessage, client, pool, mentions);
+            this.threadId = threadId;
+        }
+
+        @Override
+        public @NotNull String getUrl() {
+            if (threadId == null) return super.getUrl();
+            else return super.getUrl().replaceFirst("/api/v7/", "/api/v9/") + "&thread_id=" + Long.toUnsignedString(threadId); //fixme wywalic jak dodadzą wsparcie wątków
+        }
+
+        @NotNull
+        protected okhttp3.Request newRequest(RequestBody body) {
+            return new okhttp3.Request.Builder()
+                    .url(getUrl())
+                    .method("POST", body)
+                    .header("accept-encoding", "gzip")
+                    .header("user-agent", USER_AGENT)
+                    .build();
+        }
     }
 }

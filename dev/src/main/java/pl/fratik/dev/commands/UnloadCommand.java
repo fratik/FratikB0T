@@ -63,12 +63,12 @@ public class UnloadCommand extends Command {
             eb.setDescription(eb.getDescriptionBuilder().toString().replace(pytajnik + SPMO,
                     rtick.getAsMention() + SPMO + ": moduł nie jest wczytany"));
             eb.setColor(Color.decode("#ff0000"));
-            msg.editMessage(eb.build()).override(true).complete();
+            msg.editMessageEmbeds(eb.build()).override(true).complete();
             return false;
         }
         eb.setDescription(eb.getDescriptionBuilder().toString().replace(pytajnik + SPMO,
                 gtick.getAsMention() + SPMO));
-        msg.editMessage(eb.build()).override(true).complete();
+        msg.editMessageEmbeds(eb.build()).override(true).complete();
         try {
             boolean odp = managerModulow.stopModule((String) context.getArgs()[0]);
             if (!odp) throw new Exception("Unload modułu nieudany - sprawdź konsolę.");
@@ -78,13 +78,13 @@ public class UnloadCommand extends Command {
             eb.setDescription(eb.getDescriptionBuilder().toString().replace(pytajnik +  UNLOAD,
                     rtick.getAsMention() + UNLOAD + ": " + e.getMessage()));
             eb.setColor(Color.decode("#ff0000"));
-            msg.editMessage(eb.build()).override(true).complete();
+            msg.editMessageEmbeds(eb.build()).override(true).complete();
             return false;
         }
         eb.setDescription(eb.getDescriptionBuilder().toString().replace(pytajnik +  UNLOAD,
                 gtick.getAsMention() + UNLOAD));
         eb.setColor(Color.decode("#00ff00"));
-        msg.editMessage(eb.build()).override(true).complete();
+        msg.editMessageEmbeds(eb.build()).override(true).complete();
         return true;
     }
 }

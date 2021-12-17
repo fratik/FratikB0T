@@ -18,12 +18,10 @@
 package pl.fratik.liczek.listener;
 
 import com.google.common.eventbus.Subscribe;
-import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageDeleteEvent;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageUpdateEvent;
+import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.events.message.MessageDeleteEvent;
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.events.message.MessageUpdateEvent;
 import pl.fratik.core.cache.Cache;
 import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.entity.GuildConfig;
@@ -50,7 +48,8 @@ public class LiczekListener {
     }
 
     @Subscribe
-    public void onLiczekSend(GuildMessageReceivedEvent m) {
+    public void onLiczekSend(MessageReceivedEvent m) {
+        if (!m.isFromGuild()) return;
         GuildConfig gc = getGuildConfig(m.getGuild());
         if (gc.getLiczekKanal() == null || gc.getLiczekKanal().isEmpty()) return;
         if (!gc.getLiczekKanal().equals(m.getChannel().getId())) return;
@@ -74,7 +73,7 @@ public class LiczekListener {
         }
 
         synchronized (m.getGuild()) {
-            List<Message> messages = getHistoryList(m.getChannel());
+            List<Message> messages = getHistoryList((GuildMessageChannel) m.getChannel());
             int kiedysMessage;
             try {
                 kiedysMessage = Integer.parseInt(messages.get(1).getContentRaw());
@@ -93,7 +92,8 @@ public class LiczekListener {
     }
 
     @Subscribe
-    public void onLiczekEdit(GuildMessageUpdateEvent m) {
+    public void onLiczekEdit(MessageUpdateEvent m) {
+        if (!m.isFromGuild()) return;
         GuildConfig gc = getGuildConfig(m.getGuild());
         if (gc.getLiczekKanal() == null || gc.getLiczekKanal().isEmpty()) return;
         if (!gc.getLiczekKanal().equals(m.getChannel().getId())) return;
@@ -102,14 +102,15 @@ public class LiczekListener {
     }
 
     @Subscribe
-    public void onLiczekDelete(GuildMessageDeleteEvent m) {
+    public void onLiczekDelete(MessageDeleteEvent m) {
+        if (!m.isFromGuild()) return;
         GuildConfig gc = getGuildConfig(m.getGuild());
         if (gc.getLiczekKanal() == null || gc.getLiczekKanal().isEmpty()) return;
         if (!gc.getLiczekKanal().equals(m.getChannel().getId())) return;
         updateTopic(m.getChannel());
     }
 
-    private List<Message> getHistoryList(TextChannel txt) {
+    private List<Message> getHistoryList(GuildMessageChannel txt) {
         List<Message> msgs = new ArrayList<>();
         for (Message msg : txt.getIterableHistory().stream().limit(10).collect(Collectors.toList())) {
             if (!msg.isEdited()) {
@@ -120,14 +121,15 @@ public class LiczekListener {
         return msgs;
     }
 
-    private void updateTopic(TextChannel txt) {
-        GuildConfig gc = getGuildConfig(txt.getGuild());
+    private void updateTopic(MessageChannel txt) {
+        if (!(txt instanceof TextChannel)) return; //???
+        GuildConfig gc = getGuildConfig(((TextChannel) txt).getGuild());
         String trans = tlumaczenia.get(gc.getLanguage(), "liczek.topic");
-        Message msg = getHistoryList(txt).get(0);
+        Message msg = getHistoryList((TextChannel) txt).get(0);
         try {
             int liczba = Integer.parseInt(msg.getContentDisplay());
             String format = String.format(trans, msg.getAuthor().getAsMention(), liczba+1);
-            txt.getManager().setTopic(format).queue();
+            ((TextChannel) txt).getManager().setTopic(format).queue();
         } catch (Exception ignored) {}
     }
 }

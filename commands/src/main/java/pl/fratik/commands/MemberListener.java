@@ -90,8 +90,9 @@ class MemberListener {
     private void przywitanie(GuildMemberJoinEvent e) {
         GuildConfig gc = getGuildConfig(e.getGuild());
         for (Map.Entry<String, String> ch : gc.getPowitania().entrySet()) {
-            TextChannel cha = e.getGuild().getTextChannelById(ch.getKey());
-            if (cha == null || !cha.canTalk()) continue;
+            MessageChannel cha = e.getGuild().getTextChannelById(ch.getKey());
+            if (cha == null) cha = e.getGuild().getThreadChannelById(ch.getKey());
+            if (cha == null || !CommonUtil.canTalk(cha)) continue;
             boolean hasMentions = ch.getValue().contains("{{mention}}");
             String cnt = ch.getValue()
                     .replace("{{{user}}", e.getMember().getUser().getAsTag())

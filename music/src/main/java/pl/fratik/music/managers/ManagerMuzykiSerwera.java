@@ -18,6 +18,7 @@
 package pl.fratik.music.managers;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
+import net.dv8tion.jda.api.entities.AudioChannel;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.VoiceChannel;
@@ -54,7 +55,7 @@ public interface ManagerMuzykiSerwera {
 
     void play(Piosenka utwor);
 
-    void connect(VoiceChannel channel);
+    void connect(AudioChannel channel);
 
     void disconnect();
 
@@ -86,7 +87,7 @@ public interface ManagerMuzykiSerwera {
 
     MessageChannel getAnnounceChannel();
 
-    VoiceChannel getChannel();
+    AudioChannel getChannel();
 
     List<String> getSkips();
 

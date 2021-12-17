@@ -19,6 +19,7 @@ package pl.fratik.moderation.commands;
 
 import jersey.repackaged.com.google.common.collect.Lists;
 import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.ChannelType;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.requests.restaction.PermissionOverrideAction;
 import org.jetbrains.annotations.NotNull;
@@ -48,6 +49,15 @@ public class LockCommand extends ModerationCommand {
     }
 
     @Override
+    public boolean preExecute(CommandContext context) {
+        if (context.getMessageChannel().getType() != ChannelType.TEXT) {
+            context.reply(context.getTranslated("generic.text.only"));
+            return false;
+        }
+        return super.preExecute(context);
+    }
+
+    @Override
     public boolean execute(@NotNull CommandContext context) {
         GuildConfig gc = guildDao.get(context.getGuild());
         if (gc.getAdminRole() == null || gc.getAdminRole().equals("") || (gc.getAdminRole() != null &&
@@ -61,14 +71,14 @@ public class LockCommand extends ModerationCommand {
             return false;
         }
         PermissionOverrideAction overrides = context.getTextChannel().upsertPermissionOverride(context.getGuild().getPublicRole());
-        if (overrides.getDeniedPermissions().contains(Permission.MESSAGE_WRITE)) {
+        if (overrides.getDeniedPermissions().contains(Permission.MESSAGE_SEND)) {
             PermissionOverrideAction publicOverrides = context.getTextChannel().upsertPermissionOverride(context.getGuild().getPublicRole());
             PermissionOverrideAction adminOverrides = context.getTextChannel().upsertPermissionOverride(adminRole);
             List<Permission> publicDeny = Lists.newArrayList(publicOverrides.getDeniedPermissions());
             List<Permission> adminAllow = Lists.newArrayList(adminOverrides.getAllowedPermissions());
-            publicDeny.remove(Permission.MESSAGE_WRITE);
+            publicDeny.remove(Permission.MESSAGE_SEND);
             publicDeny.remove(Permission.MESSAGE_ADD_REACTION);
-            adminAllow.remove(Permission.MESSAGE_WRITE);
+            adminAllow.remove(Permission.MESSAGE_SEND);
             adminAllow.remove(Permission.MESSAGE_ADD_REACTION);
             try {
                 publicOverrides.setDeny(publicDeny).complete();
@@ -82,9 +92,9 @@ public class LockCommand extends ModerationCommand {
             PermissionOverrideAction adminOverrides = context.getTextChannel().putPermissionOverride(adminRole);
             List<Permission> publicDeny = Lists.newArrayList(publicOverrides.getDeniedPermissions());
             List<Permission> adminAllow = Lists.newArrayList(adminOverrides.getAllowedPermissions());
-            publicDeny.add(Permission.MESSAGE_WRITE);
+            publicDeny.add(Permission.MESSAGE_SEND);
             publicDeny.add(Permission.MESSAGE_ADD_REACTION);
-            adminAllow.add(Permission.MESSAGE_WRITE);
+            adminAllow.add(Permission.MESSAGE_SEND);
             adminAllow.add(Permission.MESSAGE_ADD_REACTION);
             try {
                 publicOverrides.setDeny(publicDeny).complete();

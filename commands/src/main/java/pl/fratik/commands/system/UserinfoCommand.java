@@ -65,6 +65,7 @@ public class UserinfoCommand extends Command {
         Member member;
         if (context.getArgs().length != 0) osoba = (User) context.getArgs()[0];
         if (osoba == null) osoba = context.getSender();
+        User.Profile profile = osoba.retrieveProfile().complete();
         try {
             member = context.getGuild().retrieveMember(osoba).complete();
         } catch (NullPointerException | ErrorResponseException e) {
@@ -110,6 +111,7 @@ public class UserinfoCommand extends Command {
             eb.addField(context.getTranslated("userinfo.place"), String.valueOf(pozycja.intValue()), true);
         else eb.addField(context.getTranslated("userinfo.place"), "???", true);
         eb.setThumbnail(osoba.getEffectiveAvatarUrl().replace(".webp", ".png") + "?size=2048");
+        eb.setImage(profile.getBannerId() == null ? null : profile.getBannerUrl() + "?size=2048");
         eb.setColor(UserUtil.getPrimColor(osoba));
         Message m;
         try {
@@ -117,7 +119,7 @@ public class UserinfoCommand extends Command {
         } catch (Exception e) {
             m = null;
         }
-        if (m != null) m.editMessage(eb.build()).override(true).complete();
+        if (m != null) m.editMessageEmbeds(eb.build()).override(true).complete();
         else context.reply(eb.build());
         return true;
     }

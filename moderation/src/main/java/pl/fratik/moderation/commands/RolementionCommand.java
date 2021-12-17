@@ -64,7 +64,7 @@ public class RolementionCommand extends ModerationCommand {
         }
         context.getMessage().delete().queue();
 
-        MessageAction msg = context.getTextChannel().sendMessage(rola.getAsMention()).mentionRoles(rola.getIdLong());
+        MessageAction msg = context.getMessageChannel().sendMessage(rola.getAsMention()).mentionRoles(rola.getIdLong());
 
         if (tekst != null) {
             EmbedBuilder eb = new EmbedBuilder();
@@ -76,7 +76,7 @@ public class RolementionCommand extends ModerationCommand {
             else eb.setColor(UserUtil.getPrimColor(context.getSender()));
             boolean state = rola.isMentionable();
             rola.getManager().setMentionable(true).complete();
-            msg.embed(eb.build()).complete();
+            msg.setEmbeds(eb.build()).complete();
             rola.getManager().setMentionable(state).complete();
             return true;
         }

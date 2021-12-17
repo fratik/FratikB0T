@@ -62,9 +62,9 @@ public class AvatarCommand extends Command {
         eb.setColor(UserUtil.getPrimColor(osoba));
 
         try {
-            context.getTextChannel()
+            context.getMessageChannel()
                     .sendFile(NetworkUtil.download(url), name)
-                    .embed(eb.setImage("attachment://" + name).build())
+                    .setEmbeds(eb.setImage("attachment://" + name).build())
                     .reference(context.getMessage())
                     .queue();
         } catch (IOException e) {

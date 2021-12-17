@@ -84,9 +84,9 @@ public class LinkListener {
     }
 
     public void checkEvent(MessageEvent e) {
-        if (!e.isFromType(ChannelType.TEXT) || e.getAuthor().isBot() || e.getMember() == null) return;
-        if (!e.getTextChannel().canTalk()) return;
-        if (!isAntilink(e.getTextChannel())) return;
+        if (e.isFromType(ChannelType.PRIVATE) || e.getAuthor().isBot() || e.getMember() == null) return;
+        if (!CommonUtil.canTalk(e.getChannel())) return;
+        if (!isAntilink((GuildChannel) e.getChannel())) return;
         if (!e.getGuild().getSelfMember().canInteract(e.getMember())) return;
         GuildConfig guildConfig = gcCache.get(e.getGuild().getId(), guildDao::get);
         if (guildConfig.isAntiLinkIgnoreAdmins() &&
@@ -100,7 +100,7 @@ public class LinkListener {
         Matcher matcher = CommonUtil.URL_PATTERN.matcher(content);
         if (!matcher.find()) return;
         boolean isInviteOnly = true;
-        final boolean mediaAllowed = mediaAllowed(e.getTextChannel());
+        final boolean mediaAllowed = mediaAllowed((GuildChannel) e.getChannel());
         boolean isMedia = mediaAllowed;
         do {
             String text = matcher.group();
@@ -158,19 +158,19 @@ public class LinkListener {
         }
         Case c = new Case.Builder(e.getMember(), Instant.now(), Kara.WARN).setIssuerId(Globals.clientId)
                 .setReasonKey("antilink.reason").build();
-        caseDao.createNew(null, c, false, e.getTextChannel(), tlumaczenia.getLanguage(e.getMember()));
+        caseDao.createNew(null, c, false, e.getChannel(), tlumaczenia.getLanguage(e.getMember()));
         e.getChannel().sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(e.getMember()),
                 "antilink.notice", e.getAuthor().getAsMention(),
                 WarnUtil.countCases(caseDao.getCasesByMember(e.getMember()), e.getAuthor().getId()),
                 managerKomend.getPrefixes(e.getGuild()).get(0))).queue();
     }
 
-    private boolean isAntilink(TextChannel channel) {
+    private boolean isAntilink(GuildChannel channel) {
         GuildConfig guildConfig = gcCache.get(channel.getGuild().getId(), guildDao::get);
         return guildConfig.isAntiLink() && !guildConfig.getLinkchannels().contains(channel.getId());
     }
 
-    private boolean mediaAllowed(TextChannel channel) {
+    private boolean mediaAllowed(GuildChannel channel) {
         return gcCache.get(channel.getGuild().getId(), guildDao::get).isAntiLinkMediaAllowed();
     }
 

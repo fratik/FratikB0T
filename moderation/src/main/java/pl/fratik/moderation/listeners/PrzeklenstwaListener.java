@@ -84,9 +84,9 @@ public class PrzeklenstwaListener {
     }
 
     public void checkEvent(MessageEvent e) {
-        if (!e.isFromType(ChannelType.TEXT) || e.getAuthor().isBot() || e.getMember() == null) return;
-        if (!e.getTextChannel().canTalk()) return;
-        if (!isAntiswear(e.getTextChannel())) return;
+        if (e.isFromType(ChannelType.PRIVATE) || e.getAuthor().isBot() || e.getMember() == null) return;
+        if (!CommonUtil.canTalk(e.getChannel())) return;
+        if (!isAntiswear((GuildChannel) e.getChannel())) return;
         if (!e.getGuild().getSelfMember().canInteract(e.getMember())) return;
         String content = e.getMessage().getContentRaw();
         GuildConfig gc = getGuildConfig(e.getGuild());
@@ -100,7 +100,7 @@ public class PrzeklenstwaListener {
             if (res) {
                 Case c = new Case.Builder(e.getMember(), Instant.now(), Kara.WARN).setIssuerId(Globals.clientId)
                         .setReasonKey("antiswear.reason").build();
-                caseDao.createNew(null, c, false, e.getTextChannel(), tlumaczenia.getLanguage(e.getMember()));
+                caseDao.createNew(null, c, false, e.getChannel(), tlumaczenia.getLanguage(e.getMember()));
                 MessageAction m = e.getChannel().sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(e.getMember()),
                         "antiswear.notice", e.getAuthor().getAsMention(),
                         WarnUtil.countCases(caseDao.getCasesByMember(e.getMember()), e.getAuthor().getId()),
@@ -122,7 +122,7 @@ public class PrzeklenstwaListener {
         return gcCache.get(guild.getId(), guildDao::get);
     }
 
-    private boolean isAntiswear(TextChannel channel) {
+    private boolean isAntiswear(GuildChannel channel) {
         return getGuildConfig(channel.getGuild()).getAntiswear() &&
                 !getGuildConfig(channel.getGuild()).getSwearchannels().contains(channel.getId());
     }

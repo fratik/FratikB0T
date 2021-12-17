@@ -19,6 +19,7 @@ package pl.fratik.commands.system;
 
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.ChannelType;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
 import org.jetbrains.annotations.NotNull;
@@ -47,11 +48,20 @@ public class SprawdzuprawnieniaCommand extends Command {
 
     static {
         List<Permission> permy = new ArrayList<>();
-        Collections.addAll(permy, Permission.VIEW_CHANNEL, Permission.MESSAGE_WRITE, Permission.MESSAGE_ADD_REACTION,
+        Collections.addAll(permy, Permission.VIEW_CHANNEL, Permission.MESSAGE_SEND, Permission.MESSAGE_ADD_REACTION,
                 Permission.MESSAGE_MANAGE, Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_ATTACH_FILES,
                 Permission.MESSAGE_HISTORY, Permission.MESSAGE_EXT_EMOJI, Permission.KICK_MEMBERS,
                 Permission.BAN_MEMBERS, Permission.MESSAGE_MENTION_EVERYONE);
         perms = Collections.unmodifiableList(permy);
+    }
+
+    @Override
+    public boolean preExecute(CommandContext context) {
+        if (context.getMessageChannel().getType() != ChannelType.TEXT) {
+            context.reply(context.getTranslated("generic.text.only"));
+            return false;
+        }
+        return super.preExecute(context);
     }
 
     @Override

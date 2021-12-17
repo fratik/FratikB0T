@@ -102,7 +102,7 @@ public class McstatusCommand extends Command {
                     eb.addField(context.getTranslated("mcstatus.embed.ip"), ip + ":" + port, false);
                     eb.setFooter(ms.getLatency() + " ms", null);
                     MessageChannel ch = context.getMessageChannel();
-                    return new MesydzAkszyn("ten gorszy", ch.getJDA(), null, ch).reference(context.getMessage()).embed(eb.build());
+                    return new MesydzAkszyn("ten gorszy", ch.getJDA(), null, ch).reference(context.getMessage()).setEmbeds(eb.build());
                 } catch (Exception e) {
                     return null;
                 }
@@ -136,7 +136,7 @@ public class McstatusCommand extends Command {
                     MessageChannel ch = context.getMessageChannel();
                     MesydzAkszyn ma = new MesydzAkszyn("ten lepszy", ch.getJDA(), null, ch).reference(context.getMessage());
                     eb.setThumbnail("https://eu.mc-api.net/v3/server/favicon/" + ip + ":" + port);
-                    ma = ma.embed(eb.build());
+                    ma = ma.setEmbeds(eb.build());
                     return ma;
                 } catch (Exception e) {
                     return null;
@@ -153,10 +153,10 @@ public class McstatusCommand extends Command {
             }
             for (FjuczerTask<MesydzAkszyn> f : futures) {
                 if (!f.getName().equals("ten lepszy")) continue;
-                MessageAction ma1 = me.editMessage(f.get().getEmbed()).override(true);
+                MessageAction ma1 = me.editMessageEmbeds(f.get().getEmbed()).override(true);
                 if (f.get().getFiles() != null && !f.get().getFiles().isEmpty()) {
                     me.delete().queue();
-                    ma1 = me.getTextChannel().sendMessage(f.get().getEmbed()).reference(context.getMessage());
+                    ma1 = me.getTextChannel().sendMessageEmbeds(f.get().getEmbed()).reference(context.getMessage());
                     for (Map.Entry<String, InputStream> file : f.get().getFiles().entrySet()) {
                         ma1 = ma1.addFile(file.getValue(), file.getKey());
                     }
@@ -303,9 +303,9 @@ public class McstatusCommand extends Command {
 
         @NotNull
         @Override
-        public MesydzAkszyn embed(MessageEmbed embed) {
+        public MesydzAkszyn setEmbeds(@NotNull MessageEmbed... embed) {
             //noinspection ResultOfMethodCallIgnored
-            super.embed(embed);
+            super.setEmbeds(embed);
             return this;
         }
 

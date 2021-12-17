@@ -22,8 +22,8 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import io.sentry.Sentry;
 import lombok.AllArgsConstructor;
 import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.AudioChannel;
 import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.VoiceChannel;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.entity.GuildDao;
@@ -66,9 +66,9 @@ public class YoutubeCommand extends MusicCommand {
             context.reply(context.getTranslated("play.dj"));
             return false;
         }
-        VoiceChannel kanal = null;
+        AudioChannel kanal = null;
         if (context.getMember().getVoiceState() != null) kanal = context.getMember().getVoiceState().getChannel();
-        if (context.getMember().getVoiceState() == null || !context.getMember().getVoiceState().inVoiceChannel() ||
+        if (context.getMember().getVoiceState() == null || !context.getMember().getVoiceState().inAudioChannel() ||
                 kanal == null) {
             context.reply(context.getTranslated("play.not.connected"));
             return false;
@@ -85,7 +85,7 @@ public class YoutubeCommand extends MusicCommand {
         MessageWaiter waiter = new MessageWaiter(eventWaiter, context);
         AtomicBoolean deleted = new AtomicBoolean(false);
         AtomicReference<Boolean> udaloSie = new AtomicReference<>();
-        VoiceChannel finalKanal = kanal;
+        AudioChannel finalKanal = kanal;
         waiter.setMessageHandler(e -> new Thread(() -> {
             try {
                 String content = e.getMessage().getContentRaw();
@@ -101,7 +101,7 @@ public class YoutubeCommand extends MusicCommand {
                 }
                 for (int numerek : numerkiFilmow) {
                     if (numerek < 1 || numerek > liczba) {
-                        context.getTextChannel().sendMessage(context.getTranslated("youtube.invalid.reply"))
+                        context.getMessageChannel().sendMessage(context.getTranslated("youtube.invalid.reply"))
                                 .reference(e.getMessage()).complete();
                         udaloSie.set(false);
                         return;

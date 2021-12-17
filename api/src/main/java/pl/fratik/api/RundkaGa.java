@@ -165,7 +165,7 @@ class RundkaGa {
                     if (ch == null) throw new NullPointerException("nie ma kanalu do glosowania");
                     if (embed.isSendable()) {
                         msg = ch.sendMessage("<@&" + Ustawienia.instance.gadmRole + ">")
-                                .mentionRoles(Ustawienia.instance.gadmRole).embed(embed).complete();
+                                .mentionRoles(Ustawienia.instance.gadmRole).setEmbeds(embed).complete();
                     } else {
                         throw new IllegalStateException("yes");
                     }

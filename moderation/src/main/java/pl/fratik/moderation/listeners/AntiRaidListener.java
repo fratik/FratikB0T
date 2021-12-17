@@ -36,6 +36,7 @@ import pl.fratik.core.event.DatabaseUpdateEvent;
 import pl.fratik.core.manager.ManagerKomend;
 import pl.fratik.core.manager.implementation.ManagerModulowImpl;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
+import pl.fratik.core.util.CommonUtil;
 import pl.fratik.core.util.UserUtil;
 
 import javax.crypto.IllegalBlockSizeException;
@@ -87,11 +88,11 @@ public class AntiRaidListener {
     @AllowConcurrentEvents
     public void onMessage(MessageReceivedEvent e) {
         if (e.isWebhookMessage() || !e.isFromGuild() || e.getMessage().getMember() == null ||
-                e.getAuthor().isBot() || e.getMessage().getType() != MessageType.DEFAULT) return;
+                e.getAuthor().isBot() || e.getMessage().getType() != MessageType.DEFAULT) return; //todo mes-type thready
         if (antiRaidDisabled(e.getMessage().getGuild())) return;
         if (UserUtil.getPermlevel(e.getMember(), guildDao, shardManager, PermLevel.OWNER).getNum() >= 1) return;
-        if (getAntiRaidChannels(e.getMessage().getGuild()).contains(e.getTextChannel().getId())) return;
-        if (!e.getTextChannel().canTalk()) return;
+        if (getAntiRaidChannels(e.getMessage().getGuild()).contains(e.getChannel().getId())) return;
+        if (!CommonUtil.canTalk(e.getChannel())) return;
         if (antiRaidExtreme(e.getMessage().getGuild())) extreme(e.getMessage());
         normal(e.getMessage());
     }

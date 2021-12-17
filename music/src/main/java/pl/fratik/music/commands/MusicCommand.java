@@ -20,6 +20,7 @@ package pl.fratik.music.commands;
 import lavalink.client.io.LavalinkSocket;
 import lombok.Getter;
 import lombok.Setter;
+import net.dv8tion.jda.api.entities.ChannelType;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.sharding.ShardManager;
@@ -42,6 +43,10 @@ public abstract class MusicCommand extends Command {
 
     @Override
     public boolean preExecute(CommandContext context) {
+        if (context.getMessageChannel().getType() != ChannelType.TEXT) {
+            context.reply(context.getTranslated("generic.text.only"));
+            return false;
+        }
         if (context.getRawArgs().length != 0) {
             String subcommand = context.getRawArgs()[0].toLowerCase();
             if (subcommand.equalsIgnoreCase("-h") || subcommand.equalsIgnoreCase("--help")) {
@@ -56,12 +61,12 @@ public abstract class MusicCommand extends Command {
         if (!requireConnection) {
             return super.preExecute(context);
         }
-        if (context.getMember().getVoiceState() == null || !context.getMember().getVoiceState().inVoiceChannel()) {
+        if (context.getMember().getVoiceState() == null || !context.getMember().getVoiceState().inAudioChannel()) {
             context.reply(context.getTranslated("music.notconnected"));
             return false;
         }
         if (context.getGuild().getSelfMember().getVoiceState() == null ||
-                !context.getGuild().getSelfMember().getVoiceState().inVoiceChannel()) {
+                !context.getGuild().getSelfMember().getVoiceState().inAudioChannel()) {
             context.reply(context.getTranslated("music.self.notconnected"));
             return false;
         }
