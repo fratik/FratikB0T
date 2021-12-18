@@ -36,10 +36,8 @@ import pl.fratik.core.event.DatabaseUpdateEvent;
 
 import java.awt.*;
 import java.net.URLEncoder;
-import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Optional;
 import java.util.TimeZone;
 
 public class UserUtil {
