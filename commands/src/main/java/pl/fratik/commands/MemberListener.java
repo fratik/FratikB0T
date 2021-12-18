@@ -94,7 +94,7 @@ class MemberListener {
             if (cha == null || !cha.canTalk()) continue;
             boolean hasMentions = ch.getValue().contains("{{mention}}");
             String cnt = ch.getValue()
-                    .replace("{{{user}}", e.getMember().getUser().getAsTag())
+                    .replace("{{user}}", e.getMember().getUser().getAsTag())
                     .replace("{{mention}}", e.getMember().getAsMention())
                     .replace("{{server}}", e.getGuild().getName());
             Matcher matcher = INVITE_TAG_REGEX.matcher(cnt);
