@@ -18,7 +18,7 @@
 package pl.fratik.starboard;
 
 import com.google.common.eventbus.EventBus;
-import emoji4j.EmojiUtils;
+import com.vdurmont.emoji.EmojiManager;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
 import pl.fratik.core.cache.Cache;
@@ -159,7 +159,7 @@ public class StarManager {
         try {
             emotka = guild.getEmoteById(e);
         } catch (Exception ignored) {
-            if (EmojiUtils.isEmoji(e)) emotka = e;
+            if (EmojiManager.isEmoji(e)) emotka = e;
         }
         if (emotka == null) emotka = "\u2b50";
         return emotka;

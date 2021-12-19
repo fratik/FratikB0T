@@ -18,7 +18,6 @@
 package pl.fratik.arguments;
 
 import com.vdurmont.emoji.EmojiManager;
-import emoji4j.EmojiUtils;
 import net.dv8tion.jda.api.entities.Emote;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import net.dv8tion.jda.internal.JDAImpl;
@@ -88,7 +87,7 @@ public class EmoteArgument extends Argument {
                         argument.equals(emote.getAsMention())).findFirst();
         long id = getEmoteId(argument);
         if (id == 0) {
-            if (EmojiUtils.isEmoji(argument)) return new Emoji(argument);
+            if (EmojiManager.isEmoji(argument)) return new Emoji(argument);
             return null;
         }
         return new Emoji((EmoteImpl) emotka.orElse(new EmoteImpl(id, (JDAImpl) null).setAnimated(isAnimated(argument))));

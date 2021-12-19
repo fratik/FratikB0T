@@ -17,7 +17,7 @@
 
 package pl.fratik.core.entity;
 
-import emoji4j.EmojiUtils;
+import com.vdurmont.emoji.EmojiManager;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.ListedEmote;
 import net.dv8tion.jda.api.sharding.ShardManager;
@@ -98,7 +98,7 @@ public class Emoji extends EmoteImpl implements ListedEmote {
     }
 
     public static Emoji resolve(String emote, JDA jda) {
-        if (EmojiUtils.isEmoji(emote)) return new Emoji(emote);
+        if (EmojiManager.isEmoji(emote)) return new Emoji(emote);
         else {
             try {
                 return new Emoji((EmoteImpl) Objects.requireNonNull(jda.getEmoteById(emote)));
@@ -109,7 +109,7 @@ public class Emoji extends EmoteImpl implements ListedEmote {
     }
 
     public static Emoji resolve(String emote, ShardManager jda) {
-        if (EmojiUtils.isEmoji(emote) || emote.startsWith("UNICODE:"))
+        if (EmojiManager.isEmoji(emote) || emote.startsWith("UNICODE:"))
             return new Emoji(emote.replace("UNICODE:", ""));
         else {
             try {
