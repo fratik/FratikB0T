@@ -20,9 +20,7 @@ package pl.fratik.starboard.komendy;
 import lombok.EqualsAndHashCode;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.entities.*;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.Command;
 import pl.fratik.core.command.CommandCategory;
@@ -69,14 +67,14 @@ public class StarInfoCommand extends Command {
             TextChannel stch = context.getShardManager().getTextChannelById(std.getStarboardChannel());
             if (stch != null) {
                 for (StarData sd : std.getStarData().values()) {
-                    TextChannel sch = context.getShardManager().getTextChannelById(sd.getChannel());
-                    if (sch == null) continue;
+                    GuildChannel sch = context.getShardManager().getGuildChannelById(sd.getChannel());
+                    if (!(sch instanceof GuildMessageChannel)) continue;
                     if (sd.getStarredBy().size() >= std.getStarThreshold()) {
                         boolean caught = false;
                         if (sd.getGuild() == null) {
                             try {
                                 Message sbMsg = stch.retrieveMessageById(sd.getStarboardMessageId()).complete();
-                                Message sMsg = sch
+                                Message sMsg = ((GuildMessageChannel) sch)
                                         .retrieveMessageById(Objects.requireNonNull(Objects.requireNonNull(sbMsg.getEmbeds()
                                                 .get(0).getFooter()).getText()).split("\\|")[1].trim())
                                         .complete();
@@ -103,7 +101,7 @@ public class StarInfoCommand extends Command {
             Message sbMsg = context.getShardManager().getTextChannelById(starDataDao.get(topStarData.getGuild()).getStarboardChannel())
                     .retrieveMessageById(topStarData.getStarboardMessageId()).complete();
             //noinspection ConstantConditions
-            Message sMsg = context.getShardManager().getTextChannelById(topStarData.getChannel())
+            Message sMsg = ((GuildMessageChannel) context.getShardManager().getGuildChannelById(topStarData.getChannel()))
                     .retrieveMessageById(sbMsg.getEmbeds().get(0).getFooter().getText().split("\\|")[1].trim())
                     .complete();
             topStarData.msg = sMsg;
