@@ -18,7 +18,6 @@
 package pl.fratik.music.commands;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
-import com.wrapper.spotify.model_objects.specification.*;
 import io.sentry.Sentry;
 import io.sentry.event.User;
 import lavalink.client.io.Link;
@@ -36,6 +35,7 @@ import pl.fratik.music.managers.ManagerMuzykiSerwera;
 import pl.fratik.music.managers.NowyManagerMuzyki;
 import pl.fratik.music.managers.SearchManager;
 import pl.fratik.music.utils.SpotifyUtil;
+import se.michaelthelin.spotify.model_objects.specification.*;
 
 import java.util.*;
 import java.util.concurrent.Executors;

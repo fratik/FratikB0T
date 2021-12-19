@@ -20,7 +20,6 @@ package pl.fratik.music;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import com.google.inject.Inject;
-import com.wrapper.spotify.SpotifyApi;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.sharding.ShardManager;
@@ -44,6 +43,7 @@ import pl.fratik.music.managers.NowyManagerMuzyki;
 import pl.fratik.music.managers.SearchManager;
 import pl.fratik.music.serializer.QueueDeserializer;
 import pl.fratik.music.utils.SpotifyUtil;
+import se.michaelthelin.spotify.SpotifyApi;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
