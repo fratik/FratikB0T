@@ -21,7 +21,6 @@ import club.minnced.discord.webhook.WebhookClient;
 import club.minnced.discord.webhook.WebhookClientBuilder;
 import club.minnced.discord.webhook.exception.HttpException;
 import club.minnced.discord.webhook.receive.ReadonlyMessage;
-import club.minnced.discord.webhook.send.AllowedMentions;
 import club.minnced.discord.webhook.send.WebhookMessage;
 import club.minnced.discord.webhook.send.WebhookMessageBuilder;
 import com.github.benmanes.caffeine.cache.Cache;
@@ -29,17 +28,13 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.exceptions.PermissionException;
-import okhttp3.OkHttpClient;
-import okhttp3.RequestBody;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class WebhookManager {
@@ -59,11 +54,11 @@ public class WebhookManager {
     }
 
     public ReadonlyMessage send(WebhookMessage m, GuildChannel channel) {
-        Long threadId;
+        long threadId;
         if (channel instanceof ThreadChannel) threadId = channel.getIdLong();
-        else threadId = null;
+        else threadId = 0;
         GuildConfig.Webhook whc = getWebhook(channel);
-        try (WebhookClient wh = new WebhookThreadClientBuilder(Long.parseLong(whc.getId()), whc.getToken(), threadId).setWait(true).build()) {
+        try (WebhookClient wh = new WebhookClientBuilder(Long.parseLong(whc.getId()), whc.getToken()).setThreadId(threadId).setWait(true).build()) {
             return wh.send(m).get();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -136,46 +131,5 @@ public class WebhookManager {
         guildDao.save(gc);
         if (clearCache) whCache.invalidate(channel.getId());
         return whc;
-    }
-
-    private static class WebhookThreadClientBuilder extends WebhookClientBuilder {
-        private final Long threadId;
-
-        public WebhookThreadClientBuilder(long id, @NotNull String token, @Nullable Long threadId) {
-            super(id, token);
-            this.threadId = threadId;
-        }
-
-        @Override
-        public @NotNull WebhookThreadClient build() {
-            OkHttpClient client = this.client == null ? new OkHttpClient() : this.client;
-            ScheduledExecutorService pool = this.pool != null ? this.pool : getDefaultPool(id, threadFactory, isDaemon);
-            return new WebhookThreadClient(id, token, threadId, parseMessage, client, pool, allowedMentions);
-        }
-    }
-
-    private static class WebhookThreadClient extends WebhookClient {
-        private final Long threadId;
-
-        protected WebhookThreadClient(long id, String token, Long threadId, boolean parseMessage, OkHttpClient client, ScheduledExecutorService pool, AllowedMentions mentions) {
-            super(id, token, parseMessage, client, pool, mentions);
-            this.threadId = threadId;
-        }
-
-        @Override
-        public @NotNull String getUrl() {
-            if (threadId == null) return super.getUrl();
-            else return super.getUrl().replaceFirst("/api/v7/", "/api/v9/") + "&thread_id=" + Long.toUnsignedString(threadId); //fixme wywalic jak dodadzą wsparcie wątków
-        }
-
-        @NotNull
-        protected okhttp3.Request newRequest(RequestBody body) {
-            return new okhttp3.Request.Builder()
-                    .url(getUrl())
-                    .method("POST", body)
-                    .header("accept-encoding", "gzip")
-                    .header("user-agent", USER_AGENT)
-                    .build();
-        }
     }
 }
