@@ -216,11 +216,11 @@ public class LogListener {
 
     public void pushMessage(Message msg) {
         try {
-            List<LogMessage> kesz = Objects.requireNonNull(cache.get(msg.getTextChannel().getId(), c -> new ArrayList<>()));
+            List<LogMessage> kesz = Objects.requireNonNull(cache.get(msg.getChannel().getId(), c -> new ArrayList<>()));
             if (kesz.stream().map(ISnowflake::getId).anyMatch(o -> o.equals(msg.getId())))
                 return;
             kesz.add(new LogMessage(msg));
-            cache.put(msg.getTextChannel().getId(), kesz);
+            cache.put(msg.getChannel().getId(), kesz);
         } catch (JedisException e) {
             log.error("Redis nie odpowiada prawidłowo!", e);
         }
@@ -328,8 +328,8 @@ public class LogListener {
 
     private void pushChannel(EmbedBuilder eb, Language l, Message message) {
         eb.addField(tlumaczenia.get(l, "fulllog.channel"),
-                String.format("%s (%s[%s])", message.getTextChannel().getAsMention(),
-                        message.getTextChannel().getName(), message.getTextChannel().getId()), false);
+                String.format("%s (%s[%s])", message.getChannel().getAsMention(),
+                        message.getChannel().getName(), message.getChannel().getId()), false);
     }
 
     @Subscribe

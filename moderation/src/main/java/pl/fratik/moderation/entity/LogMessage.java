@@ -106,6 +106,14 @@ public class LogMessage extends AbstractMessage {
         return guild;
     }
 
+    @NotNull
+    @Override
+    public MessageChannel getChannel() {
+        GuildChannel ch = shardManager.getGuildChannelById(channelId);
+        if (!(ch instanceof MessageChannel)) throw new IllegalStateException("kanal nie istnieje!");
+        return (MessageChannel) ch;
+    }
+
     @Nonnull
     @Override
     public TextChannel getTextChannel() {
