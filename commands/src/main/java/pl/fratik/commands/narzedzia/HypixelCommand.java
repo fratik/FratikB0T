@@ -119,7 +119,7 @@ public class HypixelCommand extends Command {
                 }
                 player = pl.get("displayname").getAsString();
                 wersja = pl.get("mcVersionRp").getAsString();
-                tryb = pl.get("mostRecentGameType").getAsString();
+                tryb = pl.has("mostRecentGameType") ? pl.get("mostRecentGameType").getAsString() : "???";
                 jezyk = pl.has("userLanguage") ? pl.get("userLanguage").getAsString() : context.getTranslated("hypixel.player.language.notset");
                 karma = pl.get("karma").getAsInt();
                 last = pl.get("lastLogin").getAsLong();
