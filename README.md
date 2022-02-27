@@ -29,9 +29,9 @@ Użyj `gradlew.bat jar` (Windows) / `./gradlew jar` (Linux/macOS), a pluginy mag
 
 ## Użycie
 ### Wymagania
-- Java (w produkcji używane OpenJDK w wersji 8)
+- Java (w produkcji używane OpenJDK w wersji 8 lub 11)
 - PostgreSQL (9/10/11 działają)
-- [Lavalink](https://github.com/Frederikam/Lavalink)
+- [Lavalink](https://github.com/freyacodes/Lavalink)
 - [Redis](https://redis.io/)
 - klucze API: (opcjonalne)
     - image-server: https://api.fratikbot.pl oraz klucz lub ~~(Open Source wkrótce)~~ [self-hosted](https://github.com/fratik/FratikB0T-API)
