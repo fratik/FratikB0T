@@ -133,16 +133,23 @@ public class PunktyDao implements Dao<PunktyRow> {
     }
 
     public Map<String, Integer> getTopkaPoziomow(Guild serwer) {
+        return getTopkaPoziomow(serwer, 0);
+    }
+
+    public Map<String, Integer> getTopkaPoziomow(Guild serwer, long strona) {
         List<PunktyRow> data = mapper.loadManyBySubkey("data->>'guildId'", serwer.getId());
         data.sort(Comparator.comparingInt(this::calculateLevelFromConfig).reversed());
         LinkedHashMap<String, Integer> map = new LinkedHashMap<>();
 
-        data.forEach(element -> {
+        for (int i = 0; i < data.size(); i++) {
+            if (i < (strona * 10)) continue;
+            if (map.size() >= 10) break;
+            PunktyRow element = data.get(i);
             String id = element.getUserId();
             int poziom = calculateLevel(element.getPunkty());
-            if (id == null || poziom == 0) return;
+            if (id == null || poziom == 0) break;
             map.put(id, poziom);
-        });
+        }
 
         return map;
     }
@@ -162,17 +169,23 @@ public class PunktyDao implements Dao<PunktyRow> {
     }
 
     public Map<String, Integer> getTopkaPunktow(Guild serwer) {
+        return getTopkaPunktow(serwer, 0);
+    }
+
+    public Map<String, Integer> getTopkaPunktow(Guild serwer, long strona) {
         List<PunktyRow> data = mapper.loadManyBySubkey("data->>'guildId'", serwer.getId());
         data.sort(Comparator.comparingInt(PunktyRow::getPunkty).reversed());
         LinkedHashMap<String, Integer> map = new LinkedHashMap<>();
 
-        data.forEach(element -> {
-            if (map.size() >= 10) return;
+        for (int i = 0; i < data.size(); i++) {
+            if (i < (strona * 10)) continue;
+            if (map.size() >= 10) break;
+            PunktyRow element = data.get(i);
             String id = element.getUserId();
             int punkty = element.getPunkty();
-            if (id == null || punkty == 0) return;
+            if (id == null || punkty == 0) break;
             map.put(id, punkty);
-        });
+        }
 
         return map;
     }

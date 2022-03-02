@@ -22,6 +22,7 @@ import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.*;
 import pl.fratik.core.entity.MemberConfig;
 import pl.fratik.core.entity.MemberDao;
+import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.util.CommonErrors;
 import pl.fratik.core.util.UserUtil;
 import pl.fratik.punkty.LicznikPunktow;
@@ -41,6 +42,8 @@ public class RankingCommand extends Command {
         this.memberDao = memberDao;
         name = "ranking";
         aliases = new String[] {"rank"};
+        uzycieDelim = " ";
+        uzycie = new Uzycie("strona", "long", false);
         permLevel = PermLevel.EVERYONE;
         category = CommandCategory.POINTS;
         cooldown = 7;
@@ -50,46 +53,73 @@ public class RankingCommand extends Command {
     @SuppressWarnings("squid:S1192")
     @SubCommand(name="punkty",aliases={"points", "pkt"})
     public boolean punkty(@NotNull CommandContext context) {
+        long strona = 0;
+        if (context.getArgs().length != 0) {
+            if (context.getArgs()[0] == null || (Long) context.getArgs()[0] <= 0) {
+                context.reply(context.getTranslated("ranking.page.invalid"));
+                return false;
+            }
+            strona = (Long) context.getArgs()[0] - 1;
+        }
         if (!licznik.punktyWlaczone(context.getGuild())) {
             context.reply(context.getTranslated("punkty.off"));
             return false;
         }
-        Map<String, Integer> dane = punktyDao.getTopkaPunktow(context.getGuild());
+        Map<String, Integer> dane = punktyDao.getTopkaPunktow(context.getGuild(), strona);
+        if (dane.size() == 0) {
+            context.reply(context.getTranslated("ranking.page.empty"));
+            return false;
+        }
         ArrayList<String> tekst = new ArrayList<>();
-        AtomicInteger miejsce = new AtomicInteger(0);
+        AtomicInteger miejsce = new AtomicInteger((int) strona * 10);
+        tekst.add(context.getTranslated("ranking.page.header", strona + 1));
+        tekst.add("");
         dane.forEach((id, punkty) -> {
-            if (dane.size() == 10) {
+            if (dane.size() >= 10) {
                 int liczba = miejsce.incrementAndGet();
                 String liczbaStringed;
                 if (liczba <= 9) liczbaStringed = "[ " + liczba;
                 else liczbaStringed = "[" + liczba;
                 User uzytkownik = context.getShardManager().retrieveUserById(id).complete();
                 tekst.add(String.format("%s] %s: %s", liczbaStringed, UserUtil.formatDiscrim(uzytkownik), punkty));
-                if (liczba != dane.size()) tekst.add("");
+                if (liczba != Math.min(10, dane.size())) tekst.add("");
             } else {
                 int liczba = miejsce.incrementAndGet();
                 User uzytkownik = context.getShardManager().retrieveUserById(id).complete();
                 tekst.add(String.format("[%s] %s: %s", liczba, UserUtil.formatDiscrim(uzytkownik), punkty));
-                if (liczba != dane.size()) tekst.add("");
+                if (liczba != Math.min(10, dane.size())) tekst.add("");
             }
         });
-        context.reply(context.getTranslated("ranking.points.header") + "```" + String.join("\n", tekst) + "```");
+        context.reply(context.getTranslated("ranking.points.header") + "\n```\n" + String.join("\n", tekst) + "```");
         return true;
     }
 
     @SubCommand(name="poziom",aliases={"level", "lvl"})
     public boolean poziom(@NotNull CommandContext context) {
+        long strona = 0;
+        if (context.getArgs().length != 0) {
+            if (context.getArgs()[0] == null || (Long) context.getArgs()[0] <= 0) {
+                context.reply(context.getTranslated("ranking.page.invalid"));
+                return false;
+            }
+            strona = (Long) context.getArgs()[0] - 1;
+        }
         if (!licznik.punktyWlaczone(context.getGuild())) {
             context.reply(context.getTranslated("punkty.off"));
             return false;
         }
-        Map<String, Integer> dane = punktyDao.getTopkaPoziomow(context.getGuild());
+        Map<String, Integer> dane = punktyDao.getTopkaPoziomow(context.getGuild(), strona );
+        if (dane.size() == 0) {
+            context.reply(context.getTranslated("ranking.page.empty"));
+            return false;
+        }
         ArrayList<String> tekst = new ArrayList<>();
-        AtomicInteger miejsce = new AtomicInteger(0);
+        AtomicInteger miejsce = new AtomicInteger((int) strona * 10);
+        tekst.add(context.getTranslated("ranking.page.header", strona + 1));
+        tekst.add("");
         dane.forEach((id, poziom) -> {
             if (dane.size() >= 10) {
                 int liczba = miejsce.incrementAndGet();
-                if (liczba > 10) return;
                 String liczbaStringed;
                 if (liczba <= 9) liczbaStringed = "[ " + liczba;
                 else liczbaStringed = "[" + liczba;
@@ -98,36 +128,36 @@ public class RankingCommand extends Command {
                 if (liczba != Math.min(10, dane.size())) tekst.add("");
             } else {
                 int liczba = miejsce.incrementAndGet();
-                if (liczba > 10) return;
                 User uzytkownik = context.getShardManager().retrieveUserById(id).complete();
                 tekst.add(String.format("[%s] %s: %s", liczba, UserUtil.formatDiscrim(uzytkownik), poziom));
                 if (liczba != Math.min(10, dane.size())) tekst.add("");
             }
         });
-        context.reply(context.getTranslated("ranking.levels.header") + "```" + String.join("\n", tekst) + "```");
+        context.reply(context.getTranslated("ranking.levels.header") + "\n```\n" + String.join("\n", tekst) + "```");
         return true;
     }
 
     @SubCommand(name="fratikcoin",aliases={"fratikcoiny", "fc", "money"})
     public boolean fratikcoin(@NotNull CommandContext context) {
-        List<MemberConfig> mc = new ArrayList<>();
-        List<MemberConfig> mcAa = memberDao.getAll();
-        if (mcAa.isEmpty()) {
-            context.reply(context.getTranslated("ranking.fratikcoin.empty"));
+        long strona = 0;
+        if (context.getArgs().length != 0) {
+            if (context.getArgs()[0] == null || (Long) context.getArgs()[0] <= 0) {
+                context.reply(context.getTranslated("ranking.page.invalid"));
+                return false;
+            }
+            strona = (Long) context.getArgs()[0] - 1;
+        }
+        Map<String, Long> dane = memberDao.getTopkaFratikcoinow(context.getGuild(), strona);
+        if (dane.size() == 0) {
+            context.reply(context.getTranslated("ranking.page.empty"));
             return false;
         }
-        mcAa.sort(Comparator.comparingLong(MemberConfig::getFratikCoiny).reversed());
-        for (MemberConfig c : mcAa) {
-            if (c.getGuildId().equals(context.getGuild().getId())) mc.add(c);
-            if (mc.size() == 10) break;
-        }
-        Map<String, Long> dane = new LinkedHashMap<>();
-        for (MemberConfig c : mc)
-            dane.put(c.getUserId(), c.getFratikCoiny());
         ArrayList<String> tekst = new ArrayList<>();
-        AtomicInteger miejsce = new AtomicInteger(0);
+        AtomicInteger miejsce = new AtomicInteger((int) strona * 10);
+        tekst.add(context.getTranslated("ranking.page.header", strona + 1));
+        tekst.add("");
         dane.forEach((id, fc) -> {
-            if (dane.size() == 10) {
+            if (dane.size() >= 10) {
                 int liczba = miejsce.incrementAndGet();
                 String liczbaStringed;
                 if (liczba <= 9) liczbaStringed = "[ " + liczba;
@@ -137,13 +167,12 @@ public class RankingCommand extends Command {
                 if (liczba != Math.min(10, dane.size())) tekst.add("");
             } else {
                 int liczba = miejsce.incrementAndGet();
-                if (liczba > 10) return;
                 User uzytkownik = context.getShardManager().retrieveUserById(id).complete();
                 tekst.add(String.format("[%s] %s: %s", liczba, UserUtil.formatDiscrim(uzytkownik), fc));
                 if (liczba != Math.min(10, dane.size())) tekst.add("");
             }
         });
-        context.reply(context.getTranslated("ranking.fratikcoin.header") + "```" + String.join("\n", tekst) + "```");
+        context.reply(context.getTranslated("ranking.fratikcoin.header") + "\n```\n" + String.join("\n", tekst) + "```");
         return true;
     }
 
