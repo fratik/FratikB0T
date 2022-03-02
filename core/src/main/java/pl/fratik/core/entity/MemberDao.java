@@ -20,12 +20,13 @@ package pl.fratik.core.entity;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.eventbus.EventBus;
 import gg.amy.pgorm.PgMapper;
+import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.event.DatabaseUpdateEvent;
 import pl.fratik.core.manager.ManagerBazyDanych;
 
-import java.util.List;
+import java.util.*;
 
 public class MemberDao implements Dao<MemberConfig> {
 
@@ -65,6 +66,37 @@ public class MemberDao implements Dao<MemberConfig> {
 
     private MemberConfig newObject(String id) {
         return new MemberConfig(id.split("\\.")[0], id.split("\\.")[1]);
+    }
+
+    public Map<String, Long> getTopkaFratikcoinow(Guild serwer) {
+        return getTopkaFratikcoinow(serwer, 0);
+    }
+
+    public Map<String, Long> getTopkaFratikcoinow(Guild serwer, long strona) {
+        List<MemberConfig> data = getAll();
+        data.sort(Comparator.comparingLong(MemberConfig::getFratikCoiny).reversed());
+        LinkedHashMap<String, Long> map = new LinkedHashMap<>();
+
+        for (int i = 0; i < data.size(); i++) {
+            MemberConfig element = data.get(i);
+            if (!element.getGuildId().equals(serwer.getId())) continue;
+            String id = element.getUserId();
+            long fratikcoiny = element.getFratikCoiny();
+            if (id == null || fratikcoiny == 0) break;
+            map.put(id, fratikcoiny);
+        }
+
+        LinkedHashMap<String, Long> map2 = new LinkedHashMap<>();
+
+        List<String> keys = new ArrayList<>(map.keySet());
+        for (int i = 0; i < map.size(); i++) {
+            if (i < (strona * 10)) continue;
+            if (map2.size() >= 10) break;
+            String key = keys.get(i);
+            map2.put(key, map.get(key));
+        }
+
+        return map2;
     }
 
 }
