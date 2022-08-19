@@ -25,17 +25,12 @@ import org.jetbrains.annotations.NotNull;
 import org.mozilla.javascript.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pl.fratik.core.command.Command;
-import pl.fratik.core.command.CommandCategory;
-import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.command.PermLevel;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.MemberDao;
 import pl.fratik.core.entity.UserDao;
-import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.manager.ManagerArgumentow;
 import pl.fratik.core.manager.ManagerBazyDanych;
-import pl.fratik.core.manager.ManagerKomend;
 import pl.fratik.core.manager.ManagerModulow;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 

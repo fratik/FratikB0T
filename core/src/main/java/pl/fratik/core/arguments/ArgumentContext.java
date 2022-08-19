@@ -23,8 +23,6 @@ import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 
-import java.util.ArrayList;
-
 public class ArgumentContext {
     @Getter private final ParsedArgument argument;
     @Getter private final MessageReceivedEvent event;
@@ -46,16 +44,8 @@ public class ArgumentContext {
         return tlumaczenia.get(language, key);
     }
 
-    public String getTranslated(String key, String ...argi) {
-        return tlumaczenia.get(language, key, argi);
-    }
-
     public String getTranslated(String key, Object ...argi) {
-        ArrayList<String> parsedArgi = new ArrayList<>();
-        for (Object argu : argi) {
-            parsedArgi.add(argu.toString());
-        }
-        return tlumaczenia.get(language, key, parsedArgi.toArray());
+        return tlumaczenia.get(language, key, argi);
     }
 
 }

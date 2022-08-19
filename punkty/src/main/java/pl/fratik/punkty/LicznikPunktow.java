@@ -40,7 +40,6 @@ import pl.fratik.core.entity.UserConfig;
 import pl.fratik.core.entity.UserDao;
 import pl.fratik.core.event.LvlupEvent;
 import pl.fratik.core.event.PluginMessageEvent;
-import pl.fratik.core.manager.ManagerKomend;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.MapUtil;

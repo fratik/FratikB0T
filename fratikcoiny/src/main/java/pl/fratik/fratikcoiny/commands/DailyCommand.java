@@ -20,8 +20,6 @@ package pl.fratik.fratikcoiny.commands;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Emote;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.command.CommandCategory;
-import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.entity.MemberConfig;
 import pl.fratik.core.entity.MemberDao;
 

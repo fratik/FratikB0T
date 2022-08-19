@@ -19,8 +19,6 @@ package pl.fratik.moderation.commands;
 
 import net.dv8tion.jda.api.entities.Role;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.command.CommandCategory;
-import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.command.PermLevel;
 import pl.fratik.core.util.StringUtil;
 

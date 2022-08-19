@@ -18,15 +18,15 @@
 package pl.fratik.core.event;
 
 import lombok.Getter;
-import pl.fratik.core.command.CommandContext;
+import pl.fratik.core.command.NewCommandContext;
 
 @Getter
 public class CommandDispatchedEvent {
-    private final CommandContext context;
+    private final NewCommandContext context;
     private final boolean success;
     private final long time;
 
-    public CommandDispatchedEvent(CommandContext context, boolean success, long time) {
+    public CommandDispatchedEvent(NewCommandContext context, boolean success, long time) {
         this.context = context;
         this.success = success;
         this.time = time;

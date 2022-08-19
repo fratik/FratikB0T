@@ -26,11 +26,7 @@ import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.command.Command;
-import pl.fratik.core.command.CommandCategory;
-import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.entity.UserDao;
-import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.event.PluginMessageEvent;
 import pl.fratik.core.util.UserUtil;
 

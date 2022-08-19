@@ -20,16 +20,14 @@ jar {
     destinationDir project.file('../plugins')
 }
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
 mainClassName = 'pl.fratik.moderation.Module'
 
 build.dependsOn jar
 
 dependencies {
-    compile project(":core")
-    compile project(":api")
-    compile project(":logs")
+    implementation project(":core")
+    implementation project(":api")
+    implementation project(":logs")
 }
 
 shadowJar {

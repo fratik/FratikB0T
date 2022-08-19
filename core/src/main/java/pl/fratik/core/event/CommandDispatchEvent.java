@@ -19,15 +19,15 @@ package pl.fratik.core.event;
 
 import lombok.Getter;
 import lombok.Setter;
-import pl.fratik.core.command.CommandContext;
+import pl.fratik.core.command.NewCommandContext;
 
 @Getter
 public class CommandDispatchEvent {
-    private final CommandContext context;
+    private final NewCommandContext context;
     @Setter
     private boolean cancelled;
 
-    public CommandDispatchEvent(CommandContext context) {
+    public CommandDispatchEvent(NewCommandContext context) {
         this.context = context;
     }
 }

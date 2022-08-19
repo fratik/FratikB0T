@@ -20,7 +20,6 @@ package pl.fratik.music.commands;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.cache.Cache;
 import pl.fratik.core.cache.RedisCacheManager;
-import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.command.PermLevel;
 import pl.fratik.core.command.SubCommand;
 import pl.fratik.core.entity.GuildConfig;

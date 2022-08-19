@@ -35,11 +35,7 @@ import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.Ustawienia;
-import pl.fratik.core.command.Command;
-import pl.fratik.core.command.CommandCategory;
-import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.command.SubCommand;
-import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.util.*;
 
 import java.awt.*;

@@ -20,15 +20,13 @@ jar {
     destinationDir project.file('../plugins')
 }
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
 mainClassName = 'pl.fratik.fdevstats.Module'
 
 build.dependsOn shadowJar
 
 dependencies {
-    compile project(":core")
-    compile project(":stats")
+    implementation project(":core")
+    implementation project(":stats")
 }
 
 shadowJar {

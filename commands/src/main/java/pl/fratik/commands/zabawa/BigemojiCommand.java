@@ -21,11 +21,6 @@ import net.dv8tion.jda.api.Permission;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 import pl.fratik.core.Ustawienia;
-import pl.fratik.core.command.Command;
-import pl.fratik.core.command.CommandCategory;
-import pl.fratik.core.command.CommandContext;
-import pl.fratik.core.entity.Emoji;
-import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.util.NetworkUtil;
 
 import java.net.URLEncoder;

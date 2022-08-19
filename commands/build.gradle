@@ -20,17 +20,15 @@ jar {
     destinationDir project.file('../plugins')
 }
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
 mainClassName = 'pl.fratik.commands.Module'
 
 build.dependsOn jar
 
 dependencies {
-    compile project(":core")
-    compile project(":music")
-    compile project(":invite")
-    compile project(":moderation")
+    implementation project(":core")
+    implementation project(":music")
+    implementation project(":invite")
+    implementation project(":moderation")
 }
 
 shadowJar {

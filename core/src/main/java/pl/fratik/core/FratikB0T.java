@@ -17,7 +17,6 @@
 
 package pl.fratik.core;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.eventbus.AsyncEventBus;
 import com.google.common.util.concurrent.ServiceManager;
 import com.google.gson.Gson;
@@ -36,21 +35,19 @@ import net.dv8tion.jda.api.sharding.ShardManager;
 import net.dv8tion.jda.api.utils.ChunkingFilter;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
 import net.dv8tion.jda.api.utils.cache.CacheFlag;
+import net.dv8tion.jda.internal.JDAImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.cache.RedisCacheManager;
-import pl.fratik.core.crypto.AES;
-import pl.fratik.core.crypto.CryptoException;
 import pl.fratik.core.entity.*;
 import pl.fratik.core.event.ConnectedEvent;
 import pl.fratik.core.manager.ManagerArgumentow;
 import pl.fratik.core.manager.ManagerBazyDanych;
-import pl.fratik.core.manager.ManagerKomend;
 import pl.fratik.core.manager.ManagerModulow;
 import pl.fratik.core.manager.implementation.ManagerArgumentowImpl;
 import pl.fratik.core.manager.implementation.ManagerBazyDanychImpl;
-import pl.fratik.core.manager.implementation.ManagerKomendImpl;
 import pl.fratik.core.manager.implementation.ManagerModulowImpl;
+import pl.fratik.core.manager.implementation.NewManagerKomendImpl;
 import pl.fratik.core.service.FratikB0TService;
 import pl.fratik.core.service.ScheduleService;
 import pl.fratik.core.service.StatusService;
@@ -58,11 +55,13 @@ import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.*;
 import pl.fratik.core.webhook.WebhookManager;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.EnumSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -76,7 +75,7 @@ class FratikB0T {
     private final Logger logger;
     private ManagerModulow moduleManager;
     private ManagerBazyDanych mbd;
-    private ManagerKomend managerKomend;
+    private NewManagerKomendImpl managerKomend;
     private ServiceManager glownyService;
     private ServiceManager statusService;
     private ServiceManager scheduleService;
@@ -86,7 +85,7 @@ class FratikB0T {
     private static boolean shutdownThreadRegistered = false;
     @Getter private static Thread shutdownThread;
 
-    FratikB0T(String token, boolean encryptedConfig) {
+    FratikB0T(String token) {
         logger = LoggerFactory.getLogger(FratikB0T.class);
         AsyncEventBus eventBus = new AsyncEventBus(Executors.newFixedThreadPool(16), EventBusErrorHandler.instance);
 
@@ -98,14 +97,7 @@ class FratikB0T {
             try {
                 if (cfg.createNewFile()) {
                     ustawienia = new Ustawienia();
-                    if (!encryptedConfig) {
-                        Files.write(cfg.toPath(), gson.toJson(ustawienia).getBytes(StandardCharsets.UTF_8));
-                    } else {
-                        logger.error("Aby utworzyć config uruchom bota normalnie i poedytuj co trzeba. " +
-                                "Aby zaszyfrować config, uruchom bota z ENCRYPTED_CONFIG podając 'edit' jako " +
-                                "pierwszy argument.");
-                        System.exit(1);
-                    }
+                    Files.write(cfg.toPath(), gson.toJson(ustawienia).getBytes(StandardCharsets.UTF_8));
                     logger.info("Konfiguracja stworzona, ustaw bota!");
                     System.exit(1);
                 }
@@ -116,52 +108,7 @@ class FratikB0T {
         }
 
         try {
-            if (encryptedConfig) {
-                char[] chars;
-                File configpass = new File(".configpass");
-                if (configpass.exists()) {
-                    try {
-                        logger.info("Wykryto plik .configpass, pobieram z niego hasło..");
-                        chars = new String(Files.readAllBytes(configpass.toPath()), StandardCharsets.UTF_8).trim().toCharArray();
-                    } catch (IOException e) {
-                        logger.error("Nie udało się odczytać .configpass.");
-                        System.exit(1);
-                        return;
-                    }
-                    try {
-                        boolean success = configpass.delete();
-                        if (!success) throw new IOException("failed");
-                    } catch (Exception e) {
-                        logger.error("Nie udało się usunąć .configpass! To może być duże niebezpieczeństwo!", e);
-                    }
-                } else {
-                    Console console = System.console();
-                    if (console == null) {
-                        logger.error("Nie znaleziono instancji konsoli. Użycie szyfrowanych configów jest nie możliwe.");
-                        System.exit(1);
-                    }
-                    chars = console.readPassword("Podaj hasło: ");
-                }
-                byte[] conf;
-                try {
-                    conf = Files.readAllBytes(cfg.toPath());
-                } catch (IOException e) {
-                    logger.error("Nie udało się odczytać configu.");
-                    System.exit(1);
-                    return;
-                }
-                byte[] decrypted;
-                try {
-                    decrypted = AES.decrypt(conf, chars);
-                } catch (CryptoException e) {
-                    logger.error("Nie udało się odszyfrować configu.");
-                    System.exit(1);
-                    return;
-                }
-                ustawienia = gson.fromJson(new StringReader(new String(decrypted)), Ustawienia.class);
-                token = ustawienia.token;
-                ustawienia.token = null;
-            } else ustawienia = gson.fromJson(new FileReader(cfg), Ustawienia.class);
+            ustawienia = gson.fromJson(new FileReader(cfg), Ustawienia.class);
         } catch (Exception e) {
             logger.error("Nie udało się odczytać konfiguracji!", e);
             System.exit(1);
@@ -191,7 +138,8 @@ class FratikB0T {
                 DefaultShardManagerBuilder builder = DefaultShardManagerBuilder.create(token,
                         GatewayIntent.GUILD_MEMBERS, GatewayIntent.GUILD_BANS, GatewayIntent.GUILD_VOICE_STATES,
                         GatewayIntent.GUILD_MESSAGES, GatewayIntent.GUILD_MESSAGE_REACTIONS, GatewayIntent.GUILD_INVITES,
-                        GatewayIntent.DIRECT_MESSAGES, GatewayIntent.DIRECT_MESSAGE_REACTIONS, GatewayIntent.GUILD_EMOJIS);
+                        GatewayIntent.DIRECT_MESSAGES, GatewayIntent.DIRECT_MESSAGE_REACTIONS, GatewayIntent.GUILD_EMOJIS_AND_STICKERS,
+                        GatewayIntent.MESSAGE_CONTENT);
                 builder.setShardsTotal(count);
                 builder.setShards(min, max);
                 builder.setEnableShutdownHook(false);
@@ -210,12 +158,11 @@ class FratikB0T {
                 builder.setVoiceDispatchInterceptor(eventHandler);
                 builder.setBulkDeleteSplittingEnabled(false);
                 builder.setCallbackPool(Executors.newFixedThreadPool(4));
-                builder.enableCache(CacheFlag.EMOTE);
-                MessageAction.setDefaultMentions(EnumSet.of(Message.MentionType.EMOTE, Message.MentionType.CHANNEL));
+                builder.enableCache(CacheFlag.EMOJI);
+                MessageAction.setDefaultMentions(EnumSet.of(Message.MentionType.EMOJI, Message.MentionType.CHANNEL));
                 MessageAction.setDefaultMentionRepliedUser(false);
                 ShardManager shardManager = builder.build();
                 ManagerArgumentow managerArgumentow = new ManagerArgumentowImpl();
-                Uzycie.setManagerArgumentow(managerArgumentow);
                 mbd = new ManagerBazyDanychImpl();
                 mbd.load();
                 UserDao userDao = new UserDao(mbd, eventBus);
@@ -236,16 +183,9 @@ class FratikB0T {
                     Thread.sleep(100);
                 }
 
-                Optional<JDA> shard = shardManager.getShards().stream().filter(s -> {
-                    try {
-                        s.getSelfUser();
-                    } catch (IllegalStateException e) {
-                        return false;
-                    }
-                    return true;
-                }).findAny();
+                Optional<JDA> shard = shardManager.getShards().stream().filter(s -> ((JDAImpl) s).hasSelfUser()).findAny();
 
-                if (!shard.isPresent()) {
+                if (shard.isEmpty()) {
                     logger.error("Nie znaleziono shard'a?");
                     System.exit(1);
                 }
@@ -271,15 +211,14 @@ class FratikB0T {
                 NetworkUtil.setUpContentInformationCache(redisCacheManager);
                 Tlumaczenia.setShardManager(shardManager);
                 Tlumaczenia tlumaczenia = new Tlumaczenia(userDao, guildDao, redisCacheManager);
-                managerKomend = new ManagerKomendImpl(shardManager, guildDao, userDao,
-                        tlumaczenia, eventBus, redisCacheManager);
+                managerKomend = new NewManagerKomendImpl(shardManager, tlumaczenia);
                 moduleManager = new ManagerModulowImpl(shardManager, mbd, guildDao, webhookManager, memberDao, userDao,
                         redisCacheManager, gbanDao, scheduleDao, managerKomend, managerArgumentow, eventWaiter,
                         tlumaczenia, eventBus);
-                glownyService = new ServiceManager(ImmutableList.of(new FratikB0TService(shardManager, eventBus,
+                glownyService = new ServiceManager(List.of(new FratikB0TService(shardManager, eventBus,
                         eventWaiter, tlumaczenia, managerKomend, mbd, guildDao, moduleManager, gbanDao)));
-                statusService = new ServiceManager(ImmutableList.of(new StatusService(shardManager)));
-                scheduleService = new ServiceManager(ImmutableList.of(new ScheduleService(shardManager, scheduleDao,
+                statusService = new ServiceManager(List.of(new StatusService(shardManager)));
+                scheduleService = new ServiceManager(List.of(new ScheduleService(shardManager, scheduleDao,
                         tlumaczenia, eventBus)));
 
 
@@ -294,7 +233,7 @@ class FratikB0T {
                 glownyService.awaitHealthy();
 
                 shardManager.setStatus(OnlineStatus.ONLINE);
-                shardManager.setActivity(Activity.playing("Dzień doberek! | v" + WERSJA));
+                shardManager.setActivity(Activity.playing("jebać interakcje! | v" + WERSJA));
                 statusService.startAsync();
                 scheduleService.startAsync();
 

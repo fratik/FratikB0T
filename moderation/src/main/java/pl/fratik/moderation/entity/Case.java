@@ -27,7 +27,6 @@ import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.User;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.entity.DatabaseEntity;
 import pl.fratik.core.entity.Kara;
 import pl.fratik.core.tlumaczenia.Language;

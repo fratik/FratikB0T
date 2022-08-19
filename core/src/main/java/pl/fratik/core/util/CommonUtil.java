@@ -17,17 +17,12 @@
 
 package pl.fratik.core.util;
 
-import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import net.dv8tion.jda.internal.entities.AbstractMessage;
 import org.json.JSONObject;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.Ustawienia;
-import pl.fratik.core.command.Command;
-import pl.fratik.core.command.CommandContext;
-import pl.fratik.core.tlumaczenia.Language;
-import pl.fratik.core.tlumaczenia.Tlumaczenia;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -58,23 +53,23 @@ public class CommonUtil {
             "([a-z]{2,24})\\b([-a-zA-Z0-9@:%_+.~#?&/=]*\\.(a?png|jpe?g|gif|webp|tiff|svg))", Pattern.CASE_INSENSITIVE);
     private static final String BLOCK = "\u2589\uFE0F";
 
-    public static boolean checkCooldown(Map<Guild, Long> cooldowns, CommandContext context, long time) {
-        if (cooldowns != null) {
-            Message message = context.getEvent().getMessage();
-            if (cooldowns.containsKey(message.getGuild())) {
-                if (cooldowns.get(message.getGuild()) > System.currentTimeMillis()) {
-                    CommonErrors.cooldown(context);
-                    return true;
-                } else {
-                    cooldowns.remove(message.getGuild());
-                    cooldowns.put(message.getGuild(), System.currentTimeMillis() + time);
-                }
-            } else {
-                cooldowns.put(message.getGuild(), System.currentTimeMillis() + time);
-            }
-        }
-        return false;
-    }
+//    public static boolean checkCooldown(Map<Guild, Long> cooldowns, CommandContext context, long time) {
+//        if (cooldowns != null) {
+//            Message message = context.getEvent().getMessage();
+//            if (cooldowns.containsKey(message.getGuild())) {
+//                if (cooldowns.get(message.getGuild()) > System.currentTimeMillis()) {
+//                    CommonErrors.cooldown(context);
+//                    return true;
+//                } else {
+//                    cooldowns.remove(message.getGuild());
+//                    cooldowns.put(message.getGuild(), System.currentTimeMillis() + time);
+//                }
+//            } else {
+//                cooldowns.put(message.getGuild(), System.currentTimeMillis() + time);
+//            }
+//        }
+//        return false;
+//    }
 
     public static String fromStream(InputStream stream) throws IOException {
         BufferedInputStream bis = new BufferedInputStream(stream);
@@ -199,15 +194,15 @@ public class CommonUtil {
         return bd.doubleValue();
     }
 
-    public static String resolveName(Command cmd, Tlumaczenia t, Language l) {
-        String raw = t.get(l, cmd.getName() + ".help.name");
-        if (raw.isEmpty()) return cmd.getName();
-        else {
-            String[] aliasy = raw.toLowerCase().split("\\|");
-            if (aliasy[0].isEmpty()) return cmd.getName();
-            else return aliasy[0].trim();
-        }
-    }
+//    public static String resolveName(Command cmd, Tlumaczenia t, Language l) {
+//        String raw = t.get(l, cmd.getName() + ".help.name");
+//        if (raw.isEmpty()) return cmd.getName();
+//        else {
+//            String[] aliasy = raw.toLowerCase().split("\\|");
+//            if (aliasy[0].isEmpty()) return cmd.getName();
+//            else return aliasy[0].trim();
+//        }
+//    }
 
     public static boolean isPomoc(ShardManager shardManager, Guild g) {
         TextChannel kanal = Objects.requireNonNull(shardManager.getGuildById(Ustawienia.instance.botGuild))

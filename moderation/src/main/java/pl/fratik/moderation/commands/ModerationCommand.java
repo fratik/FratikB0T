@@ -17,9 +17,6 @@
 
 package pl.fratik.moderation.commands;
 
-import pl.fratik.core.command.Command;
-import pl.fratik.core.command.CommandCategory;
-import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.command.PermLevel;
 import pl.fratik.moderation.listeners.ModLogListener;
 

@@ -15,25 +15,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package pl.fratik.core.manager;
+package pl.fratik.core.command;
 
-import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.User;
-import pl.fratik.core.command.Command;
-import pl.fratik.core.entity.Emoji;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-public interface ManagerKomend {
-    void registerCommand(Command command);
-    void unregisterCommand(Command command);
-    void unregisterAll();
-    Emoji getReakcja(User user, boolean success);
-    List<String> getPrefixes(Guild guild);
-    Map<String, Command> getCommands();
-    Set<Command> getRegistered();
-    Map<String, Integer> getRegisteredPerModule();
-    void shutdown();
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.METHOD})
+public @interface SubCommandGroup {
+    String name() default "";
 }

@@ -15,8 +15,21 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package pl.fratik.core.command;
+package pl.fratik.core.manager;
 
-public enum CommandType {
-    NORMAL, MODERATION, DEBUG
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.moduly.Modul;
+
+import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
+
+public interface NewManagerKomend {
+    void registerCommands(Modul modul, Collection<NewCommand> commands);
+    void unregisterCommands(Collection<NewCommand> commands);
+    void sync();
+    void unregisterAll();
+    void unregisterAll(Modul modul);
+    Map<Modul, Set<NewCommand>> getRegistered();
+    void shutdown();
 }

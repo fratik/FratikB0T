@@ -22,11 +22,7 @@ import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Emote;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.Ustawienia;
-import pl.fratik.core.command.Command;
-import pl.fratik.core.command.CommandCategory;
-import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.command.PermLevel;
-import pl.fratik.core.manager.ManagerKomend;
 import pl.fratik.core.manager.ManagerModulow;
 
 public class ModulesCommand extends Command {

@@ -18,7 +18,6 @@
 package pl.fratik.music.commands;
 
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.music.managers.ManagerMuzykiSerwera;
 import pl.fratik.music.managers.NowyManagerMuzyki;

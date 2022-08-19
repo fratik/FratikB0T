@@ -19,13 +19,9 @@ package pl.fratik.commands.narzedzia;
 
 import net.dv8tion.jda.api.entities.User;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.command.Command;
-import pl.fratik.core.command.CommandCategory;
-import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.command.PermLevel;
 import pl.fratik.core.entity.GbanDao;
 import pl.fratik.core.entity.GbanData;
-import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.manager.ManagerArgumentow;
 import pl.fratik.core.util.UserUtil;
 

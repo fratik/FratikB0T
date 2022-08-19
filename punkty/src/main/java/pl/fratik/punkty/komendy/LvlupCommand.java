@@ -19,9 +19,6 @@ package pl.fratik.punkty.komendy;
 
 import net.dv8tion.jda.api.entities.Member;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.command.Command;
-import pl.fratik.core.command.CommandCategory;
-import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.manager.ManagerArgumentow;
 import pl.fratik.core.util.UserUtil;
 import pl.fratik.punkty.LicznikPunktow;

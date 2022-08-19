@@ -27,7 +27,10 @@ import lombok.Setter;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.interactions.DiscordLocale;
+import net.dv8tion.jda.api.interactions.commands.localization.LocalizationFunction;
 import net.dv8tion.jda.api.sharding.ShardManager;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.cache.Cache;
@@ -41,12 +44,9 @@ import pl.fratik.core.event.DatabaseUpdateEvent;
 import java.io.File;
 import java.io.InputStreamReader;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.EnumMap;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 
-public class Tlumaczenia {
+public class Tlumaczenia implements LocalizationFunction {
     private final UserDao userDao;
     private final GuildDao guildDao;
     private final Logger logger;
@@ -118,14 +118,8 @@ public class Tlumaczenia {
         return property;
     }
 
-    public String get(Language l, String key, String ...toReplace) {
-        return String.format(get(l, key), (Object[]) toReplace);
-    }
-
     public String get(Language l, String key, Object ...toReplace) {
-        ArrayList<String> parsedArray = new ArrayList<>();
-        for (Object k : toReplace) parsedArray.add(k.toString());
-        return String.format(get(l, key), parsedArray.toArray());
+        return String.format(get(l, key), toReplace);
     }
 
     public Language getLanguage(Guild guild) {
@@ -171,5 +165,17 @@ public class Tlumaczenia {
         } else if (event.getEntity() instanceof GuildConfig) {
             languageCache.invalidate(((GuildConfig) event.getEntity()).getGuildId());
         }
+    }
+
+    @NotNull
+    @Override
+    public Map<DiscordLocale, String> apply(@NotNull String localizationKey) {
+        Map<DiscordLocale, String> map = new HashMap<>();
+        for (Language language : Language.values()) {
+            if (language == Language.DEFAULT || language == Language.POLISH) continue;
+            if (languages.containsKey(language) && languages.get(language).containsKey(localizationKey))
+                map.put(language.getDiscordLocale(), languages.get(language).getProperty(localizationKey));
+        }
+        return map;
     }
 }

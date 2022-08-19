@@ -31,8 +31,6 @@ import org.jsoup.nodes.Node;
 import org.jsoup.nodes.TextNode;
 import org.jsoup.select.Elements;
 import pl.fratik.core.Ustawienia;
-import pl.fratik.core.command.CommandContext;
-import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.util.*;
 import pl.fratik.music.managers.NowyManagerMuzyki;
 

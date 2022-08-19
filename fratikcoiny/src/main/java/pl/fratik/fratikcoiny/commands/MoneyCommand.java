@@ -20,8 +20,6 @@ package pl.fratik.fratikcoiny.commands;
 import net.dv8tion.jda.api.entities.Emote;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.Ustawienia;
-import pl.fratik.core.command.Command;
-import pl.fratik.core.command.CommandContext;
 
 public abstract class MoneyCommand extends Command {
     @NotNull

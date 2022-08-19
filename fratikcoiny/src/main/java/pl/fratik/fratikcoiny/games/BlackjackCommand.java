@@ -19,12 +19,8 @@ package pl.fratik.fratikcoiny.games;
 
 import net.dv8tion.jda.api.Permission;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.command.Command;
-import pl.fratik.core.command.CommandCategory;
-import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.entity.MemberConfig;
 import pl.fratik.core.entity.MemberDao;
-import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.util.EventWaiter;
 import pl.fratik.fratikcoiny.libs.blackjack.BlackjackResult;
 import pl.fratik.fratikcoiny.libs.blackjack.DiscordBlackJack;

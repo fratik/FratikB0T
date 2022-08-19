@@ -18,11 +18,7 @@
 package pl.fratik.tags.commands;
 
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.command.Command;
-import pl.fratik.core.command.CommandCategory;
-import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.command.PermLevel;
-import pl.fratik.core.entity.Uzycie;
 import pl.fratik.tags.entity.Tag;
 import pl.fratik.tags.entity.Tags;
 import pl.fratik.tags.entity.TagsDao;

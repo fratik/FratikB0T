@@ -33,7 +33,6 @@ import pl.fratik.core.command.PermLevel;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.event.DatabaseUpdateEvent;
-import pl.fratik.core.manager.ManagerKomend;
 import pl.fratik.core.manager.implementation.ManagerModulowImpl;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.CommonUtil;

@@ -18,28 +18,20 @@
 package pl.fratik.core.util;
 
 import io.sentry.Sentry;
-import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.MessageChannel;
-import net.dv8tion.jda.api.exceptions.InsufficientPermissionException;
 import pl.fratik.core.Globals;
-import pl.fratik.core.command.Command;
-import pl.fratik.core.command.CommandContext;
-import pl.fratik.core.command.PermLevel;
-import pl.fratik.core.tlumaczenia.Language;
-import pl.fratik.core.tlumaczenia.Tlumaczenia;
+import pl.fratik.core.command.NewCommandContext;
 
 public class CommonErrors {
     private CommonErrors() {}
 
-    public static void noPermissionBot(CommandContext context, Throwable e) {
+    public static void noPermissionBot(NewCommandContext context, Throwable e) {
         Sentry.getContext().setUser(new io.sentry.event.User(context.getSender().getId(), UserUtil.formatDiscrim(context.getSender()), null, null));
         Sentry.capture(e);
         Sentry.clearContext();
         context.reply("Bot nie ma wystarczających uprawnień do użycia tej komendy!");
     }
 
-    public static void exception(CommandContext context, Throwable err) {
+    public static void exception(NewCommandContext context, Throwable err) {
         if (Globals.production) {
             context.reply("Wystąpił błąd!");
         } else {
@@ -47,42 +39,37 @@ public class CommonErrors {
         }
     }
 
-    public static void cooldown(CommandContext context) {
+    public static void cooldown(NewCommandContext context) {
         context.reply("Poczekaj chwilę zanim użyjesz ponownie tej komendy!");
     }
 
-    public static void usage(CommandContext context) {
-        usage(context.getBaseEmbed(null), context.getTlumaczenia(), context.getLanguage(), context.getPrefix(),
-                context.getCommand(), context.getMessageChannel(), context.getCustomPermLevel(), context.getMessage());
-    }
-
-    public static void usage(EmbedBuilder baseEmbed, Tlumaczenia tlumaczenia, Language language, String prefix,
-                             Command command, MessageChannel channel, PermLevel customPermLevel, Message refMessage) {
-        baseEmbed.setDescription(tlumaczenia.get(language, "generic.usage") + "\n" + prefix +
-                CommonUtil.resolveName(command, tlumaczenia, language) + " " +
-                tlumaczenia.get(language,command.getName().toLowerCase() + ".help.uzycie") + "");
-        baseEmbed.addField(tlumaczenia.get(language, "generic.command.desc"),
-                tlumaczenia.get(language,command.getName().toLowerCase() + ".help.description"), false);
-        String[] aliases = command.getAliases(tlumaczenia);
-        if (aliases.length != 0) baseEmbed.addField(tlumaczenia.get(language, "generic.command.aliases"),
-                String.join(", ", aliases).toLowerCase(), false);
-        
-        String eldo = tlumaczenia.get(language,command.getName().toLowerCase() + ".help.extended");
-        if (!eldo.isEmpty() && !eldo.equals("!<pusto>!"))
-            baseEmbed.addField(tlumaczenia.get(language, "generic.command.extended"), eldo.replaceAll("\\{\\{PREFIX}}", prefix), false);
-        PermLevel plvl = customPermLevel == null ? command.getPermLevel() : customPermLevel;
-        String plvlval;
-        if (customPermLevel == null) plvlval = tlumaczenia.get(language, "generic.command.permlevel.value",
-                plvl.getNum(), tlumaczenia.get(language, plvl.getLanguageKey()));
-        else plvlval = tlumaczenia.get(language, "generic.command.permlevel.value.overwritten",
-                plvl.getNum(), tlumaczenia.get(language, plvl.getLanguageKey()));
-        baseEmbed.addField(tlumaczenia.get(language, "generic.command.permlevel"), plvlval, false);
-        try {
-            channel.sendMessageEmbeds(baseEmbed.build()).reference(refMessage).queue();
-        } catch (InsufficientPermissionException e) {
-            channel.sendMessage(tlumaczenia.get(language, "generic.usage") + "\n" + prefix + command.getName() +
-                    " " + tlumaczenia.get(language,command.getName().toLowerCase() + ".help.uzycie") + "")
-                    .reference(refMessage).queue();
-        }
-    }
+//    public static void usage(EmbedBuilder baseEmbed, Tlumaczenia tlumaczenia, Language language, String prefix,
+//                             Command command, MessageChannel channel, PermLevel customPermLevel, Message refMessage) {
+//        baseEmbed.setDescription(tlumaczenia.get(language, "generic.usage") + "\n" + prefix +
+//                CommonUtil.resolveName(command, tlumaczenia, language) + " " +
+//                tlumaczenia.get(language,command.getName().toLowerCase() + ".help.uzycie") + "");
+//        baseEmbed.addField(tlumaczenia.get(language, "generic.command.desc"),
+//                tlumaczenia.get(language,command.getName().toLowerCase() + ".help.description"), false);
+//        String[] aliases = command.getAliases(tlumaczenia);
+//        if (aliases.length != 0) baseEmbed.addField(tlumaczenia.get(language, "generic.command.aliases"),
+//                String.join(", ", aliases).toLowerCase(), false);
+//
+//        String eldo = tlumaczenia.get(language,command.getName().toLowerCase() + ".help.extended");
+//        if (!eldo.isEmpty() && !eldo.equals("!<pusto>!"))
+//            baseEmbed.addField(tlumaczenia.get(language, "generic.command.extended"), eldo.replaceAll("\\{\\{PREFIX}}", prefix), false);
+//        PermLevel plvl = customPermLevel == null ? command.getPermLevel() : customPermLevel;
+//        String plvlval;
+//        if (customPermLevel == null) plvlval = tlumaczenia.get(language, "generic.command.permlevel.value",
+//                plvl.getNum(), tlumaczenia.get(language, plvl.getLanguageKey()));
+//        else plvlval = tlumaczenia.get(language, "generic.command.permlevel.value.overwritten",
+//                plvl.getNum(), tlumaczenia.get(language, plvl.getLanguageKey()));
+//        baseEmbed.addField(tlumaczenia.get(language, "generic.command.permlevel"), plvlval, false);
+//        try {
+//            channel.sendMessageEmbeds(baseEmbed.build()).reference(refMessage).queue();
+//        } catch (InsufficientPermissionException e) {
+//            channel.sendMessage(tlumaczenia.get(language, "generic.usage") + "\n" + prefix + command.getName() +
+//                    " " + tlumaczenia.get(language,command.getName().toLowerCase() + ".help.uzycie") + "")
+//                    .reference(refMessage).queue();
+//        }
+//    }
 }

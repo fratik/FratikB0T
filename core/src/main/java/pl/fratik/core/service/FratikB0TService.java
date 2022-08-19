@@ -28,8 +28,8 @@ import org.slf4j.LoggerFactory;
 import pl.fratik.core.entity.GbanDao;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.manager.ManagerBazyDanych;
-import pl.fratik.core.manager.ManagerKomend;
 import pl.fratik.core.manager.ManagerModulow;
+import pl.fratik.core.manager.NewManagerKomend;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.EventWaiter;
 import pl.fratik.core.util.GuildUtil;
@@ -39,9 +39,11 @@ public class FratikB0TService extends AbstractIdleService {
     private final Logger logger;
     private final ManagerModulow moduleManager;
     private final ShardManager shardManager;
+    private NewManagerKomend managerKomend;
 
     @SuppressWarnings("squid:S00107")
-    public FratikB0TService(ShardManager shardManager, EventBus eventBus, EventWaiter eventWaiter, Tlumaczenia tlumaczenia, ManagerKomend managerKomend, ManagerBazyDanych managerBazyDanych, GuildDao guildDao, ManagerModulow moduleManager, GbanDao gbanDao) {
+    public FratikB0TService(ShardManager shardManager, EventBus eventBus, EventWaiter eventWaiter, Tlumaczenia tlumaczenia, NewManagerKomend managerKomend, ManagerBazyDanych managerBazyDanych, GuildDao guildDao, ManagerModulow moduleManager, GbanDao gbanDao) {
+        this.managerKomend = managerKomend;
         logger = LoggerFactory.getLogger(getClass());
 
         this.shardManager = shardManager;
@@ -66,6 +68,7 @@ public class FratikB0TService extends AbstractIdleService {
         try {
             logger.debug("Uruchamiam serwis...");
             moduleManager.loadModules();
+            managerKomend.sync();
         } catch (Exception e) {
             logger.error("Oops, coś się popsuło!", e);
             Sentry.capture(e);

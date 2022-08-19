@@ -22,7 +22,6 @@ import com.google.inject.Inject;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.manager.ManagerBazyDanych;
-import pl.fratik.core.manager.ManagerKomend;
 import pl.fratik.core.manager.ManagerModulow;
 import pl.fratik.core.moduly.Modul;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;

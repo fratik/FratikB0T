@@ -20,7 +20,6 @@ package pl.fratik.arguments;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.arguments.Argument;
 import pl.fratik.core.arguments.ArgumentContext;
-import pl.fratik.core.command.CommandCategory;
 import pl.fratik.core.tlumaczenia.Language;
 
 public class CategoryArgument extends Argument {

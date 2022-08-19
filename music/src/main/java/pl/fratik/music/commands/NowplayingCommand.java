@@ -22,7 +22,6 @@ import lombok.Setter;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.util.TimeUtil;
 import pl.fratik.music.entity.Piosenka;
 import pl.fratik.music.managers.ManagerMuzykiSerwera;

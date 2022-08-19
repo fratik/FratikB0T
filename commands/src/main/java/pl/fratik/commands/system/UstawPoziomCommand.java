@@ -19,15 +19,9 @@ package pl.fratik.commands.system;
 
 import net.dv8tion.jda.api.EmbedBuilder;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.command.Command;
-import pl.fratik.core.command.CommandCategory;
-import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.command.PermLevel;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
-import pl.fratik.core.entity.Uzycie;
-import pl.fratik.core.manager.ManagerKomend;
-import pl.fratik.core.manager.implementation.ManagerKomendImpl;
 import pl.fratik.core.util.CommonErrors;
 import pl.fratik.core.util.UserUtil;
 

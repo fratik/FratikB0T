@@ -15,8 +15,21 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package pl.fratik.core.command;
+jar {
+    archiveName = "testmodule.jar"
+    destinationDir project.file('../plugins')
+}
 
-public enum CommandCategory {
-    BASIC, FUN, UTILITY, MODERATION, MONEY, MUSIC, IMAGES, SYSTEM, POINTS, TAG, GADM, STARBOARD, NSFW, INVITES
+mainClassName = 'pl.fratik.test.Module'
+
+build.dependsOn jar
+
+dependencies {
+    compileOnly project(":core")
+}
+
+shadowJar {
+    manifest {
+        attributes 'Main-Class': 'pl.fratik.test.Module'
+    }
 }

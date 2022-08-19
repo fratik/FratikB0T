@@ -20,14 +20,12 @@ jar {
     destinationDir project.file('../plugins')
 }
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
 mainClassName = 'pl.fratik.punkty.Module'
 
 build.dependsOn jar
 
 dependencies {
-    compile project(":core")
+    implementation project(":core")
 }
 
 shadowJar {

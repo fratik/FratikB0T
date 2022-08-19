@@ -21,7 +21,6 @@ import net.dv8tion.jda.api.entities.TextChannel;
 import pl.fratik.core.command.*;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
-import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.util.CommonErrors;
 
 public class LiczekCommand extends Command {

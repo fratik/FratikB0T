@@ -25,7 +25,6 @@ import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
 import net.dv8tion.jda.api.exceptions.PermissionException;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import pl.fratik.core.Ustawienia;
-import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.entity.*;
 import pl.fratik.core.manager.ManagerArgumentow;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;

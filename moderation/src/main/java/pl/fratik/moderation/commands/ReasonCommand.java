@@ -18,8 +18,6 @@
 package pl.fratik.moderation.commands;
 
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.command.CommandCategory;
-import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.entity.*;
 import pl.fratik.core.util.DurationUtil;
 import pl.fratik.moderation.entity.AutoAkcja;

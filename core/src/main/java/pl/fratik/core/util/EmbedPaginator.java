@@ -21,15 +21,15 @@ import com.google.common.eventbus.EventBus;
 import io.sentry.Sentry;
 import lombok.AccessLevel;
 import lombok.Getter;
-import net.dv8tion.jda.api.entities.Emoji;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.entities.MessageEmbed;
-import net.dv8tion.jda.api.events.interaction.ButtonClickEvent;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.exceptions.PermissionException;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
-import net.dv8tion.jda.api.interactions.components.Button;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.requests.restaction.MessageAction;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -173,7 +173,7 @@ public abstract class EmbedPaginator {
         );
     }
 
-    private boolean checkReaction(ButtonClickEvent event) {
+    private boolean checkReaction(ButtonInteractionEvent event) {
         if (shutdown) return false;
         if (event.getMessageIdLong() == messageId) {
             if (event.getUser().getIdLong() == userId) event.deferEdit().queue();
@@ -201,7 +201,7 @@ public abstract class EmbedPaginator {
         return false;
     }
 
-    private void handleReaction(ButtonClickEvent event) {
+    private void handleReaction(ButtonInteractionEvent event) {
         runningPaginators.remove(this);
         final int oldPageNo = pageNo;
         switch (event.getComponentId()) {
@@ -275,7 +275,7 @@ public abstract class EmbedPaginator {
     }
 
     private void waitForReaction() {
-        if (addPaginator()) eventWaiter.waitForEvent(ButtonClickEvent.class, this::checkReaction,
+        if (addPaginator()) eventWaiter.waitForEvent(ButtonInteractionEvent.class, this::checkReaction,
                 this::handleReaction, timeout, TimeUnit.SECONDS, this::clearReactions);
         else clearReactions();
     }

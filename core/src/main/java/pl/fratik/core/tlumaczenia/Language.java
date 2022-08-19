@@ -19,20 +19,21 @@ package pl.fratik.core.tlumaczenia;
 
 import com.neovisionaries.i18n.CountryCode;
 import lombok.Getter;
-import net.dv8tion.jda.api.requests.restaction.MessageAction;
-import pl.fratik.core.entity.Emoji;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
+import net.dv8tion.jda.api.interactions.DiscordLocale;
 
 import java.util.Locale;
 
 @SuppressWarnings("SpellCheckingInspection")
 public enum Language {
-    DEFAULT(null, null, null, null, true, null),
-    ENGLISH("en-US", "English (US)", "UNICODE:\uD83C\uDDFA\uD83C\uDDF8", new Locale("en_US"), true, "UK"),
-    FRENCH("fr-FR", "Fran\u00E7ais", "UNICODE:\uD83C\uDDEB\uD83C\uDDF7", new Locale("fr_FR"), false, "FR"),
-    POLISH("pl", "Polski", "UNICODE:\uD83C\uDDF5\uD83C\uDDF1", new Locale("pl_PL"), true, "PL")//,
+    DEFAULT(null, null, null, null, null, true, null),
+    ENGLISH(DiscordLocale.ENGLISH_US, "en-US", "English (US)", "\uD83C\uDDFA\uD83C\uDDF8", new Locale("en_US"), true, "UK"),
+    FRENCH(DiscordLocale.FRENCH, "fr-FR", "Fran\u00E7ais", "\uD83C\uDDEB\uD83C\uDDF7", new Locale("fr_FR"), false, "FR"),
+    POLISH(DiscordLocale.POLISH, "pl", "Polski", "\uD83C\uDDF5\uD83C\uDDF1", new Locale("pl_PL"), true, "PL")//,
     /*POLISH_WULG("pl-WG", "Polski (wulgarny)", "663853676053659687", new Locale("pl_WG")),
     PONGLISH("pl-EN", "Ponglish", "665552851820478515", new Locale("pl_EN"))*/;
 
+    @Getter private final DiscordLocale discordLocale;
     @Getter private final String shortName;
     @Getter private final String localized;
     private final String emoji;
@@ -45,7 +46,8 @@ public enum Language {
      */
     @Getter private final String alpha2;
 
-    Language(String shortName, String localized, String emoji, Locale locale, boolean checked, String alpha2) {
+    Language(DiscordLocale discordLocale, String shortName, String localized, String emoji, Locale locale, boolean checked, String alpha2) {
+        this.discordLocale = discordLocale;
         this.shortName = shortName;
         this.localized = localized;
         this.emoji = emoji;
@@ -54,7 +56,19 @@ public enum Language {
         this.alpha2 = alpha2;
     }
 
+    public static Language getDefault() {
+        return POLISH;
+    }
+
     public Emoji getEmoji() {
-        return Emoji.resolve(emoji, Tlumaczenia.getShardManager());
+        return Emoji.fromFormatted(emoji);
+    }
+
+    public static Language getByDiscordLocale(DiscordLocale locale) {
+        for (Language language : values()) {
+            if (language == DEFAULT) continue;
+            if (language.discordLocale == locale) return language;
+        }
+        return DEFAULT;
     }
 }

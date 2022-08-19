@@ -19,12 +19,8 @@ package pl.fratik.commands.narzedzia;
 
 import net.dv8tion.jda.api.entities.User;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.command.Command;
-import pl.fratik.core.command.CommandCategory;
-import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.entity.UserConfig;
 import pl.fratik.core.entity.UserDao;
-import pl.fratik.core.entity.Uzycie;
 
 public class IgnoreCommand extends Command {
     private final UserDao userDao;

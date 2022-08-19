@@ -22,11 +22,7 @@ import net.dv8tion.jda.api.entities.User;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.commands.entity.Blacklist;
 import pl.fratik.commands.entity.BlacklistDao;
-import pl.fratik.core.command.Command;
-import pl.fratik.core.command.CommandCategory;
-import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.command.PermLevel;
-import pl.fratik.core.entity.Uzycie;
 import pl.fratik.core.util.CommonUtil;
 
 import java.util.Arrays;

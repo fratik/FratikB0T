@@ -55,7 +55,6 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.svg.SVGDocument;
 import pl.fratik.core.Ustawienia;
-import pl.fratik.core.command.CommandContext;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.NamedThreadFactory;

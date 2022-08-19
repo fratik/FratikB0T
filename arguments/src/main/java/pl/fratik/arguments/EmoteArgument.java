@@ -26,7 +26,6 @@ import net.dv8tion.jda.internal.entities.EmoteImpl;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.arguments.Argument;
 import pl.fratik.core.arguments.ArgumentContext;
-import pl.fratik.core.entity.Emoji;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 

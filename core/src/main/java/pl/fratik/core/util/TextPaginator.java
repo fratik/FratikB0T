@@ -21,6 +21,7 @@ import net.dv8tion.jda.api.entities.ChannelType;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
 import net.dv8tion.jda.api.exceptions.PermissionException;
@@ -79,12 +80,12 @@ class TextPaginator {
     }
 
     private void addReactions(Message message) {
-        message.addReaction(FIRST_EMOJI).queue();
-        message.addReaction(LEFT_EMOJI).queue();
-        message.addReaction(RIGHT_EMOJI).queue();
-        message.addReaction(LAST_EMOJI).queue();
-        message.addReaction(STOP_EMOJI).queue();
-        message.addReaction(ONETWOTHREEFOUR_EMOJI).queue();
+        message.addReaction(Emoji.fromUnicode(FIRST_EMOJI)).queue();
+        message.addReaction(Emoji.fromUnicode(LEFT_EMOJI)).queue();
+        message.addReaction(Emoji.fromUnicode(RIGHT_EMOJI)).queue();
+        message.addReaction(Emoji.fromUnicode(LAST_EMOJI)).queue();
+        message.addReaction(Emoji.fromUnicode(STOP_EMOJI)).queue();
+        message.addReaction(Emoji.fromUnicode(ONETWOTHREEFOUR_EMOJI)).queue();
     }
 
     private void waitForReaction() {
@@ -93,15 +94,15 @@ class TextPaginator {
     }
 
     private boolean checkReaction(MessageReactionAddEvent event) {
-        if (event.getMessageIdLong() == messageId && !event.getReactionEmote().isEmote()) {
-            switch (event.getReactionEmote().getName()) {
+        if (event.getMessageIdLong() == messageId && event.getEmoji().getType() == Emoji.Type.UNICODE) {
+            switch (event.getEmoji().getName()) {
                 case FIRST_EMOJI:
                 case LEFT_EMOJI:
                 case RIGHT_EMOJI:
                 case LAST_EMOJI:
                 case STOP_EMOJI:
                 case ONETWOTHREEFOUR_EMOJI:
-                    return event.getUser().getIdLong() == userId;
+                    return event.getUserIdLong() == userId;
                 default:
                     return false;
             }
@@ -110,8 +111,8 @@ class TextPaginator {
     }
 
     private void handleReaction(MessageReactionAddEvent event) {
-        if (!event.getReactionEmote().isEmote()) {
-            switch (event.getReactionEmote().getName()) {
+        if (event.getEmoji().getType() == Emoji.Type.UNICODE) {
+            switch (event.getEmoji().getName()) {
                 case FIRST_EMOJI:
                     pageNo = 1;
                     break;
@@ -159,7 +160,7 @@ class TextPaginator {
     }
 
     private String render(int page) {
-        return pages.get(page - 1).replaceAll("\\{\\{page}}", Integer.toString(page));
+        return pages.get(page - 1).replace("{{page}}", Integer.toString(page));
     }
 
     private void clearReactions() {

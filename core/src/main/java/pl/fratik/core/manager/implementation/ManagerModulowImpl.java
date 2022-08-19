@@ -35,10 +35,7 @@ import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.entity.*;
 import pl.fratik.core.event.ModuleLoadedEvent;
 import pl.fratik.core.event.ModuleUnloadedEvent;
-import pl.fratik.core.manager.ManagerArgumentow;
-import pl.fratik.core.manager.ManagerBazyDanych;
-import pl.fratik.core.manager.ManagerKomend;
-import pl.fratik.core.manager.ManagerModulow;
+import pl.fratik.core.manager.*;
 import pl.fratik.core.moduly.Modul;
 import pl.fratik.core.moduly.ModuleDescription;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
@@ -66,7 +63,7 @@ public class ManagerModulowImpl implements ManagerModulow {
     private static final File MODULES_DIR = new File(System.getProperty("core.plugindir", "plugins"));
     public static ModuleClassLoader moduleClassLoader;
 
-    private ManagerKomend managerKomend;
+    private NewManagerKomend managerKomend;
     private ManagerArgumentow managerArgumentow;
     private ShardManager shardManager;
     private ManagerBazyDanych managerBazyDanych;
@@ -96,7 +93,7 @@ public class ManagerModulowImpl implements ManagerModulow {
     public ManagerModulowImpl(ShardManager shardManager, ManagerBazyDanych managerBazyDanych, GuildDao guildDao,
                               WebhookManager webhookManager, MemberDao memberDao, UserDao userDao,
                               RedisCacheManager redisCacheManager, GbanDao gbanDao, ScheduleDao scheduleDao,
-                              ManagerKomend managerKomend, ManagerArgumentow managerArgumentow,
+                              NewManagerKomend managerKomend, ManagerArgumentow managerArgumentow,
                               EventWaiter eventWaiter, Tlumaczenia tlumaczenia, EventBus eventBus) {
         this.guildDao = guildDao;
         this.memberDao = memberDao;
@@ -183,7 +180,7 @@ public class ManagerModulowImpl implements ManagerModulow {
                         bind(UserDao.class).toInstance(userDao);
                         bind(GbanDao.class).toInstance(gbanDao);
                         bind(ScheduleDao.class).toInstance(scheduleDao);
-                        bind(ManagerKomend.class).toInstance(managerKomend);
+                        bind(NewManagerKomend.class).toInstance(managerKomend);
                         bind(ManagerArgumentow.class).toInstance(managerArgumentow);
                         bind(ManagerModulow.class).toInstance(ManagerModulowImpl.this);
                         bind(WebhookManager.class).toInstance(webhookManager);
@@ -309,10 +306,8 @@ public class ManagerModulowImpl implements ManagerModulow {
             logger.info("Startuje moduł: {}", name);
             try {
                 Modul mod = injector.getInstance(modules.get(name).getClass());
-                ManagerKomendImpl.setLoadingModule(name);
                 odpowiedz = mod.startUp();
                 eventBus.post(new ModuleLoadedEvent(name, mod));
-                ManagerKomendImpl.setLoadingModule(null);
                 modules.replace(name, mod);
                 if (odpowiedz) started.add(name);
             } catch (Exception e) {
@@ -331,10 +326,8 @@ public class ManagerModulowImpl implements ManagerModulow {
             logger.info("Zatrzymuje moduł: {}", name);
             Thread xd = new Thread(() -> {
                 try {
-                    ManagerKomendImpl.setLoadingModule(name);
                     eventBus.post(new ModuleUnloadedEvent(name, modules.get(name)));
                     odpowiedz.set(modules.get(name).shutDown());
-                    ManagerKomendImpl.setLoadingModule(null);
                 } catch (Exception e) {
                     logger.error("Błąd w trakcie zatrzymywania modułu: " + name, e);
                     Sentry.capture(e);

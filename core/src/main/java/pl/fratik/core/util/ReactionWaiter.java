@@ -20,19 +20,20 @@ package pl.fratik.core.util;
 import lombok.Getter;
 import lombok.Setter;
 import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
-import pl.fratik.core.command.CommandContext;
+import pl.fratik.core.command.NewCommandContext;
 
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 public class ReactionWaiter {
     private final EventWaiter eventWaiter;
-    private final CommandContext context;
+    private final NewCommandContext context;
 
     @Getter @Setter private Consumer<MessageReactionAddEvent> reactionHandler;
     @Getter @Setter private Runnable timeoutHandler;
 
-    public ReactionWaiter(EventWaiter eventWaiter, CommandContext context) {
+    public ReactionWaiter(EventWaiter eventWaiter, NewCommandContext context) {
         this.eventWaiter = eventWaiter;
         this.context = context;
     }
@@ -43,8 +44,8 @@ public class ReactionWaiter {
     }
 
     protected boolean checkReaction(MessageReactionAddEvent event) {
-        return event.isFromType(context.getMessageChannel().getType()) && event.getChannel().equals(context.getMessageChannel())
-                && event.getUser().equals(context.getSender());
+        return event.isFromType(context.getChannel().getType()) && event.getChannel().equals(context.getChannel())
+                && Objects.equals(event.getUser(), context.getSender());
     }
 
     private void handleReaction(MessageReactionAddEvent event) {

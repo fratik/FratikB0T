@@ -17,8 +17,6 @@
 
 package pl.fratik.invite.commands;
 
-import pl.fratik.core.command.Command;
-import pl.fratik.core.command.CommandContext;
 import pl.fratik.invite.cache.InvitesCache;
 import pl.fratik.invite.entity.InviteDao;
 

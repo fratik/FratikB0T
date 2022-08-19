@@ -20,13 +20,15 @@ import org.apache.tools.ant.filters.ReplaceTokens
 plugins {
     id'java'
     id'application'
-    id'com.github.johnrengelman.shadow' version '4.0.2'
+    id'com.github.johnrengelman.shadow' version '7.1.2' apply false
+    id "io.freefair.lombok" version "6.5.0.3" apply false
 }
 
 group 'pl.fratik'
-mainClassName = 'pl.fratik.core.Main'
 
 allprojects {
+    apply plugin: 'com.github.johnrengelman.shadow'
+    apply plugin: 'io.freefair.lombok'
     repositories {
         mavenCentral()
         jcenter()
@@ -34,8 +36,8 @@ allprojects {
         maven { url 'https://jitpack.io' }
         maven { url 'https://m2.dv8tion.net/releases' }
     }
-    sourceCompatibility = 1.8
-    targetCompatibility = 1.8
+    sourceCompatibility = 11
+    targetCompatibility = 11
 
     compileJava {
         options.encoding = 'UTF-8'
@@ -45,11 +47,10 @@ allprojects {
 subprojects {
     apply plugin: 'java'
     apply plugin: 'application'
-    apply plugin: 'com.github.johnrengelman.shadow'
 
     group = 'pl.fratik'
-    sourceCompatibility = 1.8
-    targetCompatibility = 1.8
+    sourceCompatibility = 11
+    targetCompatibility = 11
 
     processResources {
         evaluationDependsOn(":core")
@@ -60,10 +61,12 @@ subprojects {
                 "version": version,
                 "core.version": project(":core").version
             ]
+            duplicatesStrategy DuplicatesStrategy.EXCLUDE
         }
 
         from('src/main/resources') {
             exclude '**/*.json'
+            duplicatesStrategy DuplicatesStrategy.EXCLUDE
         }
         outputs.upToDateWhen { false }
     }

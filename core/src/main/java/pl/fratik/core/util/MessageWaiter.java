@@ -20,19 +20,19 @@ package pl.fratik.core.util;
 import lombok.Getter;
 import lombok.Setter;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
-import pl.fratik.core.command.CommandContext;
+import pl.fratik.core.command.NewCommandContext;
 
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 public class MessageWaiter {
     private final EventWaiter eventWaiter;
-    private final CommandContext context;
+    private final NewCommandContext context;
 
     @Getter @Setter private Consumer<MessageReceivedEvent> messageHandler;
     @Getter @Setter private Runnable timeoutHandler;
 
-    public MessageWaiter(EventWaiter eventWaiter, CommandContext context) {
+    public MessageWaiter(EventWaiter eventWaiter, NewCommandContext context) {
         this.eventWaiter = eventWaiter;
         this.context = context;
     }
@@ -43,7 +43,7 @@ public class MessageWaiter {
     }
 
     protected boolean checkMessage(MessageReceivedEvent event) {
-        return event.isFromType(context.getMessageChannel().getType()) && event.getChannel().equals(context.getMessageChannel())
+        return event.isFromType(context.getChannel().getType()) && event.getChannel().equals(context.getChannel())
                 && event.getAuthor().equals(context.getSender());
     }
 

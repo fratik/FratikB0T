@@ -26,6 +26,5 @@ import java.lang.annotation.Target;
 @Target({ElementType.METHOD})
 public @interface SubCommand {
     String name() default "";
-    String[] aliases() default {};
-    boolean emptyUsage() default false;
+    String usage() default "";
 }

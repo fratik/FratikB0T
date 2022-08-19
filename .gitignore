@@ -11,6 +11,8 @@
 .idea/**/contentModel.xml
 .idea/runConfigurations.xml
 .idea/libraries-with-intellij-classes.xml
+.idea/compiler.xml
+.idea/misc.xml
 
 # Sensitive or high-churn files
 .idea/**/dataSources/

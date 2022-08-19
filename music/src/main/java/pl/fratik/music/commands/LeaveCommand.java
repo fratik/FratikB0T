@@ -18,7 +18,6 @@
 package pl.fratik.music.commands;
 
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.command.CommandContext;
 import pl.fratik.music.managers.NowyManagerMuzyki;
 
 public class LeaveCommand extends MusicCommand {

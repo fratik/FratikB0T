@@ -19,24 +19,24 @@ package pl.fratik.core.util;
 
 import lombok.Getter;
 import lombok.Setter;
-import net.dv8tion.jda.api.events.interaction.ButtonClickEvent;
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.requests.ErrorResponse;
-import pl.fratik.core.command.CommandContext;
+import pl.fratik.core.command.NewCommandContext;
 
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 public class ButtonWaiter {
     private final EventWaiter eventWaiter;
-    private final CommandContext context;
+    private final NewCommandContext context;
     private final long messageId;
     private final ResponseType type;
 
-    @Getter @Setter private Consumer<ButtonClickEvent> buttonHandler;
+    @Getter @Setter private Consumer<ButtonInteractionEvent> buttonHandler;
     @Getter @Setter private Runnable timeoutHandler;
 
-    public ButtonWaiter(EventWaiter eventWaiter, CommandContext context, long messageId, ResponseType type) {
+    public ButtonWaiter(EventWaiter eventWaiter, NewCommandContext context, long messageId, ResponseType type) {
         this.eventWaiter = eventWaiter;
         this.context = context;
         this.messageId = messageId;
@@ -44,11 +44,11 @@ public class ButtonWaiter {
     }
 
     public void create() {
-        eventWaiter.waitForEvent(ButtonClickEvent.class, this::checkReaction,
+        eventWaiter.waitForEvent(ButtonInteractionEvent.class, this::checkReaction,
                 this::handleReaction, 30, TimeUnit.SECONDS, this::clearReactions);
     }
 
-    protected boolean checkReaction(ButtonClickEvent event) {
+    protected boolean checkReaction(ButtonInteractionEvent event) {
         if (event.getMessageIdLong() != messageId) return false;
         boolean validUser = event.getUser().equals(context.getSender());
         if (!validUser) {
@@ -69,7 +69,7 @@ public class ButtonWaiter {
         return true;
     }
 
-    private void handleReaction(ButtonClickEvent event) {
+    private void handleReaction(ButtonInteractionEvent event) {
         if (buttonHandler != null) {
             buttonHandler.accept(event);
         }
