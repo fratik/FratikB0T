@@ -18,28 +18,35 @@
 package pl.fratik.fratikcoiny.commands;
 
 import com.google.common.eventbus.EventBus;
-import net.dv8tion.jda.api.interactions.components.ActionRow;
-import net.dv8tion.jda.api.interactions.components.Button;
-import net.dv8tion.jda.api.sharding.ShardManager;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.Role;
+import net.dv8tion.jda.api.interactions.components.ActionRow;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
+import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.Ustawienia;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.command.SubCommand;
-import pl.fratik.core.entity.*;
+import pl.fratik.core.entity.GuildConfig;
+import pl.fratik.core.entity.GuildDao;
+import pl.fratik.core.entity.MemberConfig;
+import pl.fratik.core.entity.MemberDao;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
-import pl.fratik.core.util.*;
+import pl.fratik.core.util.ButtonWaiter;
+import pl.fratik.core.util.ClassicEmbedPaginator;
+import pl.fratik.core.util.EventWaiter;
+import pl.fratik.core.util.UserUtil;
 
 import java.awt.*;
-import java.util.*;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.*;
 
 @SuppressWarnings("squid:S1192")
-public class SklepCommand extends Command {
+public class SklepCommand extends NewCommand {
 
     private final GuildDao guildDao;
     private final MemberDao memberDao;
@@ -54,32 +61,19 @@ public class SklepCommand extends Command {
         this.shardManager = shardManager;
         this.eventBus = eventBus;
         name = "sklep";
-        category = CommandCategory.MONEY;
-        permissions.add(Permission.MESSAGE_EMBED_LINKS);
-        LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
-        hmap.put("rola", "role");
-        hmap.put("kwota", "long");
-        hmap.put("opis", "string");
-        hmap.put("[...]", "string");
-        uzycie = new Uzycie(hmap, new boolean[] {false, false, false, false});
-        uzycieDelim = " ";
-        allowPermLevelChange = false;
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        CommonErrors.usage(context);
-        return false;
+    public void execute(@NotNull NewCommandContext context) {
+        // Ziobro
     }
 
-    @SubCommand(name="kup", aliases = "buy")
-    public boolean kup(CommandContext context) {
+    @SubCommand(name="kup", usage = "<rola:role>")
+    public boolean kup(NewCommandContext context) {
         GuildConfig gc = guildDao.get(context.getGuild());
-        if (context.getArgs().length == 0 || (context.getArgs().length > 0 && context.getArgs()[0] == null)) {
-            context.reply(context.getTranslated("sklep.kup.invalidrole"));
-            return false;
-        }
-        Role rola = (Role) context.getArgs()[0];
+
+        Role rola = context.getArguments().get("role").getAsRole();
+
         if (!gc.getRoleDoKupienia().containsKey(rola.getId())) {
             context.reply(context.getTranslated("sklep.kup.cantbuythis"));
             return false;
@@ -90,22 +84,27 @@ public class SklepCommand extends Command {
             EmbedBuilder eb = generateEmbed(Typ.KUPOWANIE, rola, gc.getRoleDoKupieniaOpisy().get(rola.getId()),
                     kasa, mc.getFratikCoiny(), true, context.getTlumaczenia(), context.getLanguage());
             context.reply(eb.build());
-            context.send(context.getTranslated("sklep.kup.hasrole"));
+            context.sendMessage(context.getTranslated("sklep.kup.hasrole"));
             return false;
         }
         if (mc.getFratikCoiny() < gc.getRoleDoKupienia().get(rola.getId())) {
             EmbedBuilder eb = generateEmbed(Typ.KUPOWANIE, rola, gc.getRoleDoKupieniaOpisy().get(rola.getId()),
                     kasa, mc.getFratikCoiny(), false, context.getTlumaczenia(), context.getLanguage());
             context.reply(eb.build());
-            context.send(context.getTranslated("sklep.kup.brakhajsu"));
+            context.sendMessage(context.getTranslated("sklep.kup.brakhajsu"));
             return false;
         }
         EmbedBuilder eb = generateEmbed(Typ.KUPOWANIE, rola, gc.getRoleDoKupieniaOpisy().get(rola.getId()),
                 kasa, mc.getFratikCoiny(), false, context.getTlumaczenia(), context.getLanguage());
-        Message msgTmp = context.reply(eb.build(), ActionRow.of(
-                Button.success("BUY", context.getTranslated("sklep.przycisk.kup")),
-                Button.danger("CANCEL", context.getTranslated("sklep.przycisk.anuluj"))
+
+        MessageBuilder mb = new MessageBuilder();
+        mb.setEmbeds(eb.build());
+        mb.setActionRows(ActionRow.of(
+            Button.success("BUY", context.getTranslated("sklep.przycisk.kup")),
+            Button.danger("CANCEL", context.getTranslated("sklep.przycisk.anuluj"))
         ));
+
+        Message msgTmp = context.sendMessage(mb.build());
         ButtonWaiter rw = new ButtonWaiter(eventWaiter, context, msgTmp.getIdLong(), ButtonWaiter.ResponseType.REPLY);
         rw.setButtonHandler(event -> {
             msgTmp.editMessage(msgTmp).setActionRows(Collections.emptySet()).queue();
@@ -130,20 +129,16 @@ public class SklepCommand extends Command {
         });
         rw.setTimeoutHandler(() -> {
             msgTmp.editMessage(msgTmp).setActionRows(Collections.emptySet()).queue();
-            context.send(context.getTranslated("sklep.kup.canceled"), m -> {});
+            context.sendMessage(context.getTranslated("sklep.kup.canceled"));
         });
         rw.create();
         return true;
     }
 
-    @SubCommand(name="sprzedaj", aliases = "sell")
-    public boolean sprzedaj(CommandContext context) {
+    @SubCommand(name="sprzedaj", usage = "<rola:role>")
+    public boolean sprzedaj(NewCommandContext context) {
         GuildConfig gc = guildDao.get(context.getGuild());
-        if (context.getArgs().length == 0 || (context.getArgs().length > 0 && context.getArgs()[0] == null)) {
-            context.reply(context.getTranslated("sklep.sprzedaj.invalidrole"));
-            return false;
-        }
-        Role rola = (Role) context.getArgs()[0];
+        Role rola = context.getArguments().get("rola").getAsRole();
         if (!gc.getRoleDoKupienia().containsKey(rola.getId())) {
             context.reply(context.getTranslated("sklep.sprzedaj.cantsellthis"));
             return false;
@@ -154,15 +149,20 @@ public class SklepCommand extends Command {
             EmbedBuilder eb = generateEmbed(Typ.SPRZEDAZ, rola, gc.getRoleDoKupieniaOpisy().get(rola.getId()),
                     kasa, mc.getFratikCoiny(), false, context.getTlumaczenia(), context.getLanguage());
             context.reply(eb.build());
-            context.send(context.getTranslated("sklep.sprzedaj.hasrole"));
+            context.sendMessage(context.getTranslated("sklep.sprzedaj.hasrole"));
             return false;
         }
         EmbedBuilder eb = generateEmbed(Typ.SPRZEDAZ, rola, gc.getRoleDoKupieniaOpisy().get(rola.getId()),
                 kasa, mc.getFratikCoiny(), true, context.getTlumaczenia(), context.getLanguage());
-        Message msgTmp = context.reply(eb.build(), ActionRow.of(
-                Button.success("SELL", context.getTranslated("sklep.przycisk.sprzedaj")),
-                Button.danger("CANCEL", context.getTranslated("sklep.przycisk.anuluj"))
+
+        MessageBuilder mb = new MessageBuilder();
+        mb.setEmbeds(eb.build());
+        mb.setActionRows(ActionRow.of(
+            Button.success("SELL", context.getTranslated("sklep.przycisk.sprzedaj")),
+            Button.danger("CANCEL", context.getTranslated("sklep.przycisk.anuluj"))
         ));
+        Message msgTmp = context.sendMessage(mb.build());
+
         ButtonWaiter rw = new ButtonWaiter(eventWaiter, context, msgTmp.getIdLong(), ButtonWaiter.ResponseType.REPLY);
         rw.setButtonHandler(event -> {
             msgTmp.editMessage(msgTmp).setActionRows(Collections.emptySet()).queue();
@@ -182,15 +182,15 @@ public class SklepCommand extends Command {
         });
         rw.setTimeoutHandler(() -> {
             msgTmp.editMessage(msgTmp).setActionRows(Collections.emptySet()).queue();
-            context.send(context.getTranslated("sklep.sprzedaj.canceled"), m -> {});
+            context.sendMessage(context.getTranslated("sklep.sprzedaj.canceled"));
         });
         rw.create();
         return true;
     }
 
-    @SubCommand(name="lista",aliases={"list"})
-    public boolean lista(CommandContext context) {
-        Message wiadomosc = context.reply(context.getTranslated("generic.loading"));
+    @SubCommand(name="lista")
+    public boolean lista(NewCommandContext context) {
+        Message wiadomosc = context.sendMessage(context.getTranslated("generic.loading"));
         GuildConfig gc = guildDao.get(context.getGuild());
         MemberConfig mc = memberDao.get(context.getMember());
         List<EmbedBuilder> strony = new ArrayList<>();
@@ -213,28 +213,16 @@ public class SklepCommand extends Command {
         return true;
     }
 
-    @SubCommand(name="ustaw", aliases = "set")
-    public boolean dodaj(CommandContext context) {
+    @SubCommand(name="ustaw", usage = "<rola:role> <ile:number>")
+    public boolean dodaj(NewCommandContext context) {
         if (UserUtil.getPermlevel(context.getMember(), guildDao, shardManager).getNum() < 2) {
             context.reply(context.getTranslated("sklep.ustaw.noperms"));
             return false;
         }
         GuildConfig gc = guildDao.get(context.getGuild());
-        if (context.getArgs().length == 0 || (context.getArgs().length > 0 && context.getArgs()[0] == null)) {
-            context.reply(context.getTranslated("sklep.ustaw.invalidrole"));
-            return false;
-        }
-        if (context.getArgs().length == 1 || (context.getArgs().length > 1 && context.getArgs()[1] == null)) {
-            context.reply(context.getTranslated("sklep.ustaw.invalidprice"));
-            return false;
-        }
-        Role rola = (Role) context.getArgs()[0];
-        long kasa = (Long) context.getArgs()[1];
+        Role rola = context.getArguments().get("rola").getAsRole();
+        long kasa = context.getArguments().get("ile").getAsLong();
         String opis = null;
-        if (!(context.getArgs().length == 2 || (context.getArgs().length > 2 && context.getArgs()[2] == null))) {
-            opis = Arrays.stream(Arrays.copyOfRange(context.getArgs(), 2, context.getArgs().length))
-                    .map(o -> o == null ? "" : o.toString()).collect(Collectors.joining(uzycieDelim));
-        }
         if (gc.getRoleDoKupienia().containsKey(rola.getId())) {
             context.reply(context.getTranslated("sklep.ustaw.alreadyset"));
             return false;
@@ -243,14 +231,19 @@ public class SklepCommand extends Command {
             EmbedBuilder eb = generateEmbed(Typ.DODAWANIE, rola, opis, kasa, 0, true,
                     context.getTlumaczenia(), context.getLanguage());
             context.reply(eb.build());
-            context.send(context.getTranslated("sklep.ustaw.noperms"));
+            context.sendMessage(context.getTranslated("sklep.ustaw.noperms"));
         }
         EmbedBuilder eb = generateEmbed(Typ.DODAWANIE, rola, opis, kasa, 0, false,
                 context.getTlumaczenia(), context.getLanguage());
-        Message msgTmp = context.reply(eb.build(), ActionRow.of(
-                Button.success("ADD", context.getTranslated("sklep.przycisk.dodaj")),
-                Button.danger("CANCEL", context.getTranslated("sklep.przycisk.anuluj"))
+
+        MessageBuilder mb = new MessageBuilder();
+        mb.setEmbeds(eb.build());
+        mb.setActionRows(ActionRow.of(
+            Button.success("ADD", context.getTranslated("sklep.przycisk.dodaj")),
+            Button.danger("CANCEL", context.getTranslated("sklep.przycisk.anuluj"))
         ));
+
+        Message msgTmp = context.sendMessage(mb.build());
         ButtonWaiter rw = new ButtonWaiter(eventWaiter, context, msgTmp.getIdLong(), ButtonWaiter.ResponseType.REPLY);
         String finalOpis = opis;
         rw.setButtonHandler(event -> {
@@ -271,24 +264,20 @@ public class SklepCommand extends Command {
         });
         rw.setTimeoutHandler(() -> {
             msgTmp.editMessage(msgTmp).setActionRows(Collections.emptySet()).queue();
-            context.send(context.getTranslated("sklep.ustaw.canceled"), m -> {});
+            context.sendMessage(context.getTranslated("sklep.ustaw.canceled"));
         });
         rw.create();
         return true;
     }
 
-    @SubCommand(name="usun", aliases = "delete")
-    public boolean usun(CommandContext context) {
+    @SubCommand(name="usun", usage = "<rola:role>")
+    public boolean usun(NewCommandContext context) {
         if (UserUtil.getPermlevel(context.getMember(), guildDao, shardManager).getNum() < 2) {
             context.reply(context.getTranslated("sklep.usun.noperms"));
             return false;
         }
         GuildConfig gc = guildDao.get(context.getGuild());
-        if (context.getArgs().length == 0 || (context.getArgs().length > 0 && context.getArgs()[0] == null)) {
-            context.reply(context.getTranslated("sklep.usun.invalidrole"));
-            return false;
-        }
-        Role rola = (Role) context.getArgs()[0];
+        Role rola = context.getArguments().get("rola").getAsRole();
         if (!gc.getRoleDoKupienia().containsKey(rola.getId())) {
             context.reply(context.getTranslated("sklep.usun.alreadyset"));
             return false;
@@ -298,15 +287,21 @@ public class SklepCommand extends Command {
                     gc.getRoleDoKupienia().get(rola.getId()), 0, true,
                     context.getTlumaczenia(), context.getLanguage());
             context.reply(eb.build());
-            context.send(context.getTranslated("sklep.usun.noperms"));
+            context.sendMessage(context.getTranslated("sklep.usun.noperms"));
         }
         EmbedBuilder eb = generateEmbed(Typ.USUWANIE, rola, gc.getRoleDoKupieniaOpisy().get(rola.getId()),
                 gc.getRoleDoKupienia().get(rola.getId()), 0, false,
                 context.getTlumaczenia(), context.getLanguage());
-        Message msgTmp = context.reply(eb.build(), ActionRow.of(
-                Button.secondary("DELETE", context.getTranslated("sklep.przycisk.usun")),
-                Button.danger("CANCEL", context.getTranslated("sklep.przycisk.anuluj"))
+
+        MessageBuilder mb = new MessageBuilder();
+        mb.setEmbeds(eb.build());
+        mb.setActionRows(ActionRow.of(
+            Button.secondary("DELETE", context.getTranslated("sklep.przycisk.usun")),
+            Button.danger("CANCEL", context.getTranslated("sklep.przycisk.anuluj"))
         ));
+
+        Message msgTmp = context.sendMessage(mb.build());
+
         ButtonWaiter rw = new ButtonWaiter(eventWaiter, context, msgTmp.getIdLong(), ButtonWaiter.ResponseType.REPLY);
         rw.setButtonHandler(event -> {
             msgTmp.editMessage(msgTmp).setActionRows(Collections.emptySet()).queue();
@@ -326,7 +321,7 @@ public class SklepCommand extends Command {
         });
         rw.setTimeoutHandler(() -> {
             msgTmp.editMessage(msgTmp).setActionRows(Collections.emptySet()).queue();
-            context.send(context.getTranslated("sklep.usun.canceled"), m -> {});
+            context.sendMessage(context.getTranslated("sklep.usun.canceled"));
         });
         rw.create();
         return true;
@@ -378,8 +373,8 @@ public class SklepCommand extends Command {
                         opis == null || opis.isEmpty() ? tlumaczenia.get(l, "sklep.embed.opis.pusty") : opis,
                         false);
                 eb.addField(tlumaczenia.get(l, "sklep.embed.info.posiadanie"), hasRole ?
-                        Objects.requireNonNull(shardManager.getEmoteById(Ustawienia.instance.emotki.greenTick)).getAsMention() :
-                        Objects.requireNonNull(shardManager.getEmoteById(Ustawienia.instance.emotki.redTick)).getAsMention(), false);
+                        Objects.requireNonNull(shardManager.getEmojiById(Ustawienia.instance.emotki.greenTick)).getAsMention() :
+                        Objects.requireNonNull(shardManager.getEmojiById(Ustawienia.instance.emotki.redTick)).getAsMention(), false);
                 eb.addField(tlumaczenia.get(l, "sklep.embed.cena.kupna"), String.valueOf(cena), true);
                 eb.addField(tlumaczenia.get(l, "sklep.embed.cena.sprzedazy"), String.valueOf((int) Math.floor((double) cena / 2)), true);
                 eb.addField(tlumaczenia.get(l, "sklep.embed.hajs"), String.valueOf(hajs), true);

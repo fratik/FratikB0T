@@ -17,19 +17,22 @@
 
 package pl.fratik.fratikcoiny.commands;
 
-import net.dv8tion.jda.api.entities.Emote;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.Ustawienia;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 
-public abstract class MoneyCommand extends Command {
+public abstract class MoneyCommand extends NewCommand {
+
     @NotNull
-    protected Emote getFratikCoin(CommandContext context) {
-        Emote emotkaFc = context.getShardManager().getEmoteById(Ustawienia.instance.emotki.fratikCoin);
+    protected Emoji getFratikCoin(NewCommandContext context) {
+        Emoji emotkaFc = context.getShardManager().getEmojiById(Ustawienia.instance.emotki.fratikCoin);
         if (emotkaFc == null) throw new IllegalStateException("emotka null");
         return emotkaFc;
     }
 
-    protected boolean checkTooMuch(long fc, CommandContext context) {
+    protected boolean checkTooMuch(long fc, NewCommandContext context) {
         if (fc >= Long.MAX_VALUE) {
             if (context != null) context.reply(context.getTranslated("daily.too.many.coins"));
             return true;

@@ -18,9 +18,10 @@
 package pl.fratik.fratikcoiny.games;
 
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.Permission;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.Ustawienia;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.entity.MemberConfig;
 import pl.fratik.core.entity.MemberDao;
 import pl.fratik.fratikcoiny.libs.slots.Results;
@@ -32,14 +33,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class SlotsCommand extends Command {
+public class SlotsCommand extends NewCommand {
     private final MemberDao memberDao;
     private final SlotMachine maszynaLosujaca;
 
     public SlotsCommand(MemberDao memberDao) {
         this.memberDao = memberDao;
         name = "slots";
-        category = CommandCategory.MONEY;
         cooldown = 10;
         List<SlotSymbol> symbole = new ArrayList<>();
         symbole.add(new SlotSymbol("lemon", "\uD83C\uDF4B", 1, 100));
@@ -52,19 +52,16 @@ public class SlotsCommand extends Command {
         symbole.add(new SlotSymbol("diamond", "\uD83D\uDC8E", 100, 20));
         symbole.add(new SlotSymbol("jackpot", "\uD83D\uDD05", 500, 10));
         maszynaLosujaca = new SlotMachine(3, symbole);
-        aliases = new String[] {"maszyna", "lotto", "magicznyautomat"};
-        permissions.add(Permission.MESSAGE_EXT_EMOJI);
-        allowPermLevelChange = false;
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
+    public void execute(@NotNull NewCommandContext context) {
         MemberConfig mc = memberDao.get(context.getMember());
         long zaklad = 10;
         if (mc.getFratikCoiny() < zaklad) {
-            context.send(context.getTranslated("slots.no.money",
-                    Objects.requireNonNull(context.getShardManager().getEmoteById(Ustawienia.instance.emotki.fratikCoin)).getAsMention()));
-            return false;
+            context.reply(context.getTranslated("slots.no.money",
+                    Objects.requireNonNull(context.getShardManager().getEmojiById(Ustawienia.instance.emotki.fratikCoin)).getAsMention()));
+            return;
         }
         Results results = maszynaLosujaca.play();
         EmbedBuilder eb = new EmbedBuilder();
@@ -72,7 +69,7 @@ public class SlotsCommand extends Command {
         eb.setDescription(results.visualize());
         eb.appendDescription("\n\n");
         mc.setFratikCoiny(mc.getFratikCoiny() - zaklad + results.totalPoints() * 10L);
-        String emote = Objects.requireNonNull(context.getShardManager().getEmoteById(Ustawienia.instance.emotki.fratikCoin)).getAsMention();
+        String emote = Objects.requireNonNull(context.getShardManager().getEmojiById(Ustawienia.instance.emotki.fratikCoin)).getAsMention();
         if (results.winCount() == 0) {
             eb.appendDescription(context.getTranslated("slots.embed.desc.lost", context.getSender().getAsTag()));
             eb.setColor(Color.red);
@@ -84,7 +81,6 @@ public class SlotsCommand extends Command {
         }
         context.reply(eb.build());
         memberDao.save(mc);
-        return true;
     }
 
 }

@@ -17,51 +17,42 @@
 
 package pl.fratik.fratikcoiny.commands;
 
-import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.entity.MemberConfig;
 import pl.fratik.core.entity.MemberDao;
 
-import java.util.LinkedHashMap;
-
-public class GiveCommand extends Command {
+public class GiveCommand extends NewCommand {
 
     private final MemberDao memberDao;
 
     public GiveCommand(MemberDao memberDao) {
         this.memberDao = memberDao;
         name = "give";
-        category = CommandCategory.MONEY;
-        permissions.add(Permission.MESSAGE_EXT_EMOJI);
-        LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
-        hmap.put("osoba", "member");
-        hmap.put("hajs", "integer");
-        uzycie = new Uzycie(hmap, new boolean[] {true, true});
-        uzycieDelim = " ";
-        aliases = new String[] {"daj", "dk", "dajmukase", "dajmutrochekasy", "dajmumojakase", "pay"};
-        allowPermLevelChange = false;
+        usage = "<osoba:user> <ile:number>";
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        Member komu = (Member) context.getArgs()[0];
-        int ile = (int) context.getArgs()[1];
+    public void execute(@NotNull NewCommandContext context) {
+        Member komu = context.getArguments().get("osoba").getAsMember();
+        int ile = context.getArguments().get("ile").getAsInt();
         MemberConfig od = memberDao.get(context.getMember());
         MemberConfig kurwaDo = memberDao.get(komu);
         if (od.getFratikCoiny() < ile) {
             context.reply(context.getTranslated("give.no.money"));
-            return false;
+            return;
         }
         if (context.getSender().getId().contains(komu.getUser().getId())) {
             context.reply(context.getTranslated("give.no.self"));
-            return false;
+            return;
         }
         od.setFratikCoiny(od.getFratikCoiny() - ile);
         kurwaDo.setFratikCoiny(kurwaDo.getFratikCoiny() + ile);
         memberDao.save(od);
         memberDao.save(kurwaDo);
         context.reply(context.getTranslated("give.success"));
-        return true;
     }
+
 }

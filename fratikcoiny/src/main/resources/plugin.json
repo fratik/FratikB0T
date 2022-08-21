@@ -1,6 +1,5 @@
 {
   "name": "fratikcoiny",
   "main": "pl.fratik.fratikcoiny.Module",
-  "dependencies": ["arguments"],
   "coreVersion": "@core.version@"
 }

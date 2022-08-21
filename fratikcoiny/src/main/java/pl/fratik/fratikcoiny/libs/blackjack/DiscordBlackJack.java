@@ -18,11 +18,12 @@
 package pl.fratik.fratikcoiny.libs.blackjack;
 
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.entities.Emote;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
 import pl.fratik.core.Ustawienia;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.util.EventWaiter;
 import pl.fratik.core.util.MessageWaiter;
 
@@ -37,7 +38,7 @@ public class DiscordBlackJack {
     private Hand playerHand;
     private Deck theDeck;
     private final Member player;
-    private final CommandContext context;
+    private final NewCommandContext context;
     private long playerMoney;
     private boolean gameOver = false;
     private final EventWaiter eventWaiter;
@@ -46,7 +47,7 @@ public class DiscordBlackJack {
     private Hand winnerHand;
     private int roundCount;
 
-    public DiscordBlackJack(CommandContext context, long playerMoney, EventWaiter eventWaiter) {
+    public DiscordBlackJack(NewCommandContext context, long playerMoney, EventWaiter eventWaiter) {
         player = context.getMember();
         this.context = context;
         this.playerMoney = playerMoney;
@@ -109,7 +110,7 @@ public class DiscordBlackJack {
         });
         waiter.setTimeoutHandler(() -> {
             try {
-                context.send(context.getTranslated("blackjack.end.of.time"));
+                context.sendMessage(context.getTranslated("blackjack.end.of.time"));
                 gameOver = true;
                 dealerWins(false);
             } finally {
@@ -127,7 +128,7 @@ public class DiscordBlackJack {
     private void surrender() {
         gameOver = true;
         dealerWins(false);
-        context.send(context.getTranslated("blackjack.surrender"));
+        context.sendMessage(context.getTranslated("blackjack.surrender"));
     }
 
     private void dealerDraws() {
@@ -153,7 +154,7 @@ public class DiscordBlackJack {
     }
 
     private void reveal() {
-        if (embedMessage == null) embedMessage = context.reply(generateEmbed());
+        if (embedMessage == null) embedMessage = context.sendMessage(List.of(generateEmbed()));
         else embedMessage.editMessageEmbeds(generateEmbed()).complete();
     }
 
@@ -172,20 +173,20 @@ public class DiscordBlackJack {
         else eb.addField(context.getTranslated("blackjack.karty.krupiera"),
                 dealerHand.display() + "\n" + context.getTranslated("blackjack.wartosc",
                         dealerHand.getNetValue(false)), true);
-        Emote emotkaFc = context.getShardManager().getEmoteById(Ustawienia.instance.emotki.fratikCoin);
+        Emoji emotkaFc = context.getShardManager().getEmojiById(Ustawienia.instance.emotki.fratikCoin);
         if (emotkaFc == null) throw new IllegalStateException("emotka null");
         if (gameOver && winnerHand.equals(playerHand)) {
             eb.setColor(Color.green);
             eb.setAuthor(context.getTranslated("blackjack.end.won"));
             eb.setDescription(context.getTranslated("blackjack.end.won.desc",
-                    emotkaFc.getAsMention(),
-                    playerBet, playerMoney ));
+                    emotkaFc.getFormatted(),
+                    playerBet, playerMoney));
         }
         if (gameOver && winnerHand.equals(dealerHand)) {
             eb.setColor(Color.red);
             eb.setAuthor(context.getTranslated("blackjack.end.lost"));
             eb.setDescription(context.getTranslated("blackjack.end.lost.desc",
-                    emotkaFc.getAsMention(),
+                    emotkaFc.getFormatted(),
                     playerMoney));
         }
         return eb.build();
@@ -218,8 +219,8 @@ public class DiscordBlackJack {
     private void endReveal(boolean announce) {
         reveal();
         if (announce) {
-            if (winnerHand.equals(playerHand)) context.send(context.getTranslated("blackjack.end.won"));
-            else context.send(context.getTranslated("blackjack.end.lost"));
+            if (winnerHand.equals(playerHand)) context.sendMessage(context.getTranslated("blackjack.end.won"));
+            else context.sendMessage(context.getTranslated("blackjack.end.lost"));
         }
     }
 

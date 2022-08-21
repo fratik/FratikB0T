@@ -21,16 +21,18 @@ import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.ThreadChannel;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.LoggerFactory;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.command.SubCommand;
+import pl.fratik.core.command.SubCommandGroup;
 import pl.fratik.core.event.ConnectedEvent;
-import pl.fratik.core.manager.ManagerArgumentow;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.ClassicEmbedPaginator;
 import pl.fratik.core.util.EventWaiter;
@@ -45,10 +47,9 @@ import java.text.SimpleDateFormat;
 import java.time.ZoneOffset;
 import java.util.*;
 
-public class ChinczykCommand extends Command {
+public class ChinczykCommand extends NewCommand {
     @NotNull
     private final ShardManager shardManager;
-    private final ManagerArgumentow managerArgumentow;
     private final EventBus eventBus;
     private final EventWaiter eventWaiter;
     private final ChinczykStatsDao chinczykStatsDao;
@@ -56,19 +57,14 @@ public class ChinczykCommand extends Command {
     private final Tlumaczenia tlumaczenia;
     private final Set<Chinczyk> instances;
 
-    public ChinczykCommand(ShardManager shardManager, ManagerArgumentow managerArgumentow, EventBus eventBus, EventWaiter eventWaiter, ChinczykStatsDao chinczykStatsDao, ChinczykStateDao chinczykStateDao, Tlumaczenia tlumaczenia) {
+    public ChinczykCommand(ShardManager shardManager, EventBus eventBus, EventWaiter eventWaiter, ChinczykStatsDao chinczykStatsDao, ChinczykStateDao chinczykStateDao, Tlumaczenia tlumaczenia) {
         this.shardManager = shardManager;
-        this.managerArgumentow = managerArgumentow;
         this.eventBus = eventBus;
         this.eventWaiter = eventWaiter;
         this.chinczykStatsDao = chinczykStatsDao;
         this.chinczykStateDao = chinczykStateDao;
         this.tlumaczenia = tlumaczenia;
         name = "chinczyk";
-        category = CommandCategory.FUN;
-        permissions.add(Permission.MESSAGE_EMBED_LINKS);
-        allowPermLevelChange = false;
-        uzycieDelim = " ";
         instances = new HashSet<>();
         if (shardManager.getShards().stream().anyMatch(s -> !s.getStatus().equals(JDA.Status.CONNECTED)))
             eventBus.register(this);
@@ -98,25 +94,20 @@ public class ChinczykCommand extends Command {
         for (Chinczyk chi : new HashSet<>(instances)) chi.shutdown(chinczykStateDao);
     }
 
-    @SubCommand(name = "globalStats")
-    public boolean globalStats(@NotNull CommandContext context) {
-        return stats("0", context, false);
+    @SubCommandGroup(name = "stats")
+    @SubCommand(name = "global")
+    public void globalStats(@NotNull NewCommandContext context) {
+        stats("0", context, false);
     }
 
-    @SubCommand(name = "stats")
-    public boolean userStats(@NotNull CommandContext context) {
-        User usr = null;
-        if (context.getRawArgs().length >= 1) {
-            if (context.getRawArgs()[0].equals("global")) return globalStats(context);
-            usr = (User) managerArgumentow.getArguments().get("user")
-                    .execute(context.getRawArgs()[0], context.getTlumaczenia(), context.getLanguage());
-        }
-        if (usr == null) usr = context.getSender();
-        return stats(usr.getId(), context, true);
+    @SubCommand(name = "global", usage = "[osoba:user]")
+    public void userStats(@NotNull NewCommandContext context) {
+        User usr = context.getArgumentOr("osoba", context.getSender(), OptionMapping::getAsUser);
+        stats(usr.getId(), context, true);
     }
 
-    public boolean stats(String id, @NotNull CommandContext context, boolean withWins) {
-        Message msg = context.reply(context.getTranslated("generic.loading"));
+    public boolean stats(String id, @NotNull NewCommandContext context, boolean withWins) {
+        Message msg = context.sendMessage(context.getTranslated("generic.loading"));
         List<EmbedBuilder> pages = new ArrayList<>();
         Calendar cal = Calendar.getInstance();
         cal.set(Calendar.HOUR_OF_DAY, 0);
@@ -138,18 +129,17 @@ public class ChinczykCommand extends Command {
     }
 
     @Override
-    protected boolean execute(@NotNull CommandContext context) {
-        if (instances.stream().anyMatch(i -> i.getChannel().equals(context.getMessageChannel()))) {
+    public void execute(@NotNull NewCommandContext context) {
+        if (instances.stream().anyMatch(i -> i.getChannel().equals(context.getChannel()))) {
             context.reply(context.getTranslated("chinczyk.game.in.progress"));
-            return false;
+            return;
         }
-        if (context.getMessageChannel() instanceof ThreadChannel &&
-                instances.stream().anyMatch(i -> i.getChannel().equals(((ThreadChannel) context.getMessageChannel()).getParentChannel()))) {
+        if (context.getChannel() instanceof ThreadChannel &&
+                instances.stream().anyMatch(i -> i.getChannel().equals(((ThreadChannel) context.getChannel()).getParentChannel()))) {
             context.reply(context.getTranslated("chinczyk.parent.game.in.progress"));
-            return false;
+            return;
         }
         instances.add(new Chinczyk(context, eventBus, this::endCallback));
-        return true;
     }
 
     private void endCallback(Chinczyk chinczyk) {

@@ -17,10 +17,11 @@
 
 package pl.fratik.fratikcoiny.commands;
 
-import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.Emote;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.entity.MemberConfig;
 import pl.fratik.core.entity.MemberDao;
 
@@ -31,26 +32,18 @@ public class KasaCommand extends MoneyCommand {
     public KasaCommand(MemberDao memberDao) {
         this.memberDao = memberDao;
         name = "kasa";
-        category = CommandCategory.MONEY;
-        permissions.add(Permission.MESSAGE_EXT_EMOJI);
-        aliases = new String[] {"fc", "stan", "konto", "stankonta", "bal"};
-        uzycie = new Uzycie("czlonek", "member", false);
-        allowPermLevelChange = false;
+        usage = "[osoba:user]";
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        Member m = context.getMember();
-        if (context.getArgs().length > 0 && context.getArgs()[0] != null) {
-            m = (Member) context.getArgs()[0];
-        }
+    public void execute(@NotNull NewCommandContext context) {
+        Member m = context.getArgumentOr("osoba", context.getMember(), OptionMapping::getAsMember);
+        Emoji e = getFratikCoin(context);
         MemberConfig mc = memberDao.get(m);
-        Emote e = getFratikCoin(context);
         if (m.equals(context.getMember()))
-            context.reply(context.getTranslated("kasa.success.self", String.valueOf(mc.getFratikCoiny()), e.getAsMention()));
+            context.reply(context.getTranslated("kasa.success.self", String.valueOf(mc.getFratikCoiny()), e.getFormatted()));
         else
             context.reply(context.getTranslated("kasa.success.other", m.getUser().getAsTag(),
-                    String.valueOf(mc.getFratikCoiny()), e.getAsMention()));
-        return true;
+                    String.valueOf(mc.getFratikCoiny()), e.getFormatted()));
     }
 }
