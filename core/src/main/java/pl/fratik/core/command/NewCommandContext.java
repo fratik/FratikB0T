@@ -58,6 +58,10 @@ public class NewCommandContext {
         return interaction.deferReply(ephemeral).complete();
     }
 
+    public void deferAsync(boolean ephemeral) {
+        interaction.deferReply(ephemeral).queue();
+    }
+
     public InteractionHook reply(String content) {
         return interaction.reply(content).complete();
     }
@@ -68,6 +72,18 @@ public class NewCommandContext {
 
     public InteractionHook reply(Collection<MessageEmbed> embeds) {
         return interaction.replyEmbeds(embeds).complete();
+    }
+
+    public InteractionHook replyEphemeral(String content) {
+        return interaction.reply(content).setEphemeral(true).complete();
+    }
+
+    public InteractionHook replyEphemeral(Message message) {
+        return interaction.reply(message).setEphemeral(true).complete();
+    }
+
+    public InteractionHook replyEphemeral(Collection<MessageEmbed> embeds) {
+        return interaction.replyEmbeds(embeds).setEphemeral(true).complete();
     }
 
     public Message sendMessage(String content) {

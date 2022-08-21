@@ -20,6 +20,7 @@ package pl.fratik.core.util;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.command.NewCommand;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 
@@ -28,7 +29,8 @@ public class CommandUtil {
     private CommandUtil() {}
 
     @NotNull
-    public static OptionData[] generateOptionData(String commandName, String usage, Tlumaczenia tlumaczenia) {
+    public static OptionData[] generateOptionData(NewCommand command, String subcommandName, String usage, Tlumaczenia tlumaczenia) {
+        if (usage.isEmpty()) return new OptionData[0];
         String[] splat = usage.split(" ");
         OptionData[] options = new OptionData[splat.length];
         for (int i = 0; i < splat.length; i++) {
@@ -80,9 +82,10 @@ public class CommandUtil {
                 default:
                     throw new IllegalArgumentException("Invalid type " + type);
             }
-            String keyBase = getAsKey(commandName) + "." + name;
+            String keyBase = getAsKey(command.getName()) + (subcommandName != null ? "." + getAsKey(subcommandName) : "") + "." + name;
             String translatedDescription = tlumaczenia.get(Language.DEFAULT, keyBase + ".description");
             options[i] = new OptionData(optionType, name, translatedDescription, required, autoComplete);
+            command.updateOptionData(options[i]);
         }
         return options;
     }

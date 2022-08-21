@@ -21,11 +21,13 @@ import com.google.common.eventbus.EventBus;
 import com.google.inject.Inject;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import pl.fratik.core.cache.RedisCacheManager;
+import pl.fratik.core.command.NewCommand;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.MemberDao;
 import pl.fratik.core.entity.UserDao;
 import pl.fratik.core.manager.ManagerArgumentow;
 import pl.fratik.core.manager.ManagerBazyDanych;
+import pl.fratik.core.manager.NewManagerKomend;
 import pl.fratik.core.moduly.Modul;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.EventWaiter;
@@ -35,7 +37,7 @@ import pl.fratik.punkty.komendy.*;
 import java.util.ArrayList;
 
 public class Module implements Modul {
-    @Inject private ManagerKomend managerKomend;
+    @Inject private NewManagerKomend managerKomend;
     @Inject private EventBus eventBus;
     @Inject private EventWaiter eventWaiter;
     @Inject private GuildDao guildDao;
@@ -46,7 +48,7 @@ public class Module implements Modul {
     @Inject private ManagerBazyDanych managerBazyDanych;
     @Inject private ManagerArgumentow managerArgumentow;
     @Inject private RedisCacheManager redisCacheManager;
-    private ArrayList<Command> commands;
+    private ArrayList<NewCommand> commands;
 
     private LicznikPunktow licznik;
 
@@ -61,15 +63,15 @@ public class Module implements Modul {
         commands = new ArrayList<>();
 
         commands.add(new StatsCommand(licznik));
-        commands.add(new LvlupCommand(licznik, managerArgumentow));
+        commands.add(new LvlupCommand(licznik));
         commands.add(new RankingCommand(punktyDao, licznik, memberDao));
         commands.add(new GlobalstatyCommand());
         commands.add(new GurCommand(eventWaiter, shardManager, eventBus));
         commands.add(new GsrCommand(eventWaiter, shardManager, eventBus));
         commands.add(new SyncCommand(guildDao));
-        commands.add(new NukepointsCommand(eventWaiter, guildDao, licznik, punktyDao, eventBus));
+//        commands.add(new NukepointsCommand(eventWaiter, guildDao, licznik, punktyDao, eventBus));
 
-        commands.forEach(managerKomend::registerCommand);
+        managerKomend.registerCommands(this, commands);
 
         eventBus.register(licznik);
         return true;
@@ -77,7 +79,7 @@ public class Module implements Modul {
 
     @Override
     public boolean shutDown() {
-        commands.forEach(managerKomend::unregisterCommand);
+        managerKomend.unregisterCommands(commands);
         licznik.shutdown();
         try { eventBus.unregister(licznik); } catch (IllegalArgumentException ignored) {/*lul*/}
         return true;

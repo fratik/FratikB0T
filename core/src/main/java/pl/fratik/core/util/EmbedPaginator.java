@@ -28,9 +28,11 @@ import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.exceptions.PermissionException;
+import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.requests.restaction.MessageAction;
+import net.dv8tion.jda.api.requests.restaction.WebhookMessageAction;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -91,6 +93,22 @@ public abstract class EmbedPaginator {
         addReactions(message.editMessageEmbeds(currentEmbed = render(pageNo))).override(true).queue();
     }
 
+    public void create(InteractionHook hook) {
+        try {
+            WebhookMessageAction<Message> action = hook.sendMessageEmbeds(currentEmbed = render(pageNo));
+            action = addReactions(action);
+            action.queue(msg -> {
+                message = msg;
+                messageId = msg.getIdLong();
+                if (getPageCount() != 1) {
+                    waitForReaction();
+                }
+            });
+        } catch (Exception e) {
+            handleException(e, hook);
+        }
+    }
+
     public void create(MessageChannel channel, String referenceMessageId) {
         try {
             MessageAction action = channel.sendMessageEmbeds(currentEmbed = render(pageNo));
@@ -108,7 +126,7 @@ public abstract class EmbedPaginator {
         }
     }
 
-    private void handleException(Exception e, MessageChannel channel) {
+    private String handleException0(Exception e) {
         LOGGER.error("Ładowanie strony nawaliło", e);
         Sentry.getContext().setUser(new io.sentry.event.User(String.valueOf(userId), null,
                 null, null));
@@ -119,11 +137,22 @@ public abstract class EmbedPaginator {
             if (((LoadingException) e).firstPage) key = "generic.dynamicembedpaginator.errorone";
             else if (((LoadingException) e).loading) key = "generic.lazyloading";
         }
+        return key;
+    }
+
+    private void handleException(Exception e, MessageChannel channel) {
+        String key = handleException0(e);
         channel.sendMessage(tlumaczenia.get(language, key))
                 .queue(m -> {
                     if (!(e instanceof LoadingException) || !((LoadingException) e).firstPage)
                         m.delete().queueAfter(5, TimeUnit.SECONDS);
                 });
+    }
+
+    private void handleException(Exception e, InteractionHook hook) {
+        String key = handleException0(e);
+        hook.sendMessage(tlumaczenia.get(language, key))
+                .setEphemeral(!(e instanceof LoadingException) || !((LoadingException) e).firstPage).queue();
     }
 
     public void create(Message message) {
@@ -155,22 +184,32 @@ public abstract class EmbedPaginator {
 
     private MessageAction addReactions(MessageAction action, boolean disabled) {
         if (getPageCount() == 1) return action;
+        return action.setActionRows(getActionRows(disabled));
+    }
+
+    private WebhookMessageAction<Message> addReactions(WebhookMessageAction<Message> action) {
+        return addReactions(action, false);
+    }
+
+    private WebhookMessageAction<Message> addReactions(WebhookMessageAction<Message> action, boolean disabled) {
+        if (getPageCount() == 1) return action;
+        return action.addActionRows(getActionRows(disabled));
+    }
+
+    private List<ActionRow> getActionRows(boolean disabled) {
         List<Button> secondRowButtons = new ArrayList<>();
         secondRowButtons.add(Button.danger("STOP_PAGE", Emoji.fromUnicode(STOP_EMOJI)).withDisabled(disabled));
         secondRowButtons.add(Button.secondary("CHOOSE_PAGE", Emoji.fromUnicode(ONETWOTHREEFOUR_EMOJI)).withDisabled(disabled));
         if (enableShuffle) secondRowButtons.add(Button.secondary("SHUFFLE_PAGE", Emoji.fromUnicode(SHUFFLE_EMOJI)).withDisabled(disabled));
         if (enableDelett) secondRowButtons.add(Button.danger("TRASH_PAGE", Emoji.fromUnicode(TRASH_EMOJI)).withDisabled(disabled));
-        return action.setActionRows(
-                ActionRow.of(
+        return List.of(ActionRow.of(
                         Button.secondary("FIRST_PAGE", Emoji.fromUnicode(FIRST_EMOJI)).withDisabled(pageNo == 1 || disabled),
                         Button.primary("PREV_PAGE", Emoji.fromUnicode(LEFT_EMOJI))
                                 .withLabel(String.valueOf(Math.max(pageNo - 1, 1))).withDisabled(pageNo == 1 || disabled),
                         Button.primary("NEXT_PAGE", Emoji.fromUnicode(RIGHT_EMOJI))
                                 .withLabel(String.valueOf(Math.min(pageNo + 1, getPageCount()))).withDisabled(pageNo == getPageCount() || disabled),
-                        Button.secondary("LAST_PAGE", Emoji.fromUnicode(LAST_EMOJI)).withDisabled(pageNo == getPageCount() || disabled)
-                ),
-                ActionRow.of(secondRowButtons)
-        );
+                        Button.secondary("LAST_PAGE", Emoji.fromUnicode(LAST_EMOJI)).withDisabled(pageNo == getPageCount() || disabled)),
+                ActionRow.of(secondRowButtons));
     }
 
     private boolean checkReaction(ButtonInteractionEvent event) {

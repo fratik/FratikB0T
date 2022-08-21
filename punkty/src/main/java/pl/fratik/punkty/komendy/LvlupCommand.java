@@ -18,65 +18,48 @@
 package pl.fratik.punkty.komendy;
 
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.manager.ManagerArgumentow;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.util.UserUtil;
 import pl.fratik.punkty.LicznikPunktow;
 
 import javax.annotation.Nonnull;
 import java.text.NumberFormat;
 
-public class LvlupCommand extends Command {
+public class LvlupCommand extends NewCommand {
     private final LicznikPunktow licznik;
-    private final ManagerArgumentow managerArgumentow;
 
-    public LvlupCommand(LicznikPunktow licznik, ManagerArgumentow managerArgumentow) {
+    public LvlupCommand(LicznikPunktow licznik) {
         this.licznik = licznik;
-        this.managerArgumentow = managerArgumentow;
         name = "lvlup";
-        aliases = new String[] {"pktNaPoziom", "getPoziom", "zaIleLevelUp", "kiedyNastepnyPoziom", "ilePunktowNaPoziom"};
-        category = CommandCategory.POINTS;
-        allowPermLevelChange = false;
+        usage = "[poziom:int] [osoba:user]";
     }
 
     @Override
-    public boolean execute(@NotNull @Nonnull CommandContext context) {
+    public void execute(@NotNull @Nonnull NewCommandContext context) {
         if (!licznik.punktyWlaczone(context.getGuild())) {
             context.reply(context.getTranslated("punkty.off"));
-            return false;
+            return;
         }
+
         Member mem = context.getMember();
         Integer lvl = null;
 
-        if (context.getRawArgs().length >= 1) {
-            Member checkMemer;
-            checkMemer = (Member) managerArgumentow.getArguments().get("member").execute(context.getRawArgs()[0],
-                    context.getTlumaczenia(), context.getLanguage(), context.getGuild());
-            if (checkMemer == null && !context.getEvent().getMessage().getMentionedMembers().isEmpty() &&
-                    context.getEvent().getMessage().getMentionedMembers().get(0) != null)
-                checkMemer = context.getEvent().getMessage().getMentionedMembers().get(0);
-            if (checkMemer != null) {
-                mem = checkMemer;
-                if (context.getRawArgs().length >= 2) {
-                    Integer checkLvlv2 = (Integer) managerArgumentow.getArguments().get("integer")
-                            .execute(context.getRawArgs()[1], context.getTlumaczenia(), context.getLanguage());
-                    if (checkLvlv2 > 0) {
-                        lvl = checkLvlv2;
-                    }
-                }
-            } else {
-                Integer checkLvl = (Integer) managerArgumentow.getArguments().get("integer")
-                        .execute(context.getRawArgs()[0], context.getTlumaczenia(), context.getLanguage());
-                if (checkLvl != null && checkLvl > 0) {
-                    lvl = checkLvl;
-                }
-            }
+        if (context.getArguments().containsKey("poziom") && context.getArguments().containsKey("osoba")) {
+            context.replyEphemeral(context.getTranslated("lvlup.invalid.arguments"));
+            return;
         }
 
-        if (lvl != null && lvl > 1000) {
-            context.reply(context.getTranslated("lvlup.integer.toobig"));
-            return false;
+        if (context.getArguments().containsKey("poziom")) lvl = context.getArguments().get("poziom").getAsInt();
+        if (context.getArguments().containsKey("osoba")) mem = context.getArguments().get("osoba").getAsMember();
+        if (mem == null) {
+            context.replyEphemeral(context.getTranslated("generic.no.member"));
+            return;
         }
+
+        context.deferAsync(false);
 
         if (lvl == null) lvl = LicznikPunktow.getLvl(mem) + 1;
         double kalkulejtedRaw = (Math.pow(lvl, 2) * 100) / 4;
@@ -85,14 +68,21 @@ public class LvlupCommand extends Command {
         String zostalo = NumberFormat.getNumberInstance(context.getLanguage().getLocale()).format(zostaloRaw);
 
         if (!context.getMember().equals(mem)) {
-            if (zostaloRaw <= 0) context.reply(context.getTranslated("lvlup.response.lower.his", lvl,
+            if (zostaloRaw <= 0) context.sendMessage(context.getTranslated("lvlup.response.lower.his", lvl,
                     UserUtil.formatDiscrim(mem), kalkulejted));
-            else context.reply(context.getTranslated("lvlup.response.higher.his", lvl, UserUtil.formatDiscrim(mem),
+            else context.sendMessage(context.getTranslated("lvlup.response.higher.his", lvl, UserUtil.formatDiscrim(mem),
                     kalkulejted, zostalo));
-            return true;
+            return;
         }
-        if (zostaloRaw <= 0) context.reply(context.getTranslated("lvlup.response.lower.self", lvl, kalkulejted));
-        else context.reply(context.getTranslated("lvlup.response.higher.self", lvl, kalkulejted, zostalo));
-        return true;
+        if (zostaloRaw <= 0) context.sendMessage(context.getTranslated("lvlup.response.lower.self", lvl, kalkulejted));
+        else context.sendMessage(context.getTranslated("lvlup.response.higher.self", lvl, kalkulejted, zostalo));
+    }
+
+    @Override
+    public void updateOptionData(OptionData option) {
+        if (option.getName().equals("poziom")) {
+            option.setMinValue(1);
+            option.setMaxValue(1000);
+        }
     }
 }

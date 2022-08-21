@@ -18,17 +18,18 @@
 package pl.fratik.punkty.komendy;
 
 import com.google.common.eventbus.EventBus;
-import net.dv8tion.jda.api.sharding.ShardManager;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.interactions.InteractionHook;
+import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.Ustawienia;
-import pl.fratik.core.command.PermLevel;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
+import pl.fratik.core.util.ClassicEmbedPaginator;
 import pl.fratik.core.util.EventWaiter;
 import pl.fratik.core.util.GuildUtil;
 import pl.fratik.core.util.MapUtil;
-import pl.fratik.core.util.ClassicEmbedPaginator;
 import pl.fratik.punkty.LicznikPunktow;
 
 import javax.annotation.Nonnull;
@@ -37,7 +38,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class GsrCommand extends Command {
+public class GsrCommand extends NewCommand {
 
     private final EventWaiter eventWaiter;
     private final ShardManager shardManager;
@@ -48,41 +49,32 @@ public class GsrCommand extends Command {
         this.shardManager = shardManager;
         this.eventBus = eventBus;
         name = "gsr";
-        category = CommandCategory.POINTS;
-        permLevel = PermLevel.EVERYONE;
-        permissions.add(Permission.MESSAGE_EMBED_LINKS);
-        permissions.add(Permission.MESSAGE_MANAGE);
-        permissions.add(Permission.MESSAGE_ADD_REACTION);
-        aliases = new String[] {"sgur", "servergsr", "serverglobaluserrace", "globalserverrace", "serverowyranking", "rankingserverowy"};
-        allowPermLevelChange = false;
     }
 
     @Override
-    public boolean execute(@NotNull @Nonnull CommandContext context) {
-        context.reply(context.getTranslated("generic.loading"), message -> {
-            Map<String, Integer> licznikAlboCo = MapUtil.sortByValueAsc(LicznikPunktow.getAllGuildPunkty());
-            List<EmbedBuilder> embedy = new ArrayList<>();
-            licznikAlboCo.forEach((id, poziom) -> {
-                EmbedBuilder eb = new EmbedBuilder();
-                Guild guild = shardManager.getGuildById(id);
-                if (guild != null) {
-                    eb.setAuthor(guild.getName());
-                    String urlIkony = guild.getIconUrl();
-                    if (urlIkony != null) eb.setImage(urlIkony.replace(".webp", ".png") + "?size=2048");
-                    else eb.setImage(Ustawienia.instance.botUrl + "/genBigIcon/" + guild.getId());
-                    eb.addField(context.getTranslated("gsr.embed.points"), String.valueOf(poziom), false);
-                    eb.setColor(GuildUtil.getPrimColor(guild));
-                } else {
-                    eb.setAuthor(context.getTranslated("gsr.embed.guild.notfound"));
-                    eb.addField(context.getTranslated("gsr.embed.points"), String.valueOf(poziom), false);
-                    eb.setColor(new Color(114, 137, 218));
-                }
-                embedy.add(eb);
-            });
-            ClassicEmbedPaginator embedPaginator = new ClassicEmbedPaginator(eventWaiter, embedy, context.getSender(),
-                    context.getLanguage(), context.getTlumaczenia(), eventBus);
-            embedPaginator.create(message);
+    public void execute(@NotNull @Nonnull NewCommandContext context) {
+        InteractionHook hook = context.defer(false);
+        Map<String, Integer> licznikAlboCo = MapUtil.sortByValueAsc(LicznikPunktow.getAllGuildPunkty());
+        List<EmbedBuilder> embedy = new ArrayList<>();
+        licznikAlboCo.forEach((id, poziom) -> {
+            EmbedBuilder eb = new EmbedBuilder();
+            Guild guild = shardManager.getGuildById(id);
+            if (guild != null) {
+                eb.setAuthor(guild.getName());
+                String urlIkony = guild.getIconUrl();
+                if (urlIkony != null) eb.setImage(urlIkony.replace(".webp", ".png") + "?size=2048");
+                else eb.setImage(Ustawienia.instance.botUrl + "/genBigIcon/" + guild.getId());
+                eb.addField(context.getTranslated("gsr.embed.points"), String.valueOf(poziom), false);
+                eb.setColor(GuildUtil.getPrimColor(guild));
+            } else {
+                eb.setAuthor(context.getTranslated("gsr.embed.guild.notfound"));
+                eb.addField(context.getTranslated("gsr.embed.points"), String.valueOf(poziom), false);
+                eb.setColor(new Color(114, 137, 218));
+            }
+            embedy.add(eb);
         });
-        return true;
+        ClassicEmbedPaginator embedPaginator = new ClassicEmbedPaginator(eventWaiter, embedy, context.getSender(),
+                context.getLanguage(), context.getTlumaczenia(), eventBus);
+        embedPaginator.create(hook);
     }
 }

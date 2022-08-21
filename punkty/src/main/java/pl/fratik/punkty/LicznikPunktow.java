@@ -22,16 +22,15 @@ import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import io.sentry.Sentry;
 import net.dv8tion.jda.api.entities.*;
-import net.dv8tion.jda.api.events.interaction.ButtonClickEvent;
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
-import net.dv8tion.jda.api.interactions.components.Button;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import net.dv8tion.jda.api.utils.MiscUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pl.fratik.core.Ustawienia;
 import pl.fratik.core.cache.Cache;
 import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.entity.GuildConfig;
@@ -40,6 +39,7 @@ import pl.fratik.core.entity.UserConfig;
 import pl.fratik.core.entity.UserDao;
 import pl.fratik.core.event.LvlupEvent;
 import pl.fratik.core.event.PluginMessageEvent;
+import pl.fratik.core.manager.NewManagerKomend;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.MapUtil;
@@ -73,7 +73,7 @@ public class LicznikPunktow {
     private final PunktyDao punktyDao;
     private final Tlumaczenia tlumaczenia;
     private final EventBus eventBus;
-    private final ManagerKomend managerKomend;
+    private final NewManagerKomend managerKomend;
     private final ShardManager shardManager;
     private final ArrayList<String> cooldowns = new ArrayList<>();
     private boolean lock;
@@ -85,7 +85,7 @@ public class LicznikPunktow {
     private static Cache<ConcurrentHashMap<String, Integer>> cache;
     private final Cache<GuildConfig> gcCache;
     private final Cache<UserConfig> ucCache;
-    LicznikPunktow(GuildDao guildDao, UserDao userDao, PunktyDao punktyDao, ManagerKomend managerKomend, EventBus eventBus, Tlumaczenia tlumaczenia, ShardManager shardManager, RedisCacheManager redisCacheManager) {
+    LicznikPunktow(GuildDao guildDao, UserDao userDao, PunktyDao punktyDao, NewManagerKomend managerKomend, EventBus eventBus, Tlumaczenia tlumaczenia, ShardManager shardManager, RedisCacheManager redisCacheManager) {
         this.guildDao = guildDao;
         this.userDao = userDao;
         this.punktyDao = punktyDao;
@@ -313,10 +313,6 @@ public class LicznikPunktow {
                 event.getMember().getUser(), event.getMember().getGuild(), event.getLevel());
         GuildConfig gc = gcCache.get(event.getMember().getGuild().getId(), guildDao::get);
         UserConfig uc = ucCache.get(event.getMember().getUser().getId(), userDao::get);
-        List<String> prefixesRaw = managerKomend.getPrefixes(event.getMember().getGuild());
-        String prefix;
-        if (!prefixesRaw.isEmpty()) prefix = prefixesRaw.get(0);
-        else prefix = Ustawienia.instance.prefix;
         String rolaStr = gc.getRoleZaPoziomy().get(event.getLevel());
         Role rola;
         if (rolaStr != null) rola = event.getMember().getGuild().getRoleById(rolaStr);
@@ -348,7 +344,7 @@ public class LicznikPunktow {
                     } else {
                         ch.sendMessage(tlumaczenia.get(l,
                                 "generic.lvlup.channel", event.getMember().getUser().getName(),
-                                event.getLevel(), prefix)).setActionRows(ar).queue(null, kurwa -> {});
+                                event.getLevel())).setActionRows(ar).queue(null, kurwa -> {});
                     }
                 } catch (Exception e) {
                     /*lul*/
@@ -356,7 +352,7 @@ public class LicznikPunktow {
             } else if (uc.isLvlupMessages() && gc.isLvlUpNotify()) {
                 try {
                     String text = tlumaczenia.get(l,
-                            "generic.lvlup.dm", event.getLevel(), event.getMember().getGuild().getName(), prefix);
+                            "generic.lvlup.dm", event.getLevel(), event.getMember().getGuild().getName());
                     event.getMember().getUser().openPrivateChannel().flatMap(e -> e.sendMessage(text)).queue(null, nie -> {});
                 } catch (Exception e) {
                     // lol
@@ -491,7 +487,7 @@ public class LicznikPunktow {
     @SuppressWarnings("ConstantConditions") // mIgHt Be NuLl - stfu, sprawdzam przez isFromGuild
     @Subscribe
     @AllowConcurrentEvents
-    public void onButtonClick(ButtonClickEvent e) {
+    public void onButtonClick(ButtonInteractionEvent e) {
         if (!e.isFromGuild()) return;
         if (!LicznikPunktow.instance.punktyWlaczone(e.getGuild())) return;
         if (!e.getComponentId().startsWith(BUTTON_PREFIX)) return;

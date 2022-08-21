@@ -17,19 +17,18 @@
 
 package pl.fratik.punkty.komendy;
 
-import com.google.common.eventbus.EventBus;
-import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.Role;
+import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
-import net.dv8tion.jda.api.interactions.components.Button;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.command.PermLevel;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
-import pl.fratik.core.event.PluginMessageEvent;
 import pl.fratik.core.util.ButtonWaiter;
 import pl.fratik.core.util.EventWaiter;
 import pl.fratik.punkty.LicznikPunktow;
@@ -41,36 +40,31 @@ import java.util.List;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 
-public class NukepointsCommand extends Command {
+public class NukepointsCommand extends NewCommand { //FIXME: rejestruj jako deweloperska na fdev
 
     private final EventWaiter eventWaiter;
     private final GuildDao guildDao;
     private final LicznikPunktow licznikPunktow;
     private final PunktyDao punktyDao;
-    private final EventBus eventBus;
 
-    public NukepointsCommand(EventWaiter eventWaiter, GuildDao guildDao, LicznikPunktow licznikPunktow, PunktyDao punktyDao, EventBus eventBus) {
+    public NukepointsCommand(EventWaiter eventWaiter, GuildDao guildDao, LicznikPunktow licznikPunktow, PunktyDao punktyDao) {
         this.eventWaiter = eventWaiter;
         this.guildDao = guildDao;
         this.licznikPunktow = licznikPunktow;
         this.punktyDao = punktyDao;
-        this.eventBus = eventBus;
         name = "nukepoints";
-        category = CommandCategory.SYSTEM;
-        permLevel = PermLevel.BOTOWNER;
-        permissions.add(Permission.MESSAGE_ADD_REACTION);
-        allowPermLevelChange = false;
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        Message msg = context.reply(context.getTranslated("nukepoints.warning"), ActionRow.of(
+    public void execute(@NotNull NewCommandContext context) {
+        String content = context.getTranslated("nukepoints.warning");
+        InteractionHook hook = context.reply(new MessageBuilder(content).setActionRows(ActionRow.of(
                 Button.danger("YES", context.getTranslated("generic.yes")),
                 Button.secondary("NO", context.getTranslated("generic.no"))
-        ));
-        ButtonWaiter rw = new ButtonWaiter(eventWaiter, context, msg.getIdLong(), ButtonWaiter.ResponseType.REPLY);
+        )).build());
+        ButtonWaiter rw = new ButtonWaiter(eventWaiter, context, hook.getInteraction(), ButtonWaiter.ResponseType.REPLY);
         rw.setButtonHandler(e -> new Thread(() -> {
-            msg.editMessage(msg.getContentRaw()).setActionRows(Collections.emptySet()).queue();
+            hook.editOriginal(content).setActionRows(Collections.emptySet()).queue();
             if (e.getComponentId().equals("YES")) {
                 licznikPunktow.emptyCache();
                 licznikPunktow.setLock(true);
@@ -94,7 +88,6 @@ public class NukepointsCommand extends Command {
                 do {
                     long gotowe = futures.stream().filter(Future::isDone).count();
                     long doZrobienia = futures.size();
-                    eventBus.post(new PluginMessageEvent("punkty", "moderation", "znaneAkcje-add:" + msg.getId()));
                     e.getHook().editOriginal(context.getTranslated("nukepoints.nuking.progress", gotowe, doZrobienia)).queue();
                     try {
                         Thread.sleep(5000);
@@ -108,11 +101,9 @@ public class NukepointsCommand extends Command {
                 e.getHook().editOriginal(context.getTranslated("nukepoints.cancel")).queue();
         }, "nukepoints-runner").start());
         rw.setTimeoutHandler(() -> {
-            msg.editMessage(msg.getContentRaw()).setActionRows(Collections.emptySet()).queue();
-            context.send(context.getTranslated("nukepoints.cancel"));
+            hook.editOriginal(context.getTranslated("nukepoints.cancel")).setActionRows(Collections.emptySet()).queue();
         });
         rw.create();
-        return true;
     }
 
 }

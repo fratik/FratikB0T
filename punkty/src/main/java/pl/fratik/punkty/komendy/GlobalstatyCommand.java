@@ -18,30 +18,34 @@
 package pl.fratik.punkty.komendy;
 
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.Permission;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.command.PermLevel;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
+import pl.fratik.core.util.UserUtil;
 import pl.fratik.punkty.LicznikPunktow;
 
 import javax.annotation.Nonnull;
+import java.awt.*;
 import java.time.Instant;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class GlobalstatyCommand extends Command {
+import static pl.fratik.core.Statyczne.BRAND_COLOR;
+
+public class GlobalstatyCommand extends NewCommand {
     public GlobalstatyCommand() {
         name = "globalstaty";
-        category = CommandCategory.POINTS;
-        permLevel = PermLevel.EVERYONE;
-        aliases = new String[] {"gs", "globalnestaty", "statsglobal", "statyglobalne", "gp", "globalpunkty"};
-        permissions.add(Permission.MESSAGE_EMBED_LINKS);
-        allowPermLevelChange = false;
     }
 
     @Override
-    public boolean execute(@NotNull @Nonnull CommandContext context) {
-        EmbedBuilder eb = context.getBaseEmbed(context.getSender().getName(), context.getSender()
-                .getEffectiveAvatarUrl().replace(".webp", ".png"));
+    public void execute(@NotNull @Nonnull NewCommandContext context) {
+        context.deferAsync(false);
+        EmbedBuilder eb = new EmbedBuilder()
+                .setColor(Color.decode(BRAND_COLOR))
+                .setAuthor(context.getSender().getName(), null, UserUtil.getAvatarUrl(context.getSender()))
+                .setFooter("© " + context.getSender().getJDA().getSelfUser().getName(),
+                        UserUtil.getAvatarUrl(context.getSender().getJDA().getSelfUser()));
         eb.setTitle(context.getTranslated("globalstaty.embed.title"));
         eb.setDescription(context.getTranslated("globalstaty.embed.description"));
         Map<String, Integer> punkty = LicznikPunktow.getTotalPoints(context.getSender());
@@ -49,7 +53,6 @@ public class GlobalstatyCommand extends Command {
         punkty.forEach((idSerwera, ilosc) -> atomicInteger.getAndAdd(ilosc));
         eb.addField(context.getTranslated("globalstaty.embed.points"), String.valueOf(atomicInteger.intValue()), false);
         eb.setTimestamp(Instant.now());
-        context.reply(eb.build());
-        return true;
+        context.sendMessage(Set.of(eb.build()));
     }
 }

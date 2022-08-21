@@ -63,6 +63,7 @@ public class NewManagerKomendImpl implements NewManagerKomend {
         Set<CommandData> cmds = new HashSet<>();
         for (Set<NewCommand> moduleCommands : commands.values()) {
             for (NewCommand cmd : moduleCommands) {
+                logger.debug("Rejestruję komendę {}", cmd.getName());
                 CommandData e = cmd.generateCommandData(tlumaczenia);
                 synced.put(e.getName(), cmd);
                 cmds.add(e);

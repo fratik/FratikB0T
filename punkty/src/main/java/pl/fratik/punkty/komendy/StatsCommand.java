@@ -18,10 +18,11 @@
 package pl.fratik.punkty.komendy;
 
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.CommonUtil;
@@ -30,35 +31,28 @@ import pl.fratik.punkty.LicznikPunktow;
 
 import java.awt.*;
 import java.math.RoundingMode;
+import java.util.Set;
 
 import static pl.fratik.core.Statyczne.BRAND_COLOR;
 
-public class StatsCommand extends Command {
+public class StatsCommand extends NewCommand {
     private final LicznikPunktow licznik;
 
     public StatsCommand(LicznikPunktow licznik) {
         this.licznik = licznik;
-        name = "stats";
-        aliases = new String[]{"staty", "punkty"};
-        category = CommandCategory.POINTS;
-        permissions.add(Permission.MESSAGE_EMBED_LINKS);
-        uzycie = new Uzycie("uzytkownik", "member", false);
-        allowPermLevelChange = false;
+        name = "staty";
+        usage = "[osoba:user]";
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
+    public void execute(@NotNull NewCommandContext context) {
         if (!licznik.punktyWlaczone(context.getGuild())) {
             context.reply(context.getTranslated("punkty.off"));
-            return false;
+            return;
         }
-        Member mem = context.getMember();
-        try {
-            mem = (Member) context.getArgs()[0];
-        } catch (Exception ignored) {}
-        if (mem == null) mem = context.getMember();
-        context.reply(renderStatsEmbed(context.getTlumaczenia(), context.getLanguage(), mem));
-        return true;
+        context.deferAsync(false);
+        Member mem = context.getArguments().containsKey("osoba") ? context.getArguments().get("osoba").getAsMember() : context.getMember();
+        context.sendMessage(Set.of(renderStatsEmbed(context.getTlumaczenia(), context.getLanguage(), mem)));
     }
 
     @NotNull

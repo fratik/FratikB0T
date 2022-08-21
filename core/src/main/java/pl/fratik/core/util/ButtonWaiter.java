@@ -19,8 +19,10 @@ package pl.fratik.core.util;
 
 import lombok.Getter;
 import lombok.Setter;
+import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
+import net.dv8tion.jda.api.interactions.Interaction;
 import net.dv8tion.jda.api.requests.ErrorResponse;
 import pl.fratik.core.command.NewCommandContext;
 
@@ -30,6 +32,7 @@ import java.util.function.Consumer;
 public class ButtonWaiter {
     private final EventWaiter eventWaiter;
     private final NewCommandContext context;
+    private final Interaction interaction;
     private final long messageId;
     private final ResponseType type;
 
@@ -39,7 +42,16 @@ public class ButtonWaiter {
     public ButtonWaiter(EventWaiter eventWaiter, NewCommandContext context, long messageId, ResponseType type) {
         this.eventWaiter = eventWaiter;
         this.context = context;
+        interaction = null;
         this.messageId = messageId;
+        this.type = type;
+    }
+
+    public ButtonWaiter(EventWaiter eventWaiter, NewCommandContext context, Interaction interaction, ResponseType type) {
+        this.eventWaiter = eventWaiter;
+        this.context = context;
+        this.interaction = interaction;
+        messageId = -1;
         this.type = type;
     }
 
@@ -49,7 +61,13 @@ public class ButtonWaiter {
     }
 
     protected boolean checkReaction(ButtonInteractionEvent event) {
-        if (event.getMessageIdLong() != messageId) return false;
+        if (interaction == null) {
+            if (event.getMessageIdLong() != messageId) return false;
+        } else {
+            Message.Interaction inter = event.getMessage().getInteraction();
+            if (inter == null) return false;
+            if (inter.getIdLong() != interaction.getIdLong()) return false;
+        }
         boolean validUser = event.getUser().equals(context.getSender());
         if (!validUser) {
             event.reply(context.getTlumaczenia().get(context.getTlumaczenia().getLanguage(event.getMember()),

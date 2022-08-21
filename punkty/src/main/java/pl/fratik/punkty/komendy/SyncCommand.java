@@ -19,11 +19,13 @@ package pl.fratik.punkty.komendy;
 
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.interactions.InteractionHook;
+import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.command.PermLevel;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.util.UserUtil;
@@ -33,22 +35,19 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class SyncCommand extends Command {
+public class SyncCommand extends NewCommand {
 
     private final GuildDao guildDao;
 
     public SyncCommand(GuildDao guildDao) {
         this.guildDao = guildDao;
-        name = "sync";
-        aliases = new String[] {"synchronizuj"};
-        category = CommandCategory.POINTS;
-        permLevel = PermLevel.ADMIN;
-        permissions.add(Permission.MANAGE_ROLES);
+        name = "synchronizuj";
+        permissions = DefaultMemberPermissions.enabledFor(Permission.MANAGE_ROLES);
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        Message message = context.reply(context.getTranslated("sync.synchronizing"));
+    public void execute(@NotNull NewCommandContext context) {
+        InteractionHook hook = context.reply(context.getTranslated("sync.synchronizing"));
         GuildConfig gc = guildDao.get(context.getGuild());
         AtomicInteger udaloSieDla = new AtomicInteger();
         ArrayList<User> nieUdaloSie = new ArrayList<>();
@@ -69,12 +68,11 @@ public class SyncCommand extends Command {
                 nieUdaloSie.add(member.getUser());
             }
         }
-        if (nieUdaloSie.isEmpty()) message.editMessage(context.getTranslated("sync.success", udaloSieDla.toString())).queue();
+        if (nieUdaloSie.isEmpty()) hook.editOriginal(context.getTranslated("sync.success", udaloSieDla.toString())).queue();
         else {
             String uzytkownicy = UserUtil.getPoPrzecinku(nieUdaloSie);
-            if (uzytkownicy.length() < 1000) message.editMessage(context.getTranslated("sync.failed", uzytkownicy)).queue();
-            else message.editMessage(context.getTranslated("sync.failed.toolong", nieUdaloSie.size())).queue();
+            if (uzytkownicy.length() < 1000) hook.editOriginal(context.getTranslated("sync.failed", uzytkownicy)).queue();
+            else hook.editOriginal(context.getTranslated("sync.failed.toolong", nieUdaloSie.size())).queue();
         }
-        return true;
     }
 }

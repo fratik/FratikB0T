@@ -19,10 +19,11 @@ package pl.fratik.punkty.komendy;
 
 import net.dv8tion.jda.api.entities.User;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.command.*;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
+import pl.fratik.core.command.SubCommand;
 import pl.fratik.core.entity.MemberConfig;
 import pl.fratik.core.entity.MemberDao;
-import pl.fratik.core.util.CommonErrors;
 import pl.fratik.core.util.UserUtil;
 import pl.fratik.punkty.LicznikPunktow;
 import pl.fratik.punkty.entity.PunktyDao;
@@ -30,7 +31,7 @@ import pl.fratik.punkty.entity.PunktyDao;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class RankingCommand extends Command {
+public class RankingCommand extends NewCommand {
     private final PunktyDao punktyDao;
     private final LicznikPunktow licznik;
     private final MemberDao memberDao;
@@ -40,20 +41,17 @@ public class RankingCommand extends Command {
         this.licznik = licznik;
         this.memberDao = memberDao;
         name = "ranking";
-        aliases = new String[] {"rank"};
-        permLevel = PermLevel.EVERYONE;
-        category = CommandCategory.POINTS;
         cooldown = 7;
-        allowPermLevelChange = false;
     }
 
     @SuppressWarnings("squid:S1192")
-    @SubCommand(name="punkty",aliases={"points", "pkt"})
-    public boolean punkty(@NotNull CommandContext context) {
+    @SubCommand(name="punkty")
+    public void punkty(@NotNull NewCommandContext context) {
         if (!licznik.punktyWlaczone(context.getGuild())) {
-            context.reply(context.getTranslated("punkty.off"));
-            return false;
+            context.replyEphemeral(context.getTranslated("punkty.off"));
+            return;
         }
+        context.deferAsync(false);
         Map<String, Integer> dane = punktyDao.getTopkaPunktow(context.getGuild());
         ArrayList<String> tekst = new ArrayList<>();
         AtomicInteger miejsce = new AtomicInteger(0);
@@ -73,16 +71,16 @@ public class RankingCommand extends Command {
                 if (liczba != dane.size()) tekst.add("");
             }
         });
-        context.reply(context.getTranslated("ranking.points.header") + "```" + String.join("\n", tekst) + "```");
-        return true;
+        context.sendMessage(context.getTranslated("ranking.points.header") + "```" + String.join("\n", tekst) + "```");
     }
 
-    @SubCommand(name="poziom",aliases={"level", "lvl"})
-    public boolean poziom(@NotNull CommandContext context) {
+    @SubCommand(name="poziom")
+    public void poziom(@NotNull NewCommandContext context) {
         if (!licznik.punktyWlaczone(context.getGuild())) {
-            context.reply(context.getTranslated("punkty.off"));
-            return false;
+            context.replyEphemeral(context.getTranslated("punkty.off"));
+            return;
         }
+        context.deferAsync(false);
         Map<String, Integer> dane = punktyDao.getTopkaPoziomow(context.getGuild());
         ArrayList<String> tekst = new ArrayList<>();
         AtomicInteger miejsce = new AtomicInteger(0);
@@ -104,17 +102,17 @@ public class RankingCommand extends Command {
                 if (liczba != Math.min(10, dane.size())) tekst.add("");
             }
         });
-        context.reply(context.getTranslated("ranking.levels.header") + "```" + String.join("\n", tekst) + "```");
-        return true;
+        context.sendMessage(context.getTranslated("ranking.levels.header") + "```" + String.join("\n", tekst) + "```");
     }
 
-    @SubCommand(name="fratikcoin",aliases={"fratikcoiny", "fc", "money"})
-    public boolean fratikcoin(@NotNull CommandContext context) {
+    @SubCommand(name="fratikcoin")
+    public void fratikcoin(@NotNull NewCommandContext context) {
+        context.deferAsync(true);
         List<MemberConfig> mc = new ArrayList<>();
         List<MemberConfig> mcAa = memberDao.getAll();
         if (mcAa.isEmpty()) {
-            context.reply(context.getTranslated("ranking.fratikcoin.empty"));
-            return false;
+            context.sendMessage(context.getTranslated("ranking.fratikcoin.empty"));
+            return;
         }
         mcAa.sort(Comparator.comparingLong(MemberConfig::getFratikCoiny).reversed());
         for (MemberConfig c : mcAa) {
@@ -143,13 +141,6 @@ public class RankingCommand extends Command {
                 if (liczba != Math.min(10, dane.size())) tekst.add("");
             }
         });
-        context.reply(context.getTranslated("ranking.fratikcoin.header") + "```" + String.join("\n", tekst) + "```");
-        return true;
-    }
-
-    @Override
-    public boolean execute(@NotNull CommandContext context) {
-        CommonErrors.usage(context);
-        return false;
+        context.sendMessage(context.getTranslated("ranking.fratikcoin.header") + "```" + String.join("\n", tekst) + "```");
     }
 }

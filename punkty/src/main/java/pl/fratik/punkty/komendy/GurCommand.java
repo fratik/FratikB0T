@@ -18,12 +18,13 @@
 package pl.fratik.punkty.komendy;
 
 import com.google.common.eventbus.EventBus;
-import net.dv8tion.jda.api.sharding.ShardManager;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.interactions.InteractionHook;
+import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.util.ClassicEmbedPaginator;
 import pl.fratik.core.util.EventWaiter;
 import pl.fratik.core.util.MapUtil;
@@ -34,7 +35,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class GurCommand extends Command {
+public class GurCommand extends NewCommand {
 
     private final EventWaiter eventWaiter;
     private final ShardManager shardManager;
@@ -45,16 +46,11 @@ public class GurCommand extends Command {
         this.shardManager = shardManager;
         this.eventBus = eventBus;
         name = "gur";
-        category = CommandCategory.POINTS;
-        permissions.add(Permission.MESSAGE_EMBED_LINKS);
-        permissions.add(Permission.MESSAGE_MANAGE);
-        permissions.add(Permission.MESSAGE_ADD_REACTION);
-        allowPermLevelChange = false;
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        Message message = context.reply(context.getTranslated("generic.loading"));
+    public void execute(@NotNull NewCommandContext context) {
+        InteractionHook hook = context.defer(false);
         Map<String, Integer> licznikAlboCo = MapUtil.sortByValueAsc(LicznikPunktow.getAllUserPunkty());
         List<EmbedBuilder> embedy = new ArrayList<>();
         licznikAlboCo.forEach((id, poziom) -> {
@@ -77,7 +73,6 @@ public class GurCommand extends Command {
         });
         ClassicEmbedPaginator embedPaginator = new ClassicEmbedPaginator(eventWaiter, embedy, context.getSender(),
                 context.getLanguage(), context.getTlumaczenia(), eventBus);
-        embedPaginator.create(message);
-        return true;
+        embedPaginator.create(hook);
     }
 }

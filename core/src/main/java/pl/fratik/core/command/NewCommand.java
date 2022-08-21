@@ -80,7 +80,7 @@ public abstract class NewCommand {
                     keyBase += "." + CommandUtil.getAsKey(subcommand.name());
                     scd = new SubcommandData(subcommand.name(),
                             tlumaczenia.get(Language.DEFAULT, keyBase + ".description"))
-                            .addOptions(CommandUtil.generateOptionData(name + "." + subcommand.name(),
+                            .addOptions(CommandUtil.generateOptionData(this, subcommand.name(),
                                     subcommand.usage(), tlumaczenia));
                     if (subcommandGroupData != null) subcommandGroupData.addSubcommands(scd);
                     else mainSubs.add(scd);
@@ -102,7 +102,11 @@ public abstract class NewCommand {
     }
 
     protected OptionData[] getOptions(Tlumaczenia tlumaczenia) {
-        return CommandUtil.generateOptionData(name, usage, tlumaczenia);
+        return CommandUtil.generateOptionData(this, null, usage, tlumaczenia);
+    }
+
+    public void updateOptionData(OptionData option) {
+        // no-op, niech komendy które tego potrzebują to nadpiszą
     }
 
     @Getter
