@@ -44,7 +44,6 @@ import pl.fratik.core.util.UserUtil;
 import java.awt.*;
 import java.util.List;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @SuppressWarnings("squid:S1192")
 public class SklepCommand extends NewCommand {
@@ -322,7 +321,7 @@ public class SklepCommand extends NewCommand {
         });
         rw.setTimeoutHandler(() -> {
             msgTmp.editMessage(msgTmp).setActionRows(Collections.emptySet()).queue();
-            context.sendMessage(context.getTranslated("sklep.usun.canceled"), m -> {});
+            context.sendMessage(context.getTranslated("sklep.usun.canceled"));
         });
         rw.create();
         return true;

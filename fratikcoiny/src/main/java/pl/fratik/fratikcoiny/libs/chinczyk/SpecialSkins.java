@@ -19,7 +19,7 @@ package pl.fratik.fratikcoiny.libs.chinczyk;
 
 import lombok.Getter;
 import lombok.experimental.Delegate;
-import net.dv8tion.jda.api.entities.Emoji;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.tlumaczenia.Language;

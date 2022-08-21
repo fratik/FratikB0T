@@ -19,7 +19,7 @@ package pl.fratik.fratikcoiny.libs.chinczyk;
 
 import io.sentry.Sentry;
 import lombok.Getter;
-import net.dv8tion.jda.api.entities.Emoji;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
 import org.apache.batik.transcoder.SVGAbstractTranscoder;
 import org.apache.batik.transcoder.TranscoderException;
 import org.apache.batik.transcoder.TranscoderInput;
@@ -257,14 +257,14 @@ public interface ChinczykSkin {
             writeColor(skinData, arrowFill);
             writeColor(skinData, lineStroke);
             writeColor(skinData, pieceStroke);
-            writeString(skinData, emoji == null ? "" : emoji.getAsMention());
+            writeString(skinData, emoji == null ? "" : emoji.getFormatted());
             writeUnsignedInt(os, skinData.size());
             os.write(skinData.toByteArray());
         }
 
         public static ChinczykSkin deserialize(InputStream is) throws IOException {
             String emojiStr = readString(is);
-            Emoji emoji = emojiStr.isEmpty() ? null : Emoji.fromMarkdown(emojiStr);
+            Emoji emoji = emojiStr.isEmpty() ? null : Emoji.fromFormatted(emojiStr);
             return of(readColor(is), readColor(is), readColor(is), readColor(is), readColor(is), readColor(is),
                     readColor(is), readColor(is), readColor(is), readColor(is), readColor(is), readColor(is),
                     readColor(is), readColor(is), readColor(is), readColor(is), emoji);

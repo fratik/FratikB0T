@@ -74,14 +74,14 @@ public class Module implements Modul {
         commands.add(new PremiaCommand(guildDao, memberDao, eventWaiter, eventBus));
         if (Chinczyk.canBeUsed()) commands.add(new ChinczykCommand(shardManager, eventBus, eventWaiter, chinczykStatsDao, chinczykStateDao, tlumaczenia));
 
-        commands.forEach(managerKomend::registerCommand);
+        managerKomend.registerCommands(this, commands);
 
         return true;
     }
 
     @Override
     public boolean shutDown() {
-        commands.forEach(managerKomend::unregisterCommand);
+        managerKomend.unregisterCommands(commands);
         return true;
     }
 }

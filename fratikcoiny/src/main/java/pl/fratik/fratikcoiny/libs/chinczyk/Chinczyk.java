@@ -40,15 +40,13 @@ import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.exceptions.InsufficientPermissionException;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
-import net.dv8tion.jda.api.interactions.components.Component;
+import net.dv8tion.jda.api.interactions.components.ItemComponent;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
-import net.dv8tion.jda.api.interactions.components.buttons.ButtonInteraction;
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle;
 import net.dv8tion.jda.api.interactions.components.selections.SelectMenu;
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption;
 import net.dv8tion.jda.api.requests.ErrorResponse;
 import net.dv8tion.jda.api.requests.restaction.MessageAction;
-import net.dv8tion.jda.api.requests.restaction.ThreadChannelAction;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import okhttp3.Response;
 import org.apache.batik.anim.dom.SAXSVGDocumentFactory;
@@ -91,7 +89,7 @@ import static net.dv8tion.jda.api.requests.ErrorResponse.UNKNOWN_INTERACTION;
 import static pl.fratik.core.util.StreamUtil.*;
 
 public class Chinczyk {
-    private static final byte CHINCZYK_VERSION = 0x05;
+    private static final byte CHINCZYK_VERSION = 0x06;
     private static final byte[] CHINCZYK_HEADER = new byte[] {0x21, 0x37};
     private static final Map<String, String> BOARD_COORDS;
     private static final String FILE_NAME = "board";
@@ -115,7 +113,6 @@ public class Chinczyk {
     private static final int REPLAY_TEXT_MARGIN = 100;
     private final User executer;
     private final MessageChannel channel;
-    private final long referenceMessageId;
     private final EventBus eventBus;
     private final EnumMap<Place, Player> players;
     private final Tlumaczenia t;
@@ -268,7 +265,6 @@ public class Chinczyk {
     public Chinczyk(NewCommandContext context, EventBus eventBus, Consumer<Chinczyk> endCallback) {
         executer = context.getSender();
         channel = context.getChannel();
-        referenceMessageId = context.getMessage().getIdLong();
         this.eventBus = eventBus;
         executor = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("Chinczyk-" + getChannel().getId()));
         lock = new ReentrantLock();
@@ -309,7 +305,8 @@ public class Chinczyk {
             int version = is.read();
             if (version == -1) throw new EOFException();
             if (version != CHINCZYK_VERSION) {
-                if (version != 4) throw new IOException("niezgodność wersji pliku");
+                if (version > 6) throw new IOException("niezgodność wersji pliku");
+                if (version < 4) throw new IOException("niezgodność wersji pliku");
             }
             long executerId = readLong(is);
             try {
@@ -330,7 +327,7 @@ public class Chinczyk {
                     executor.shutdownNow();
                 }
             };
-            referenceMessageId = readLong(is);
+            if (version < 6) readLong(is); // skipnij referenceMessageId
             random = new Random(randomSeed = readLong(is));
             randomSeq = readLong(is);
             for (long i = 0; i < randomSeq; i++)
@@ -353,7 +350,7 @@ public class Chinczyk {
             if (rawCheats == -1) throw new EOFException();
             cheats = rawCheats != 0;
             skin = ChinczykSkin.deserialize(is);
-            if (version != 4) {
+            if (version > 4) {
                 long threadId = readLong(is);
                 if (threadId != 0) thread = ((GuildChannel) channel).getGuild().getThreadChannelById(threadId);
             } else threadCreated = true; // by nie stworzył wątku
@@ -697,8 +694,8 @@ public class Chinczyk {
         switch (status) {
             case WAITING_FOR_PLAYERS:
             case WAITING: {
-                List<Component> placeComponents = new ArrayList<>();
-                List<Component> controlComponents = new ArrayList<>();
+                List<ItemComponent> placeComponents = new ArrayList<>();
+                List<ItemComponent> controlComponents = new ArrayList<>();
                 ActionRow rulesMenu = generateRulesMenu();
                 ActionRow langMenu = generateLanguageMenu(l);
                 ActionRow skinMenu = generateSkinMenu();
@@ -1312,7 +1309,7 @@ public class Chinczyk {
                 cheats = true;
                 if (!e.isFromGuild() || e.getGuild().getSelfMember().hasPermission((GuildChannel) e.getChannel(),
                         Permission.MESSAGE_ADD_REACTION))
-                    e.getMessage().addReaction("\uD83D\uDC40").onErrorMap(err -> null).complete();
+                    e.getMessage().addReaction(Emoji.fromUnicode("\uD83D\uDC40")).onErrorMap(err -> null).complete();
                 updateMainMessage(false);
             } finally {
                 lock.unlock();
@@ -1332,7 +1329,7 @@ public class Chinczyk {
             if (!attachment.isImage() || !(Objects.equals(attachment.getFileExtension(), "png") ||
                     Objects.equals(attachment.getFileExtension(), "jpg") || Objects.equals(attachment.getFileExtension(), "jpeg"))) {
                 //nieprawidłowy typ pliku
-                if (canReact.getAsBoolean()) e.getMessage().addReaction("\u2753").onErrorMap(i -> null).queue();
+                if (canReact.getAsBoolean()) e.getMessage().addReaction(Emoji.fromUnicode("\u2753")).onErrorMap(i -> null).queue();
                 return;
             }
             try (Response resp = NetworkUtil.downloadResponse(attachment.getUrl())) {
@@ -1343,10 +1340,10 @@ public class Chinczyk {
                 updateMainMessage(false);
             } catch (Exception ex) {
                 LoggerFactory.getLogger(getClass()).error("Nie udało się pobrać zdjęcia!", ex);
-                if (canReact.getAsBoolean()) e.getMessage().addReaction("\u274C").onErrorMap(i -> null).queue();
+                if (canReact.getAsBoolean()) e.getMessage().addReaction(Emoji.fromUnicode("\u274C")).onErrorMap(i -> null).queue();
                 return;
             }
-            if (canReact.getAsBoolean()) e.getMessage().addReaction("\uD83D\uDC4D").onErrorMap(i -> null).queue();
+            if (canReact.getAsBoolean()) e.getMessage().addReaction(Emoji.fromUnicode("\uD83D\uDC4D")).onErrorMap(i -> null).queue();
         }
     }
     
@@ -1396,10 +1393,9 @@ public class Chinczyk {
             byte[] board = baos.toByteArray();
             String fileName = FILE_NAME + ".png";
             if (message == null) {
-                message = channel.sendMessage(generateMessage(fileName))
-                        .referenceById(referenceMessageId).addFile(board, fileName).complete();
+                message = channel.sendMessage(generateMessage(fileName)).addFile(board, fileName).complete();
                 if ((!threadCreated && thread == null) && channel.getType() == ChannelType.TEXT)
-                    thread = ((ThreadChannelAction) message.createThreadChannel(t.get(l, "chinczyk.thread.name")))
+                    thread = message.createThreadChannel(t.get(l, "chinczyk.thread.name"))
                             .setAutoArchiveDuration(ThreadChannel.AutoArchiveDuration.TIME_1_HOUR)
                             .onErrorMap(err -> null).complete();
                 threadCreated = true;
@@ -1408,7 +1404,7 @@ public class Chinczyk {
                 MessageAction ma = message.editMessage(msg);
                 if (rerenderBoard) ma = ma.retainFiles(Collections.emptySet()).addFile(board, fileName);
                 message = ma.onErrorFlatMap(ErrorResponse.UNKNOWN_MESSAGE::test,
-                        e -> channel.sendMessage(msg).referenceById(referenceMessageId).addFile(board, fileName)).complete();
+                        e -> channel.sendMessage(msg).addFile(board, fileName)).complete();
             }
             if (status == Status.ENDED) {
                 new Thread(() -> {
@@ -1468,8 +1464,8 @@ public class Chinczyk {
         status = Status.ERRORED;
         String text = t.get(l, "chinczyk.errored");
         if (message != null)
-            message.editMessage(text).override(true).onErrorMap(ErrorResponse.UNKNOWN_MESSAGE::test,
-                    ex -> channel.sendMessage(text).referenceById(referenceMessageId).complete()).complete();
+            message.editMessage(text).override(true).onErrorFlatMap(ErrorResponse.UNKNOWN_MESSAGE::test,
+                    ex -> channel.sendMessage(text)).complete();
         try {
             eventBus.unregister(this);
         } catch (IllegalArgumentException ignored) {}
@@ -1509,7 +1505,7 @@ public class Chinczyk {
 
     private Message generateControlMessage(Player player) {
         MessageBuilder mb = new MessageBuilder();
-        List<Component> leaveComponents = new ArrayList<>();
+        List<ItemComponent> leaveComponents = new ArrayList<>();
         leaveComponents.add(Button.danger(LEAVE, t.get(player.getLanguage(), "chinczyk.control.leave")));
         if (player.confirmLeave)
             leaveComponents.add(Button.secondary(CANCEL, t.get(player.getLanguage(), "chinczyk.control.abort")));
@@ -1519,7 +1515,7 @@ public class Chinczyk {
             case WAITING: {
                 if (player.getStatus() == PlayerStatus.JOINED) {
                     mb.setContent(t.get(player.getLanguage(), "chinczyk.control.start"));
-                    List<Component> controlComp = new ArrayList<>();
+                    List<ItemComponent> controlComp = new ArrayList<>();
                     controlComp.add(Button.success(READY, t.get(player.getLanguage(), "chinczyk.control.ready")));
                     controlComp.addAll(leaveComponents);
                     mb.setActionRows(
@@ -1681,7 +1677,6 @@ public class Chinczyk {
             baos.write(CHINCZYK_VERSION);
             writeLong(baos, executer.getIdLong());
             writeLong(baos, channel.getIdLong());
-            writeLong(baos, referenceMessageId);
             writeLong(baos, randomSeed);
             writeLong(baos, randomSeq - (rolled == null ? 0 : 1));
             writeString(baos, l.name());
@@ -2208,7 +2203,7 @@ public class Chinczyk {
              Color pieceStroke,
              String emojiMarkdown) {
             this.flag = flag;
-            Emoji emoji = emojiMarkdown == null || emojiMarkdown.isEmpty() ? null : Emoji.fromMarkdown(emojiMarkdown);
+            Emoji emoji = emojiMarkdown == null || emojiMarkdown.isEmpty() ? null : Emoji.fromFormatted(emojiMarkdown);
             skin = ChinczykSkin.of(textColor, bgColor, circleStroke, circleFill, redFill, redStartFill, greenFill,
                     greenStartFill, blueFill, blueStartFill, yellowFill, yellowStartFill, arrowStroke, arrowFill,
                     lineStroke, pieceStroke, emoji);
