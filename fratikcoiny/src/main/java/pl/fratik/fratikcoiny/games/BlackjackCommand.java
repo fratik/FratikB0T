@@ -38,7 +38,7 @@ public class BlackjackCommand extends NewCommand {
         this.memberDao = memberDao;
         this.eventWaiter = eventWaiter;
         name = "blackjack";
-        usage = "<ilosc:number>";
+        usage = "<zaklad:number>";
     }
 
     @Override
@@ -48,7 +48,7 @@ public class BlackjackCommand extends NewCommand {
             return;
         }
         MemberConfig mc = memberDao.get(context.getMember());
-        long zaklad = context.getArguments().get("ilosc").getAsLong();
+        long zaklad = context.getArguments().get("zaklad").getAsLong();
         if (zaklad == 0 || mc.getFratikCoiny() < zaklad) {
             context.reply(context.getTranslated("blackjack.no.money"));
             return;

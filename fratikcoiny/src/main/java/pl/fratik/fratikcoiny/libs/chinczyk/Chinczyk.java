@@ -464,9 +464,6 @@ public class Chinczyk {
             if (new ProcessBuilder("ffmpeg", "-version").start().waitFor() == 0) {
                 videoRenderer = new BoardReplayRenderer() {
                     private final File temp = File.createTempFile("boardreplay", ".mp4");
-                    {
-                        temp.deleteOnExit();
-                    }
                     private final Process process = new ProcessBuilder("ffmpeg", "-loglevel", "fatal",
                             "-framerate", "1", "-f", "image2pipe", "-y", "-i", "-", "-vcodec", "libx264",
                             "-preset", "slower", "-vf", "scale=1000:-2", "-crf", "26", "-profile:v", "main",
@@ -489,7 +486,13 @@ public class Chinczyk {
                             throw new IllegalStateException(e);
                         }
                         try {
-                            return new FileInputStream(temp);
+                            return new FileInputStream(temp) {
+                                @Override
+                                public void close() throws IOException {
+                                    super.close();
+                                    temp.delete();
+                                }
+                            };
                         } catch (FileNotFoundException e) {
                             throw new IllegalStateException(e);
                         }
@@ -506,11 +509,6 @@ public class Chinczyk {
                         baos.reset();
                         ImageIO.write(image, "png", baos);
                         process.getOutputStream().write(baos.toByteArray());
-                    }
-
-                    @Override
-                    protected void finalize() {
-                        if (temp.exists()) temp.delete();
                     }
                 };
             } else return null;
@@ -766,7 +764,7 @@ public class Chinczyk {
             if (lang.equals(Language.DEFAULT)) continue;
             options.add(SelectOption.of(lang.getLocalized(), lang.name())
                     .withDefault(lang == currentLang)
-                    .withEmoji(Emoji.fromUnicode(lang.getEmoji().toString())));
+                    .withEmoji(lang.getEmoji()));
         }
         
         return ActionRow.of(SelectMenu.create(LANGUAGE)

@@ -27,6 +27,7 @@ import net.dv8tion.jda.api.events.interaction.ButtonClickEvent;
 import net.dv8tion.jda.api.events.interaction.SelectionMenuEvent;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.Button;
+import net.dv8tion.jda.api.interactions.components.selections.SelectMenu;
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption;
 import net.dv8tion.jda.api.interactions.components.selections.SelectionMenu;
 import org.jetbrains.annotations.NotNull;
@@ -85,7 +86,7 @@ public class LanguageCommand extends Command {
             tekst.add("");
             for (Language l : Language.values()) {
                 if (l.equals(Language.DEFAULT)) continue;
-                String str = String.format("%s %s", l.getEmoji().toString(), l.getLocalized());
+                String str = String.format("%s %s", l.getEmoji().getFormatted(), l.getLocalized());
                 if (!l.isChecked()) str += "\\*";
                 tekst.add(str);
             }
@@ -111,9 +112,9 @@ public class LanguageCommand extends Command {
             if (lang.equals(Language.DEFAULT)) continue;
             options.add(SelectOption.of(lang.getLocalized(), lang.name())
                     .withDefault(lang == l)
-                    .withEmoji(Emoji.fromUnicode(lang.getEmoji().toString())));
+                    .withEmoji(lang.getEmoji()));
         }
-        SelectionMenu menu = SelectionMenu.create(MENU_CHANGE_LANGUAGE)
+        SelectMenu menu = SelectMenu.create(MENU_CHANGE_LANGUAGE)
                 .setPlaceholder(tlumaczenia.get(l, "language.change.placeholder"))
                 .setRequiredRange(1, 1)
                 .addOptions(options)

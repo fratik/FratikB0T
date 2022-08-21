@@ -21,9 +21,9 @@ import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.ThreadChannel;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
@@ -100,14 +100,15 @@ public class ChinczykCommand extends NewCommand {
         stats("0", context, false);
     }
 
-    @SubCommand(name = "global", usage = "[osoba:user]")
+    @SubCommandGroup(name = "staty")
+    @SubCommand(name = "osoba", usage = "[osoba:user]")
     public void userStats(@NotNull NewCommandContext context) {
         User usr = context.getArgumentOr("osoba", context.getSender(), OptionMapping::getAsUser);
         stats(usr.getId(), context, true);
     }
 
     public boolean stats(String id, @NotNull NewCommandContext context, boolean withWins) {
-        Message msg = context.sendMessage(context.getTranslated("generic.loading"));
+        InteractionHook hook = context.defer(false);
         List<EmbedBuilder> pages = new ArrayList<>();
         Calendar cal = Calendar.getInstance();
         cal.set(Calendar.HOUR_OF_DAY, 0);
@@ -124,22 +125,25 @@ public class ChinczykCommand extends NewCommand {
                     true, withWins, withWins, true).setFooter(sdf.format(new Date(time))));
         }
         new ClassicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(),
-                context.getTlumaczenia(), eventBus, pages.size()).setCustomFooter(true).create(msg);
+                context.getTlumaczenia(), eventBus, pages.size()).setCustomFooter(true).create(hook);
         return true;
     }
 
-    @Override
-    public void execute(@NotNull NewCommandContext context) {
+    @SubCommand(name = "zagraj")
+    public void game(@NotNull NewCommandContext context) {
         if (instances.stream().anyMatch(i -> i.getChannel().equals(context.getChannel()))) {
-            context.reply(context.getTranslated("chinczyk.game.in.progress"));
+            context.replyEphemeral(context.getTranslated("chinczyk.game.in.progress"));
             return;
         }
         if (context.getChannel() instanceof ThreadChannel &&
                 instances.stream().anyMatch(i -> i.getChannel().equals(((ThreadChannel) context.getChannel()).getParentChannel()))) {
-            context.reply(context.getTranslated("chinczyk.parent.game.in.progress"));
+            context.replyEphemeral(context.getTranslated("chinczyk.parent.game.in.progress"));
             return;
         }
+        context.deferAsync(true);
+        // todo check na permy
         instances.add(new Chinczyk(context, eventBus, this::endCallback));
+        context.sendMessage(context.getTranslated("chinczyk.game.started.message"));
     }
 
     private void endCallback(Chinczyk chinczyk) {

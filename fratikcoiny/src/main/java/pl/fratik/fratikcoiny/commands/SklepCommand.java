@@ -213,7 +213,7 @@ public class SklepCommand extends NewCommand {
         return true;
     }
 
-    @SubCommand(name="ustaw", usage = "<rola:role> <ile:number>")
+    @SubCommand(name="ustaw", usage = "<rola:role> <kwota:number>")
     public boolean dodaj(NewCommandContext context) {
         if (UserUtil.getPermlevel(context.getMember(), guildDao, shardManager).getNum() < 2) {
             context.reply(context.getTranslated("sklep.ustaw.noperms"));
@@ -221,7 +221,7 @@ public class SklepCommand extends NewCommand {
         }
         GuildConfig gc = guildDao.get(context.getGuild());
         Role rola = context.getArguments().get("rola").getAsRole();
-        long kasa = context.getArguments().get("ile").getAsLong();
+        long kasa = context.getArguments().get("kwota").getAsLong();
         String opis = null;
         if (gc.getRoleDoKupienia().containsKey(rola.getId())) {
             context.reply(context.getTranslated("sklep.ustaw.alreadyset"));

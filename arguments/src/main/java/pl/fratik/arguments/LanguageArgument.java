@@ -32,7 +32,7 @@ public class LanguageArgument extends Argument {
         Language[] languages = Language.values();
         for (Language l : languages) {
             if (!l.equals(Language.DEFAULT)) {
-                if (context.getArg().equals(l.getEmoji().toString())) return l;
+                if (context.getArg().equals(l.getEmoji().getFormatted())) return l;
                 if (context.getArg().equalsIgnoreCase(l.getLocalized())) return l;
                 if (context.getArg().equalsIgnoreCase(l.getShortName())) return l;
             }
