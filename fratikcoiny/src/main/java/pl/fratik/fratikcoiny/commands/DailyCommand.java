@@ -17,9 +17,9 @@
 
 package pl.fratik.fratikcoiny.commands;
 
-import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.Emote;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.entity.MemberConfig;
 import pl.fratik.core.entity.MemberDao;
 
@@ -33,15 +33,11 @@ public class DailyCommand extends MoneyCommand {
     public DailyCommand(MemberDao memberDao) {
         this.memberDao = memberDao;
         name = "daily";
-        category = CommandCategory.MONEY;
-        permissions.add(Permission.MESSAGE_EXT_EMOJI);
-        aliases = new String[] {"dzienna", "dziennazaplata", "zaplatadzienna", "kasazadarmo", "kieszonkowe", "getfc", "wyplata"};
-        allowPermLevelChange = false;
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        Emote emotkaFc = getFratikCoin(context);
+    public void execute(@NotNull NewCommandContext context) {
+        Emoji emotkaFc = getFratikCoin(context);
         MemberConfig mc = memberDao.get(context.getMember());
         Date dailyDate = mc.getDailyDate();
         Date teraz = new Date();
@@ -49,7 +45,7 @@ public class DailyCommand extends MoneyCommand {
             long dist = dailyDate.getTime() - teraz.getTime();
             if (dist >= 0) {
                 context.reply(context.getTranslated("daily.cooldown"));
-                return false;
+                return;
             }
         }
         Calendar cal = Calendar.getInstance();
@@ -57,13 +53,12 @@ public class DailyCommand extends MoneyCommand {
         cal.add(Calendar.DAY_OF_MONTH, 1);
         dailyDate = Date.from(cal.toInstant());
         long fc = isHoliday() ? mc.getFratikCoiny() + 500 : mc.getFratikCoiny() + 250;
-        if (checkTooMuch(fc, context)) return false;
+        if (checkTooMuch(fc, context)) return;
         String msg = isHoliday() ? "daily.success.holiday" : "daily.success";
         mc.setFratikCoiny(fc);
         mc.setDailyDate(dailyDate);
         memberDao.save(mc);
-        context.reply(context.getTranslated(msg, emotkaFc.getAsMention(), mc.getFratikCoiny(), emotkaFc.getAsMention()));
-        return true;
+        context.reply(context.getTranslated(msg, emotkaFc.getFormatted(), mc.getFratikCoiny(), emotkaFc.getFormatted()));
     }
 
     private static Boolean isHoliday() { // mozna to pozniej gdzies przeniesc

@@ -17,8 +17,9 @@
 
 package pl.fratik.fratikcoiny.games;
 
-import net.dv8tion.jda.api.Permission;
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.entity.MemberConfig;
 import pl.fratik.core.entity.MemberDao;
 import pl.fratik.core.util.EventWaiter;
@@ -28,7 +29,7 @@ import pl.fratik.fratikcoiny.libs.blackjack.DiscordBlackJack;
 import java.util.HashSet;
 import java.util.Set;
 
-public class BlackjackCommand extends Command {
+public class BlackjackCommand extends NewCommand {
     private final MemberDao memberDao;
     private final EventWaiter eventWaiter;
     private final Set<String> locki = new HashSet<>();
@@ -37,25 +38,20 @@ public class BlackjackCommand extends Command {
         this.memberDao = memberDao;
         this.eventWaiter = eventWaiter;
         name = "blackjack";
-        category = CommandCategory.MONEY;
-        cooldown = 10;
-        uzycie = new Uzycie("zakład", "long", true);
-        aliases = new String[] {"bj", "zagrajwblackjack", "zagrajwbj"};
-        permissions.add(Permission.MESSAGE_EXT_EMOJI);
-        allowPermLevelChange = false;
+        usage = "<ilosc:number>";
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
+    public void execute(@NotNull NewCommandContext context) {
         if (locki.contains(context.getSender().getId())) {
             context.reply(context.getTranslated("blackjack.in.progress"));
-            return false;
+            return;
         }
         MemberConfig mc = memberDao.get(context.getMember());
-        long zaklad = (Long) context.getArgs()[0];
+        long zaklad = context.getArguments().get("ilosc").getAsLong();
         if (zaklad == 0 || mc.getFratikCoiny() < zaklad) {
             context.reply(context.getTranslated("blackjack.no.money"));
-            return false;
+            return;
         }
         locki.add(context.getSender().getId());
         DiscordBlackJack bj = new DiscordBlackJack(context, mc.getFratikCoiny(), eventWaiter);
@@ -63,7 +59,6 @@ public class BlackjackCommand extends Command {
         mc.setFratikCoiny(bjres.getMoney());
         memberDao.save(mc);
         locki.remove(context.getSender().getId());
-        return true;
     }
 
 }

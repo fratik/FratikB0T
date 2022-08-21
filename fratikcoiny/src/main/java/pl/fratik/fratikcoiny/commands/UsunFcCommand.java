@@ -17,11 +17,10 @@
 
 package pl.fratik.fratikcoiny.commands;
 
-import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.Emote;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.command.PermLevel;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.entity.MemberConfig;
 import pl.fratik.core.entity.MemberDao;
 import pl.fratik.core.util.UserUtil;
@@ -35,41 +34,30 @@ public class UsunFcCommand extends MoneyCommand {
     public UsunFcCommand(MemberDao memberDao) {
         this.memberDao = memberDao;
         name = "usunfc";
-        category = CommandCategory.MONEY;
-        permissions.add(Permission.MESSAGE_EXT_EMOJI);
-        permLevel = PermLevel.ADMIN;
-        LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
-        hmap.put("osoba", "member");
-        hmap.put("hajs", "integer");
-        uzycie = new Uzycie(hmap, new boolean[] {true, true});
-        uzycieDelim = " ";
-        aliases = new String[] {"usunfratikcoiny"};
+        usage = "<osoba:user> <ile:number>";
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        Member komu = (Member) context.getArgs()[0];
-        int ile = (int) context.getArgs()[1];
+    public void execute(@NotNull NewCommandContext context) {
+        Member komu = context.getArguments().get("osoba").getAsMember();
+        int ile = context.getArguments().get("ile").getAsInt();
         if (ile == 0) {
             context.reply(context.getTranslated("usunfc.badnumber"));
-            return false;
+            return;
         }
         if (komu.getUser().isBot()) {
             context.reply(context.getTranslated("usunfc.bot"));
-            return false;
+            return;
         }
         MemberConfig mc = memberDao.get(komu);
         long hajs = mc.getFratikCoiny() - ile;
         if (hajs < 0) {
             context.reply(context.getTranslated("usunfc.badnumber.sub"));
-            return false;
+            return;
         }
-        Emote fc = getFratikCoin(context);
+        Emoji fc = getFratikCoin(context);
         mc.setFratikCoiny(hajs);
         memberDao.save(mc);
-        context.reply(context.getTranslated("usunfc.success",
-                UserUtil.formatDiscrim(komu),
-                hajs, fc.getAsMention()));
-        return true;
+        context.reply(context.getTranslated("usunfc.success", UserUtil.formatDiscrim(komu), hajs, fc.getFormatted()));
     }
 }

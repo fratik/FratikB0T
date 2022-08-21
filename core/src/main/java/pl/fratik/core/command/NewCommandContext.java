@@ -27,10 +27,12 @@ import net.dv8tion.jda.api.sharding.ShardManager;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 
+import javax.annotation.Nonnull;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
 
 public class NewCommandContext {
     @Getter private final ShardManager shardManager;
@@ -64,6 +66,10 @@ public class NewCommandContext {
 
     public InteractionHook reply(String content) {
         return interaction.reply(content).complete();
+    }
+
+    public InteractionHook reply(MessageEmbed embed) {
+        return interaction.replyEmbeds(embed).complete();
     }
 
     public InteractionHook reply(Message message) {
@@ -139,4 +145,10 @@ public class NewCommandContext {
     public Language getLanguage() {
         return language == Language.DEFAULT ? Language.getDefault() : language;
     }
+
+    public <T> T getArgumentOr(String key, T or, Function<? super OptionMapping, ? extends T> resolver) {
+        if (getArguments().containsKey(key)) return resolver.apply(getArguments().get(key));
+        return or;
+    }
+
 }

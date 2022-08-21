@@ -19,47 +19,43 @@ package pl.fratik.fratikcoiny.commands;
 
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.command.PermLevel;
 import pl.fratik.core.entity.MemberConfig;
 import pl.fratik.core.entity.MemberDao;
 
 import java.util.LinkedHashMap;
 
-public class DodajFcCommand extends Command {
+public class DodajFcCommand extends NewCommand {
 
     private final MemberDao memberDao;
 
     public DodajFcCommand(MemberDao memberDao) {
         this.memberDao = memberDao;
+        permissions = DefaultMemberPermissions.enabledFor(Permission.MANAGE_SERVER);
         name = "dodajfc";
-        category = CommandCategory.MONEY;
-        permissions.add(Permission.MESSAGE_EXT_EMOJI);
-        permLevel = PermLevel.ADMIN;
-        LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
-        hmap.put("osoba", "member");
-        hmap.put("hajs", "integer");
-        uzycie = new Uzycie(hmap, new boolean[] {true, true});
-        uzycieDelim = " ";
-        aliases = new String[] {"dodajfratikcoiny", "dfc"};
+        usage = "<osoba:user> <ile:number>";
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        Member komu = (Member) context.getArgs()[0];
-        int ile = (int) context.getArgs()[1];
+    public void execute(@NotNull NewCommandContext context) {
+        Member komu = context.getArguments().get("osoba").getAsMember();
+        int ile = context.getArguments().get("ile").getAsInt();
         if (ile == 0) {
             context.reply(context.getTranslated("dodajfc.badnumber"));
-            return false;
+            return;
         }
         if (komu.getUser().isBot()) {
             context.reply(context.getTranslated("dodajfc.bot"));
-            return false;
+            return;
         }
         MemberConfig mc = memberDao.get(komu);
         mc.setFratikCoiny(mc.getFratikCoiny() + ile);
         memberDao.save(mc);
         context.reply(context.getTranslated("dodajfc.success"));
-        return true;
     }
 }

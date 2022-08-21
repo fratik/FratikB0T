@@ -27,10 +27,11 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.channel.ChannelDeleteEvent;
 import net.dv8tion.jda.api.events.guild.GuildLeaveEvent;
-import net.dv8tion.jda.api.events.interaction.ButtonClickEvent;
-import net.dv8tion.jda.api.events.interaction.SelectionMenuEvent;
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.component.SelectMenuInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageBulkDeleteEvent;
 import net.dv8tion.jda.api.events.message.MessageDeleteEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
@@ -39,11 +40,12 @@ import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.exceptions.InsufficientPermissionException;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
-import net.dv8tion.jda.api.interactions.components.Button;
-import net.dv8tion.jda.api.interactions.components.ButtonStyle;
 import net.dv8tion.jda.api.interactions.components.Component;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
+import net.dv8tion.jda.api.interactions.components.buttons.ButtonInteraction;
+import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle;
+import net.dv8tion.jda.api.interactions.components.selections.SelectMenu;
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption;
-import net.dv8tion.jda.api.interactions.components.selections.SelectionMenu;
 import net.dv8tion.jda.api.requests.ErrorResponse;
 import net.dv8tion.jda.api.requests.restaction.MessageAction;
 import net.dv8tion.jda.api.requests.restaction.ThreadChannelAction;
@@ -55,6 +57,7 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.svg.SVGDocument;
 import pl.fratik.core.Ustawienia;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.NamedThreadFactory;
@@ -262,9 +265,9 @@ public class Chinczyk {
         HEIGHT = height;
     }
 
-    public Chinczyk(CommandContext context, EventBus eventBus, Consumer<Chinczyk> endCallback) {
+    public Chinczyk(NewCommandContext context, EventBus eventBus, Consumer<Chinczyk> endCallback) {
         executer = context.getSender();
-        channel = context.getMessageChannel();
+        channel = context.getChannel();
         referenceMessageId = context.getMessage().getIdLong();
         this.eventBus = eventBus;
         executor = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("Chinczyk-" + getChannel().getId()));
@@ -768,7 +771,8 @@ public class Chinczyk {
                     .withDefault(lang == currentLang)
                     .withEmoji(Emoji.fromUnicode(lang.getEmoji().toString())));
         }
-        return ActionRow.of(SelectionMenu.create(LANGUAGE)
+        
+        return ActionRow.of(SelectMenu.create(LANGUAGE)
                 .setPlaceholder(t.get(currentLang, "language.change.placeholder"))
                 .setRequiredRange(1, 1)
                 .addOptions(options)
@@ -785,7 +789,7 @@ public class Chinczyk {
                     .withDefault(rules.contains(r)));
             values++;
         }
-        return ActionRow.of(SelectionMenu.create(RULES)
+        return ActionRow.of(SelectMenu.create(RULES)
                 .setPlaceholder(t.get(l, "chinczyk.rules.placeholder"))
                 .setRequiredRange(0, values)
                 .setDisabled(!players.isEmpty())
@@ -800,7 +804,7 @@ public class Chinczyk {
                     .withEmoji(skin.getEmoji())
                     .withDefault(this.skin == skin));
         }
-        return ActionRow.of(SelectionMenu.create(SKIN)
+        return ActionRow.of(SelectMenu.create(SKIN)
                 .setPlaceholder(t.get(l, "chinczyk.skin.placeholder"))
                 .setRequiredRange(1, 1)
                 .addOptions(options)
@@ -852,7 +856,7 @@ public class Chinczyk {
     }
 
     @Subscribe
-    public void onButtonClick(ButtonClickEvent e) {
+    public void onButtonClick(ButtonInteractionEvent e) {
         if (!e.getChannel().equals(getChannel())) return;
         lock.lock();
         try {
@@ -1195,7 +1199,7 @@ public class Chinczyk {
     }
 
     @Subscribe
-    public void onMenu(SelectionMenuEvent e) {
+    public void onMenu(SelectMenuInteractionEvent e) {
         if (!e.getChannel().equals(getChannel())) return;
         if (e.getComponentId().equals(LANGUAGE)) {
             if (status != Status.WAITING && status != Status.WAITING_FOR_PLAYERS) return;

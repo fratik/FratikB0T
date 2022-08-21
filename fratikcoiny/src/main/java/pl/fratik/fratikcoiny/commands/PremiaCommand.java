@@ -19,12 +19,15 @@ package pl.fratik.fratikcoiny.commands;
 
 import com.google.common.eventbus.EventBus;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.Emote;
 import net.dv8tion.jda.api.entities.Role;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.command.SubCommand;
-import pl.fratik.core.entity.*;
+import pl.fratik.core.entity.GuildConfig;
+import pl.fratik.core.entity.GuildDao;
+import pl.fratik.core.entity.MemberConfig;
+import pl.fratik.core.entity.MemberDao;
 import pl.fratik.core.util.ClassicEmbedPaginator;
 import pl.fratik.core.util.DurationUtil;
 import pl.fratik.core.util.EventWaiter;
@@ -32,7 +35,6 @@ import pl.fratik.core.util.UserUtil;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 public class PremiaCommand extends MoneyCommand {
     private final GuildDao guildDao;
@@ -46,15 +48,10 @@ public class PremiaCommand extends MoneyCommand {
         this.eventWaiter = eventWaiter;
         this.eventBus = eventBus;
         name = "premia";
-        aliases = new String[] {"odbierz"};
-        category = CommandCategory.MONEY;
-        uzycieDelim = " ";
-        permissions.add(Permission.MESSAGE_EXT_EMOJI);
-        allowPermLevelChange = false;
     }
 
     @Override
-    protected boolean execute(@NotNull CommandContext context) {
+    public void execute(@NotNull NewCommandContext context) {
         GuildConfig gc = guildDao.get(context.getGuild());
         Map<Role, GuildConfig.Wyplata> wyplaty = new LinkedHashMap<>();
         for (Role role : context.getMember().getRoles()) {
@@ -62,12 +59,12 @@ public class PremiaCommand extends MoneyCommand {
             if (wyplata != null) wyplaty.put(role, wyplata);
         }
         if (wyplaty.isEmpty()) {
-            context.reply(context.getTranslated("premia.nothing", context.getPrefix()));
-            return false;
+            context.reply(context.getTranslated("premia.nothing", "/"));
+            return;
         }
         MemberConfig mc = memberDao.get(context.getMember());
         Date teraz = new Date();
-        Emote emotkaFc = getFratikCoin(context);
+        Emoji emotkaFc = getFratikCoin(context);
         StringBuilder sb = new StringBuilder(context.getTranslated("premia.start")).append("\n\n");
         long fc = 0;
         int appended = 0;
@@ -87,7 +84,7 @@ public class PremiaCommand extends MoneyCommand {
                     continue;
                 }
             }
-            textToAppend += wyplata.getKwota() + emotkaFc.getAsMention();
+            textToAppend += wyplata.getKwota() + emotkaFc.getFormatted();
             fc += wyplata.getKwota();
             mc.getWyplatyDate().put(role.getId(), teraz);
             if (++appended <= 15) sb.append(textToAppend).append('\n');
@@ -97,78 +94,72 @@ public class PremiaCommand extends MoneyCommand {
         mc.setFratikCoiny(mc.getFratikCoiny() + fc);
         if (checkTooMuch(mc.getFratikCoiny(), null)) {
             context.reply(context.getTranslated("premia.too.much.money"));
-            return false;
+            return;
         }
         if (fc != 0) {
-            sb.append("\n\n").append(context.getTranslated("premia.summary", fc, emotkaFc.getAsMention(),
-                    mc.getFratikCoiny(), emotkaFc.getAsMention()));
+            sb.append("\n\n").append(context.getTranslated("premia.summary", fc, emotkaFc.getFormatted(),
+                    mc.getFratikCoiny(), emotkaFc.getFormatted()));
             memberDao.save(mc);
         }
         context.reply(sb.toString());
-        return true;
     }
 
-    @SubCommand(name = "set")
-    public boolean set(@NotNull CommandContext context) {
-        if (UserUtil.getPermlevel(context.getMember(), guildDao, context.getShardManager()).getNum() < 2)
-            return execute(context);
-        LinkedHashMap<String, String> ktoWymyslilTenTepySystem = new LinkedHashMap<>();
-        ktoWymyslilTenTepySystem.put("role", "role");
-        ktoWymyslilTenTepySystem.put("fc", "long");
-        ktoWymyslilTenTepySystem.put("cooldown", "string");
-        ktoWymyslilTenTepySystem.put("[...]", "string");
+    @SubCommand(name = "set", usage = "<rola:role> <coiny:number> <cooldown:string>")
+    public void set(@NotNull NewCommandContext context) {
+        if (UserUtil.getPermlevel(context.getMember(), guildDao, context.getShardManager()).getNum() < 2) {
+            execute(context);
+            return;
+        }
+
         try {
-            Object[] args = new Uzycie(ktoWymyslilTenTepySystem, new boolean[] {true, true, true, false}).resolveArgs(context);
-            Role role = (Role) args[0];
-            Long fc = (Long) args[1];
-            String cooldown = Arrays.stream(Arrays.copyOfRange(args, 2, args.length))
-                    .map(e -> e == null ? "" : e).map(Objects::toString).collect(Collectors.joining(uzycieDelim));
+            Role role = context.getArguments().get("rola").getAsRole();
+            Long fc = context.getArguments().get("coiny").getAsLong();
+            String cooldown = context.getArguments().get("cooldown").getAsString();
             DurationUtil.Response response = DurationUtil.parseDuration(cooldown);
             GuildConfig gc = guildDao.get(context.getGuild());
             int minut = Math.toIntExact(TimeUnit.MINUTES.convert(response.getDuration(), TimeUnit.MILLISECONDS));
             if (minut < 5) {
                 context.reply(context.getTranslated("premia.set.cooldown"));
-                return false;
+                return;
             }
             if (fc < 0 || fc > 1_000_000_000L) {
                 context.reply(context.getTranslated("premia.set.limit"));
-                return false;
+                return;
             }
             gc.getWyplaty().put(role.getId(), new GuildConfig.Wyplata(fc, minut));
             guildDao.save(gc);
             context.reply(context.getTranslated("premia.set.success"));
-            return true;
-        } catch (IllegalArgumentException | ArgsMissingException | ArithmeticException e) {
-            context.reply(context.getTranslated("premia.set.missing.arguments", context.getPrefix(), context.getLabel()));
-            return false;
+        } catch (IllegalArgumentException | ArithmeticException e) {
+            context.reply(context.getTranslated("sklep.kup.failed"));
         }
     }
 
-    @SubCommand(name = "remove")
-    public boolean remove(@NotNull CommandContext context) {
-        if (UserUtil.getPermlevel(context.getMember(), guildDao, context.getShardManager()).getNum() < 2)
-            return execute(context);
+    @SubCommand(name = "remove", usage = "<rola:role>")
+    public void remove(@NotNull NewCommandContext context) {
+        if (UserUtil.getPermlevel(context.getMember(), guildDao, context.getShardManager()).getNum() < 2) {
+            execute(context);
+            return;
+        }
         try {
-            Object[] args = new Uzycie("role", "role", true).resolveArgs(context);
-            Role role = (Role) args[0];
+            Role role = context.getArguments().get("rola").getAsRole();
             GuildConfig gc = guildDao.get(context.getGuild());
             if (gc.getWyplaty().remove(role.getId()) == null) {
-                context.reply(context.getTranslated("premia.unset.null", context.getPrefix(), context.getLabel()));
-                return false;
+                context.reply(context.getTranslated("premia.unset.null"));
+                return;
             }
             guildDao.save(gc);
             context.reply(context.getTranslated("premia.unset.success"));
-            return true;
-        } catch (IllegalArgumentException | ArgsMissingException | ArithmeticException e) {
-            context.reply(context.getTranslated("premia.set.missing.arguments", context.getPrefix(), context.getLabel()));
-            return false;
+        } catch (IllegalArgumentException | ArithmeticException e) {
+            context.reply(context.getTranslated("sklep.kup.failed"));
         }
     }
 
-    @SubCommand(name = "list", aliases = "lista")
-    public boolean list(@NotNull CommandContext context) {
-        if (UserUtil.getPermlevel(context.getMember(), guildDao, context.getShardManager()).getNum() < 2)
-            return execute(context);
+    @SubCommand(name = "list")
+    public void list(@NotNull NewCommandContext context) {
+        if (UserUtil.getPermlevel(context.getMember(), guildDao, context.getShardManager()).getNum() < 2) {
+            execute(context);
+            return;
+        }
         GuildConfig gc = guildDao.get(context.getGuild());
         List<EmbedBuilder> pages = new ArrayList<>();
         //noinspection ConstantConditions
@@ -189,10 +180,9 @@ public class PremiaCommand extends MoneyCommand {
         });
         if (pages.isEmpty()) {
             context.reply(context.getTranslated("premia.list.empty"));
-            return false;
+            return;
         }
         new ClassicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(),
-                context.getTlumaczenia(), eventBus).create(context.getMessageChannel());
-        return true;
+                context.getTlumaczenia(), eventBus).create(context.getChannel());
     }
 }
