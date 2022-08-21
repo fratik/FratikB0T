@@ -94,7 +94,7 @@ public class ChinczykCommand extends NewCommand {
         for (Chinczyk chi : new HashSet<>(instances)) chi.shutdown(chinczykStateDao);
     }
 
-    @SubCommandGroup(name = "stats")
+    @SubCommandGroup(name = "staty")
     @SubCommand(name = "global")
     public void globalStats(@NotNull NewCommandContext context) {
         stats("0", context, false);

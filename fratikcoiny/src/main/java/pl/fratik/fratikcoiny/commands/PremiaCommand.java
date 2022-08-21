@@ -104,7 +104,7 @@ public class PremiaCommand extends MoneyCommand {
         context.reply(sb.toString());
     }
 
-    @SubCommand(name = "set", usage = "<rola:role> <coiny:number> <cooldown:string>")
+    @SubCommand(name = "ustaw", usage = "<rola:role> <coiny:number> <cooldown:string>")
     public void set(@NotNull NewCommandContext context) {
         if (UserUtil.getPermlevel(context.getMember(), guildDao, context.getShardManager()).getNum() < 2) {
             execute(context);
@@ -134,7 +134,7 @@ public class PremiaCommand extends MoneyCommand {
         }
     }
 
-    @SubCommand(name = "remove", usage = "<rola:role>")
+    @SubCommand(name = "usuń", usage = "<rola:role>")
     public void remove(@NotNull NewCommandContext context) {
         if (UserUtil.getPermlevel(context.getMember(), guildDao, context.getShardManager()).getNum() < 2) {
             execute(context);
@@ -154,7 +154,7 @@ public class PremiaCommand extends MoneyCommand {
         }
     }
 
-    @SubCommand(name = "list")
+    @SubCommand(name = "lista")
     public void list(@NotNull NewCommandContext context) {
         if (UserUtil.getPermlevel(context.getMember(), guildDao, context.getShardManager()).getNum() < 2) {
             execute(context);
