@@ -21,18 +21,20 @@ import com.google.inject.Inject;
 import pl.fratik.core.command.NewCommand;
 import pl.fratik.core.manager.NewManagerKomend;
 import pl.fratik.core.moduly.Modul;
+import pl.fratik.core.util.EventWaiter;
 
 import java.util.ArrayList;
 
 public class Module implements Modul {
     @Inject private NewManagerKomend managerKomend;
+    @Inject private EventWaiter eventWaiter;
     private ArrayList<NewCommand> commands;
 
     @Override
     public boolean startUp() {
         commands = new ArrayList<>();
 
-        commands.add(new PingCommand());
+        commands.add(new PingCommand(eventWaiter));
         commands.add(new ArgCommand());
 
         managerKomend.registerCommands(this, commands);

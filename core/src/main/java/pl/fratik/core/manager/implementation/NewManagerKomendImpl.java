@@ -17,33 +17,38 @@
 
 package pl.fratik.core.manager.implementation;
 
+import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.Subscribe;
+import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pl.fratik.core.Ustawienia;
+import pl.fratik.core.command.CommandType;
 import pl.fratik.core.command.NewCommand;
 import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.manager.NewManagerKomend;
 import pl.fratik.core.moduly.Modul;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 public class NewManagerKomendImpl implements NewManagerKomend {
     private final ShardManager shardManager;
     private final Tlumaczenia tlumaczenia;
     private final Map<Modul, Set<NewCommand>> commands;
-    private final Map<String, NewCommand> synced;
     private final Logger logger;
 
     public NewManagerKomendImpl(ShardManager shardManager, Tlumaczenia tlumaczenia) {
         this.shardManager = shardManager;
         this.tlumaczenia = tlumaczenia;
         commands = new HashMap<>();
-        synced = new HashMap<>();
         logger = LoggerFactory.getLogger(getClass());
     }
 
@@ -51,35 +56,64 @@ public class NewManagerKomendImpl implements NewManagerKomend {
     public void registerCommands(Modul modul, Collection<NewCommand> commands) {
         Set<NewCommand> set = this.commands.computeIfAbsent(modul, k -> new HashSet<>());
         set.addAll(commands);
+        for (NewCommand command : commands) {
+            try {
+                command.onRegister();
+            } catch (Exception e) {
+                logger.warn("Wystąpił błąd podczas onRegister!", e);
+            }
+        }
     }
 
     @Override
     public void unregisterCommands(Collection<NewCommand> commands) {
-
+        unregister(commands::contains);
     }
 
     @Override
     public void sync() {
         Set<CommandData> cmds = new HashSet<>();
+        Set<CommandData> guildCmds = new HashSet<>();
         for (Set<NewCommand> moduleCommands : commands.values()) {
             for (NewCommand cmd : moduleCommands) {
                 logger.debug("Rejestruję komendę {}", cmd.getName());
                 CommandData e = cmd.generateCommandData(tlumaczenia);
-                synced.put(e.getName(), cmd);
-                cmds.add(e);
+                if (cmd.getType() == CommandType.SUPPORT_SERVER) guildCmds.add(e);
+                else cmds.add(e);
             }
         }
+        Guild guild = shardManager.getGuildById(Ustawienia.instance.botGuild);
+        if (guild == null) logger.warn("Nie znaleziono serwera {}", Ustawienia.instance.botGuild);
+        else guild.updateCommands().addCommands(guildCmds).complete();
         shardManager.getShardById(0).updateCommands().addCommands(cmds).complete();
     }
 
     @Override
     public void unregisterAll() {
-
+        unregister(cmd -> true);
     }
 
     @Override
     public void unregisterAll(Modul modul) {
+        unregister(commands.getOrDefault(modul, Set.of())::contains);
+    }
 
+    private void unregister(Predicate<NewCommand> checker) {
+        for (Iterator<Map.Entry<Modul, Set<NewCommand>>> iterator = this.commands.entrySet().iterator(); iterator.hasNext();) {
+            Set<NewCommand> komendy = iterator.next().getValue();
+            for (Iterator<NewCommand> iter = komendy.iterator(); iter.hasNext();) {
+                NewCommand cmd = iter.next();
+                if (checker.test(cmd)) {
+                    try {
+                        cmd.onUnregister();
+                    } catch (Exception e) {
+                        logger.warn("Wystąpił błąd podczas onUnregister!", e);
+                    }
+                    iter.remove();
+                }
+            }
+            if (komendy.isEmpty()) iterator.remove();
+        }
     }
 
     @Override
@@ -89,10 +123,11 @@ public class NewManagerKomendImpl implements NewManagerKomend {
 
     @Override
     public void shutdown() {
-
+        unregisterAll();
     }
 
     @Subscribe
+    @AllowConcurrentEvents
     public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
         String name = event.getName();
         NewCommand command = commandsStream().filter(c -> c.getName().equals(name)).findAny().orElse(null);
@@ -100,7 +135,25 @@ public class NewManagerKomendImpl implements NewManagerKomend {
             logger.warn("Nie znaleziono komendy {}", name);
             return;
         }
-        command.execute(new NewCommandContext(shardManager, command, tlumaczenia, event.getInteraction()));
+        NewCommandContext ctx = new NewCommandContext(shardManager, command, tlumaczenia, event.getInteraction());
+        if (event.getSubcommandName() != null) {
+            String subname = (event.getSubcommandGroup() != null ? event.getSubcommandGroup() + "/" : "") + event.getSubcommandName();
+            Method method = command.getSubcommands().get(subname);
+            if (method == null) {
+                logger.warn("Nie znaleziono subkomendy {} w komendzie {}", subname, name);
+                return;
+            }
+            try {
+                method.invoke(command, ctx);
+            } catch (IllegalAccessException e) {
+                throw new IllegalStateException("Komenda nieprawidłowo zarejestrowana", e);
+            } catch (InvocationTargetException e) {
+                if (e.getCause() instanceof RuntimeException) throw (RuntimeException) e.getCause();
+                else throw new IllegalStateException("Błąd w subkomendzie", e.getCause());
+            }
+            return;
+        }
+        command.execute(ctx);
     }
 
     private Stream<NewCommand> commandsStream() {

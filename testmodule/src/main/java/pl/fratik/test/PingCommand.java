@@ -17,16 +17,29 @@
 
 package pl.fratik.test;
 
+import net.dv8tion.jda.api.MessageBuilder;
+import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.interactions.InteractionHook;
+import net.dv8tion.jda.api.interactions.components.ActionRow;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import pl.fratik.core.command.NewCommand;
 import pl.fratik.core.command.NewCommandContext;
+import pl.fratik.core.util.ButtonWaiter;
+import pl.fratik.core.util.EventWaiter;
 
 public class PingCommand extends NewCommand {
-    public PingCommand() {
+    private final EventWaiter eventWaiter;
+
+    public PingCommand(EventWaiter eventWaiter) {
+        this.eventWaiter = eventWaiter;
         name = "ping";
     }
 
     @Override
     public void execute(NewCommandContext context) {
-        context.reply("pong");
+        InteractionHook hook = context.defer(true);
+        Message message = hook.retrieveOriginal().complete();
+        context.sendMessage(new MessageBuilder("a").setActionRows(ActionRow.of(Button.success("XD", "XD"))).build());
+        new ButtonWaiter(eventWaiter, context, hook.getInteraction(), ButtonWaiter.ResponseType.EDIT).create();
     }
 }

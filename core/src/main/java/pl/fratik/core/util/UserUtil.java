@@ -77,7 +77,7 @@ public class UserUtil {
     }
 
     public static PermLevel getPermlevel(User user, ShardManager shardManager, PermLevel max) {
-        if (max.getNum() >= 10 && Globals.ownerId == user.getIdLong())
+        if (max.getNum() >= 10 && isBotOwner(user.getIdLong()))
             return PermLevel.BOTOWNER;
         if (max.getNum() >= 6 && isZga(user, shardManager))
             return PermLevel.ZGA;
@@ -91,7 +91,7 @@ public class UserUtil {
     }
 
     public static PermLevel getPermlevel(Member member, GuildDao guildDao, ShardManager shardManager, PermLevel max) {
-        if (max.getNum() >= 10 && Globals.ownerId == member.getUser().getIdLong())
+        if (max.getNum() >= 10 && isBotOwner(member.getUser().getIdLong()))
             return PermLevel.BOTOWNER;
         if (max.getNum() >= 6 && isZga(member, shardManager))
             return PermLevel.ZGA;
@@ -109,6 +109,10 @@ public class UserUtil {
                 member.getRoles().stream().map(ISnowflake::getId).anyMatch(id -> gc.getModRole().equals(id)))
             return PermLevel.MOD;
         return PermLevel.EVERYONE;
+    }
+
+    public static boolean isBotOwner(long memberId) {
+        return Globals.ownerId == memberId;
     }
 
     public static PermLevel getPermlevel(Member member, GuildDao guildDao, ShardManager shardManager, int max) {
@@ -148,7 +152,7 @@ public class UserUtil {
     }
 
     public static boolean isStaff(User user, ShardManager shardManager) {
-        return isGadm(user, shardManager) || isZga(user, shardManager) || Globals.ownerId == user.getIdLong();
+        return isGadm(user, shardManager) || isZga(user, shardManager) || isBotOwner(user.getIdLong());
     }
 
     public static String getPoPrzecinku(User... users) {
@@ -180,9 +184,9 @@ public class UserUtil {
             int g = -1;
             int b = -1;
             for (Object color : zdjecie.getJSONArray("color")) {
-                if (r == -1) r = (int) color;
-                if (g == -1) g = (int) color;
-                if (b == -1) b = (int) color;
+                if (isBotOwner(-1)) r = (int) color;
+                if (isBotOwner(-1)) g = (int) color;
+                if (isBotOwner(-1)) b = (int) color;
             }
             return new Color(r, g, b);
         } catch (Exception e) {

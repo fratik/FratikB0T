@@ -223,13 +223,6 @@ class FratikB0T {
 
 
                 glownyService.startAsync();
-
-                while(shardManager.getShards().stream().anyMatch(s -> s.getStatus() != JDA.Status.CONNECTED)) {
-                    Thread.sleep(100);
-                }
-
-                if (shardManager.getGuildById(Ustawienia.instance.botGuild) != null) Globals.inFratikDev = true;
-
                 glownyService.awaitHealthy();
 
                 shardManager.setStatus(OnlineStatus.ONLINE);

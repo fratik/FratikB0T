@@ -69,7 +69,7 @@ public class Module implements Modul {
         commands.add(new GurCommand(eventWaiter, shardManager, eventBus));
         commands.add(new GsrCommand(eventWaiter, shardManager, eventBus));
         commands.add(new SyncCommand(guildDao));
-//        commands.add(new NukepointsCommand(eventWaiter, guildDao, licznik, punktyDao, eventBus));
+        commands.add(new NukepointsCommand(eventWaiter, guildDao, licznik, punktyDao));
 
         managerKomend.registerCommands(this, commands);
 

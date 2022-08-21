@@ -36,6 +36,7 @@ public abstract class NewCommand {
     @Getter protected String name;
     @Getter protected String usage;
     @Getter protected DefaultMemberPermissions permissions = DefaultMemberPermissions.ENABLED;
+    @Getter protected CommandType type = CommandType.NORMAL;
     @Getter protected boolean allowInDMs = false;
     @Getter protected int cooldown;
     @Getter protected final Map<String, Method> subcommands = new HashMap<>();
@@ -43,6 +44,10 @@ public abstract class NewCommand {
     public void execute(NewCommandContext context) {
         throw new UnsupportedOperationException("Not implemented");
     }
+
+    public void onRegister() {}
+
+    public void onUnregister() {}
 
     public boolean hasSubcommands() {
         for (Method method : getClass().getMethods()) {
@@ -84,7 +89,7 @@ public abstract class NewCommand {
                                     subcommand.usage(), tlumaczenia));
                     if (subcommandGroupData != null) subcommandGroupData.addSubcommands(scd);
                     else mainSubs.add(scd);
-                    subcommands.put((subcommandGroupData != null ? subcommandGroupData.getName() : "/") + subcommand.name(), method);
+                    subcommands.put((subcommandGroupData != null ? subcommandGroupData.getName() + "/" : "") + subcommand.name(), method);
                 }
             }
             data.addSubcommandGroups(groups.values());

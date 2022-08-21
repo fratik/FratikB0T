@@ -22,9 +22,12 @@ import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import com.google.common.util.concurrent.AbstractIdleService;
 import io.sentry.Sentry;
+import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pl.fratik.core.Globals;
+import pl.fratik.core.Ustawienia;
 import pl.fratik.core.entity.GbanDao;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.manager.ManagerBazyDanych;
@@ -68,8 +71,17 @@ public class FratikB0TService extends AbstractIdleService {
         try {
             logger.debug("Uruchamiam serwis...");
             moduleManager.loadModules();
+            while(shardManager.getShards().stream().anyMatch(s -> s.getStatus() != JDA.Status.CONNECTED)) {
+                Thread.sleep(100);
+            }
+
+            if (shardManager.getGuildById(Ustawienia.instance.botGuild) != null) Globals.inFratikDev = true;
             managerKomend.sync();
         } catch (Exception e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+                return;
+            }
             logger.error("Oops, coś się popsuło!", e);
             Sentry.capture(e);
             this.stopAsync();

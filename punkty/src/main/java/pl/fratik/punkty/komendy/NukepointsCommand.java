@@ -22,15 +22,18 @@ import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.interactions.InteractionHook;
+import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.command.CommandType;
 import pl.fratik.core.command.NewCommand;
 import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.util.ButtonWaiter;
 import pl.fratik.core.util.EventWaiter;
+import pl.fratik.core.util.UserUtil;
 import pl.fratik.punkty.LicznikPunktow;
 import pl.fratik.punkty.entity.PunktyDao;
 
@@ -40,7 +43,7 @@ import java.util.List;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 
-public class NukepointsCommand extends NewCommand { //FIXME: rejestruj jako deweloperska na fdev
+public class NukepointsCommand extends NewCommand {
 
     private final EventWaiter eventWaiter;
     private final GuildDao guildDao;
@@ -53,10 +56,16 @@ public class NukepointsCommand extends NewCommand { //FIXME: rejestruj jako dewe
         this.licznikPunktow = licznikPunktow;
         this.punktyDao = punktyDao;
         name = "nukepoints";
+        type = CommandType.SUPPORT_SERVER;
+        permissions = DefaultMemberPermissions.DISABLED;
     }
 
     @Override
     public void execute(@NotNull NewCommandContext context) {
+        if (!UserUtil.isBotOwner(context.getSender().getIdLong())) {
+            context.replyEphemeral(context.getTranslated("generic.no.permissions"));
+            return;
+        }
         String content = context.getTranslated("nukepoints.warning");
         InteractionHook hook = context.reply(new MessageBuilder(content).setActionRows(ActionRow.of(
                 Button.danger("YES", context.getTranslated("generic.yes")),
