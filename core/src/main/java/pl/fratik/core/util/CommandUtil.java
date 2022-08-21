@@ -29,7 +29,7 @@ public class CommandUtil {
     private CommandUtil() {}
 
     @NotNull
-    public static OptionData[] generateOptionData(NewCommand command, String subcommandName, String usage, Tlumaczenia tlumaczenia) {
+    public static OptionData[] generateOptionData(NewCommand command, String subcommandGroupName, String subcommandName, String usage, Tlumaczenia tlumaczenia) {
         if (usage.isEmpty()) return new OptionData[0];
         String[] splat = usage.split(" ");
         OptionData[] options = new OptionData[splat.length];
@@ -82,7 +82,10 @@ public class CommandUtil {
                 default:
                     throw new IllegalArgumentException("Invalid type " + type);
             }
-            String keyBase = getAsKey(command.getName()) + (subcommandName != null ? "." + getAsKey(subcommandName) : "") + "." + name;
+            String keyBase = getAsKey(command.getName());
+            if (subcommandGroupName != null) keyBase += "." + getAsKey(subcommandGroupName);
+            if (subcommandName != null) keyBase += "." + getAsKey(subcommandName);
+            keyBase += "." + name;
             String translatedDescription = tlumaczenia.get(Language.DEFAULT, keyBase + ".description");
             options[i] = new OptionData(optionType, name, translatedDescription, required, autoComplete);
             command.updateOptionData(options[i]);
