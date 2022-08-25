@@ -15,33 +15,43 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package pl.fratik.starboard.komendy;
+package pl.fratik.starboard.commands;
 
+import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
+import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.command.PermLevel;
 import pl.fratik.starboard.entity.StarDataDao;
 import pl.fratik.starboard.entity.StarsData;
 
-public class StarThresholdCommand extends Command {
+public class StarThresholdCommand extends NewCommand {
 
     private final StarDataDao starDataDao;
 
     public StarThresholdCommand(StarDataDao starDataDao) {
         this.starDataDao = starDataDao;
         name = "starthreshold";
-        permLevel = PermLevel.ADMIN;
-        category = CommandCategory.STARBOARD;
-        uzycie = new Uzycie("ilosc", "integer", true);
+        permissions = DefaultMemberPermissions.enabledFor(Permission.ADMINISTRATOR);
+        usage = "<ilosc:integer>";
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
+    public void execute(@NotNull NewCommandContext context) {
+        context.defer(true);
         StarsData std = starDataDao.get(context.getGuild());
-        int ilosc = (int) context.getArgs()[0];
+        int ilosc = context.getArguments().get("ilosc").getAsInt();
+
+        if (ilosc >= 0) {
+            context.reply("starthreshold.ilosc.error");
+            return;
+        }
+
         std.setStarThreshold(ilosc);
         context.reply(context.getTranslated("starthreshold.set", ilosc));
         starDataDao.save(std);
-        return true;
     }
 
 }

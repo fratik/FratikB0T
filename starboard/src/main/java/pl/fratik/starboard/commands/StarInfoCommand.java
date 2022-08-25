@@ -15,13 +15,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package pl.fratik.starboard.komendy;
+package pl.fratik.starboard.commands;
 
 import lombok.EqualsAndHashCode;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.util.CommonUtil;
 import pl.fratik.starboard.StarManager;
 import pl.fratik.starboard.StarboardListener;
@@ -31,10 +34,11 @@ import pl.fratik.starboard.entity.StarsData;
 
 import java.awt.*;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-public class StarInfoCommand extends Command {
+public class StarInfoCommand extends NewCommand {
 
     private final StarDataDao starDataDao;
     private final StarManager starManager;
@@ -43,17 +47,15 @@ public class StarInfoCommand extends Command {
         this.starDataDao = starDataDao;
         this.starManager = starManager;
         name = "starinfo";
-        category = CommandCategory.STARBOARD;
-        cooldown = 15;
-        uzycie = new Uzycie("osoba", "user", false);
-        permissions.add(Permission.MESSAGE_EMBED_LINKS);
-        allowPermLevelChange = false;
+        usage = "[osoba:user]";
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        User user = context.getSender();
-        if (context.getArgs().length >= 1 && context.getArgs()[0] != null) user = (User) context.getArgs()[0];
+    public void execute(@NotNull NewCommandContext context) {
+        context.defer(false);
+        context.reply(context.getTranslated("generic.loading"));
+
+        User user = context.getArgumentOr("osoba", context.getSender(), OptionMapping::getAsUser);
         List<StarData> stars = new ArrayList<>();
         int localStars = 0;
         int globalStars = 0;
@@ -120,11 +122,12 @@ public class StarInfoCommand extends Command {
                     StarboardListener.getStarEmoji(topStarData.getStarredBy().size()) + " | " +
                     topStarData.id, false);
         }
-        context.reply(eb.build());
+
+        context.editOriginal("", List.of(eb.build()));
+
         for (Message fix : toFix) {
             starManager.fixStars(fix, starDataDao.get(context.getGuild()));
         }
-        return true;
     }
 
     @EqualsAndHashCode(callSuper = true)

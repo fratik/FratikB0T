@@ -15,51 +15,59 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package pl.fratik.starboard.komendy;
+package pl.fratik.starboard.commands;
 
-import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.GuildMessageChannel;
+import net.dv8tion.jda.api.entities.channel.unions.GuildChannelUnion;
+import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.command.PermLevel;
-import pl.fratik.core.util.CommonErrors;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.starboard.StarManager;
 import pl.fratik.starboard.entity.StarDataDao;
 import pl.fratik.starboard.entity.StarsData;
 
-public class StarboardCommand extends Command {
+public class StarboardCommand extends NewCommand {
 
     private final StarDataDao starDataDao;
 
     public StarboardCommand(StarDataDao starDataDao) {
         this.starDataDao = starDataDao;
         name = "starboard";
-        permLevel = PermLevel.ADMIN;
-        category = CommandCategory.STARBOARD;
-        uzycie = new Uzycie("kanal", "channel", false);
+        usage = "[kanal:channel]";
+        permissions = DefaultMemberPermissions.enabledFor(Permission.MANAGE_SERVER);
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
+    public void execute(@NotNull NewCommandContext context) {
         StarsData std = starDataDao.get(context.getGuild());
-        if (context.getArgs().length == 0 || context.getArgs()[0] == null) {
-            if (std.getStarboardChannel() != null) {
-                std.setStarboardChannel(null);
-                starDataDao.save(std);
-                context.reply(context.getTranslated("starboard.unset"));
-                return true;
-            } else {
-                CommonErrors.usage(context);
-                return false;
-            }
+        context.defer(false);
+
+        if (!context.getArguments().containsKey("kanal") && std.getStarboardChannel() != null) {
+            std.setStarboardChannel(null);
+            starDataDao.save(std);
+            context.reply(context.getTranslated("starboard.unset"));
+            return;
         }
-        TextChannel kanal = (TextChannel) context.getArgs()[0];
-        if (!StarManager.checkPermissions(kanal)) {
+
+        GuildChannelUnion kanal = context.getArguments().get("kanal").getAsChannel();
+
+        if (!(kanal instanceof GuildMessageChannel)) {
+            context.reply(context.getTranslated("starboard.not.msgchannel", kanal.getAsMention()));
+            return;
+        }
+
+        GuildMessageChannel messageChannel = (GuildMessageChannel) kanal;
+
+        if (!StarManager.checkPermissions(messageChannel)) {
             context.reply(context.getTranslated("starboard.noperms"));
-            return false;
+            return;
         }
+
         std.setStarboardChannel(kanal.getId());
         context.reply(context.getTranslated("starboard.success"));
         starDataDao.save(std);
-        return true;
     }
 
 }

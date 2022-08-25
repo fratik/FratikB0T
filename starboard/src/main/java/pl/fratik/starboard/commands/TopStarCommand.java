@@ -15,13 +15,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package pl.fratik.starboard.komendy;
+package pl.fratik.starboard.commands;
 
 import com.google.common.eventbus.EventBus;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Message;
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.util.ClassicEmbedPaginator;
 import pl.fratik.core.util.EventWaiter;
 import pl.fratik.core.util.MapUtil;
@@ -37,30 +38,24 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class TopStarCommand extends Command {
+public class TopStarCommand extends NewCommand {
 
     private final StarDataDao starDataDao;
-    private final StarManager starManager;
     private final EventWaiter eventWaiter;
     private final EventBus eventBus;
 
-    public TopStarCommand(StarDataDao starDataDao, StarManager starManager, EventWaiter eventWaiter, EventBus eventBus) {
+    public TopStarCommand(StarDataDao starDataDao, EventWaiter eventWaiter, EventBus eventBus) {
         this.starDataDao = starDataDao;
-        this.starManager = starManager;
         this.eventWaiter = eventWaiter;
         this.eventBus = eventBus;
         name = "topstar";
-        category = CommandCategory.STARBOARD;
-        cooldown = 5;
-        permissions.add(Permission.MESSAGE_EMBED_LINKS);
-        permissions.add(Permission.MESSAGE_MANAGE);
-        permissions.add(Permission.MESSAGE_ADD_REACTION);
-        allowPermLevelChange = false;
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        Message msg = context.reply(context.getTranslated("generic.loading"));
+    public void execute(@NotNull NewCommandContext context) {
+        context.defer(false);
+
+        Message msg = context.reply(context.getTranslated("generic.loading")).retrieveOriginal().complete();
         StarsData std = starDataDao.get(context.getGuild());
         Map<String, Integer> stars = new HashMap<>();
         for (StarData sd : std.getStarData().values()) {
@@ -98,11 +93,10 @@ public class TopStarCommand extends Command {
                     .setTitle(context.getTranslated("topstar.embed.header")));
         }
         if (pages.isEmpty()) {
-            context.send(context.getTranslated("topstar.no.stars"));
-            return false;
+            context.sendMessage(context.getTranslated("topstar.no.stars"));
+            return;
         }
         new ClassicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(),
-                context.getTlumaczenia(), eventBus).create(msg);
-        return true;
+            context.getTlumaczenia(), eventBus).create(msg);
     }
 }

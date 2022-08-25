@@ -87,7 +87,7 @@ public class StarManager {
             starDataMap.remove(message.getId());
             std.setStarData(starDataMap);
             starDataDao.save(std);
-            eventBus.post(new StarEvent(null, message, starredBy.size(), message.getTextChannel(),
+            eventBus.post(new StarEvent(null, message, starredBy.size(), message.getChannel(),
                     std.getStarboardChannel(), starData.getStarboardMessageId()));
             return;
         }
@@ -96,7 +96,7 @@ public class StarManager {
                 Message msg = Objects.requireNonNull(message.getGuild().getTextChannelById(std.getStarboardChannel()))
                         .retrieveMessageById(starData.getStarboardMessageId()).complete();
                 for (MessageReaction reacc : msg.getReactions()) {
-                    if ((reacc.getReactionEmote().isEmote() && !reacc.getReactionEmote().getEmote().getId()
+                    if ((reacc.isEmote() && !reacc.getReactionEmote().getEmote().getId()
                             .equals(getStar(message.getGuild()))) || (!reacc.getReactionEmote().isEmote()
                             && !reacc.getReactionEmote().getName().equals(getStar(message.getGuild())))) continue;
                     List<User> userList = reacc.retrieveUsers().complete();
@@ -132,7 +132,7 @@ public class StarManager {
             starDataMap.remove(message.getId());
             std.setStarData(starDataMap);
             starDataDao.save(std);
-            eventBus.post(new StarEvent(null, message, starredBy.size(), message.getTextChannel(), std.getStarboardChannel(), starData.getStarboardMessageId()));
+            eventBus.post(new StarEvent(null, message, starredBy.size(), message.getGuildChannel(), std.getStarboardChannel(), starData.getStarboardMessageId()));
             return;
         }
         starData.setStarredBy(starredBy);
@@ -150,7 +150,7 @@ public class StarManager {
         StarData starData = starDataMap.remove(message.getId());
         std.setStarData(starDataMap);
         starDataDao.save(std);
-        eventBus.post(new StarEvent(null, message, 0, message.getTextChannel(), std.getStarboardChannel(), starData.getStarboardMessageId()));
+        eventBus.post(new StarEvent(null, message, 0, message.getGuildChannel(), std.getStarboardChannel(), starData.getStarboardMessageId()));
     }
 
     Object getStar(Guild guild) {
@@ -166,7 +166,7 @@ public class StarManager {
     }
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
-    public static boolean checkPermissions(TextChannel kanal) {
+    public static boolean checkPermissions(GuildMessageChannel kanal) {
         return kanal.getGuild().getSelfMember().hasPermission(kanal, Permission.MESSAGE_SEND,
                 Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_HISTORY);
     }

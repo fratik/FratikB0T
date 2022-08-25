@@ -116,6 +116,10 @@ public class NewCommandContext {
         return interaction.getHook().editOriginalEmbeds(embeds).complete();
     }
 
+    public Message editOriginal(String content, Collection<MessageEmbed> embeds) {
+        return interaction.getHook().editOriginalEmbeds(embeds).setContent(content).complete();
+    }
+
     //todo nie udostępniać getInteraction(), tylko dodać wrappery do jego potrzebnych funkcji tutaj
 
     public MessageChannelUnion getChannel() {
