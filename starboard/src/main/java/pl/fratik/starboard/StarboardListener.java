@@ -21,6 +21,7 @@ import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.Subscribe;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
 import net.dv8tion.jda.api.events.message.react.MessageReactionRemoveAllEvent;
 import net.dv8tion.jda.api.events.message.react.MessageReactionRemoveEvent;
@@ -69,9 +70,9 @@ public class StarboardListener {
             if (!event.isFromGuild()) return;
             boolean star = false;
             Object emotka = starManager.getStar(event.getGuild());
-            if (event.getReactionEmote().isEmote()) {
-                if (event.getReactionEmote().getEmote().equals(emotka)) star = true;
-            } else if (event.getReactionEmote().getName().equals(emotka)) star = true;
+            if (event.getEmoji().getType() == Emoji.Type.CUSTOM) {
+                if (event.getEmoji().asCustom().equals(emotka)) star = true;
+            } else if (event.getEmoji().asUnicode().getName().equals(emotka)) star = true;
             if (!star || getChannel(event.getGuild()) == null) return;
             Message message = event.getChannel().retrieveMessageById(event.getMessageId()).complete();
             Consumer<Throwable> throwableConsumer = o -> toIgnore.remove(event.getMessageId());
@@ -88,7 +89,7 @@ public class StarboardListener {
                 boolean isNsfw;
                 if (event.getChannel() instanceof ThreadChannel)
                     isNsfw = ((TextChannel) ((ThreadChannel) event.getChannel()).getParentChannel()).isNSFW();
-                else if (event.getChannel() instanceof TextChannel) isNsfw = event.getTextChannel().isNSFW();
+                else if (event.getChannel() instanceof TextChannel) isNsfw = ((TextChannel) event.getChannel()).isNSFW();
                 else isNsfw = false;
                 if (isNsfw && !getChannel(event.getGuild()).isNSFW()) {
                     Language l = tlumaczenia.getLanguage(message.getMember());
@@ -176,9 +177,9 @@ public class StarboardListener {
             }
             boolean star = false;
             Object emotka = starManager.getStar(event.getGuild());
-            if (event.getReactionEmote().isEmote()) {
-                if (event.getReactionEmote().getEmote().equals(emotka)) star = true;
-            } else if (event.getReactionEmote().getName().equals(emotka)) star = true;
+            if (event.getEmoji().getType() == Emoji.Type.CUSTOM) {
+                if (event.getEmoji().asCustom().equals(emotka)) star = true;
+            } else if (event.getEmoji().asUnicode().getName().equals(emotka)) star = true;
             if (!star || getChannel(event.getGuild()) == null) return;
             Message message = event.getChannel().retrieveMessageById(event.getMessageId()).complete();
             StarsData starsData = starDataDao.get(event.getGuild());
@@ -229,7 +230,7 @@ public class StarboardListener {
 
     @Subscribe
     public void starEventHandler(StarEvent event) {
-        TextChannel starboardChannel = event.getStarboardChannel();
+        GuildMessageChannel starboardChannel = event.getStarboardChannel();
         if (!StarManager.checkPermissions(starboardChannel)) return;
         if (event.getStarboardMessageId() == null) {
             if (event.getGwiazdki() < starDataDao.get(event.getMessage().getGuild()).getStarThreshold()) return;
