@@ -53,8 +53,6 @@ public class TopStarCommand extends NewCommand {
 
     @Override
     public void execute(@NotNull NewCommandContext context) {
-        context.defer(false);
-
         Message msg = context.reply(context.getTranslated("generic.loading")).retrieveOriginal().complete();
         StarsData std = starDataDao.get(context.getGuild());
         Map<String, Integer> stars = new HashMap<>();

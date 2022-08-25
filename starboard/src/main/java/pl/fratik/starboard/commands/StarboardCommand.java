@@ -42,7 +42,6 @@ public class StarboardCommand extends NewCommand {
     @Override
     public void execute(@NotNull NewCommandContext context) {
         StarsData std = starDataDao.get(context.getGuild());
-        context.defer(false);
 
         if (!context.getArguments().containsKey("kanal") && std.getStarboardChannel() != null) {
             std.setStarboardChannel(null);

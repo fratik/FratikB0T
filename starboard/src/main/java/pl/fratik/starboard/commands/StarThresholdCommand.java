@@ -40,17 +40,16 @@ public class StarThresholdCommand extends NewCommand {
 
     @Override
     public void execute(@NotNull NewCommandContext context) {
-        context.defer(true);
         StarsData std = starDataDao.get(context.getGuild());
         int ilosc = context.getArguments().get("ilosc").getAsInt();
 
         if (ilosc >= 0) {
-            context.reply("starthreshold.ilosc.error");
+            context.replyEphemeral("starthreshold.ilosc.error");
             return;
         }
 
         std.setStarThreshold(ilosc);
-        context.reply(context.getTranslated("starthreshold.set", ilosc));
+        context.replyEphemeral(context.getTranslated("starthreshold.set", ilosc));
         starDataDao.save(std);
     }
 

@@ -43,8 +43,6 @@ public class StarBlacklistCommand extends NewCommand {
 
     @Override
     public void execute(@NotNull NewCommandContext context) {
-        context.defer(true);
-
         Member member = context.getArguments().get("osoba").getAsMember();
         StarsData std = starDataDao.get(context.getGuild());
 
@@ -53,13 +51,13 @@ public class StarBlacklistCommand extends NewCommand {
         String tag = StringUtil.escapeMarkdown(member.getUser().getAsTag());
 
         if (std.getBlacklista().remove(member.getId())) {
-            context.reply(context.getTranslated("starblacklist.removed", tag));
+            context.replyEphemeral(context.getTranslated("starblacklist.removed", tag));
             starDataDao.save(std);
             return;
         }
 
         std.getBlacklista().add(member.getId());
         starDataDao.save(std);
-        context.reply(context.getTranslated("starblacklist.added", tag));
+        context.replyEphemeral(context.getTranslated("starblacklist.added", tag));
     }
 }

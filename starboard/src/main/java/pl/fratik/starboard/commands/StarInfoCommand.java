@@ -19,7 +19,6 @@ package pl.fratik.starboard.commands;
 
 import lombok.EqualsAndHashCode;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.jetbrains.annotations.NotNull;
@@ -34,7 +33,6 @@ import pl.fratik.starboard.entity.StarsData;
 
 import java.awt.*;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -52,14 +50,13 @@ public class StarInfoCommand extends NewCommand {
 
     @Override
     public void execute(@NotNull NewCommandContext context) {
-        context.defer(false);
-        context.reply(context.getTranslated("generic.loading"));
-
         User user = context.getArgumentOr("osoba", context.getSender(), OptionMapping::getAsUser);
         List<StarData> stars = new ArrayList<>();
         int localStars = 0;
         int globalStars = 0;
         List<Message> toFix = new ArrayList<>();
+
+        context.defer(false);
         for (StarsData std : starDataDao.getAll()) {
             if (std.getStarboardChannel() == null || std.getStarboardChannel().isEmpty()) continue;
             TextChannel stch = context.getShardManager().getTextChannelById(std.getStarboardChannel());
@@ -123,7 +120,7 @@ public class StarInfoCommand extends NewCommand {
                     topStarData.id, false);
         }
 
-        context.editOriginal("", List.of(eb.build()));
+        context.sendMessage(List.of(eb.build()));
 
         for (Message fix : toFix) {
             starManager.fixStars(fix, starDataDao.get(context.getGuild()));
