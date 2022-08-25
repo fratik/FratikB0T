@@ -35,7 +35,7 @@ public class StarboardCommand extends NewCommand {
     public StarboardCommand(StarDataDao starDataDao) {
         this.starDataDao = starDataDao;
         name = "starboard";
-        usage = "[kanal:channel]";
+        usage = "[kanal:textchannel]";
         permissions = DefaultMemberPermissions.enabledFor(Permission.MANAGE_SERVER);
     }
 
