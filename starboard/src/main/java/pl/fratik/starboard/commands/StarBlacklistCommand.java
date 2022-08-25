@@ -23,8 +23,6 @@ import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.NewCommand;
 import pl.fratik.core.command.NewCommandContext;
-import pl.fratik.core.command.PermLevel;
-import pl.fratik.core.util.CommonErrors;
 import pl.fratik.core.util.StringUtil;
 import pl.fratik.starboard.entity.StarDataDao;
 import pl.fratik.starboard.entity.StarsData;

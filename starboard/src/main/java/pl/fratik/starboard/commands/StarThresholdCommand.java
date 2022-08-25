@@ -19,11 +19,9 @@ package pl.fratik.starboard.commands;
 
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
-import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.NewCommand;
 import pl.fratik.core.command.NewCommandContext;
-import pl.fratik.core.command.PermLevel;
 import pl.fratik.starboard.entity.StarDataDao;
 import pl.fratik.starboard.entity.StarsData;
 
@@ -34,7 +32,7 @@ public class StarThresholdCommand extends NewCommand {
     public StarThresholdCommand(StarDataDao starDataDao) {
         this.starDataDao = starDataDao;
         name = "starthreshold";
-        permissions = DefaultMemberPermissions.enabledFor(Permission.ADMINISTRATOR);
+        permissions = DefaultMemberPermissions.enabledFor(Permission.MANAGE_SERVER);
         usage = "<ilosc:integer>";
     }
 

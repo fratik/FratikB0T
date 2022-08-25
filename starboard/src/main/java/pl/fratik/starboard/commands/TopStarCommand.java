@@ -26,7 +26,6 @@ import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.util.ClassicEmbedPaginator;
 import pl.fratik.core.util.EventWaiter;
 import pl.fratik.core.util.MapUtil;
-import pl.fratik.starboard.StarManager;
 import pl.fratik.starboard.StarboardListener;
 import pl.fratik.starboard.entity.StarData;
 import pl.fratik.starboard.entity.StarDataDao;
