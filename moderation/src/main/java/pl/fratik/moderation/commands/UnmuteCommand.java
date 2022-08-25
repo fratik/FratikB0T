@@ -44,7 +44,7 @@ public class UnmuteCommand extends ModerationCommand {
     }
 
     @Override
-    public void execute(@NotNull NewCommandContext context) {
+    public void execute(@NotNull NewCommandContext context) { //todo przebudować
         Member uzytkownik = context.getArguments().get("osoba").getAsMember();
         String powod = context.getArgumentOr("powod", context.getTranslated("unmute.reason.default"), OptionMapping::getAsString);
         if (uzytkownik == null) {
