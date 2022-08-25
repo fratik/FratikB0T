@@ -22,10 +22,12 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.exceptions.HierarchyException;
+import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.requests.ErrorResponse;
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.entity.Kara;
-import pl.fratik.core.entity.ScheduleDao;
 import pl.fratik.core.util.DurationUtil;
 import pl.fratik.core.util.UserUtil;
 import pl.fratik.moderation.entity.Case;
@@ -33,44 +35,28 @@ import pl.fratik.moderation.listeners.ModLogListener;
 import pl.fratik.moderation.utils.ReasonUtils;
 
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class BanCommand extends ModerationCommand {
 
     private final ModLogListener modLogListener;
-    private final ScheduleDao scheduleDao;
 
-    public BanCommand(ModLogListener modLogListener, ScheduleDao scheduleDao) {
+    public BanCommand(ModLogListener modLogListener) {
         super(true);
         this.modLogListener = modLogListener;
-        this.scheduleDao = scheduleDao;
         name = "ban";
-        category = CommandCategory.MODERATION;
-        uzycieDelim = " ";
-        permissions.add(Permission.BAN_MEMBERS);
-        LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
-        hmap.put("uzytkownik", "user");
-        hmap.put("powod", "string");
-        hmap.put("[...]", "string");
-        uzycie = new Uzycie(hmap, new boolean[] {true, false, false});
-        aliases = new String[] {"b", "dzban", "BiletWJednąStronę", "syberia", "banujetypa", "zbanuj", "del", "delett", "b&"};
+        usage = "<osoba:user> [powod:string]";
+        permissions = DefaultMemberPermissions.enabledFor(Permission.BAN_MEMBERS);
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        String powod;
-        User uzytkownik = (User) context.getArgs()[0];
-        if (context.getArgs().length > 1 && context.getArgs()[1] != null)
-            powod = Arrays.stream(Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length))
-                    .map(e -> e == null ? "" : e).map(Objects::toString).collect(Collectors.joining(uzycieDelim));
-        else powod = context.getTranslated("ban.reason.default");
+    public void execute(@NotNull NewCommandContext context) {
+        String powod = context.getArgumentOr("powod", context.getTranslated("ban.reason.default"), OptionMapping::getAsString);
+        User uzytkownik = context.getArguments().get("osoba").getAsUser();
         if (uzytkownik.equals(context.getSender())) {
-            context.reply(context.getTranslated("ban.cant.ban.yourself"));
-            return false;
+            context.replyEphemeral(context.getTranslated("ban.cant.ban.yourself"));
+            return;
         }
+        context.defer(false);
         Member uzMem;
         try {
             uzMem = context.getGuild().retrieveMemberById(uzytkownik.getId()).complete();
@@ -80,18 +66,18 @@ public class BanCommand extends ModerationCommand {
         }
         if (uzMem != null) {
             if (uzMem.isOwner()) {
-                context.reply(context.getTranslated("ban.cant.ban.owner"));
-                return false;
+                context.sendMessage(context.getTranslated("ban.cant.ban.owner"));
+                return;
             }
             if (!context.getMember().canInteract(uzMem)) {
-                context.reply(context.getTranslated("ban.cant.interact"));
-                return false;
+                context.sendMessage(context.getTranslated("ban.cant.interact"));
+                return;
             }
         }
         try {
-            context.getGuild().retrieveBanById(uzytkownik.getId()).complete();
-            context.reply(context.getTranslated("ban.already.banned"));
-            return false;
+            context.getGuild().retrieveBan(uzytkownik).complete();
+            context.sendMessage(context.getTranslated("ban.already.banned"));
+            return;
         } catch (ErrorResponseException e) {
             // użytkownik nie ma bana
         }
@@ -99,8 +85,8 @@ public class BanCommand extends ModerationCommand {
         try {
             durationResp = DurationUtil.parseDuration(powod);
         } catch (IllegalArgumentException e) {
-            context.reply(context.getTranslated("ban.max.duration"));
-            return false;
+            context.sendMessage(context.getTranslated("ban.max.duration"));
+            return;
         }
         powod = durationResp.getTekst();
         Instant banDo = durationResp.getDoKiedy();
@@ -111,14 +97,11 @@ public class BanCommand extends ModerationCommand {
         modLogListener.getKnownCases().put(ModLogListener.generateKey(uzytkownik, context.getGuild()), aCase);
         try {
             context.getGuild().ban(uzytkownik, 0, aCase.getReason(context)).reason(aCase.getReason(context)).complete();
-            context.reply(context.getTranslated("ban.success", UserUtil.formatDiscrim(uzytkownik)));
-            return true;
+            context.sendMessage(context.getTranslated("ban.success", UserUtil.formatDiscrim(uzytkownik)));
         } catch (HierarchyException e) {
-            context.reply(context.getTranslated("ban.failed.hierarchy"));
-            return false;
+            context.sendMessage(context.getTranslated("ban.failed.hierarchy"));
         } catch (Exception e) {
-            context.reply(context.getTranslated("ban.failed"));
-            return false;
+            context.sendMessage(context.getTranslated("ban.failed"));
         }
     }
 }

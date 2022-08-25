@@ -19,10 +19,10 @@ package pl.fratik.moderation.commands;
 
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Role;
+import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.entity.GuildConfig;
-import pl.fratik.core.entity.GuildDao;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.entity.Kara;
 import pl.fratik.core.util.UserUtil;
 import pl.fratik.moderation.entity.Case;
@@ -30,83 +30,53 @@ import pl.fratik.moderation.listeners.ModLogListener;
 import pl.fratik.moderation.utils.ReasonUtils;
 
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class UnmuteCommand extends ModerationCommand {
 
-    private final GuildDao guildDao;
     private final ModLogListener modLogListener;
 
-    public UnmuteCommand(GuildDao guildDao, ModLogListener modLogListener) {
+    public UnmuteCommand(ModLogListener modLogListener) {
         super(true);
-        this.guildDao = guildDao;
         this.modLogListener = modLogListener;
         name = "unmute";
-        uzycieDelim = " ";
-        permissions.add(Permission.MANAGE_ROLES);
-        LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
-        hmap.put("uzytkownik", "member");
-        hmap.put("powod", "string");
-        hmap.put("[...]", "string");
-        uzycie = new Uzycie(hmap, new boolean[] {true, false, false});
-        aliases = new String[] {"usunmute", "niemutuj", "niemute", "usunmuta", "usunmumute"};
+        usage = "<osoba:user> [powod:string]";
+        permissions = DefaultMemberPermissions.enabledFor(Permission.MODERATE_MEMBERS);
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        GuildConfig gc = guildDao.get(context.getGuild());
-        Role rola;
-        String powod;
-        Member uzytkownik = (Member) context.getArgs()[0];
-        if (context.getArgs().length > 1 && context.getArgs()[1] != null)
-            powod = Arrays.stream(Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length))
-                    .map(e -> e == null ? "" : e).map(Objects::toString).collect(Collectors.joining(uzycieDelim));
-        else powod = context.getTranslated("unmute.reason.default");
+    public void execute(@NotNull NewCommandContext context) {
+        Member uzytkownik = context.getArguments().get("osoba").getAsMember();
+        String powod = context.getArgumentOr("powod", context.getTranslated("unmute.reason.default"), OptionMapping::getAsString);
+        if (uzytkownik == null) {
+            context.replyEphemeral(context.getTranslated("generic.no.member"));
+            return;
+        }
         if (uzytkownik.equals(context.getMember())) {
-            context.reply(context.getTranslated("unmute.cant.unmute.yourself"));
-            return false;
+            context.replyEphemeral(context.getTranslated("unmute.cant.unmute.yourself"));
+            return;
         }
         if (uzytkownik.isOwner()) {
-            context.reply(context.getTranslated("unmute.cant.unmute.owner"));
-            return false;
+            context.replyEphemeral(context.getTranslated("unmute.cant.unmute.owner"));
+            return;
         }
         if (!context.getMember().canInteract(uzytkownik)) {
-            context.reply(context.getTranslated("unmute.cant.interact"));
-            return false;
+            context.replyEphemeral(context.getTranslated("unmute.cant.interact"));
+            return;
         }
-        try {
-            rola = context.getGuild().getRoleById(gc.getWyciszony());
-        } catch (Exception ignored) {
-            rola = null;
-            List<Role> aktualneRoleWyciszony = context.getGuild().getRolesByName("Wyciszony", false);
-            if (aktualneRoleWyciszony.size() == 1) { //migracja z v2
-                rola = aktualneRoleWyciszony.get(0);
-                gc.setWyciszony(rola.getId());
-                guildDao.save(gc);
-            }
+        if (!uzytkownik.isTimedOut()) {
+            context.replyEphemeral(context.getTranslated("unmute.not.muted"));
+            return;
         }
-        if (rola == null) {
-            context.reply(context.getTranslated("unmute.no.mute.role"));
-            return false;
-        }
-        if (!uzytkownik.getRoles().contains(rola)) {
-            context.reply(context.getTranslated("unmute.not.muted"));
-            return false;
-        }
+        context.defer(false);
         Case aCase = new Case.Builder(uzytkownik, Instant.now(), Kara.UNMUTE)
                 .setIssuerId(context.getSender().getIdLong()).build();
         ReasonUtils.parseFlags(aCase, powod);
         modLogListener.getKnownCases().put(ModLogListener.generateKey(uzytkownik), aCase);
         try {
-            context.getGuild().removeRoleFromMember(uzytkownik, rola).complete();
-            context.reply(context.getTranslated("unmute.success", UserUtil.formatDiscrim(uzytkownik)));
+            uzytkownik.removeTimeout().complete();
+            context.sendMessage(context.getTranslated("unmute.success", UserUtil.formatDiscrim(uzytkownik)));
         } catch (Exception ignored) {
-            context.reply(context.getTranslated("unmute.fail"));
+            context.sendMessage(context.getTranslated("unmute.fail"));
         }
-        return true;
     }
 }

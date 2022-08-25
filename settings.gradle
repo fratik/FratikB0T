@@ -36,5 +36,4 @@ include 'fdevstats'
 include 'dev'
 include 'liczek'
 include 'invite'
-include 'testmodule'
 

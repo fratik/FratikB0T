@@ -25,13 +25,10 @@ import pl.fratik.core.util.UserUtil;
 import pl.fratik.punkty.LicznikPunktow;
 
 import javax.annotation.Nonnull;
-import java.awt.*;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import static pl.fratik.core.Statyczne.BRAND_COLOR;
 
 public class GlobalstatyCommand extends NewCommand {
     public GlobalstatyCommand() {
@@ -41,11 +38,8 @@ public class GlobalstatyCommand extends NewCommand {
     @Override
     public void execute(@NotNull @Nonnull NewCommandContext context) {
         context.deferAsync(false);
-        EmbedBuilder eb = new EmbedBuilder()
-                .setColor(Color.decode(BRAND_COLOR))
-                .setAuthor(context.getSender().getName(), null, UserUtil.getAvatarUrl(context.getSender()))
-                .setFooter("© " + context.getSender().getJDA().getSelfUser().getName(),
-                        UserUtil.getAvatarUrl(context.getSender().getJDA().getSelfUser()));
+        EmbedBuilder eb = context.getBaseEmbed(context.getSender().getName(),
+                UserUtil.getAvatarUrl(context.getSender()));
         eb.setTitle(context.getTranslated("globalstaty.embed.title"));
         eb.setDescription(context.getTranslated("globalstaty.embed.description"));
         Map<String, Integer> punkty = LicznikPunktow.getTotalPoints(context.getSender());

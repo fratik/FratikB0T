@@ -18,6 +18,8 @@
 package pl.fratik.core.command;
 
 import lombok.Getter;
+import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.channel.unions.MessageChannelUnion;
 import net.dv8tion.jda.api.interactions.InteractionHook;
@@ -26,13 +28,16 @@ import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
+import pl.fratik.core.util.UserUtil;
 
-import javax.annotation.Nonnull;
+import java.awt.*;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
+
+import static pl.fratik.core.Statyczne.BRAND_COLOR;
 
 public class NewCommandContext {
     @Getter private final ShardManager shardManager;
@@ -84,6 +89,10 @@ public class NewCommandContext {
         return interaction.reply(content).setEphemeral(true).complete();
     }
 
+    public InteractionHook replyEphemeral(MessageEmbed embed) {
+        return interaction.replyEmbeds(embed).setEphemeral(true).complete();
+    }
+
     public InteractionHook replyEphemeral(Message message) {
         return interaction.reply(message).setEphemeral(true).complete();
     }
@@ -102,6 +111,14 @@ public class NewCommandContext {
 
     public Message sendMessage(Collection<MessageEmbed> embeds) {
         return interaction.getHook().sendMessageEmbeds(embeds).complete();
+    }
+
+    public Message sendMessage(MessageEmbed embed) {
+        return interaction.getHook().sendMessageEmbeds(embed).complete();
+    }
+
+    public Message sendMessage(String fileName, byte[] data) {
+        return interaction.getHook().sendFile(data, fileName).complete();
     }
 
     public Message editOriginal(String content) {
@@ -145,10 +162,31 @@ public class NewCommandContext {
     public Language getLanguage() {
         return language == Language.DEFAULT ? Language.getDefault() : language;
     }
-
     public <T> T getArgumentOr(String key, T or, Function<? super OptionMapping, ? extends T> resolver) {
         if (getArguments().containsKey(key)) return resolver.apply(getArguments().get(key));
         return or;
     }
 
+    public EmbedBuilder getBaseEmbed() {
+        JDA shard = shardManager.getShardById(0);
+        if (shard == null) throw new IllegalStateException("bot nie załadowany poprawnie");
+        return getBaseEmbed(shard.getSelfUser().getName(),
+                UserUtil.getAvatarUrl(shard.getSelfUser()));
+    }
+
+    public EmbedBuilder getBaseEmbed(String authorText) {
+        JDA shard = shardManager.getShardById(0);
+        if (shard == null) throw new IllegalStateException("bot nie załadowany poprawnie");
+        return getBaseEmbed(authorText, UserUtil.getAvatarUrl(shard.getSelfUser()));
+    }
+
+    public EmbedBuilder getBaseEmbed(String authorText, String authorImageUrl) {
+        JDA shard = shardManager.getShardById(0);
+        if (shard == null) throw new IllegalStateException("bot nie załadowany poprawnie");
+        return new EmbedBuilder()
+                .setColor(Color.decode(BRAND_COLOR))
+                .setAuthor(authorText, null, authorImageUrl)
+                .setFooter("© " + shard.getSelfUser().getName(),
+                        UserUtil.getAvatarUrl(shard.getSelfUser()));
+    }
 }

@@ -22,8 +22,12 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.interactions.InteractionHook;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.util.CommonUtil;
 
 import javax.imageio.ImageIO;
@@ -36,32 +40,31 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
-public class KolorCommand extends Command {
+public class KolorCommand extends NewCommand {
+    private final Logger logger;
+
     public KolorCommand() {
+        logger = LoggerFactory.getLogger(getClass());
         name = "kolor";
-        category = CommandCategory.UTILITY;
-        uzycie = new Uzycie("kolor", "string", true);
-        aliases = new String[] {"paleta"};
-        permissions.add(Permission.MESSAGE_EMBED_LINKS);
-        permissions.add(Permission.MESSAGE_ATTACH_FILES);
-        allowPermLevelChange = false;
+        usage = "<kolor:string>";
         allowInDMs = true;
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
+    public void execute(@NotNull NewCommandContext context) {
         Color color = null;
+        String arg = context.getArguments().get("kolor").getAsString();
         //#region kolory
         try {
-            color = Color.decode((String) context.getArgs()[0]);
+            color = Color.decode(arg);
         } catch (Exception ignored) {
             try {
-                color = (Color) Color.class.getField(((String) context.getArgs()[0]).toUpperCase()).get(null);
-                if (color == null) color = getCssColor(context);
+                color = (Color) Color.class.getField(arg.toUpperCase()).get(null);
+                if (color == null) color = getCssColor(arg);
                 if (color == null) throw new Exception();
             } catch (Exception ignored2) {
                 try {
-                    String[] rgbTmp = ((String) context.getArgs()[0]).split(",");
+                    String[] rgbTmp = arg.split(",");
                     int[] rgb = new int[3];
                     for (int i = 0; i < rgbTmp.length; i++) {
                         rgb[i] = Integer.parseInt(rgbTmp[i].trim());
@@ -69,23 +72,24 @@ public class KolorCommand extends Command {
                     color = new Color(rgb[0], rgb[1], rgb[2]);
                 } catch (Exception ignored3) {
                     try {
-                        String[] hsbTmp = ((String) context.getArgs()[0]).split(",");
+                        String[] hsbTmp = arg.split(",");
                         int[] hsb = new int[3];
                         for (int i = 0; i < hsbTmp.length; i++) {
                             hsb[i] = Integer.parseInt(hsbTmp[i].trim());
                         }
                         color = Color.getHSBColor(hsb[0], hsb[1], hsb[2]);
                     } catch (Exception ignored4) {
-                        if (((String) context.getArgs()[0]).equalsIgnoreCase("blurple")) color = new Color(114, 137, 218);
+                        if (arg.equalsIgnoreCase("blurple")) color = new Color(114, 137, 218);
                     }
                 }
             }
         }
         //#endregion kolory
         if (color == null) {
-            context.reply(context.getTranslated("kolor.unknown.color"));
-            return false;
+            context.replyEphemeral(context.getTranslated("kolor.unknown.color"));
+            return;
         }
+        InteractionHook hook = context.defer(false);
         try {
             BufferedImage img = new BufferedImage(512, 512, BufferedImage.TYPE_INT_ARGB);
             Graphics2D graphics2D = (Graphics2D) img.getGraphics();
@@ -105,13 +109,12 @@ public class KolorCommand extends Command {
             eb.addField("RGB", String.join(", ", rgb), true);
             eb.addField("Hex", "#" + CommonUtil.asHex(color), true);
             if (getCssName(color) != null) eb.addField("CSS", getCssName(color), true);
-            context.getMessageChannel().sendMessageEmbeds(eb.build()).addFile(baos.toByteArray(), CommonUtil.asHex(color) + ".png")
-                    .reference(context.getMessage()).queue();
+            hook.editOriginalEmbeds(eb.build()).addFile(baos.toByteArray(), CommonUtil.asHex(color) + ".png").queue();
             baos.close();
         } catch (IOException e) {
-            context.reply(context.getTranslated("kolor.failed"));
+            context.sendMessage(context.getTranslated("kolor.failed"));
         }
-        return true;
+        return;
     }
 
     private String getCssName(Color color) {
@@ -136,7 +139,7 @@ public class KolorCommand extends Command {
         return null;
     }
 
-    private Color getCssColor(CommandContext context) {
+    private Color getCssColor(String arg) {
         try {
             InputStream st = getClass().getResourceAsStream("/colors.json");
             JsonObject jsonObject = JsonParser.parseReader(new InputStreamReader(st, StandardCharsets.UTF_8))
@@ -149,7 +152,7 @@ public class KolorCommand extends Command {
                 rgba[2] = kolorek.get(2).getAsInt();
                 rgba[3] = kolorek.get(3).getAsInt();
                 Color kolorTmp = new Color(rgba[0], rgba[1], rgba[2], rgba[3]);
-                if (entry.getKey().equalsIgnoreCase(((String) context.getArgs()[0]))) return kolorTmp;
+                if (entry.getKey().equalsIgnoreCase(arg)) return kolorTmp;
             }
         } catch (Exception e) {
             logger.warn("Błąd w pozyskiwaniu kolorów CSS!", e);

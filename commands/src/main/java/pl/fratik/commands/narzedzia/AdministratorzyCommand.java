@@ -24,6 +24,8 @@ import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import pl.fratik.core.cache.Cache;
 import pl.fratik.core.cache.RedisCacheManager;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.command.PermLevel;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
@@ -33,24 +35,21 @@ import java.util.List;
 
 import static net.dv8tion.jda.api.entities.MessageEmbed.VALUE_MAX_LENGTH;
 
-public class AdministratorzyCommand extends Command {
+public class AdministratorzyCommand extends NewCommand {
 
     private final GuildDao guildDao;
     private final Cache<GuildConfig> gcCache;
 
     public AdministratorzyCommand(GuildDao guildDao, RedisCacheManager redisCacheManager) {
         this.guildDao = guildDao;
-        name = "administratorzy";
-        aliases = new String[] {"admini"};
-        category = CommandCategory.SYSTEM;
-        permissions.add(Permission.MESSAGE_EMBED_LINKS);
-        allowPermLevelChange = false;
         this.gcCache = redisCacheManager.new CacheRetriever<GuildConfig>(){}.getCache();
+        name = "administratorzy";
     }
 
     @Override
-    public boolean execute(CommandContext context) {
+    public void execute(NewCommandContext context) {
         EmbedBuilder eb = context.getBaseEmbed(context.getTranslated("administratorzy.embed.header"), null);
+        context.deferAsync(false);
         Member owner;
         try {
             owner = context.getGuild().retrieveOwner().complete();
@@ -71,15 +70,14 @@ public class AdministratorzyCommand extends Command {
         eb.addField(formatFieldTitle(PermLevel.MANAGESERVERPERMS, context), formatFieldContent(manageServerRoles, context), false);
         eb.addField(formatFieldTitle(PermLevel.ADMIN, context), formatFieldContent(adminRoles, context), false);
         eb.addField(formatFieldTitle(PermLevel.MOD, context), formatFieldContent(modRoles, context), false);
-        context.reply(eb.build());
-        return true;
+        context.sendMessage(eb.build());
     }
 
-    private String formatFieldTitle(PermLevel plvl, CommandContext context) {
+    private String formatFieldTitle(PermLevel plvl, NewCommandContext context) {
         return String.format("%s (%s)", context.getTranslated(plvl.getLanguageKey()), plvl.getNum());
     }
 
-    private String formatFieldContent(List<Role> roles, CommandContext context) {
+    private String formatFieldContent(List<Role> roles, NewCommandContext context) {
         if (roles.isEmpty()) return context.getTranslated("administratorzy.no.roles");
         StringBuilder sb = new StringBuilder();
         for (Role r : roles) {

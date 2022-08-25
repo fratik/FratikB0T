@@ -18,78 +18,85 @@
 package pl.fratik.dev.commands;
 
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.Emote;
-import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
+import net.dv8tion.jda.api.interactions.InteractionHook;
+import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pl.fratik.core.Ustawienia;
-import pl.fratik.core.command.PermLevel;
+import pl.fratik.core.command.CommandType;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.manager.ManagerModulow;
+import pl.fratik.core.util.UserUtil;
 
 import java.awt.*;
 import java.io.File;
 
-public class LoadCommand extends Command {
+public class LoadCommand extends NewCommand {
 
     private final ManagerModulow managerModulow;
+    private final Logger logger;
     private static final String SPSC = " Sprawdzam ścieżkę";
     private static final String WCZ = " Wczytuje";
 
     public LoadCommand(ManagerModulow managerModulow) {
         this.managerModulow = managerModulow;
+        logger = LoggerFactory.getLogger(getClass());
         name = "load";
-        category = CommandCategory.SYSTEM;
-        permLevel = PermLevel.BOTOWNER;
-        uzycie = new Uzycie("modul", "string");
-        permissions.add(Permission.MESSAGE_EMBED_LINKS);
-        allowPermLevelChange = false;
-        allowInDMs = true;
+        usage = "<modul:string>";
+        type = CommandType.SUPPORT_SERVER;
+        permissions = DefaultMemberPermissions.DISABLED;
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
+    public void execute(@NotNull NewCommandContext context) {
+        if (!UserUtil.isBotOwner(context.getSender().getIdLong())) {
+            context.replyEphemeral(context.getTranslated("generic.no.permissions"));
+            return;
+        }
         EmbedBuilder eb = context.getBaseEmbed("Wczytywanie modułu...", null);
-        Emote gtick = context.getShardManager().getEmoteById(Ustawienia.instance.emotki.greenTick);
-        Emote rtick = context.getShardManager().getEmoteById(Ustawienia.instance.emotki.redTick);
+        Emoji gtick = context.getShardManager().getEmojiById(Ustawienia.instance.emotki.greenTick);
+        Emoji rtick = context.getShardManager().getEmojiById(Ustawienia.instance.emotki.redTick);
         if (gtick == null || rtick == null) throw new NullPointerException("emotki są null");
         String pytajnik = "\u2753";
         eb.appendDescription(pytajnik + SPSC + "\n");
         eb.appendDescription(pytajnik + WCZ + "\n");
-        Message msg = context.reply(eb.build());
-        File path = new File((String) context.getArgs()[0]);
+        InteractionHook hook = context.replyEphemeral(eb.build());
+        File path = new File(context.getArguments().get("modul").getAsString());
         if (!path.exists()) {
             eb.setDescription(eb.getDescriptionBuilder().toString().replace(pytajnik +  SPSC,
-                    rtick.getAsMention() + SPSC + ": ścieżka nie istnieje"));
+                    rtick.getFormatted() + SPSC + ": ścieżka nie istnieje"));
             eb.setColor(Color.red);
-            msg.editMessageEmbeds(eb.build()).override(true).complete();
-            return false;
+            hook.editOriginalEmbeds(eb.build()).complete();
+            return;
         }
         if (managerModulow.isLoaded(managerModulow.getDescription(path).getName())) {
             eb.setDescription(eb.getDescriptionBuilder().toString().replace(pytajnik +  SPSC,
-                    rtick.getAsMention() + SPSC + ": moduł jest już wczytany"));
+                    rtick.getFormatted() + SPSC + ": moduł jest już wczytany"));
             eb.setColor(Color.red);
-            msg.editMessageEmbeds(eb.build()).override(true).complete();
-            return false;
+            hook.editOriginalEmbeds(eb.build()).complete();
+            return;
         }
         eb.setDescription(eb.getDescriptionBuilder().toString().replace(pytajnik +  SPSC,
-                gtick.getAsMention() + SPSC));
-        msg.editMessageEmbeds(eb.build()).override(true).complete();
+                gtick.getFormatted() + SPSC));
+        hook.editOriginalEmbeds(eb.build()).complete();
         try {
             managerModulow.load(path.getAbsolutePath());
             boolean odp = managerModulow.startModule(managerModulow.getDescription(path).getName());
-            if (!odp) throw new Exception("Nie udało się wczytać modułu - sprawdź konsolę.");
+            if (!odp) throw new Exception("Nie udało się wczytać modułu — sprawdź konsolę.");
         } catch (Exception e) {
             logger.error("Błąd w komendzie load:", e);
             eb.setDescription(eb.getDescriptionBuilder().toString().replace(pytajnik +  WCZ,
-                    rtick.getAsMention() + WCZ + ": " + e.getMessage()));
+                    rtick.getFormatted() + WCZ + ": " + e.getMessage()));
             eb.setColor(Color.red);
-            msg.editMessageEmbeds(eb.build()).override(true).complete();
-            return false;
+            hook.editOriginalEmbeds(eb.build()).complete();
+            return;
         }
         eb.setDescription(eb.getDescriptionBuilder().toString().replace(pytajnik +  WCZ,
-                gtick.getAsMention() + WCZ));
+                gtick.getFormatted() + WCZ));
         eb.setColor(Color.green);
-        msg.editMessageEmbeds(eb.build()).override(true).complete();
-        return true;
+        hook.editOriginalEmbeds(eb.build()).complete();
     }
 }

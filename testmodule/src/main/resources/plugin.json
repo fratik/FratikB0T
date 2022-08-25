@@ -1,5 +1,0 @@
-{
-  "name": "test",
-  "main": "pl.fratik.test.Module",
-  "coreVersion": "@core.version@"
-}

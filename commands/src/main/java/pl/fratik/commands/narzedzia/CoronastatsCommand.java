@@ -19,10 +19,12 @@ package pl.fratik.commands.narzedzia;
 
 import com.google.common.eventbus.EventBus;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.interactions.InteractionHook;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONException;
 import org.json.JSONObject;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.util.DynamicEmbedPaginator;
 import pl.fratik.core.util.EventWaiter;
@@ -42,7 +44,7 @@ import java.util.TimeZone;
 import java.util.concurrent.FutureTask;
 
 @SuppressWarnings("DuplicatedCode")
-public class CoronastatsCommand extends Command {
+public class CoronastatsCommand extends NewCommand {
     private final EventWaiter eventWaiter;
     private final EventBus eventBus;
 
@@ -50,16 +52,13 @@ public class CoronastatsCommand extends Command {
         this.eventWaiter = eventWaiter;
         this.eventBus = eventBus;
         name = "coronastats";
-        aliases = new String[] {"coronavirus", "koronawirus", "covid"};
-        permissions.add(Permission.MESSAGE_EMBED_LINKS);
         cooldown = 5;
-        category = CommandCategory.UTILITY;
-        uzycie = new Uzycie("kraj", "string", false);
-        allowPermLevelChange = false;
+        usage = "[kraj:string]";
     }
 
     @Override
-    protected boolean execute(@NotNull CommandContext context) {
+    public void execute(@NotNull NewCommandContext context) {
+        InteractionHook hook = context.defer(false);
         List<FutureTask<EmbedBuilder>> pages = new ArrayList<>();
         Calendar cal = Calendar.getInstance();
         cal.setTimeZone(TimeZone.getTimeZone("UTC"));
@@ -68,47 +67,41 @@ public class CoronastatsCommand extends Command {
         Instant wczoraj = cal.toInstant();
         cal.add(Calendar.DAY_OF_MONTH, -1);
         Instant dwaDniTemu = cal.toInstant();
-        boolean paginated = context.getGuild().getSelfMember()
-                .hasPermission(context.getGuildChannel(), Permission.MESSAGE_MANAGE);
-        if (context.getArgs().length == 0 || context.getArgs()[0] == null) {
+        if (!context.getArguments().containsKey("kraj")) {
             try {
-                JSONObject staty = NetworkUtil.getJson("https://corona.lmao.ninja/v3/covid-19/all");
+                JSONObject staty = NetworkUtil.getJson("https://disease.sh/v3/covid-19/all");
                 if (staty == null) throw new IOException("tak");
                 EmbedBuilder eb = new EmbedBuilder();
                 eb.setAuthor(context.getTranslated("coronastats.basic.header"));
                 formatDate(context, eb, dzisiaj.toEpochMilli());
-                addFields(eb, context, staty, paginated);
-                if (!paginated) {
-                    context.reply(eb.build());
-                    return true;
-                }
+                addFields(eb, context, staty);
                 pages.add(new FutureTask<>(() -> eb));
             } catch (IOException e) {
                 context.reply(context.getTranslated("coronastats.api.error"));
-                return false;
+                return;
             }
             pages.add(new FutureTask<>(() -> {
-                JSONObject staty = NetworkUtil.getJson("https://corona.lmao.ninja/v3/covid-19/all?yesterday=1");
+                JSONObject staty = NetworkUtil.getJson("https://disease.sh/v3/covid-19/all?yesterday=1");
                 if (staty == null) throw new IOException("tak");
                 EmbedBuilder eb = new EmbedBuilder();
                 eb.setAuthor(context.getTranslated("coronastats.basic.header"));
                 formatDate(context, eb, wczoraj.toEpochMilli());
-                addFields(eb, context, staty, true);
+                addFields(eb, context, staty);
                 return eb;
             }));
             pages.add(new FutureTask<>(() -> {
-                JSONObject staty = NetworkUtil.getJson("https://corona.lmao.ninja/v3/covid-19/all?twoDaysAgo=1");
+                JSONObject staty = NetworkUtil.getJson("https://disease.sh/v3/covid-19/all?twoDaysAgo=1");
                 if (staty == null) throw new IOException("tak");
                 EmbedBuilder eb = new EmbedBuilder();
                 eb.setAuthor(context.getTranslated("coronastats.basic.header"));
                 formatDate(context, eb, dwaDniTemu.toEpochMilli());
-                addFields(eb, context, staty, true);
+                addFields(eb, context, staty);
                 return eb;
             }));
         } else {
             try {
-                String path = "https://corona.lmao.ninja/v3/covid-19/countries/" +
-                        NetworkUtil.encodeURIComponent((String) context.getArgs()[0]);
+                String path = "https://disease.sh/v3/covid-19/countries/" +
+                        NetworkUtil.encodeURIComponent(context.getArguments().get("kraj").getAsString());
                 try {
                     JSONResponse staty = NetworkUtil.getJson(path);
                     if (staty == null) throw new IOException("tak");
@@ -117,18 +110,14 @@ public class CoronastatsCommand extends Command {
                     eb.setAuthor(context.getTranslated("coronastats.country.header", staty.get("country")));
                     eb.setThumbnail(staty.getJSONObject("countryInfo").getString("flag"));
                     formatDate(context, eb, dzisiaj.toEpochMilli());
-                    addFields(eb, context, staty, paginated);
+                    addFields(eb, context, staty);
                     if (staty.getString("country").equals("Poland")) {
                         eb.setImage("https://cdn.discordapp.com/attachments/424887765478539264/694101067461427281/ezgif.com-optimize.gif");
-                    }
-                    if (!paginated) {
-                        context.reply(eb.build());
-                        return true;
                     }
                     pages.add(new FutureTask<>(() -> eb));
                 } catch (JSONException e) {
                     context.reply(context.getTranslated("coronastats.unknown.country"));
-                    return false;
+                    return;
                 }
                 pages.add(new FutureTask<>(() -> {
                     JSONObject staty2 = NetworkUtil.getJson(path + "?yesterday=1");
@@ -137,7 +126,7 @@ public class CoronastatsCommand extends Command {
                     eb.setAuthor(context.getTranslated("coronastats.country.header", staty2.get("country")));
                     eb.setThumbnail(staty2.getJSONObject("countryInfo").getString("flag"));
                     formatDate(context, eb, wczoraj.toEpochMilli());
-                    addFields(eb, context, staty2, true);
+                    addFields(eb, context, staty2);
                     if (staty2.getString("country").equals("Poland")) {
                         eb.setImage("https://cdn.discordapp.com/attachments/424887765478539264/694101067461427281/ezgif.com-optimize.gif");
                     }
@@ -150,7 +139,7 @@ public class CoronastatsCommand extends Command {
                     eb.setAuthor(context.getTranslated("coronastats.country.header", staty2.get("country")));
                     eb.setThumbnail(staty2.getJSONObject("countryInfo").getString("flag"));
                     formatDate(context, eb, dwaDniTemu.toEpochMilli());
-                    addFields(eb, context, staty2, true);
+                    addFields(eb, context, staty2);
                     if (staty2.getString("country").equals("Poland")) {
                         eb.setImage("https://cdn.discordapp.com/attachments/424887765478539264/694101067461427281/ezgif.com-optimize.gif");
                     }
@@ -158,15 +147,14 @@ public class CoronastatsCommand extends Command {
                 }));
             } catch (IOException e) {
                 context.reply(context.getTranslated("coronastats.api.error"));
-                return false;
+                return;
             }
         }
         new DynamicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(),
-                context.getTlumaczenia(), eventBus).setCustomFooter(true).create(context.getMessageChannel(), context.getMessage());
-        return true;
+                context.getTlumaczenia(), eventBus).setCustomFooter(true).create(hook);
     }
 
-    private void addFields(EmbedBuilder eb, CommandContext ctx, JSONObject staty, boolean paginated) {
+    private void addFields(EmbedBuilder eb, NewCommandContext ctx, JSONObject staty) {
         eb.addField(ctx.getTranslated("coronastats.cases"), parseNumber(staty.getLong("cases"), ctx.getLanguage()), true);
         eb.addField(ctx.getTranslated("coronastats.deaths"), parseNumber(staty.getLong("deaths"), ctx.getLanguage()), true);
         eb.addField(ctx.getTranslated("coronastats.recovered"), parseNumber(staty.getLong("recovered"), ctx.getLanguage()), true);
@@ -175,7 +163,7 @@ public class CoronastatsCommand extends Command {
         eb.addField(ctx.getTranslated("coronastats.active"), parseNumber(staty.getLong("active"), ctx.getLanguage()), true);
         eb.addField(ctx.getTranslated("coronastats.critical"), parseNumber(staty.getLong("critical"), ctx.getLanguage()), true);
         eb.addField(ctx.getTranslated("coronastats.tests"), parseNumber(staty.getLong("tests"), ctx.getLanguage()), true);
-        eb.setFooter((paginated ? " (%s/%s) | " : "") + ctx.getTranslated("coronastats.updated"));
+        eb.setFooter(" (%s/%s) | " + ctx.getTranslated("coronastats.updated"));
         eb.setColor(getColor(staty.getInt("active")));
         eb.setTimestamp(Instant.ofEpochMilli(staty.getLong("updated")));
     }
@@ -184,7 +172,7 @@ public class CoronastatsCommand extends Command {
         return NumberFormat.getInstance(language.getLocale()).format(num);
     }
 
-    private void formatDate(@NotNull CommandContext context, EmbedBuilder eb, long updated) {
+    private void formatDate(@NotNull NewCommandContext context, EmbedBuilder eb, long updated) {
         SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy", context.getLanguage().getLocale());
         sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
         eb.setDescription(context.getTranslated("coronastats.content", sdf.format(new Date(updated))));

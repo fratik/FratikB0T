@@ -28,7 +28,6 @@ import net.dv8tion.jda.api.requests.ErrorResponse;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import pl.fratik.core.Ustawienia;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Kara;
@@ -53,14 +52,12 @@ public class ModLogBuilder {
 
     @Setter private static Tlumaczenia tlumaczenia;
     @Setter private static GuildDao guildDao;
-    @Setter private static ManagerKomend managerKomend;
 
     @NotNull
     public static Message generate(@NotNull Case aCase, // UŻYWA COMPLETE!
                                    @NotNull Guild guild,
                                    @NotNull ShardManager sm,
                                    @NotNull Language lang,
-                                   @Nullable ManagerKomend managerKomend,
                                    boolean modlog,
                                    boolean akcje,
                                    boolean dm) {
@@ -74,7 +71,7 @@ public class ModLogBuilder {
                 // else ignore
             }
         }
-        return generate(aCase, guild, lang, managerKomend, modlog, akcje,
+        return generate(aCase, guild, lang, modlog, akcje,
                 dm, iUser, sm.retrieveUserById(aCase.getUserId()).complete());
     }
 
@@ -83,8 +80,7 @@ public class ModLogBuilder {
                                    @NotNull Guild guild,
                                    @NotNull ShardManager sm,
                                    @NotNull Language lang,
-                                   @Nullable ManagerKomend managerKomend,
-                                   boolean modlog,
+                                             boolean modlog,
                                    boolean akcje) {
         Long iId = aCase.getIssuerId();
         User iUser = null;
@@ -96,7 +92,7 @@ public class ModLogBuilder {
                 // else ignore
             }
         }
-        return generateEmbed(aCase, guild, lang, managerKomend, modlog, akcje,
+        return generateEmbed(aCase, guild, lang, modlog, akcje,
                 iUser, sm.retrieveUserById(aCase.getUserId()).complete());
     }
 
@@ -104,7 +100,6 @@ public class ModLogBuilder {
     public static Message generate(@NotNull Case aCase,
                                    @NotNull Guild guild,
                                    @NotNull Language lang,
-                                   @Nullable ManagerKomend managerKomend,
                                    boolean modlog,
                                    boolean akcje,
                                    boolean dm,
@@ -113,15 +108,10 @@ public class ModLogBuilder {
         String issuerStr;
         String reason = aCase.getReason(tlumaczenia, lang);
         if (reason == null || reason.isEmpty()) reason = tlumaczenia.get(lang, "modlog.reason.unknown");
-        if (issuer == null) issuerStr = tlumaczenia.get(lang, "modlog.mod.unknown",
-                managerKomend == null || managerKomend.getPrefixes(guild).isEmpty() ? Ustawienia.instance.prefix :
-                        managerKomend.getPrefixes(guild).get(0), aCase.getCaseNumber());
+        if (issuer == null) issuerStr = tlumaczenia.get(lang, "modlog.mod.unknown", aCase.getCaseNumber());
         else issuerStr = UserUtil.formatDiscrim(issuer);
-        if (modlog && aCase.getFlagi().contains(Case.Flaga.NOBODY)) {
-            issuerStr = tlumaczenia.get(lang, "modlog.mod.hidden",
-                    managerKomend == null || managerKomend.getPrefixes(guild).isEmpty() ? Ustawienia.instance.prefix :
-                            managerKomend.getPrefixes(guild).get(0), aCase.getCaseNumber());
-        }
+        if (modlog && aCase.getFlagi().contains(Case.Flaga.NOBODY))
+            issuerStr = tlumaczenia.get(lang, "modlog.mod.hidden", aCase.getCaseNumber());
         return generate(aCase.getType(), karany, issuerStr, reason,
                 aCase.getType().getKolor(), aCase.getCaseNumber(), aCase.isValid(), dm, aCase.getValidTo(),
                 aCase.getTimestamp(), aCase.getIleRazy(), lang, guild, (modlog || akcje) && !aCase.getDowody().isEmpty(), aCase.getDowody());
@@ -131,7 +121,6 @@ public class ModLogBuilder {
     public static EmbedBuilder generateEmbed(@NotNull Case aCase,
                                              @NotNull Guild guild,
                                              @NotNull Language lang,
-                                             @Nullable ManagerKomend managerKomend,
                                              boolean modlog,
                                              boolean akcje,
                                              @Nullable User issuer,
@@ -139,14 +128,10 @@ public class ModLogBuilder {
         String issuerStr;
         String reason = aCase.getReason(tlumaczenia, lang);
         if (reason == null || reason.isEmpty()) reason = tlumaczenia.get(lang, "modlog.reason.unknown");
-        if (issuer == null) issuerStr = tlumaczenia.get(lang, "modlog.mod.unknown",
-                managerKomend == null || managerKomend.getPrefixes(guild).isEmpty() ? Ustawienia.instance.prefix :
-                        managerKomend.getPrefixes(guild).get(0), aCase.getCaseNumber());
+        if (issuer == null) issuerStr = tlumaczenia.get(lang, "modlog.mod.unknown", aCase.getCaseNumber());
         else issuerStr = UserUtil.formatDiscrim(issuer);
         if (modlog && aCase.getFlagi().contains(Case.Flaga.NOBODY)) {
-            issuerStr = tlumaczenia.get(lang, "modlog.mod.hidden",
-                    managerKomend == null || managerKomend.getPrefixes(guild).isEmpty() ? Ustawienia.instance.prefix :
-                            managerKomend.getPrefixes(guild).get(0), aCase.getCaseNumber());
+            issuerStr = tlumaczenia.get(lang, "modlog.mod.hidden", aCase.getCaseNumber());
         }
         return generateEmbed(aCase.getType(), karany, issuerStr, reason,
                 aCase.getType().getKolor(), aCase.getCaseNumber(), aCase.isValid(), aCase.getValidTo(),
@@ -247,9 +232,8 @@ public class ModLogBuilder {
                     false);
         }
         if (hasProof) {
-            if (managerKomend == null) throw new IllegalStateException("managerKomend nie ustawiony!");
             eb.addField(tlumaczenia.get(lang, "modlog.proof.header"),
-                    tlumaczenia.get(lang, "modlog.proof.content", managerKomend.getPrefixes(guild).get(0), caseNumber),
+                    tlumaczenia.get(lang, "modlog.proof.content", caseNumber),
                     false);
         }
         return eb;

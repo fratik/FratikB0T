@@ -115,6 +115,10 @@ public abstract class NewCommand {
         // no-op, niech komendy które tego potrzebują to nadpiszą
     }
 
+    public boolean permissionCheck(NewCommandContext context) {
+        return true;
+    }
+
     @Getter
     @AllArgsConstructor(access = AccessLevel.PRIVATE)
     public static class SubcommandContainer {

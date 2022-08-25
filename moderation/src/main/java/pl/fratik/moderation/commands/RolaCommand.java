@@ -17,14 +17,13 @@
 
 package pl.fratik.moderation.commands;
 
-import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Role;
+import net.dv8tion.jda.api.interactions.InteractionHook;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.command.PermLevel;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.command.SubCommand;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
-import pl.fratik.core.util.CommonErrors;
 import pl.fratik.core.util.StringUtil;
 
 import java.util.ArrayList;
@@ -37,25 +36,17 @@ public class RolaCommand extends ModerationCommand {
         super(false);
         this.guildDao = guildDao;
         name = "rola";
-        category = CommandCategory.MODERATION;
-        uzycie = new Uzycie("rola", "role");
-        aliases = new String[] {"ranga"};
-        permissions.add(Permission.MANAGE_ROLES);
-        allowPermLevelChange = false;
     }
 
-    @Override
-    public boolean execute(@NotNull CommandContext context) {
-        if (context.getArgs().length == 0 || context.getArgs()[0] == null) {
-            CommonErrors.usage(context);
-            return false;
-        }
-        Role rola = (Role) context.getArgs()[0];
+    @SubCommand(name = "przydziel", usage = "<rola:role>")
+    public void przydziel(@NotNull NewCommandContext context) {
+        Role rola = context.getArguments().get("rola").getAsRole();
+        context.defer(true);
         GuildConfig gc = guildDao.get(context.getGuild());
 
         if (!gc.getUzytkownicyMogaNadacSobieTeRange().contains(rola.getId())) {
-            context.reply(context.getTranslated("rola.not.defined"));
-            return false;
+            context.sendMessage(context.getTranslated("rola.not.defined"));
+            return;
         }
 
         Integer maxRolesSize = gc.getMaxRoliDoSamododania();
@@ -64,25 +55,24 @@ public class RolaCommand extends ModerationCommand {
         if (maxRolesSize > 0) {
             int memberRolesSize = (int) context.getMember().getRoles().stream().filter(r -> filtr(r, gc)).count();
             if (memberRolesSize >= maxRolesSize) {
-                context.reply(context.getTranslated("rola.maxroles", maxRolesSize, memberRolesSize, context.getPrefix()));
-                return false;
+                context.sendMessage(context.getTranslated("rola.maxroles", maxRolesSize, memberRolesSize));
+                return;
             }
         }
         try {
             context.getGuild().addRoleToMember(context.getMember(), rola).complete();
-            context.reply(context.getTranslated("rola.success"));
+            context.sendMessage(context.getTranslated("rola.success"));
         } catch (Exception e) {
-            context.reply(context.getTranslated("rola.failed"));
-            return false;
+            context.sendMessage(context.getTranslated("rola.failed"));
         }
-        return true;
     }
 
-    @SubCommand(name="list", aliases = "lista")
-    public boolean list(@NotNull CommandContext context) {
+    @SubCommand(name="lista")
+    public void list(@NotNull NewCommandContext context) {
         ArrayList<String> strArray = new ArrayList<>();
         StringBuilder sb = new StringBuilder();
         sb.append("```asciidoc\n");
+        InteractionHook hook = context.defer(true);
         GuildConfig gc = guildDao.get(context.getGuild());
         int ilosc = 0;
         for (Role role : context.getGuild().getRoles()) {
@@ -97,20 +87,12 @@ public class RolaCommand extends ModerationCommand {
             } else sb.append(rola);
         }
         if (ilosc == 0) {
-            context.reply(context.getTranslated("rola.list.noroles"));
-            return false;
+            context.sendMessage(context.getTranslated("rola.list.noroles"));
+            return;
         }
         sb.append("```");
         strArray.add(sb.toString());
-        for (String str : strArray) {
-            context.reply(str);
-        }
-        return true;
-    }
-
-    @Override
-    public PermLevel getPermLevel() {
-        return PermLevel.EVERYONE;
+        for (String str : strArray) hook.sendMessage(str).setEphemeral(true).queue();
     }
 
     private static boolean filtr(Role r, GuildConfig gc) {

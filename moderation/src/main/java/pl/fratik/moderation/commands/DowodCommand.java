@@ -21,13 +21,13 @@ import com.google.common.eventbus.EventBus;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.User;
-import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.command.PermLevel;
-import pl.fratik.core.entity.GuildConfig;
+import net.dv8tion.jda.api.interactions.InteractionHook;
+import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
+import net.dv8tion.jda.api.requests.ErrorResponse;
+import pl.fratik.core.command.NewCommandContext;
+import pl.fratik.core.command.SubCommand;
 import pl.fratik.core.entity.GuildDao;
-import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.util.CommonUtil;
 import pl.fratik.core.util.DynamicEmbedPaginator;
 import pl.fratik.core.util.EventWaiter;
@@ -36,155 +36,47 @@ import pl.fratik.moderation.entity.Case;
 import pl.fratik.moderation.entity.CaseDao;
 import pl.fratik.moderation.entity.Dowod;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.FutureTask;
-import java.util.stream.Collectors;
 
 public class DowodCommand extends ModerationCommand {
 
     private final GuildDao guildDao;
     private final CaseDao caseDao;
-    private final ManagerKomend managerKomend;
     private final EventWaiter eventWaiter;
     private final EventBus eventBus;
 
     public DowodCommand(GuildDao guildDao,
                         CaseDao caseDao,
-                        ManagerKomend managerKomend,
                         EventWaiter eventWaiter,
                         EventBus eventBus) {
         super(true);
         this.guildDao = guildDao;
         this.caseDao = caseDao;
-        this.managerKomend = managerKomend;
         this.eventWaiter = eventWaiter;
         this.eventBus = eventBus;
         name = "dowod";
-        category = CommandCategory.MODERATION;
-        uzycieDelim = " ";
-        LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
-        hmap.put("caseid", "string");
-        hmap.put("dowod", "string");
-        hmap.put("[...]", "string");
-        permissions.add(Permission.MESSAGE_MANAGE);
-        permissions.add(Permission.MESSAGE_EMBED_LINKS);
-        permissions.add(Permission.MESSAGE_ADD_REACTION);
-        permLevel = PermLevel.MOD;
-        allowPermLevelEveryone = false;
-        uzycie = new Uzycie(hmap, new boolean[] {true, false, false});
+        permissions = DefaultMemberPermissions.enabledFor(Permission.MODERATE_MEMBERS);
     }
 
-    @Override
-    public boolean execute(@NotNull CommandContext context) {
-        String dowodCnt;
-        if (context.getArgs().length > 1) dowodCnt = Arrays.stream(Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length))
-                .map(e -> e == null ? "" : e).map(Objects::toString).collect(Collectors.joining(uzycieDelim));
-        else dowodCnt = "";
-        GuildConfig gc = guildDao.get(context.getGuild());
-        if (dowodCnt.isEmpty() && context.getMessage().getAttachments().isEmpty()) {
-            List<FutureTask<EmbedBuilder>> pages = new ArrayList<>();
-            Case aCase;
-            try {
-                aCase = caseDao.get(CaseDao.getId(context.getGuild(), Integer.parseInt(context.getRawArgs()[0])));
-                if (aCase == null) throw new NullPointerException("e");
-            } catch (NumberFormatException | IndexOutOfBoundsException | NullPointerException e) {
-                context.reply(context.getTranslated("dowod.invalid.case"));
-                return false;
-            }
-            for (Dowod dowod : aCase.getDowody()) {
-                pages.add(new FutureTask<>(() -> {
-                    User user = dowod.retrieveAttachedBy(context.getShardManager()).complete();
-                    return new EmbedBuilder()
-                            .setImage(CommonUtil.getImageUrl(dowod.getContent()))
-                            .setAuthor(user.getAsTag(), null, user.getEffectiveAvatarUrl())
-                            .setColor(UserUtil.getPrimColor(context.getSender()))
-                            .setDescription(dowod.getContent())
-                            .setFooter("ID: " + aCase.getCaseNumber() + "-" + dowod.getId() + " | %s/%s");
-                }));
-            }
-            if (pages.isEmpty()) {
-                context.reply(context.getTranslated("dowod.empty"));
-                return true;
-            }
-            new DynamicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(),
-                    context.getTlumaczenia(), eventBus).setCustomFooter(true).create(context.getMessageChannel());
-            return true;
-        }
-        if (context.getRawArgs().length >= 2) {
-            List<String> usunAliasy = new ArrayList<>();
-            usunAliasy.add("usuń");
-            for (Language lang : Language.values()) {
-                String[] aliasy = context.getTlumaczenia().get(lang, "dowod.usun").split("\\|");
-                for (String alias : aliasy) {
-                    if (alias.isEmpty() || alias.equals("dowod.usun")) continue;
-                    usunAliasy.add(alias);
-                }
-            }
-            if (usunAliasy.contains(context.getRawArgs()[0])) {
-                String idR = context.getRawArgs()[1];
-                String[] id = idR.split("-");
-                String caseId;
-                try {
-                    caseId = CaseDao.getId(context.getGuild(), Long.parseLong(id[0]));
-                } catch (NumberFormatException | IndexOutOfBoundsException e) {
-                    context.reply(context.getTranslated("dowod.invalid.case"));
-                    return false;
-                }
-                Case aCase = caseDao.getLocked(caseId);
-                if (aCase == null) {
-                    context.reply(context.getTranslated("dowod.invalid.case"));
-                    return false;
-                }
-                try {
-                    Dowod dowod;
-                    try {
-                        dowod = Dowod.getDowodById(Integer.parseInt(id[1]), aCase.getDowody());
-                        if (dowod == null) throw new NullPointerException("e");
-                    } catch (NumberFormatException | IndexOutOfBoundsException | NullPointerException e) {
-                        context.reply(context.getTranslated("dowod.invalid.proof.id"));
-                        return false;
-                    }
-                    User user = dowod.retrieveAttachedBy(context.getShardManager()).complete();
-                    PermLevel attachedByPermlevel;
-                    try {
-                        Member member = context.getGuild().retrieveMember(user).complete();
-                        attachedByPermlevel = UserUtil.getPermlevel(member, guildDao, context.getShardManager(), PermLevel.OWNER);
-                    } catch (Exception err) {
-                        attachedByPermlevel = UserUtil.getPermlevel(user, context.getShardManager(), PermLevel.OWNER);
-                    }
-                    PermLevel selfPermLevel = UserUtil.getPermlevel(context.getMember(), guildDao, context.getShardManager(), PermLevel.OWNER);
-                    if (selfPermLevel.getNum() < attachedByPermlevel.getNum()) {
-                        context.reply(context.getTranslated("dowod.usun.lower.permlevel"));
-                        return false;
-                    }
-                    if (!aCase.getDowody().remove(dowod)) throw new IllegalStateException("nie udało się usunąć!");
-                    context.reply(context.getTranslated("dowod.usun.success"));
-                    caseDao.save(aCase);
-                    return true;
-                } finally {
-                    caseDao.unlock(aCase);
-                }
-            }
-        }
+    @SubCommand(name = "dodaj", usage = "<numer_sprawy:int> <dowod:string>")
+    public void dodaj(NewCommandContext context) {
+        context.deferAsync(false);
+        String content = context.getArguments().get("dowod").getAsString();
         String caseId;
         try {
-            caseId = CaseDao.getId(context.getGuild(), Long.parseLong((String) context.getArgs()[0]));
+            caseId = CaseDao.getId(context.getGuild(), context.getArguments().get("numer_sprawy").getAsLong());
         } catch (NumberFormatException | IndexOutOfBoundsException e) {
-            context.reply(context.getTranslated("dowod.invalid.case"));
-            return false;
+            context.sendMessage(context.getTranslated("dowod.invalid.case"));
+            return;
         }
         Case aCase = caseDao.getLocked(caseId);
         if (aCase == null) {
-            context.reply(context.getTranslated("dowod.invalid.case"));
-            return false;
+            context.sendMessage(context.getTranslated("dowod.invalid.case"));
+            return;
         }
         try {
-            String content = dowodCnt;
-            List<Message.Attachment> attachments = context.getMessage().getAttachments();
-            if (!attachments.isEmpty()) {
-                if (!content.isEmpty()) content += "\n";
-                content += attachments.stream().map(Message.Attachment::getUrl).collect(Collectors.joining(" "));
-            }
             content = content.replace("\u200b", ""); // nie dla zws
             StringBuilder contentBld = new StringBuilder();
             for (String splat : content.split("\n")) { // podwójne linie będą się gryźć z wyświetlaniem tego w DM - wymuszamy pojedyncze
@@ -195,13 +87,81 @@ public class DowodCommand extends ModerationCommand {
             }
             content = contentBld.toString();
             if (content.length() > 500) {
-                context.reply(context.getTranslated("dowod.char.limits"));
-                return false;
+                context.sendMessage(context.getTranslated("dowod.char.limits"));
+                return;
             }
             aCase.getDowody().add(new Dowod(Dowod.getNextId(aCase.getDowody()), context.getSender().getIdLong(), content.trim()));
             caseDao.save(aCase);
-            context.send(context.getTranslated("dowod.success"));
-            return true;
+            context.sendMessage(context.getTranslated("dowod.success"));
+        } finally {
+            caseDao.unlock(aCase);
+        }
+    }
+
+    @SubCommand(name = "wyswietl", usage = "<numer_sprawy:int>")
+    public void wyswietl(NewCommandContext context) {
+        InteractionHook hook = context.defer(false);
+        List<FutureTask<EmbedBuilder>> pages = new ArrayList<>();
+        Case aCase;
+        try {
+            aCase = caseDao.get(CaseDao.getId(context.getGuild(), context.getArguments().get("numer_sprawy").getAsLong()));
+            if (aCase == null) throw new NullPointerException("e");
+        } catch (NumberFormatException | IndexOutOfBoundsException | NullPointerException e) {
+            context.replyEphemeral(context.getTranslated("dowod.invalid.case"));
+            return;
+        }
+        for (Dowod dowod : aCase.getDowody()) {
+            pages.add(new FutureTask<>(() -> {
+                User user = dowod.retrieveAttachedBy(context.getShardManager()).complete();
+                return new EmbedBuilder()
+                        .setImage(CommonUtil.getImageUrl(dowod.getContent()))
+                        .setAuthor(user.getAsTag(), null, user.getEffectiveAvatarUrl())
+                        .setColor(UserUtil.getPrimColor(context.getSender()))
+                        .setDescription(dowod.getContent())
+                        .setFooter("ID: " + aCase.getCaseNumber() + "-" + dowod.getId() + " | %s/%s");
+            }));
+        }
+        if (pages.isEmpty()) {
+            context.sendMessage(context.getTranslated("dowod.empty"));
+            return;
+        }
+        new DynamicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(),
+                context.getTlumaczenia(), eventBus).setCustomFooter(true).create(hook);
+    }
+
+    @SubCommand(name = "usun", usage = "<numer_sprawy:int> <numer_dowodu:int>")
+    public void usun(NewCommandContext context) {
+        String caseId;
+        try {
+            caseId = CaseDao.getId(context.getGuild(), context.getArguments().get("numer_sprawy").getAsLong());
+        } catch (NumberFormatException | IndexOutOfBoundsException e) {
+            context.reply(context.getTranslated("dowod.invalid.case"));
+            return;
+        }
+        Case aCase = caseDao.getLocked(caseId);
+        if (aCase == null) {
+            context.reply(context.getTranslated("dowod.invalid.case"));
+            return;
+        }
+        try {
+            Dowod dowod;
+            try {
+                dowod = Dowod.getDowodById(context.getArguments().get("numer_dowodu").getAsInt(), aCase.getDowody());
+                if (dowod == null) throw new NullPointerException("e");
+            } catch (NumberFormatException | IndexOutOfBoundsException | NullPointerException e) {
+                context.reply(context.getTranslated("dowod.invalid.proof.id"));
+                return;
+            }
+            User user = dowod.retrieveAttachedBy(context.getShardManager()).complete();
+            Member member = context.getGuild().retrieveMember(user)
+                    .onErrorMap(ErrorResponse.UNKNOWN_MEMBER::test, x -> null).complete();
+            if (!(member == null || context.getMember().canInteract(member))) {
+                context.reply(context.getTranslated("dowod.usun.lower.permlevel"));
+                return;
+            }
+            if (!aCase.getDowody().remove(dowod)) throw new IllegalStateException("nie udało się usunąć!");
+            context.reply(context.getTranslated("dowod.usun.success"));
+            caseDao.save(aCase);
         } finally {
             caseDao.unlock(aCase);
         }

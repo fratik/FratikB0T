@@ -57,7 +57,15 @@ public class DurationUtil {
                 .get(dList.get(0).getDates().size() - 1).toInstant();
     }
 
+    public static Response parseDurationForMute(String input) {
+        return parseDuration(input, 2419200000L);
+    }
+
     public static Response parseDuration(String input) {
+        return parseDuration(input, 63113904000L);
+    }
+
+    public static Response parseDuration(String input, long limit) {
         MutablePeriod period = new MutablePeriod();
         String aaa = getParsableString(input);
         String[] tokeny = aaa.split(" ");
@@ -111,7 +119,7 @@ public class DurationUtil {
         org.joda.time.Instant instaa = org.joda.time.Instant.now();
         Duration dur = period.toDurationFrom(instaa);
         Instant inst = Instant.ofEpochMilli(instaa.plus(dur).getMillis());
-        if (inst.toEpochMilli() - instaa.getMillis() >= 63113904000L)
+        if (inst.toEpochMilli() - instaa.getMillis() >= limit)
             throw new IllegalArgumentException("2 lata to maks!");
         if (inst.toEpochMilli() == instaa.getMillis()) return new Response(null, -1, input);
         return new Response(inst, dur.getMillis(), String.join(" ", reason).replaceAll(" +", " ").trim());

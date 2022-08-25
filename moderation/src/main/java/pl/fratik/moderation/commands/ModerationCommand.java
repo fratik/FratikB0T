@@ -17,10 +17,11 @@
 
 package pl.fratik.moderation.commands;
 
-import pl.fratik.core.command.PermLevel;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.moderation.listeners.ModLogListener;
 
-abstract class ModerationCommand extends Command {
+abstract class ModerationCommand extends NewCommand {
     protected final boolean needsPerms;
 
     protected ModerationCommand(boolean needsPerms) {
@@ -28,32 +29,11 @@ abstract class ModerationCommand extends Command {
     }
 
     @Override
-    public CommandCategory getCategory() {
-        return CommandCategory.MODERATION;
-    }
-
-    @Override
-    public PermLevel getPermLevel() {
-        return PermLevel.MOD;
-    }
-
-    @Override
-    public boolean isIgnoreGaPerm() {
-        return true;
-    }
-
-    @Override
-    public boolean isAllowPermLevelEveryone() {
-        return false;
-    }
-
-    @Override
-    public boolean preExecute(CommandContext context) {
-        if (!context.isDirect() && !context.canTalk()) return false;
+    public boolean permissionCheck(NewCommandContext context) {
         if (needsPerms && !ModLogListener.checkPermissions(context.getGuild())) {
-            context.reply(context.getTranslated("moderation.bot.no.permissions"));
+            context.replyEphemeral(context.getTranslated("moderation.bot.no.permissions"));
             return false;
         }
-        return super.preExecute(context);
+        return true;
     }
 }

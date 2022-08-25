@@ -21,22 +21,21 @@ import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import info.debatty.java.stringsimilarity.NormalizedLevenshtein;
-import net.dv8tion.jda.api.sharding.ShardManager;
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageType;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.sharding.ShardManager;
 import pl.fratik.core.cache.Cache;
 import pl.fratik.core.cache.RedisCacheManager;
-import pl.fratik.core.command.PermLevel;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.event.DatabaseUpdateEvent;
 import pl.fratik.core.manager.implementation.ManagerModulowImpl;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.CommonUtil;
-import pl.fratik.core.util.UserUtil;
 
 import javax.crypto.IllegalBlockSizeException;
 import java.util.*;
@@ -53,19 +52,17 @@ public class AntiRaidListener {
     private final Timer timerN;
     private final Timer timerE;
     private final Tlumaczenia tlumaczenia;
-    private final ManagerKomend managerKomend;
     private static final Pattern PING_REGEX = Pattern.compile("<@[!&]?([0-9]{17,18})>");
     private final Map<String, List<String>> lastContentsNormal = new HashMap<>();
     private final Map<String, List<String>> lastContentsExtreme = new HashMap<>();
 
     private final Cache<GuildConfig> gcCache;
 
-    public AntiRaidListener(GuildDao guildDao, ShardManager shardManager, EventBus eventBus, Tlumaczenia tlumaczenia, RedisCacheManager redisCacheManager, ManagerKomend managerKomend) {
+    public AntiRaidListener(GuildDao guildDao, ShardManager shardManager, EventBus eventBus, Tlumaczenia tlumaczenia, RedisCacheManager redisCacheManager) {
         this.guildDao = guildDao;
         this.shardManager = shardManager;
         this.eventBus = eventBus;
         this.tlumaczenia = tlumaczenia;
-        this.managerKomend = managerKomend;
         timerN = new Timer("antiraidNormalClean");
         timerN.scheduleAtFixedRate(new TimerTask() {
             @Override
@@ -89,7 +86,7 @@ public class AntiRaidListener {
         if (e.isWebhookMessage() || !e.isFromGuild() || e.getMessage().getMember() == null ||
                 e.getAuthor().isBot() || e.getMessage().getType() != MessageType.DEFAULT) return; //todo mes-type thready
         if (antiRaidDisabled(e.getMessage().getGuild())) return;
-        if (UserUtil.getPermlevel(e.getMember(), guildDao, shardManager, PermLevel.OWNER).getNum() >= 1) return;
+        if (e.getMember().hasPermission(Permission.MESSAGE_MANAGE) || e.getMember().hasPermission(Permission.MANAGE_SERVER)) return;
         if (getAntiRaidChannels(e.getMessage().getGuild()).contains(e.getChannel().getId())) return;
         if (!CommonUtil.canTalk(e.getChannel())) return;
         if (antiRaidExtreme(e.getMessage().getGuild())) extreme(e.getMessage());
@@ -148,8 +145,8 @@ public class AntiRaidListener {
             }
             if (success) log(e, lastC, "3 wiadomości zawierają ping");
         }
-        if (e.getMentionedMembers().size() >= 5 ||
-                (e.getMentionedRoles().stream().filter(Role::isMentionable).count() == e.getGuild()
+        if (e.getMentions().getMembers().size() >= 5 ||
+                (e.getMentions().getRoles().stream().filter(Role::isMentionable).count() == e.getGuild()
                         .getRoles().stream().filter(Role::isMentionable).count() && e.getGuild().getRoles().stream()
                         .anyMatch(Role::isMentionable))) {
             boolean success;
@@ -224,9 +221,9 @@ public class AntiRaidListener {
             }
             if (success) logExtreme(e, lastC, "2 wiadomości zawierają ping");
         }
-        if (e.getMentionedMembers().size() >= 4 ||
-                ((e.getMentionedRoles().stream().filter(Role::isMentionable).count() == e.getGuild()
-                        .getRoles().stream().filter(Role::isMentionable).count() || e.getMentionedRoles()
+        if (e.getMentions().getMembers().size() >= 4 ||
+                ((e.getMentions().getRoles().stream().filter(Role::isMentionable).count() == e.getGuild()
+                        .getRoles().stream().filter(Role::isMentionable).count() || e.getMentions().getRoles()
                         .stream().filter(Role::isMentionable).count() >= 4) && e.getGuild().getRoles().stream()
                         .anyMatch(Role::isMentionable))) {
             boolean success;
@@ -274,7 +271,7 @@ public class AntiRaidListener {
 
     private void log(Message e, List<String> lastC, String powod) {
         e.getChannel().sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(e.getGuild()), "antiraid.notification",
-                e.getAuthor().getAsTag(), e.getAuthor().getId(), managerKomend.getPrefixes(e.getGuild()).get(0))).queue();
+                e.getAuthor().getAsTag(), e.getAuthor().getId())).queue();
         String wiad = "Zbanowano " + e.getAuthor().getAsTag() + " (" + e.getAuthor().getId() + ") na serwerze " +
                 e.getGuild().getName() + " (" + e.getGuild().getId() + "): " + powod + ".\nWiadomości:\n";
         List<String> lastCostatnie3 = new ArrayList<>();

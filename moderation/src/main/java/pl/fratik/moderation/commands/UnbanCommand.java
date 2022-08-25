@@ -20,7 +20,11 @@ package pl.fratik.moderation.commands;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
+import net.dv8tion.jda.api.requests.ErrorResponse;
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.entity.Kara;
 import pl.fratik.core.util.UserUtil;
 import pl.fratik.moderation.entity.Case;
@@ -28,11 +32,6 @@ import pl.fratik.moderation.listeners.ModLogListener;
 import pl.fratik.moderation.utils.ReasonUtils;
 
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class UnbanCommand extends ModerationCommand {
     private final ModLogListener modLogListener;
@@ -41,30 +40,20 @@ public class UnbanCommand extends ModerationCommand {
         super(true);
         this.modLogListener = modLogListener;
         name = "unban";
-        category = CommandCategory.MODERATION;
-        uzycieDelim = " ";
-        permissions.add(Permission.BAN_MEMBERS);
-        LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
-        hmap.put("uzytkownik", "user");
-        hmap.put("powod", "string");
-        hmap.put("[...]", "string");
-        uzycie = new Uzycie(hmap, new boolean[] {true, false, false});
-        aliases = new String[] {"odbanuj", "ub", "nieban", "usunbana", "usunbanika", "usuntegobana", "przywrocgodoservera"};
+        usage = "<osoba:user> [powod:string]";
+        permissions = DefaultMemberPermissions.enabledFor(Permission.BAN_MEMBERS);
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        String powod;
-        User uzytkownik = (User) context.getArgs()[0];
-        if (context.getArgs().length > 1 && context.getArgs()[1] != null)
-            powod = Arrays.stream(Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length))
-                    .map(e -> e == null ? "" : e).map(Objects::toString).collect(Collectors.joining(uzycieDelim));
-        else powod = context.getTranslated("unban.reason.default");
-        List<Guild.Ban> bany = context.getGuild().retrieveBanList().complete();
-        if (bany.stream().noneMatch(b -> b.getUser().equals(uzytkownik))) {
-            context.reply(context.getTranslated("unban.not.banned"));
-            return false;
+    public void execute(@NotNull NewCommandContext context) {
+        String powod = context.getArgumentOr("powod", context.getTranslated("unban.reason.default"), OptionMapping::getAsString);
+        User uzytkownik = context.getArguments().get("osoba").getAsUser();
+        Guild.Ban ban = context.getGuild().retrieveBan(uzytkownik).onErrorMap(ErrorResponse.UNKNOWN_BAN::test, x -> null).complete();
+        if (ban == null) {
+            context.replyEphemeral(context.getTranslated("unban.not.banned"));
+            return;
         }
+        context.defer(false);
         Case aCase = new Case.Builder(context.getGuild(), uzytkownik, Instant.now(), Kara.UNBAN)
                 .setIssuerId(context.getSender().getIdLong()).build();
         ReasonUtils.parseFlags(aCase, powod);
@@ -72,10 +61,9 @@ public class UnbanCommand extends ModerationCommand {
         try {
             context.getGuild().unban(uzytkownik).reason(powod).complete();
         } catch (Exception e) {
-            context.reply(context.getTranslated("unban.failed"));
-            return false;
+            context.sendMessage(context.getTranslated("unban.failed"));
+            return;
         }
-        context.reply(context.getTranslated("unban.success", UserUtil.formatDiscrim(uzytkownik)));
-        return true;
+        context.sendMessage(context.getTranslated("unban.success", UserUtil.formatDiscrim(uzytkownik)));
     }
 }

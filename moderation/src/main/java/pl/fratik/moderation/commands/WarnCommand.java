@@ -19,7 +19,10 @@ package pl.fratik.moderation.commands;
 
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.entity.Kara;
 import pl.fratik.core.util.DurationUtil;
 import pl.fratik.core.util.UserUtil;
@@ -30,10 +33,6 @@ import pl.fratik.moderation.utils.WarnUtil;
 
 import java.time.Instant;
 import java.time.temporal.TemporalAccessor;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class WarnCommand extends ModerationCommand {
 
@@ -43,61 +42,53 @@ public class WarnCommand extends ModerationCommand {
         super(true);
         this.caseDao = caseDao;
         name = "warn";
-        category = CommandCategory.MODERATION;
-        uzycieDelim = " ";
-        permissions.add(Permission.BAN_MEMBERS);
-        permissions.add(Permission.KICK_MEMBERS);
-        LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
-        hmap.put("uzytkownik", "member");
-        hmap.put("powod", "string");
-        hmap.put("[...]", "string");
-        uzycie = new Uzycie(hmap, new boolean[] {true, false, false});
-        aliases = new String[] {"ostrzez", "dajostrzezenie"};
+        usage = "<osoba:user> [powod:string]";
+        permissions = DefaultMemberPermissions.enabledFor(Permission.KICK_MEMBERS, Permission.BAN_MEMBERS);
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        String powod;
-        Member uzytkownik = (Member) context.getArgs()[0];
-        if (context.getArgs().length > 1 && context.getArgs()[1] != null)
-            powod = Arrays.stream(Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length))
-                    .map(e -> e == null ? "" : e).map(Objects::toString).collect(Collectors.joining(uzycieDelim));
-        else powod = context.getTranslated("warn.reason.default");
+    public void execute(@NotNull NewCommandContext context) {
+        Member uzytkownik = context.getArguments().get("osoba").getAsMember();
+        String powod = context.getArgumentOr("powod", context.getTranslated("warn.reason.default"), OptionMapping::getAsString);
+        if (uzytkownik == null) {
+            context.replyEphemeral(context.getTranslated("generic.no.member"));
+            return;
+        }
         if (uzytkownik.equals(context.getMember())) {
-            context.reply(context.getTranslated("warn.cant.warn.yourself"));
-            return false;
+            context.replyEphemeral(context.getTranslated("warn.cant.warn.yourself"));
+            return;
         }
         if (uzytkownik.getUser().isBot()) {
-            context.reply(context.getTranslated("warn.no.bot"));
-            return false;
+            context.replyEphemeral(context.getTranslated("warn.no.bot"));
+            return;
         }
         if (uzytkownik.isOwner()) {
-            context.reply(context.getTranslated("warn.cant.warn.owner"));
-            return false;
+            context.replyEphemeral(context.getTranslated("warn.cant.warn.owner"));
+            return;
         }
         if (!context.getMember().canInteract(uzytkownik)) {
-            context.reply(context.getTranslated("warn.user.cant.interact"));
-            return false;
+            context.replyEphemeral(context.getTranslated("warn.user.cant.interact"));
+            return;
         }
         if (!context.getGuild().getSelfMember().canInteract(uzytkownik)) {
-            context.reply(context.getTranslated("warn.bot.cant.interact"));
-            return false;
+            context.replyEphemeral(context.getTranslated("warn.bot.cant.interact"));
+            return;
         }
+        context.defer(false);
         TemporalAccessor timestamp = Instant.now();
         Case aCase = new Case.Builder(uzytkownik, timestamp, Kara.WARN).setIssuerId(context.getSender().getIdLong()).build();
         DurationUtil.Response durationResp;
         try {
             durationResp = DurationUtil.parseDuration(powod);
         } catch (IllegalArgumentException e) {
-            context.reply(context.getTranslated("warn.max.duration"));
-            return false;
+            context.sendMessage(context.getTranslated("warn.max.duration"));
+            return;
         }
         powod = durationResp.getTekst();
         aCase.setValidTo(durationResp.getDoKiedy());
         ReasonUtils.parseFlags(aCase, powod);
-        caseDao.createNew(null, aCase, false, context.getTextChannel(), context.getLanguage());
+        caseDao.createNew(null, aCase, false, context.getChannel(), context.getLanguage());
         context.reply(context.getTranslated("warn.success", UserUtil.formatDiscrim(uzytkownik),
                 WarnUtil.countCases(caseDao.getCasesByMember(uzytkownik), uzytkownik.getId())));
-        return true;
     }
 }

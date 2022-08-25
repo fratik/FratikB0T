@@ -18,17 +18,17 @@
 package pl.fratik.commands.system;
 
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 
-public class DonateCommand extends Command {
+public class DonateCommand extends NewCommand {
     public DonateCommand() {
         name = "donate";
-        category = CommandCategory.BASIC;
-        allowPermLevelChange = false;
+        allowInDMs = true;
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
+    public void execute(@NotNull NewCommandContext context) {
         context.reply(context.getTranslated("donate.plz"));
-        return true;
     }
 }

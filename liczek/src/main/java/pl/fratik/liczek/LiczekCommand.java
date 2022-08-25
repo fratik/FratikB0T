@@ -17,78 +17,60 @@
 
 package pl.fratik.liczek;
 
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.TextChannel;
-import pl.fratik.core.command.*;
+import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
+import pl.fratik.core.command.SubCommand;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
-import pl.fratik.core.util.CommonErrors;
 
-public class LiczekCommand extends Command {
+public class LiczekCommand extends NewCommand {
 
     private final GuildDao guildDao;
 
     public LiczekCommand(GuildDao guildDao) {
         this.guildDao = guildDao;
         name = "liczek";
-        permLevel = PermLevel.ADMIN;
-        category = CommandCategory.FUN;
-        uzycieDelim = " ";
-        uzycie = new Uzycie("kanal", "channel", false);
+        permissions = DefaultMemberPermissions.enabledFor(Permission.MANAGE_SERVER);
     }
 
-    @SubCommand(name = "info", emptyUsage = true)
-    public boolean info(CommandContext context) {
+    @SubCommand(name = "info")
+    public void info(NewCommandContext context) {
         GuildConfig gc = guildDao.get(context.getGuild());
         if (gc.getLiczekKanal() == null || gc.getLiczekKanal().isEmpty()) {
             context.reply(context.getTranslated("liczek.not.configured"));
-            return false;
+            return;
         }
         TextChannel txt = context.getGuild().getTextChannelById(gc.getLiczekKanal());
         if (txt == null) {
             context.reply(context.getTranslated("liczek.channel.removed"));
-            return false;
+            return;
         }
         context.reply(context.getTranslated("liczek.info", txt.getAsMention()));
-        return true;
     }
 
-    @SubCommand(name = "remove", emptyUsage = true)
-    public boolean remove(CommandContext context) {
+    @SubCommand(name = "usun")
+    public void remove(NewCommandContext context) {
+        context.deferAsync(false);
         GuildConfig gc = guildDao.get(context.getGuild());
         if (gc.getLiczekKanal() == null || gc.getLiczekKanal().isEmpty()) {
-            context.reply(context.getTranslated("liczek.not.channel.found"));
-            return false;
+            context.sendMessage(context.getTranslated("liczek.not.channel.found"));
+            return;
         }
         gc.setLiczekKanal("");
         guildDao.save(gc);
-        context.reply(context.getTranslated("liczek.success.remove"));
-        return true;
+        context.sendMessage(context.getTranslated("liczek.success.remove"));
     }
 
-    @SubCommand(name = "set")
-    public boolean set(CommandContext context) {
+    @SubCommand(name = "ustaw", usage = "<kanal:textchannel>")
+    public void set(NewCommandContext context) {
         GuildConfig gc = guildDao.get(context.getGuild());
-        TextChannel txt;
-        try {
-            txt = (TextChannel) context.getArgs()[0];
-        } catch (Exception e) {
-            CommonErrors.usage(context);
-            return false;
-        }
-        if (txt == null) {
-            context.reply(context.getTranslated("liczek.not.channel.found"));
-            return false;
-        }
+        TextChannel txt = context.getArguments().get("kanal").getAsChannel().asTextChannel();
         gc.setLiczekKanal(txt.getId());
         guildDao.save(gc);
         context.reply(context.getTranslated("liczek.success.save", txt.getAsMention()));
-        return true;
-    }
-
-    @Override
-    public boolean execute(CommandContext context) {
-        CommonErrors.usage(context);
-        return false;
     }
 
 }

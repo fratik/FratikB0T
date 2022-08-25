@@ -15,21 +15,33 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package pl.fratik.test;
+package pl.fratik.dev.commands;
 
+import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
+import pl.fratik.core.command.CommandType;
 import pl.fratik.core.command.NewCommand;
 import pl.fratik.core.command.NewCommandContext;
+import pl.fratik.core.manager.NewManagerKomend;
+import pl.fratik.core.util.UserUtil;
 
-import java.util.stream.Collectors;
+public class SyncCommand extends NewCommand {
+    private final NewManagerKomend managerKomend;
 
-public class ArgCommand extends NewCommand {
-    public ArgCommand() {
-        name = "arg";
-        usage = "<wymagany_user:user> <jebac:string> [aaaaaa:number]";
+    public SyncCommand(NewManagerKomend managerKomend) {
+        this.managerKomend = managerKomend;
+        name = "synccmd";
+        type = CommandType.SUPPORT_SERVER;
+        permissions = DefaultMemberPermissions.DISABLED;
     }
 
     @Override
     public void execute(NewCommandContext context) {
-        context.reply(context.getArguments().entrySet().stream().map(e -> e.getKey() + ": `" + e.getValue().toString() + "`").collect(Collectors.joining("\n")));
+        if (!UserUtil.isBotOwner(context.getSender().getIdLong())) {
+            context.replyEphemeral(context.getTranslated("generic.no.permissions"));
+            return;
+        }
+        context.deferAsync(true);
+        managerKomend.sync();
+        context.sendMessage("Zsynchronizowano komendy z Discordem!");
     }
 }

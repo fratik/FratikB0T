@@ -136,6 +136,7 @@ public class NewManagerKomendImpl implements NewManagerKomend {
             return;
         }
         NewCommandContext ctx = new NewCommandContext(shardManager, command, tlumaczenia, event.getInteraction());
+        if (!command.permissionCheck(ctx)) return;
         if (event.getSubcommandName() != null) {
             String subname = (event.getSubcommandGroup() != null ? event.getSubcommandGroup() + "/" : "") + event.getSubcommandName();
             Method method = command.getSubcommands().get(subname);
@@ -156,7 +157,8 @@ public class NewManagerKomendImpl implements NewManagerKomend {
         command.execute(ctx);
     }
 
-    private Stream<NewCommand> commandsStream() {
+    @Override
+    public Stream<NewCommand> commandsStream() {
         return commands.values().stream().flatMap(Set::stream);
     }
 }

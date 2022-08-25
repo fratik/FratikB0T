@@ -22,7 +22,7 @@ import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.utils.MarkdownSanitizer;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.command.PermLevel;
+import pl.fratik.core.command.NewCommandContext;
 
 import java.util.*;
 import java.util.regex.Matcher;
@@ -33,40 +33,43 @@ public class RegulaminCommand extends ModerationCommand {
     public RegulaminCommand() {
         super(false);
         name = "regulamin";
-        category = CommandCategory.MODERATION;
-        uzycie = new Uzycie("zasada", "integer", true);
-        aliases = new String[] {"zasady", "reg", "zasada"};
-        allowPermLevelChange = false;
+        usage = "<zasada:int>";
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
+    public void execute(@NotNull NewCommandContext context) {
+        int zasada = context.getArguments().get("zasada").getAsInt();
         TextChannel kanal;
         try {
-            kanal = context.getGuild().getTextChannelsByName("regulamin", true).get(0);
+            kanal = context.getGuild().getRulesChannel();
             if (kanal == null) throw new IllegalStateException();
         } catch (Exception e) {
-           try {
-               kanal = context.getGuild().getTextChannelsByName("zasady", true).get(0);
-               if (kanal == null) throw new IllegalStateException();
-           } catch (Exception e2) {
-               try {
-                   kanal = context.getGuild().getTextChannelsByName(context.getTlumaczenia()
-                           .get(context.getTlumaczenia().getLanguage(context.getGuild()), "regulamin.channel.name"),
-                           true).get(0);
-                   if (kanal == null) throw new IllegalStateException();
-               } catch (Exception e3) {
-                   kanal = context.getGuild().getTextChannels().get(0);
-               }
-           }
+            try {
+                kanal = context.getGuild().getTextChannelsByName("regulamin", true).get(0);
+                if (kanal == null) throw new IllegalStateException();
+            } catch (Exception e1) {
+                try {
+                    kanal = context.getGuild().getTextChannelsByName("zasady", true).get(0);
+                    if (kanal == null) throw new IllegalStateException();
+                } catch (Exception e2) {
+                    try {
+                        kanal = context.getGuild().getTextChannelsByName(context.getTlumaczenia()
+                                        .get(context.getTlumaczenia().getLanguage(context.getGuild()), "regulamin.channel.name"),
+                                true).get(0);
+                        if (kanal == null) throw new IllegalStateException();
+                    } catch (Exception e3) {
+                        kanal = context.getGuild().getTextChannels().get(0);
+                    }
+                }
+            }
         }
         if (kanal == null) {
             context.reply(context.getTranslated("regulamin.channel.doesnt.exist"));
-            return false;
+            return;
         }
         if (!context.getGuild().getSelfMember().hasPermission(kanal, Permission.MESSAGE_HISTORY)) {
             context.reply(context.getTranslated("regulamin.channel.no.perms"));
-            return false;
+            return;
         }
         List<Message> wiadomosci = kanal.getHistory().retrievePast(100).complete();
         Collections.reverse(wiadomosci);
@@ -81,27 +84,16 @@ public class RegulaminCommand extends ModerationCommand {
                 try { punkty.put(Integer.valueOf(matcher.group(1)), punktR); } catch (Exception ignored) {/*lul*/}
             }
         }
-        if ((int) context.getArgs()[0] > punkty.size()) {
+        if (zasada > punkty.size()) {
             context.reply(context.getTranslated("regulamin.no.rule"));
-            return false;
+            return;
         }
         //noinspection SuspiciousMethodCalls (faktycznie jest to int)
-        String tekst = punkty.get(context.getArgs()[0]);
+        String tekst = punkty.get(zasada);
         if (tekst == null) {
             context.reply(context.getTranslated("regulamin.no.rule"));
-            return false;
+            return;
         }
         context.reply(tekst);
-        return true;
-    }
-
-    @Override
-    public PermLevel getPermLevel() {
-        return PermLevel.EVERYONE;
-    }
-
-    @Override
-    public boolean isAllowPermLevelEveryone() {
-        return true;
     }
 }

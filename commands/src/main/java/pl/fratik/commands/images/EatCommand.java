@@ -17,45 +17,30 @@
 
 package pl.fratik.commands.images;
 
-import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.User;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 import pl.fratik.core.Ustawienia;
-import pl.fratik.core.command.PermLevel;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.util.NetworkUtil;
 
 import java.io.IOException;
 import java.net.URLEncoder;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
-public class EatCommand extends Command {
+public class EatCommand extends NewCommand {
     public EatCommand() {
         name = "eat";
-        category = CommandCategory.IMAGES;
-        LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
-        hmap.put("użytkownik", "user");
-        hmap.put("tekst", "string");
-        hmap.put("[...]", "string");
-        uzycie = new Uzycie(hmap, new boolean[] {true, true, false});
-        uzycieDelim = " ";
-        permLevel = PermLevel.EVERYONE;
-        permissions.add(Permission.MESSAGE_ATTACH_FILES);
+        usage = "<osoba:user> <tekst:string>";
         cooldown = 5;
-        allowPermLevelChange = false;
         allowInDMs = true;
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        User user = (User) context.getArgs()[0];
-        if (user == null) // jezeli tak sie w ogole da
-            user = context.getSender();
-        String tekst = Arrays.stream(Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length))
-                .map(e -> e == null ? "" : e).map(Objects::toString).collect(Collectors.joining(uzycieDelim));
+    public void execute(@NotNull NewCommandContext context) {
+        User user = context.getArguments().get("osoba").getAsUser();
+        String tekst = context.getArguments().get("tekst").getAsString();
+        context.deferAsync(false);
         try {
             JSONObject zdjecie = NetworkUtil.getJson(Ustawienia.instance.apiUrls.get("image-server") +
                             "/api/image/eat?avatarURL=" + URLEncoder.encode(user.getEffectiveAvatarUrl()
@@ -64,13 +49,13 @@ public class EatCommand extends Command {
                     Ustawienia.instance.apiKeys.get("image-server"));
             if (zdjecie == null || !zdjecie.getBoolean("success")) {
                 context.reply(context.getTranslated("image.server.fail"));
-                return false;
+                return;
             }
             byte[] img = NetworkUtil.getBytesFromBufferArray(zdjecie.getJSONObject("image").getJSONArray("data"));
-            context.getMessageChannel().sendFile(img, "eat.png").reference(context.getMessage()).queue();
+            context.sendMessage("eat.png", img);
         } catch (IOException | NullPointerException e) {
-            context.reply(context.getTranslated("image.server.fail"));
+            context.sendMessage(context.getTranslated("image.server.fail"));
         }
-        return true;
+
     }
 }

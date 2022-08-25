@@ -21,16 +21,20 @@ import com.google.common.eventbus.EventBus;
 import lombok.Getter;
 import lombok.Setter;
 import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
+import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.api.entity.Rundka;
 import pl.fratik.api.entity.RundkaDao;
 import pl.fratik.api.event.RundkaEndEvent;
 import pl.fratik.api.event.RundkaStartEvent;
-import pl.fratik.core.command.PermLevel;
+import pl.fratik.core.command.CommandType;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
+import pl.fratik.core.command.SubCommand;
+import pl.fratik.core.util.UserUtil;
 
-import java.util.LinkedHashMap;
-
-public class RundkaCommand extends Command {
+public class RundkaCommand extends NewCommand {
     private final EventBus eventBus;
     private final RundkaDao rundkaDao;
 
@@ -38,47 +42,58 @@ public class RundkaCommand extends Command {
         this.eventBus = eventBus;
         this.rundkaDao = rundkaDao;
         name = "rundka";
-        LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
-        hmap.put("rundka", "integer");
-        hmap.put("voteChannel", "channel");
-        hmap.put("talkChannel", "channel");
-        uzycieDelim = " ";
-        uzycie = new Uzycie(hmap, new boolean[] {true, true, true});
-        category = CommandCategory.SYSTEM;
-        permLevel = PermLevel.BOTOWNER;
-        allowPermLevelChange = false;
+        type = CommandType.SUPPORT_SERVER;
+        permissions = DefaultMemberPermissions.DISABLED;
     }
 
     @Getter @Setter private static boolean rundkaOn = false;
     @Getter @Setter private static int numerRundy = 0;
 
-    @Override
-    public boolean execute(@NotNull CommandContext context) {
-        if (!rundkaOn && (context.getArgs().length == 0 || context.getArgs()[0] == null)) {
-            context.reply("Nie podano numeru rundki");
-            return false;
+    @SubCommand(name = "rozpocznij", usage = "<numer_rundki:integer> <vote_channel:textchannel> <talk_channel:textchannel>")
+    public void start(@NotNull NewCommandContext context) {
+        if (!UserUtil.isBotOwner(context.getSender().getIdLong())) {
+            context.replyEphemeral(context.getTranslated("generic.no.permissions"));
+            return;
         }
-        rundkaOn = !rundkaOn;
+        if (rundkaOn) {
+            context.replyEphemeral("Rundka już jest aktywna.");
+            return;
+        }
+        rundkaOn = true;
+        numerRundy = context.getArguments().get("numer_rundki").getAsInt();
         Rundka rundka = rundkaDao.get(numerRundy);
-        numerRundy = rundkaOn ? (int) context.getArgs()[0] : numerRundy;
-        if (rundkaOn) {
-            if (rundka == null) rundka = new Rundka(numerRundy, true);
-        } else rundka.setTrwa(false);
-        if (rundkaOn) {
-            TextChannel vch = (TextChannel) context.getArgs()[1];
-            TextChannel tch = (TextChannel) context.getArgs()[2];
-            context.reply("Rundka nr " + (numerRundy == 0 ? context.getArgs()[0] : numerRundy) + " została rozpoczęta!\n" +
-                    String.format("Ustawiono <#%s> jako kanał dyskusji administracyjnej/głosów i <#%s> jako kanał dyskusji",
-                            vch.getId(), tch.getId()) + " po napisaniu podania!");
-            rundka.setVoteChannel(vch.getId());
-            rundka.setNormalChannel(tch.getId());
-        } else {
-            context.reply("Rundka nr " + (numerRundy == 0 ? context.getArgs()[0] : numerRundy) + " została zakończona!");
-        }
-        numerRundy = rundkaOn ? (int) context.getArgs()[0] : 0;
+        if (rundka == null) rundka = new Rundka(numerRundy, true);
+        TextChannel vch = context.getArguments().get("vote_channel").getAsChannel().asTextChannel();
+        TextChannel tch = context.getArguments().get("talk_channel").getAsChannel().asTextChannel();
+        context.reply("Rundka nr " + numerRundy + " została rozpoczęta!\n" +
+                String.format("Ustawiono <#%s> jako kanał dyskusji administracyjnej/głosów i <#%s> jako kanał dyskusji",
+                        vch.getId(), tch.getId()) + " po napisaniu podania!");
+        rundka.setVoteChannel(vch.getId());
+        rundka.setNormalChannel(tch.getId());
         rundkaDao.save(rundka);
-        if (rundkaOn) eventBus.post(new RundkaStartEvent());
-        else eventBus.post(new RundkaEndEvent());
-        return true;
+        eventBus.post(new RundkaStartEvent());
+    }
+
+    @SubCommand(name = "zakoncz")
+    public void stop(@NotNull NewCommandContext context) {
+        if (!UserUtil.isBotOwner(context.getSender().getIdLong())) {
+            context.replyEphemeral(context.getTranslated("generic.no.permissions"));
+            return;
+        }
+        rundkaOn = false;
+        Rundka rundka = rundkaDao.get(numerRundy);
+        rundka.setTrwa(false);
+        context.reply("Rundka" + (numerRundy == 0 ? "" : " nr " + numerRundy) + " została zakończona!");
+        numerRundy = 0;
+        rundkaDao.save(rundka);
+        eventBus.post(new RundkaEndEvent());
+    }
+
+    @Override
+    public void updateOptionData(OptionData option) {
+        if (option.getName().equals("numer_rundki")) {
+            option.setMinValue(1);
+            option.setMaxValue(Integer.MAX_VALUE);
+        }
     }
 }

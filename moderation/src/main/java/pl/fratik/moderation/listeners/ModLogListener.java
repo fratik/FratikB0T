@@ -68,17 +68,15 @@ public class ModLogListener {
     private final GuildDao guildDao;
     private final ScheduleDao scheduleDao;
     private final Tlumaczenia tlumaczenia;
-    private final ManagerKomend managerKomend;
     private final Cache<GuildConfig> gcCache;
     private static final ThreadLocal<GuildConfig> localGc = new ThreadLocal<>();
 
-    public ModLogListener(ShardManager shardManager, CaseDao caseDao, GuildDao guildDao, ScheduleDao scheduleDao, Tlumaczenia tlumaczenia, ManagerKomend managerKomend, RedisCacheManager rcm) {
+    public ModLogListener(ShardManager shardManager, CaseDao caseDao, GuildDao guildDao, ScheduleDao scheduleDao, Tlumaczenia tlumaczenia, RedisCacheManager rcm) {
         this.shardManager = shardManager;
         this.caseDao = caseDao;
         this.guildDao = guildDao;
         this.scheduleDao = scheduleDao;
         this.tlumaczenia = tlumaczenia;
-        this.managerKomend = managerKomend;
         gcCache = rcm.new CacheRetriever<GuildConfig>() {}.getCache();
     }
 
@@ -108,7 +106,7 @@ public class ModLogListener {
 
     public static boolean checkPermissions(Guild g) {
         return g.getSelfMember().hasPermission(Permission.VIEW_AUDIT_LOGS, Permission.MANAGE_ROLES,
-                Permission.BAN_MEMBERS, Permission.KICK_MEMBERS, Permission.MANAGE_SERVER);
+                Permission.BAN_MEMBERS, Permission.KICK_MEMBERS, Permission.MANAGE_SERVER, Permission.MODERATE_MEMBERS);
     }
 
     @Subscribe
@@ -324,7 +322,7 @@ public class ModLogListener {
                 caseDao.unlock(aCase);
             }
         }
-        if (aCase.getValidTo() != null && aCase.getIssuerId() != null) {
+        if (aCase.getValidTo() != null && aCase.getIssuerId() != null && !aCase.getType().equals(Kara.MUTE)) {
             scheduleDao.save(scheduleDao.createNew(Instant.from(aCase.getValidTo()).toEpochMilli(),
                     Long.toUnsignedString(aCase.getIssuerId()), Akcja.EVENT, new AutoAkcja(aCase.getCaseNumber(),
                             aCase.getType().opposite(), Long.toUnsignedString(aCase.getGuildId()))));
@@ -332,7 +330,7 @@ public class ModLogListener {
         Member mem = g.retrieveMember(user).onErrorMap(UNKNOWN_MEMBER::test, t -> null).complete();
         if (e.getCase().getType() == Kara.WARN && mem != null)
             WarnUtil.takeAction(this, guildDao, caseDao, mem, e.getChannel(),
-                    e.getLanguage(), tlumaczenia, managerKomend);
+                    e.getLanguage(), tlumaczenia);
     }
 
     @Subscribe
@@ -364,7 +362,7 @@ public class ModLogListener {
                 }
             } else if (adw == Kara.UNMUTE) {
                 try {
-                    g.removeRoleFromMember(aCase.getUserId(), getMuteRole(g)).complete();
+                    g.removeRoleFromMember(User.fromId(aCase.getUserId()), getMuteRole(g)).complete();
                 } catch (Exception ignored) {
                     // nie udało się, ignoruj
                     return;
@@ -394,7 +392,7 @@ public class ModLogListener {
     private Case sendCaseMessage(Case aCase, TextChannel mlogchan) {
         if (mlogchan == null) return aCase;
         Message toSend = ModLogBuilder.generate(aCase, mlogchan.getGuild(), shardManager,
-                tlumaczenia.getLanguage(mlogchan.getGuild()), managerKomend, true, false, false);
+                tlumaczenia.getLanguage(mlogchan.getGuild()), true, false, false);
         try {
             Message msg = mlogchan.sendMessage(toSend).complete();
             aCase.setMessageId(msg.getIdLong());
@@ -408,7 +406,7 @@ public class ModLogListener {
     private Case updateCaseMessage(Case aCase, TextChannel mlogchan) {
         if (mlogchan == null || aCase.getMessageId() == null) return aCase;
         Message toSend = ModLogBuilder.generate(aCase, mlogchan.getGuild(), shardManager,
-                tlumaczenia.getLanguage(mlogchan.getGuild()), managerKomend, true, false, false);
+                tlumaczenia.getLanguage(mlogchan.getGuild()), true, false, false);
         try {
             mlogchan.retrieveMessageById(aCase.getMessageId())
                     .flatMap(m -> m.editMessage(toSend).override(true)).complete();
@@ -421,7 +419,7 @@ public class ModLogListener {
     private Case sendDm(Case aCase, User user, Guild g) {
         if (aCase.getIssuerId() == null) return aCase;
         Message toSend = ModLogBuilder.generate(aCase, g, shardManager, tlumaczenia.getLanguage(user),
-                null, true, false, true);
+                true, false, true);
         try {
             Message msg = user.openPrivateChannel().flatMap(chan -> chan.sendMessage(toSend)).complete();
             aCase.setDmMsgId(msg.getIdLong());
@@ -435,7 +433,7 @@ public class ModLogListener {
     private Case updateDm(Case aCase, User user, Guild g) {
         if (aCase.getIssuerId() == null || aCase.getDmMsgId() == null || user == null) return aCase;
         Message toSend = ModLogBuilder.generate(aCase, g, shardManager, tlumaczenia.getLanguage(user),
-                null, true, false, true);
+                true, false, true);
         try {
             user.openPrivateChannel().flatMap(chan -> chan.retrieveMessageById(aCase.getDmMsgId()))
                     .flatMap(m -> m.editMessage(toSend).override(true)).complete();
