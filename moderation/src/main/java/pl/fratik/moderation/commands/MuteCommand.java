@@ -23,12 +23,9 @@ import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.NewCommandContext;
-import pl.fratik.core.entity.Kara;
 import pl.fratik.core.util.DurationUtil;
 import pl.fratik.core.util.UserUtil;
-import pl.fratik.moderation.entity.Case;
 import pl.fratik.moderation.listeners.ModLogListener;
-import pl.fratik.moderation.utils.ReasonUtils;
 
 import java.time.Instant;
 
@@ -83,11 +80,11 @@ public class MuteCommand extends ModerationCommand {
         powod = durationResp.getTekst();
         muteDo = durationResp.getDoKiedy();
         context.defer(false);
-        Case aCase = new Case.Builder(uzytkownik, Instant.now(), Kara.MUTE)
-                .setIssuerId(context.getSender().getIdLong()).build();
-        ReasonUtils.parseFlags(aCase, powod);
-        aCase.setValidTo(muteDo);
-        modLogListener.getKnownCases().put(ModLogListener.generateKey(uzytkownik), aCase);
+//        Case aCase = new Case.Builder(uzytkownik, Instant.now(), Kara.MUTE)
+//                .setIssuerId(context.getSender().getIdLong()).build();
+//        ReasonUtils.parseFlags(aCase, powod);
+//        aCase.setValidTo(muteDo);
+//        modLogListener.getKnownCases().put(ModLogListener.generateKey(uzytkownik), aCase);
         try {
             context.getGuild().timeoutUntil(uzytkownik, muteDo).complete();
             context.sendMessage(context.getTranslated("mute.success", UserUtil.formatDiscrim(uzytkownik)));

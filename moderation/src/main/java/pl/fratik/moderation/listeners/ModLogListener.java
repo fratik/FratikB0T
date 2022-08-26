@@ -22,9 +22,7 @@ import com.google.common.eventbus.Subscribe;
 import lombok.Getter;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.audit.ActionType;
-import net.dv8tion.jda.api.audit.AuditLogChange;
 import net.dv8tion.jda.api.audit.AuditLogEntry;
-import net.dv8tion.jda.api.audit.AuditLogKey;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.guild.GenericGuildEvent;
 import net.dv8tion.jda.api.events.guild.GuildBanEvent;
@@ -34,7 +32,6 @@ import net.dv8tion.jda.api.events.guild.member.GuildMemberUpdateEvent;
 import net.dv8tion.jda.api.events.role.GenericRoleEvent;
 import net.dv8tion.jda.api.events.role.RoleDeleteEvent;
 import net.dv8tion.jda.api.sharding.ShardManager;
-import net.dv8tion.jda.internal.utils.Helpers;
 import pl.fratik.core.Globals;
 import pl.fratik.core.cache.Cache;
 import pl.fratik.core.cache.RedisCacheManager;
@@ -209,86 +206,7 @@ public class ModLogListener {
     @Subscribe
     @AllowConcurrentEvents
     public void onMemberUpdate(GuildMemberUpdateEvent e) {
-        if (!checkPermissions(e)) return;
-        Member mem = e.getMember();
-        Guild guild = e.getGuild();
-        String key = generateKey(mem);
-        Case lastCase = null;
-        List<Case> cases = caseDao.getCasesByMember(mem);
-        Iterator<Case> iterator = cases.iterator();
-        while (iterator.hasNext() && lastCase == null) {
-            Case aCase = iterator.next();
-            if (aCase.getType() == Kara.MUTE || aCase.getType() == Kara.UNMUTE) {
-                if (!aCase.isValid()) break;
-                lastCase = aCase;
-            }
-        }
-        Case aCase = null;
-        Optional<AuditLogEntry> entry = Optional.empty();
-        TemporalAccessor timestamp = Instant.now();
-        Kara type = null;
-        Case knownCase = knownCases.get(key);
-        if (mem.isTimedOut() && mem.getTimeOutEnd() != null) { // MUTE
-            if ((lastCase != null && lastCase.getType() != Kara.UNMUTE) || (lastCase != null && lastCase.getType() != Kara.MUTE)) return;
-            //zapisz mute'a jeżeli ostatnią karą jest unmute lub żadnej nie ma - aka jeżeli nie ma żadnego ważnego mute'a
-            // ten komentarz już jest nie ważny w związku ze zjebaniem timeoutów – w sumie to ja nawet nie wiem co ja robię i czy to zadziała
-            // jest 1:33, a ja jestem nietrzeźwy i wkurwiony na to
-            if (knownCase != null && knownCase.getType() == Kara.MUTE) aCase = knownCase;
-            else {
-                entry = findAuditLogEntry(guild, mem.getIdLong(), ActionType.MEMBER_UPDATE, l -> {
-                    AuditLogChange changeByKey = l.getChangeByKey(AuditLogKey.MEMBER_TIME_OUT);
-                    if (changeByKey == null) return false;
-                    String newValue = changeByKey.getNewValue();
-                    return newValue != null && Helpers.toTimestamp(newValue) == mem.getTimeOutEnd().toInstant().toEpochMilli();
-                });
-                type = Kara.MUTE;
-            }
-            if (lastCase != null && lastCase.getType() == Kara.MUTE) {
-                if (Objects.equals(Instant.from(lastCase.getValidTo()), mem.getTimeOutEnd().toInstant())) return;
-                // tadam, jedyna kurwa metoda sprawdzenia
-            }
-        } else { // UNMUTE
-//            if (lastCase == null || lastCase.getType() != Kara.MUTE) return;
-//            //zapisz unmute'a tylko jeżeli ostatnią karą jest mute - aka jeżeli jest ważny mute
-//            if (knownCase != null && knownCase.getType() == Kara.UNMUTE) aCase = knownCase;
-//            else {
-//                entry = findAuditLogEntry(guild, mem.getIdLong(), ActionType.MEMBER_ROLE_UPDATE, l -> {
-//                    AuditLogChange changeByKey = l.getChangeByKey(AuditLogKey.MEMBER_ROLES_REMOVE);
-//                    if (changeByKey == null) return false;
-//                    List<String> newValue = changeByKey.getNewValue();
-//                    return newValue != null && newValue.contains(muteRole.getId());
-//                });
-//                type = Kara.UNMUTE;
-//            }
-            return; // ??????
-        }
-        if (aCase == null) {
-            Long issuerId = null;
-            String reason = null;
-            if (entry.isPresent()) {
-                AuditLogEntry logEntry = entry.get();
-                User issuer = logEntry.getUser();
-                if (issuer != null) {
-                    issuerId = issuer.getIdLong();
-                    reason = logEntry.getReason();
-                    timestamp = logEntry.getTimeCreated();
-                }
-            }
-            aCase = new Case.Builder(mem, timestamp, type).setIssuerId(issuerId).setReason(reason, true).build();
-            if (aCase.getType() == Kara.MUTE) {
-                if (entry.isPresent()) {
-                    AuditLogEntry logEntry = entry.get();
-                    String timeoutValue = logEntry.getChangeByKey(AuditLogKey.MEMBER_TIME_OUT).getNewValue();
-                    if (timeoutValue == null) return; // niemożliwe, ale na wszelki
-                    aCase.setValidTo(Instant.ofEpochMilli(Helpers.toTimestamp(timeoutValue)));
-                }
-            } else return; // nie zapisuj mute'a jeśli nie jesteśmy w stanie odczytać validTo
-        }
-        if (lastCase != null && lastCase.getType() != Kara.MUTE) {
-            lastCase.setValid(false);
-            lastCase.setValidTo(aCase.getTimestamp());
-        }
-        saveCase(lastCase, aCase, false);
+        // todo zaimplementuj reagowanie na mute'y
     }
 
     @Subscribe
