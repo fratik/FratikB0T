@@ -15,15 +15,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package pl.fratik.starboard.komendy;
+package pl.fratik.starboard.commands;
 
-import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Message;
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.starboard.StarManager;
 import pl.fratik.starboard.entity.StarDataDao;
 
-public class FixstarCommand extends Command {
+public class FixstarCommand extends NewCommand {
 
     private final StarManager starManager;
     private final StarDataDao starDataDao;
@@ -32,16 +33,20 @@ public class FixstarCommand extends Command {
         this.starManager = starManager;
         this.starDataDao = starDataDao;
         name = "fixstar";
-        category = CommandCategory.STARBOARD;
-        uzycie = new Uzycie("wiadomosc", "message", true);
-        permissions.add(Permission.MESSAGE_HISTORY);
-        allowPermLevelChange = false;
+        usage = "<id_wiadomosci:string>";
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        starManager.fixStars((Message) context.getArgs()[0], starDataDao.get(context.getGuild()));
-        context.reply(context.getTranslated("fixstar.success"));
-        return true;
+    public void execute(@NotNull NewCommandContext context) {
+        context.defer(true);
+        Message message;
+        try {
+            message = context.getChannel().retrieveMessageById(context.getArguments().get("id_wiadomosci").getAsString()).complete();
+        } catch (Exception e) {
+            context.sendMessage(context.getTranslated("fixstar.success"));
+            return;
+        }
+        starManager.fixStars(message, starDataDao.get(context.getGuild()));
+        context.sendMessage(context.getTranslated("fixstar.success"));
     }
 }

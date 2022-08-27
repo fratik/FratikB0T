@@ -20,26 +20,28 @@ package pl.fratik.starboard;
 import com.google.common.eventbus.EventBus;
 import com.google.inject.Inject;
 import pl.fratik.core.cache.RedisCacheManager;
+import pl.fratik.core.command.NewCommand;
 import pl.fratik.core.manager.ManagerBazyDanych;
+import pl.fratik.core.manager.NewManagerKomend;
 import pl.fratik.core.moduly.Modul;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.EventWaiter;
 import pl.fratik.starboard.entity.StarDataDao;
-import pl.fratik.starboard.komendy.*;
+import pl.fratik.starboard.commands.*;
 
 import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class Module implements Modul {
-    @Inject private ManagerKomend managerKomend;
+    @Inject private NewManagerKomend managerKomend;
     @Inject private EventBus eventBus;
     @Inject private Tlumaczenia tlumaczenia;
     @Inject private ManagerBazyDanych managerBazyDanych;
     @Inject private EventWaiter eventWaiter;
     @Inject private RedisCacheManager redisCacheManager;
 
-    private ArrayList<Command> commands;
+    private ArrayList<NewCommand> commands;
     private ExecutorService executor;
     private StarManager starManager;
     private StarboardListener starboardListener;
@@ -59,12 +61,13 @@ public class Module implements Modul {
         commands.add(new FixstarCommand(starManager, starDataDao));
         commands.add(new StarboardCommand(starDataDao));
         commands.add(new StarThresholdCommand(starDataDao));
-        commands.add(new TopStarCommand(starDataDao, starManager, eventWaiter, eventBus));
+        commands.add(new TopStarCommand(starDataDao, eventWaiter, eventBus));
         commands.add(new StarInfoCommand(starDataDao, starManager));
         commands.add(new StarRankingCommand(starDataDao, eventWaiter, eventBus));
         commands.add(new StarBlacklistCommand(starDataDao));
 
-        commands.forEach(managerKomend::registerCommand);
+        managerKomend.registerCommands(this, commands);
+
 
         eventBus.register(starboardListener);
         return true;
@@ -72,7 +75,7 @@ public class Module implements Modul {
 
     @Override
     public boolean shutDown() {
-        commands.forEach(managerKomend::unregisterCommand);
+        managerKomend.unregisterAll(this);
         executor.shutdown();
         try {
             eventBus.unregister(starboardListener);
