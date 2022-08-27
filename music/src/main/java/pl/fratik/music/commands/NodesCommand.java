@@ -17,39 +17,27 @@
 
 package pl.fratik.music.commands;
 
+import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.Ustawienia;
 import pl.fratik.core.command.*;
-import pl.fratik.core.util.CommonErrors;
 
-import java.util.LinkedHashMap;
 
-public class NodesCommand extends Command {
+public class NodesCommand extends NewCommand {
+
     public NodesCommand() {
         name = "nodes";
-        category = CommandCategory.SYSTEM;
-        permLevel = PermLevel.BOTOWNER;
-        LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
-        hmap.put("node", "string");
-        hmap.put("[...]", "string");
-        uzycie = new Uzycie(hmap, new boolean[] {true, false});
-        uzycieDelim = " ";
-        allowPermLevelChange = false;
+        permissions = DefaultMemberPermissions.DISABLED;
+        type = CommandType.SUPPORT_SERVER;
     }
 
-    @Override
-    protected boolean execute(@NotNull CommandContext context) {
-        CommonErrors.usage(context);
-        return false;
-    }
-
-    @SubCommand(name = "add")
-    public boolean add(@NotNull CommandContext context) {
+    @SubCommand(name = "add", usage = "<node:string>")
+    public boolean add(@NotNull NewCommandContext context) {
         String ip;
         String pass;
         int port;
         try {
-            String[] args = ((String) context.getArgs()[0]).split(":");
+            String[] args = context.getArguments().get("node").getAsString().split(":");
             ip = args[0];
             pass = args[1];
             port = Integer.parseInt(args[2]);
@@ -57,29 +45,27 @@ public class NodesCommand extends Command {
             context.reply(context.getTranslated("nodes.add.failed.parse"));
             return false;
         }
-        if (pass.equals("default")) {
-            pass = Ustawienia.instance.lavalink.defaultPass;
-        }
+        if (pass.equals("default")) pass = Ustawienia.instance.lavalink.defaultPass;
         Ustawienia.instance.lavalink.nodes.add(new Ustawienia.Lavalink.LavalinkNode(ip, pass, port, port));
         context.reply(context.getTranslated("nodes.add.success"));
         return true;
     }
 
-    @SubCommand(name = "delete", aliases = "del")
-    public boolean delete(@NotNull CommandContext context) {
-        int index = Integer.parseInt((String) context.getArgs()[0]);
+    @SubCommand(name = "delete", usage = "<index:integer>")
+    public void delete(@NotNull NewCommandContext context) {
+        int index = context.getArguments().get("index").getAsInt();
         try {
             Ustawienia.instance.lavalink.nodes.remove(index);
         } catch (IndexOutOfBoundsException e) {
             context.reply(context.getTranslated("nodes.delete.unknown"));
-            return false;
+            return;
         }
+
         context.reply(context.getTranslated("nodes.delete.success"));
-        return true;
     }
 
-    @SubCommand(name = "list", emptyUsage = true)
-    public boolean list(@NotNull CommandContext context) {
+    @SubCommand(name = "list")
+    public void list(@NotNull NewCommandContext context) {
         StringBuilder builderTresci = new StringBuilder();
         builderTresci.append("```\n");
         int i = 0;
@@ -88,7 +74,6 @@ public class NodesCommand extends Command {
             i++;
         }
         builderTresci.append("```");
-        context.reply(builderTresci);
-        return true;
+        context.reply(builderTresci.toString());
     }
 }

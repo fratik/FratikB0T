@@ -21,6 +21,7 @@ import com.google.common.eventbus.EventBus;
 import lombok.AllArgsConstructor;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -31,6 +32,7 @@ import org.jsoup.nodes.Node;
 import org.jsoup.nodes.TextNode;
 import org.jsoup.select.Elements;
 import pl.fratik.core.Ustawienia;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.util.*;
 import pl.fratik.music.managers.NowyManagerMuzyki;
 
@@ -50,33 +52,29 @@ public class TekstCommand extends MusicCommand {
         this.managerMuzyki = managerMuzyki;
         name = "tekst";
         requireConnection = false;
-        uzycie = new Uzycie("tytul", "string", false);
-        allowPermLevelChange = false;
+        usage = "[tekst:string]";
     }
 
     @Override
-    protected boolean execute(@NotNull CommandContext context) {
-        String q;
-        boolean usedTitle = false;
-        if (context.getArgs().length >= 1 && context.getArgs()[0] != null) {
-            q = (String) context.getArgs()[0];
-        } else if (managerMuzyki.getManagerMuzykiSerwera(context.getGuild()).isPlaying()) {
-            q = managerMuzyki.getManagerMuzykiSerwera(context.getGuild()).getAktualnaPiosenka().getAudioTrack()
-                    .getInfo().title;
-            usedTitle = true;
-        } else {
-            CommonErrors.usage(context);
-            return false;
+    public void execute(@NotNull NewCommandContext context) {
+        String q = context.getArgumentOr("tekst",
+            managerMuzyki.getManagerMuzykiSerwera(context.getGuild()).isPlaying() ? managerMuzyki.getManagerMuzykiSerwera(context.getGuild()).getAktualnaPiosenka().getAudioTrack().getInfo().title
+                : null,
+            OptionMapping::getAsString);
+
+        if (q == null) {
+            context.reply(context.getTranslated("tekst.empty.args"));
+            return;
         }
-        Message loading = context.reply(context.getTranslated("generic.loading"));
+
+        Message loading = context.reply(context.getTranslated("generic.loading")).retrieveOriginal().complete();
         try {
             Piosenka p = requestGenius(q);
             if (p == null) {
                 p = requestTekstowo(q);
                 if (p == null) {
-                    if (!usedTitle) loading.editMessage(context.getTranslated("tekst.not.found")).queue();
-                    else loading.editMessage(context.getTranslated("tekst.not.found.usedtitle")).queue();
-                    return false;
+                    loading.editMessage(context.getTranslated("tekst.not.found.usedtitle")).queue();
+                    return;
                 }
             }
             if (p.slowa.length() >= 2000) {
@@ -99,15 +97,13 @@ public class TekstCommand extends MusicCommand {
                 }
                 new ClassicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(),
                         context.getTlumaczenia(), eventBus).create(loading);
-                return true;
+                return;
             }
             loading.editMessageEmbeds(new EmbedBuilder().setTitle(p.title, p.website)
                     .setThumbnail(p.imageLink).setColor(CommonUtil.getPrimColorFromImageUrl(p.imageLink))
                     .setDescription(p.slowa).build()).override(true).complete();
-            return true;
         } catch (Exception e) {
             loading.editMessage(context.getTranslated("tekst.failed")).queue();
-            return false;
         }
     }
 

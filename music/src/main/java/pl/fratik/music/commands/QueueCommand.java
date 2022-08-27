@@ -23,8 +23,10 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo;
 import lombok.Setter;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.GuildChannel;
 import net.dv8tion.jda.api.entities.Message;
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.util.DynamicEmbedPaginator;
 import pl.fratik.core.util.EventWaiter;
 import pl.fratik.core.util.TimeUtil;
@@ -53,26 +55,26 @@ public class QueueCommand extends MusicCommand {
         this.eventBus = eventBus;
         name = "queue";
         requireConnection = true;
-        aliases = new String[] {"q", "que", "songlist", "songslist", "songlists", "listapiosenek", "listamuzyki", "kolejka"};
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
+    public void execute(@NotNull NewCommandContext context) {
+        if (check(context)) return;
+
         ManagerMuzykiSerwera mms = managerMuzyki.getManagerMuzykiSerwera(context.getGuild());
         if (mms == null || (mms.getKolejka().isEmpty() && mms.getAktualnaPiosenka() == null)) {
             context.reply(context.getTranslated("queue.empty"));
-            return false;
+            return;
         }
         if (Stream.of(Permission.MESSAGE_ADD_REACTION, Permission.MESSAGE_MANAGE, Permission.MESSAGE_EMBED_LINKS)
-                .allMatch(a -> context.getGuild().getSelfMember().getPermissions(context.getTextChannel()).contains(a))) {
-            Message m = context.reply(context.getTranslated("generic.loading"));
+            .allMatch(a -> context.getGuild().getSelfMember().getPermissions((GuildChannel) context.getChannel()).contains(a))) {
+            Message m = context.reply(context.getTranslated("generic.loading")).retrieveOriginal().complete();
             List<FutureTask<EmbedBuilder>> pages = new ArrayList<>();
             pages.add(new FutureTask<>(() -> generateEmbed(mms.getAktualnaPiosenka(), context)));
             for (Piosenka piosenka : mms.getKolejka()) {
                 pages.add(new FutureTask<>(() -> generateEmbed(piosenka, context)));
             }
-            new DynamicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(), context.getTlumaczenia(),
-                    eventBus).create(m);
+            new DynamicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(), context.getTlumaczenia(), eventBus).create(m);
         } else {
             StringBuilder sb = new StringBuilder();
             for (int i = 0; i < Math.min(mms.getKolejka().size(), 10); i++) {
@@ -105,10 +107,9 @@ public class QueueCommand extends MusicCommand {
             }
             context.reply(sb.toString());
         }
-        return true;
     }
 
-    private static EmbedBuilder generateEmbed(Piosenka piosenka, CommandContext context) {
+    private static EmbedBuilder generateEmbed(Piosenka piosenka, NewCommandContext context) {
         AudioTrackInfo info = piosenka.getAudioTrack().getInfo();
         EmbedBuilder eb = new EmbedBuilder();
         eb.setAuthor(context.getTranslated("queue.embed.header"), info.uri);

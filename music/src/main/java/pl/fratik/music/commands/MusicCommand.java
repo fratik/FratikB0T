@@ -24,6 +24,8 @@ import net.dv8tion.jda.api.entities.ChannelType;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.sharding.ShardManager;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.command.PermLevel;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
@@ -33,46 +35,40 @@ import pl.fratik.music.managers.NowyManagerMuzyki;
 
 import java.util.Objects;
 
-public abstract class MusicCommand extends Command {
+public abstract class MusicCommand extends NewCommand {
 
     @Getter protected boolean requireConnection = false;
     @Setter private static NowyManagerMuzyki managerMuzyki;
 
-    @Override
-    public boolean preExecute(CommandContext context) {
-        if (context.getMessageChannel().getType() != ChannelType.TEXT) {
-            context.reply(context.getTranslated("generic.text.only"));
-            return false;
-        }
-        if (context.getRawArgs().length != 0) {
-            String subcommand = context.getRawArgs()[0].toLowerCase();
-            if (subcommand.equalsIgnoreCase("-h") || subcommand.equalsIgnoreCase("--help")) {
-                CommonErrors.usage(context);
-                return false;
-            }
-        }
+    /**
+     * @param context Kontekst
+     * @return Czy wyjebało error? True - tak, false -nie
+     */
+    public boolean check(NewCommandContext context) {
         if (managerMuzyki.getLavaClient().getNodes().stream().noneMatch(LavalinkSocket::isAvailable)) {
             context.reply(context.getTranslated("music.nodes.unavailble"));
-            return false;
+            return true;
         }
-        if (!requireConnection) {
-            return super.preExecute(context);
-        }
+
+        if (!requireConnection) return false;
+
         if (context.getMember().getVoiceState() == null || !context.getMember().getVoiceState().inAudioChannel()) {
             context.reply(context.getTranslated("music.notconnected"));
-            return false;
+            return true;
         }
-        if (context.getGuild().getSelfMember().getVoiceState() == null ||
-                !context.getGuild().getSelfMember().getVoiceState().inAudioChannel()) {
+
+        if (context.getGuild().getSelfMember().getVoiceState() == null || !context.getGuild().getSelfMember().getVoiceState().inAudioChannel()) {
             context.reply(context.getTranslated("music.self.notconnected"));
-            return false;
+            return true;
         }
+
         if (!Objects.equals(context.getMember().getVoiceState().getChannel(),
                 context.getGuild().getSelfMember().getVoiceState().getChannel())) {
             context.reply(context.getTranslated("music.different.channels"));
-            return false;
+            return true;
         }
-        return super.preExecute(context);
+
+        return false;
     }
 
     protected boolean hasFullDjPerms(Member member, ShardManager shardManager, GuildDao guildDao) {
@@ -102,8 +98,4 @@ public abstract class MusicCommand extends Command {
         return gc.getTylkoDjWGoreMozeDodawacPiosenki() != null && gc.getTylkoDjWGoreMozeDodawacPiosenki();
     }
 
-    @Override
-    public CommandCategory getCategory() {
-        return CommandCategory.MUSIC;
-    }
 }

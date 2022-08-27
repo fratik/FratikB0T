@@ -17,14 +17,14 @@
 
 package pl.fratik.music.commands;
 
+import net.dv8tion.jda.api.Permission;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.cache.Cache;
 import pl.fratik.core.cache.RedisCacheManager;
-import pl.fratik.core.command.PermLevel;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.command.SubCommand;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
-import pl.fratik.core.util.UserUtil;
 import pl.fratik.music.entity.RepeatMode;
 import pl.fratik.music.managers.ManagerMuzykiSerwera;
 import pl.fratik.music.managers.NowyManagerMuzyki;
@@ -42,57 +42,55 @@ public class SkipCommand extends MusicCommand {
         this.guildDao = guildDao;
         name = "skip";
         requireConnection = true;
-        aliases = new String[] {"pomin", "pass", "passer"};
         gcCache = redisCacheManager.new CacheRetriever<GuildConfig>() {}.getCache();
     }
 
-    @Override
-    public boolean execute(@NotNull CommandContext context) {
+    @SubCommand(name = "normal")
+    public void normal(@NotNull NewCommandContext context) {
+        if (check(context)) return;
+
         ManagerMuzykiSerwera mms = managerMuzyki.getManagerMuzykiSerwera(context.getGuild());
         if (mms.getRepeatMode() != RepeatMode.OFF) {
             context.reply(context.getTranslated("skip.on.repeat"));
-            return false;
+            return;
         }
         synchronized (context.getGuild()) {
             if (mms.getChannel().getMembers().size() > 4) {
                 List<String> skips = mms.getSkips();
                 if (skips.contains(context.getSender().getId())) {
                     context.reply(context.getTranslated("skip.already.voted"));
-                    return false;
+                    return;
                 }
                 skips.add(context.getSender().getId());
                 int total = mms.getChannel().getMembers().size() - 1;
                 int size = skips.size();
                 if (size < total * 0.4) {
                     context.reply("\uD83D\uDD38 | " + context.getTranslated("skip.votes", size, (int) Math.ceil(total * 0.4)));
-                    return true;
+                    return;
                 }
             } else if (!hasFullDjPerms(context.getMember(), context.getShardManager(), guildDao)) {
                 context.reply(context.getTranslated("skip.dj"));
-                return false;
+                return;
             }
             context.reply(context.getTranslated("skip.success"));
             mms.skip();
         }
-        return true;
     }
 
-    @SubCommand(name = "force", aliases = {"wymus", "-f", "--force"})
-    public boolean force(@NotNull CommandContext context) {
+    @SubCommand(name = "admin")
+    public void admin(@NotNull NewCommandContext context) {
         GuildConfig gc = gcCache.get(context.getGuild().getId(), guildDao::get);
-        PermLevel plvl = UserUtil.getPermlevel(context.getMember(), guildDao, context.getShardManager(), PermLevel.OWNER);
         if ((isDjConfigured(gc) && !hasFullDjPerms(context.getMember(), context.getShardManager(), guildDao)) ||
-                (!isDjConfigured(gc) && plvl.getNum() < PermLevel.MOD.getNum())) {
+            (!isDjConfigured(gc) && context.getMember().hasPermission(context.getMember().getVoiceState().getChannel(), Permission.MANAGE_CHANNEL))) {
             context.reply(context.getTranslated("skip.forced.error"));
-            return false;
+            return;
         }
         ManagerMuzykiSerwera mms = managerMuzyki.getManagerMuzykiSerwera(context.getGuild());
         if (mms.getRepeatMode() != RepeatMode.OFF) {
             context.reply(context.getTranslated("skip.on.repeat"));
-            return false;
+            return;
         }
         context.reply(context.getTranslated("skip.success.forced"));
         mms.skip();
-        return true;
     }
 }

@@ -18,6 +18,8 @@
 package pl.fratik.music.commands;
 
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.music.managers.NowyManagerMuzyki;
 
 public class LeaveCommand extends MusicCommand {
@@ -27,13 +29,13 @@ public class LeaveCommand extends MusicCommand {
         this.managerMuzyki = managerMuzyki;
         name = "leave";
         requireConnection = true;
-        aliases = new String[] {"sorts", "sort", "wyjdz", "sortdusalon", "plsleave"};
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
+    public void execute(@NotNull NewCommandContext context) {
+        if (check(context)) return;
+
         managerMuzyki.getManagerMuzykiSerwera(context.getGuild()).disconnect();
         context.reply(context.getTranslated("leave.success"));
-        return true;
     }
 }

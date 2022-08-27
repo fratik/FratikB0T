@@ -22,6 +22,7 @@ import lombok.Setter;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.util.TimeUtil;
 import pl.fratik.music.entity.Piosenka;
 import pl.fratik.music.managers.ManagerMuzykiSerwera;
@@ -37,21 +38,20 @@ public class NowplayingCommand extends MusicCommand {
     public NowplayingCommand(NowyManagerMuzyki managerMuzyki) {
         this.managerMuzyki = managerMuzyki;
         name = "nowplaying";
-        aliases = new String[] {"np"};
         requireConnection = true;
-        permissions.add(Permission.MESSAGE_EMBED_LINKS);
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
+    public void execute(@NotNull NewCommandContext context) {
+        if (check(context)) return;
+
         ManagerMuzykiSerwera mms = managerMuzyki.getManagerMuzykiSerwera(context.getGuild());
         Piosenka piosenka = mms.getAktualnaPiosenka();
         EmbedBuilder eb = generateEmbed(piosenka, context, mms);
         context.reply(eb.build());
-        return true;
     }
 
-    private static EmbedBuilder generateEmbed(Piosenka piosenka, CommandContext context, ManagerMuzykiSerwera mms) {
+    private static EmbedBuilder generateEmbed(Piosenka piosenka, NewCommandContext context, ManagerMuzykiSerwera mms) {
         AudioTrackInfo info = piosenka.getAudioTrack().getInfo();
         EmbedBuilder eb = new EmbedBuilder();
         eb.setAuthor(context.getTranslated("nowplaying.embed.header"), info.uri);

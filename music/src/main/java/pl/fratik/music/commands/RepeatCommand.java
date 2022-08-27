@@ -17,9 +17,11 @@
 
 package pl.fratik.music.commands;
 
+import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.arguments.Argument;
 import pl.fratik.core.arguments.ArgumentContext;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.manager.ManagerArgumentow;
 import pl.fratik.music.entity.RepeatMode;
@@ -38,26 +40,36 @@ public class RepeatCommand extends MusicCommand {
         this.guildDao = guildDao;
         name = "repeat";
         requireConnection = true;
-        aliases = new String[] {"loop"};
+        usage = "<typ:string>";
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
+    public void execute(@NotNull NewCommandContext context) {
+        if (check(context)) return;
+
         if (!hasFullDjPerms(context.getMember(), context.getShardManager(), guildDao)) {
             context.reply(context.getTranslated("repeat.dj"));
-            return false;
+            return;
         }
+
         ManagerMuzykiSerwera mms = managerMuzyki.getManagerMuzykiSerwera(context.getGuild());
-        mms.setRepeatMode((RepeatMode) context.getArgs()[0]);
+        mms.setRepeatMode(RepeatMode.valueOf(context.getArguments().get("type").getAsString()));
         context.reply(context.getTranslated("repeat.set"));
-        return true;
+    }
+
+    @Override
+    public void updateOptionData(OptionData option) {
+        if (option.getName().equals("typ")) {
+            for (RepeatMode value : RepeatMode.values()) {
+                option.addChoice(value.name().toLowerCase(), value.name());
+            }
+        }
     }
 
     @Override
     public void onRegister() {
         arg = new RepeatModeArgument();
         managerArgumentow.registerArgument(arg);
-        uzycie = new Uzycie("tryb", "repeatmode", true);
     }
 
     @Override

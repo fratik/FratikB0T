@@ -17,6 +17,7 @@
 
 package pl.fratik.music.commands;
 
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.music.managers.ManagerMuzykiSerwera;
 import pl.fratik.music.managers.NowyManagerMuzyki;
@@ -28,29 +29,28 @@ public class ShuffleCommand extends MusicCommand {
 
     public ShuffleCommand(NowyManagerMuzyki managerMuzyki, GuildDao guildDao) {
         name = "shuffle";
-        aliases = new String[] {"shufflequeue", "mieszajkolejka", "randomqueue"};
         requireConnection = true;
         this.managerMuzyki = managerMuzyki;
         this.guildDao = guildDao;
     }
 
     @Override
-    public boolean execute(CommandContext context) {
+    public void execute(NewCommandContext context) {
+        if (check(context)) return;
+
         ManagerMuzykiSerwera mms = managerMuzyki.getManagerMuzykiSerwera(context.getGuild());
         if (!hasFullDjPerms(context.getMember(), context.getShardManager(), guildDao)) {
-            context.send(context.getTranslated("volume.dj"));
-            return false;
+            context.reply(context.getTranslated("volume.dj"));
+            return;
         }
 
         if (mms.getKolejka().isEmpty()) {
-            context.send(context.getTranslated("shuffle.queueempty"));
-            return false;
+            context.reply(context.getTranslated("shuffle.queueempty"));
+            return;
         }
 
         mms.shuffleQueue();
-        context.send(context.getTranslated("shuffle.success"));
-
-        return true;
+        context.reply(context.getTranslated("shuffle.success"));
     }
 
 }
