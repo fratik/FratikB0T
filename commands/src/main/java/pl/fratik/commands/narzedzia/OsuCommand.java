@@ -29,9 +29,6 @@ import com.oopsjpeg.osu4j.backend.EndpointUsers;
 import com.oopsjpeg.osu4j.backend.Osu;
 import com.oopsjpeg.osu4j.exception.OsuAPIException;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.Emote;
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
@@ -39,7 +36,10 @@ import pl.fratik.core.Ustawienia;
 import pl.fratik.core.command.NewCommand;
 import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.command.SubCommand;
-import pl.fratik.core.util.*;
+import pl.fratik.core.util.DurationUtil;
+import pl.fratik.core.util.DynamicEmbedPaginator;
+import pl.fratik.core.util.EventWaiter;
+import pl.fratik.core.util.NetworkUtil;
 
 import java.awt.*;
 import java.io.BufferedReader;
@@ -49,10 +49,10 @@ import java.io.InputStreamReader;
 import java.math.RoundingMode;
 import java.net.MalformedURLException;
 import java.text.NumberFormat;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.*;
+import java.util.Objects;
 import java.util.concurrent.FutureTask;
-import java.util.stream.Collectors;
 
 import static pl.fratik.core.Ustawienia.instance;
 import static pl.fratik.core.util.CommonUtil.round;
@@ -73,7 +73,7 @@ public class OsuCommand extends NewCommand {
         cooldown = 15;
     }
 
-    @SubCommand(name = "user", usage = "<nick:string>")
+    @SubCommand(name = "gracz", usage = "<nick:string>")
     public void user(@NotNull NewCommandContext context) {
         NumberFormat nf = NumberFormat.getInstance(context.getLanguage().getLocale());
         context.deferAsync(false);
@@ -110,55 +110,48 @@ public class OsuCommand extends NewCommand {
             context.sendMessage(eb.build());
         } catch (OsuAPIException | MalformedURLException e) {
             context.sendMessage(context.getTranslated("osu.error"));
-            return false;
         }
-        return true;
     }
 
-    @SubCommand(name = "topPlay")
-    public boolean topPlay(@NotNull NewCommandContext context) {
-        Message mes = context.reply(context.getTranslated("generic.loading"));
+    @SubCommand(name = "naj_wynik", usage = "<nick:string>")
+    public void topPlay(@NotNull NewCommandContext context) {
+        InteractionHook hook = context.defer(false);
         try {
             List<OsuScore> wyniki = osu.userBests
                     .query(new EndpointUserBests.ArgumentsBuilder(context.getArguments().get("nick").getAsString()).setLimit(100).build());
             if (wyniki.isEmpty()) {
-                mes.editMessage(context.getTranslated("osu.topplay.empty")).queue();
-                return false;
+                context.sendMessage(context.getTranslated("osu.topplay.empty"));
+                return;
             }
-            renderScores(context, mes, wyniki);
+            renderScores(context, hook, wyniki);
         } catch (OsuAPIException e) {
-            mes.editMessage(context.getTranslated("osu.error")).queue();
-            return false;
+            context.sendMessage(context.getTranslated("osu.error"));
         }
-        return true;
     }
 
-    @SubCommand(name = "recentPlay")
-    public boolean recentPlay(@NotNull NewCommandContext context) {
-        Message mes = context.reply(context.getTranslated("generic.loading"));
+    @SubCommand(name = "ostatnie_wyniki", usage = "<nick:string>")
+    public void recentPlay(@NotNull NewCommandContext context) {
+        InteractionHook hook = context.defer(false);
         try {
             List<OsuScore> wyniki = osu.userRecents
                     .query(new EndpointUserRecents.ArgumentsBuilder(context.getArguments().get("nick").getAsString()).setLimit(50).build());
             if (wyniki.isEmpty()) {
-                mes.editMessage(context.getTranslated("osu.recentplay.empty")).queue();
-                return false;
+                context.sendMessage(context.getTranslated("osu.recentplay.empty"));
             }
-            renderScores(context, mes, wyniki);
+            renderScores(context, hook, wyniki);
         } catch (OsuAPIException e) {
-            mes.editMessage(context.getTranslated("osu.error")).queue();
-            return false;
+            context.sendMessage(context.getTranslated("osu.error"));
         }
-        return true;
     }
 
-    private void renderScores(@NotNull NewCommandContext context, Message mes, List<OsuScore> wyniki) {
+    private void renderScores(@NotNull NewCommandContext context, InteractionHook hook, List<OsuScore> wyniki) {
         List<FutureTask<EmbedBuilder>> pages = new ArrayList<>();
         for (OsuScore w : wyniki) {
             pages.add(new FutureTask<>(() -> renderScore(context, w)));
         }
         new DynamicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(),
                 context.getTlumaczenia(), eventBus, false).setEnableShuffle(true).setCustomFooter(true)
-                .create(mes);
+                .create(hook);
     }
 
     @NotNull
@@ -268,7 +261,7 @@ public class OsuCommand extends NewCommand {
             } else {
                 try {
                     sb.append(getEmotka((String) instance.emotki.getClass().getDeclaredField("osu" +
-                            getOsuShortMod(m)).get(instance.emotki)).getAsMention()).append("\n");
+                            getOsuShortMod(m)).get(instance.emotki))).append("\n");
                 } catch (NoSuchFieldException | IllegalAccessException | ClassCastException | OsuAPIException e) {
                     sb.append(m.getName()).append("\n");
                 }
