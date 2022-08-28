@@ -21,9 +21,9 @@ import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.GuildMessageChannel;
 import net.dv8tion.jda.api.entities.channel.unions.GuildChannelUnion;
 import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
-import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.NewCommand;
 import pl.fratik.core.command.NewCommandContext;
+import pl.fratik.core.command.SubCommand;
 import pl.fratik.starboard.StarManager;
 import pl.fratik.starboard.entity.StarDataDao;
 import pl.fratik.starboard.entity.StarsData;
@@ -35,22 +35,22 @@ public class StarboardCommand extends NewCommand {
     public StarboardCommand(StarDataDao starDataDao) {
         this.starDataDao = starDataDao;
         name = "starboard";
-        usage = "[kanal:textchannel]";
         permissions = DefaultMemberPermissions.enabledFor(Permission.MANAGE_SERVER);
     }
 
-    @Override
-    public void execute(@NotNull NewCommandContext context) {
+    @SubCommand(name = "usun")
+    public void usun(NewCommandContext context) {
         context.defer(true);
         StarsData std = starDataDao.get(context.getGuild());
+        std.setStarboardChannel(null);
+        starDataDao.save(std);
+        context.sendMessage(context.getTranslated("starboard.unset"));
+    }
 
-        if (!context.getArguments().containsKey("kanal") && std.getStarboardChannel() != null) {
-            std.setStarboardChannel(null);
-            starDataDao.save(std);
-            context.sendMessage(context.getTranslated("starboard.unset"));
-            return;
-        }
-
+    @SubCommand(name = "ustaw", usage = "<kanal:textchannel>")
+    public void ustaw(NewCommandContext context) {
+        context.defer(true);
+        StarsData std = starDataDao.get(context.getGuild());
         GuildChannelUnion kanal = context.getArguments().get("kanal").getAsChannel();
 
         if (!(kanal instanceof GuildMessageChannel)) {
@@ -69,5 +69,4 @@ public class StarboardCommand extends NewCommand {
         context.sendMessage(context.getTranslated("starboard.success"));
         starDataDao.save(std);
     }
-
 }
