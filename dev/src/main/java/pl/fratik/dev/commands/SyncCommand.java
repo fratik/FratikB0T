@@ -36,12 +36,17 @@ public class SyncCommand extends NewCommand {
 
     @Override
     public void execute(NewCommandContext context) {
-        if (!UserUtil.isBotOwner(context.getSender().getIdLong())) {
-            context.replyEphemeral(context.getTranslated("generic.no.permissions"));
-            return;
-        }
         context.deferAsync(true);
         managerKomend.sync();
         context.sendMessage("Zsynchronizowano komendy z Discordem!");
+    }
+
+    @Override
+    public boolean permissionCheck(NewCommandContext context) {
+        if (!UserUtil.isBotOwner(context.getSender().getIdLong())) {
+            context.replyEphemeral(context.getTranslated("generic.no.permissions"));
+            return false;
+        }
+        return true;
     }
 }

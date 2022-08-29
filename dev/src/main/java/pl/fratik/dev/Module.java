@@ -60,6 +60,7 @@ public class Module implements Modul {
         commands.add(new LoadCommand(managerModulow));
         commands.add(new UnloadCommand(managerModulow));
         commands.add(new ModulesCommand(managerModulow, managerKomend));
+        commands.add(new SyncCommand(managerKomend));
 
         managerKomend.registerCommands(this, commands);
 

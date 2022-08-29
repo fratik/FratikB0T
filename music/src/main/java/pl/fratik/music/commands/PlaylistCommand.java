@@ -17,9 +17,8 @@
 
 package pl.fratik.music.commands;
 
-import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.command.SubCommand;
-import pl.fratik.core.util.CommonErrors;
 import pl.fratik.core.util.StringUtil;
 import pl.fratik.music.entity.Piosenka;
 import pl.fratik.music.entity.PiosenkaImpl;
@@ -41,41 +40,31 @@ public class PlaylistCommand extends MusicCommand {
         this.queueDao = queueDao;
         name = "playlist";
         requireConnection = true;
-        uzycieDelim = " ";
     }
 
-    @Override
-    public boolean execute(@NotNull CommandContext context) {
-        CommonErrors.usage(context);
-        return false;
-    }
-
-    @SubCommand(name="save")
-    public boolean save(CommandContext context) {
+    @SubCommand(name = "save")
+    public void save(NewCommandContext context) {
+        context.defer(true);
         ManagerMuzykiSerwera mms = managerMuzyki.getManagerMuzykiSerwera(context.getGuild());
-        Queue kolejka = new Queue(StringUtil.generateId(22, false, true, true));
-        if (queueDao.get(kolejka.getId()) != null) return save(context);
+        Queue kolejka;
+        kolejka = new Queue(StringUtil.generateId(22, false, true, true));
+        while (queueDao.get(kolejka.getId()) != null) {
+            kolejka = new Queue(StringUtil.generateId(22, false, true, true));
+        }
         kolejka.setPiosenki(mms.getKolejka());
         queueDao.save(kolejka);
-        context.send(context.getTranslated("playlist.saved", kolejka.getId()));
-        return true;
+        context.sendMessage(context.getTranslated("playlist.saved", kolejka.getId()));
     }
 
-    @SubCommand(name="load")
-    public boolean load(CommandContext context) {
-        Object[] args;
-        try {
-            args = new Uzycie("playlistId", "string", true).resolveArgs(context);
-        } catch (ArgsMissingException e) {
-            CommonErrors.usage(context);
-            return false;
-        }
-        String id = (String) args[0];
+    @SubCommand(name = "load", usage = "<id:string>")
+    public void load(NewCommandContext context) {
+        String id = context.getArguments().get("id").getAsString();
         ManagerMuzykiSerwera mms = managerMuzyki.getManagerMuzykiSerwera(context.getGuild());
+        context.defer(false);
         Queue q = queueDao.get(id);
         if (q == null || q.getPiosenki().isEmpty()) {
-            context.send(context.getTranslated("playlist.load.notfound"));
-            return false;
+            context.sendMessage(context.getTranslated("playlist.load.notfound"));
+            return;
         }
         List<Piosenka> piosenki = new ArrayList<>();
         for (Piosenka p : q.getPiosenki()) {
@@ -83,8 +72,7 @@ public class PlaylistCommand extends MusicCommand {
                     context.getSender().getAsTag()), p.getAudioTrack(), context.getLanguage()));
         }
         q.setPiosenki(piosenki);
-        context.send(context.getTranslated("playlist.loaded"));
+        context.sendMessage(context.getTranslated("playlist.loaded"));
         mms.loadQueue(q); // TODO: 04.12.2019 mozliwosc uzycia tego kiedy muzyka jest wyłączona
-        return true;
     }
 }

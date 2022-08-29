@@ -48,10 +48,6 @@ public class ModulesCommand extends NewCommand {
 
     @Override
     public void execute(@NotNull NewCommandContext context) {
-        if (!UserUtil.isBotOwner(context.getSender().getIdLong())) {
-            context.replyEphemeral(context.getTranslated("generic.no.permissions"));
-            return;
-        }
         EmbedBuilder eb = context.getBaseEmbed("Moduły", null);
         Emoji gtick = context.getShardManager().getEmojiById(Ustawienia.instance.emotki.greenTick);
         Emoji rtick = context.getShardManager().getEmojiById(Ustawienia.instance.emotki.redTick);
@@ -67,5 +63,14 @@ public class ModulesCommand extends NewCommand {
             eb.getDescriptionBuilder().append("\n");
         }
         context.replyEphemeral(eb.build());
+    }
+
+    @Override
+    public boolean permissionCheck(NewCommandContext context) {
+        if (!UserUtil.isBotOwner(context.getSender().getIdLong())) {
+            context.replyEphemeral(context.getTranslated("generic.no.permissions"));
+            return false;
+        }
+        return true;
     }
 }

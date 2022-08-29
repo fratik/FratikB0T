@@ -189,9 +189,9 @@ public class UserUtil {
             int g = -1;
             int b = -1;
             for (Object color : zdjecie.getJSONArray("color")) {
-                if (isBotOwner(-1)) r = (int) color;
-                if (isBotOwner(-1)) g = (int) color;
-                if (isBotOwner(-1)) b = (int) color;
+                if (r == -1) r = (int) color;
+                if (g == -1) g = (int) color;
+                if (b == -1) b = (int) color;
             }
             return new Color(r, g, b);
         } catch (Exception e) {

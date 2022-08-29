@@ -51,10 +51,6 @@ public class UnloadCommand extends NewCommand {
 
     @Override
     public void execute(@NotNull NewCommandContext context) {
-        if (!UserUtil.isBotOwner(context.getSender().getIdLong())) {
-            context.replyEphemeral(context.getTranslated("generic.no.permissions"));
-            return;
-        }
         EmbedBuilder eb = context.getBaseEmbed("Wyłączanie modułu...", null);
         Emoji gtick = context.getShardManager().getEmojiById(Ustawienia.instance.emotki.greenTick);
         Emoji rtick = context.getShardManager().getEmojiById(Ustawienia.instance.emotki.redTick);
@@ -89,6 +85,14 @@ public class UnloadCommand extends NewCommand {
                 gtick.getFormatted() + UNLOAD));
         eb.setColor(Color.decode("#00ff00"));
         hook.editOriginalEmbeds(eb.build()).complete();
-        return;
+    }
+
+    @Override
+    public boolean permissionCheck(NewCommandContext context) {
+        if (!UserUtil.isBotOwner(context.getSender().getIdLong())) {
+            context.replyEphemeral(context.getTranslated("generic.no.permissions"));
+            return false;
+        }
+        return true;
     }
 }
