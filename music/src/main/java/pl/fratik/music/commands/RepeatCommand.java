@@ -17,71 +17,49 @@
 
 package pl.fratik.music.commands;
 
+import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.arguments.Argument;
-import pl.fratik.core.arguments.ArgumentContext;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.entity.GuildDao;
-import pl.fratik.core.manager.ManagerArgumentow;
 import pl.fratik.music.entity.RepeatMode;
 import pl.fratik.music.managers.ManagerMuzykiSerwera;
 import pl.fratik.music.managers.NowyManagerMuzyki;
 
 public class RepeatCommand extends MusicCommand {
     private final NowyManagerMuzyki managerMuzyki;
-    private final ManagerArgumentow managerArgumentow;
     private final GuildDao guildDao;
-    private RepeatModeArgument arg;
 
-    public RepeatCommand(NowyManagerMuzyki managerMuzyki, ManagerArgumentow managerArgumentow, GuildDao guildDao) {
+    public RepeatCommand(NowyManagerMuzyki managerMuzyki, GuildDao guildDao) {
         this.managerMuzyki = managerMuzyki;
-        this.managerArgumentow = managerArgumentow;
         this.guildDao = guildDao;
         name = "repeat";
         requireConnection = true;
-        aliases = new String[] {"loop"};
+        usage = "<tryb:string>";
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        if (!hasFullDjPerms(context.getMember(), context.getShardManager(), guildDao)) {
-            context.reply(context.getTranslated("repeat.dj"));
+    public void execute(@NotNull NewCommandContext context) {
+        ManagerMuzykiSerwera mms = managerMuzyki.getManagerMuzykiSerwera(context.getGuild());
+        mms.setRepeatMode(RepeatMode.valueOf(context.getArguments().get("tryb").getAsString()));
+        context.reply(context.getTranslated("repeat.set"));
+    }
+
+    @Override
+    public boolean permissionCheck(NewCommandContext context) {
+        if (!hasFullDjPerms(context.getMember(), guildDao)) {
+            context.replyEphemeral(context.getTranslated("repeat.dj"));
             return false;
         }
-        ManagerMuzykiSerwera mms = managerMuzyki.getManagerMuzykiSerwera(context.getGuild());
-        mms.setRepeatMode((RepeatMode) context.getArgs()[0]);
-        context.reply(context.getTranslated("repeat.set"));
-        return true;
+        return super.permissionCheck(context);
     }
 
     @Override
-    public void onRegister() {
-        arg = new RepeatModeArgument();
-        managerArgumentow.registerArgument(arg);
-        uzycie = new Uzycie("tryb", "repeatmode", true);
-    }
-
-    @Override
-    public void onUnregister() {
-        try {managerArgumentow.unregisterArgument(arg);} catch (Exception e) {/*lul*/}
-        arg = null;
-    }
-
-    protected static class RepeatModeArgument extends Argument {
-        RepeatModeArgument() {
-            this.name = "repeatmode";
+    public void updateOptionData(OptionData option) {
+        if (option.getName().equals("tryb")) {
+            for (RepeatMode value : RepeatMode.values()) { //todo nie ONCE i OFF tylko to spolszczyć i ogarnąć w i18n
+                option.addChoice(value.name().toLowerCase(), value.name());
+            }
         }
-
-        @Override
-        public RepeatMode execute(ArgumentContext context) {
-            if (context.getArg().equalsIgnoreCase("once") ||
-                    context.getArg().equalsIgnoreCase(context.getTlumaczenia()
-                            .get(context.getLanguage(), "repeat.mode.once"))) return RepeatMode.ONCE;
-            if (context.getArg().equalsIgnoreCase("off") ||
-                    context.getArg().equalsIgnoreCase(context.getTlumaczenia()
-                            .get(context.getLanguage(), "repeat.mode.off"))) return RepeatMode.OFF;
-            return null;
-        }
-
     }
 
 }

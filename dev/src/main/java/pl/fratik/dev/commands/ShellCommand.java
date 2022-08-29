@@ -20,7 +20,9 @@ package pl.fratik.dev.commands;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.command.*;
+import pl.fratik.core.command.CommandType;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.util.UserUtil;
 
 import javax.annotation.Nonnull;
@@ -39,10 +41,6 @@ public class ShellCommand extends NewCommand {
 
     @Override
     public void execute(@NotNull @Nonnull NewCommandContext context) {
-        if (!UserUtil.isBotOwner(context.getSender().getIdLong())) {
-            context.replyEphemeral(context.getTranslated("generic.no.permissions"));
-            return;
-        }
         context.deferAsync(!context.getArguments().get("pokaz").getAsBoolean());
         try {
             Process process = new ProcessBuilder
@@ -63,5 +61,14 @@ public class ShellCommand extends NewCommand {
         } catch (Exception e) {
             context.sendMessage("Whoops! Coś nie pykło chyba: " + e.getMessage());
         }
+    }
+
+    @Override
+    public boolean permissionCheck(NewCommandContext context) {
+        if (!UserUtil.isBotOwner(context.getSender().getIdLong())) {
+            context.replyEphemeral(context.getTranslated("generic.no.permissions"));
+            return false;
+        }
+        return true;
     }
 }

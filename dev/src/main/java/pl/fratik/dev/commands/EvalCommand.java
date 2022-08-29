@@ -73,10 +73,6 @@ public class EvalCommand extends NewCommand {
 
     @Override
     public void execute(@NotNull NewCommandContext context) {
-        if (!UserUtil.isBotOwner(context.getSender().getIdLong())) {
-            context.replyEphemeral(context.getTranslated("generic.no.permissions"));
-            return;
-        }
         String code = context.getArguments().get("kod").getAsString();
         boolean ephemeral = !context.getArguments().get("pokaz").getAsBoolean();
         EmbedBuilder ebStart = new EmbedBuilder();
@@ -144,6 +140,15 @@ public class EvalCommand extends NewCommand {
             eb.addField("\u2620\ufe0f ERROR", codeBlock(e.toString()), false);
             hook.editOriginalEmbeds(eb.build()).queue();
         }
+    }
+
+    @Override
+    public boolean permissionCheck(NewCommandContext context) {
+        if (!UserUtil.isBotOwner(context.getSender().getIdLong())) {
+            context.replyEphemeral(context.getTranslated("generic.no.permissions"));
+            return false;
+        }
+        return true;
     }
 
     private String toString(Object[] arr) {

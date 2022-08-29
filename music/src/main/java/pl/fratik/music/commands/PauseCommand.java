@@ -18,6 +18,7 @@
 package pl.fratik.music.commands;
 
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.music.managers.ManagerMuzykiSerwera;
 import pl.fratik.music.managers.NowyManagerMuzyki;
@@ -30,20 +31,23 @@ public class PauseCommand extends MusicCommand {
         this.managerMuzyki = managerMuzyki;
         this.guildDao = guildDao;
         name = "pause";
-        aliases = new String[] {"resume", "pauza", "pauze", "wznow"};
         requireConnection = true;
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        if (!hasFullDjPerms(context.getMember(), context.getShardManager(), guildDao)) {
-            context.reply(context.getTranslated("pause.dj"));
-            return false;
-        }
+    public void execute(@NotNull NewCommandContext context) {
         ManagerMuzykiSerwera mms = managerMuzyki.getManagerMuzykiSerwera(context.getGuild());
         boolean paused = mms.pause();
         if (paused) context.reply(context.getTranslated("pause.paused"));
         else context.reply(context.getTranslated("pause.resumed"));
-        return true;
+    }
+
+    @Override
+    public boolean permissionCheck(NewCommandContext context) {
+        if (!hasFullDjPerms(context.getMember(), guildDao)) {
+            context.replyEphemeral(context.getTranslated("pause.dj"));
+            return false;
+        }
+        return super.permissionCheck(context);
     }
 }

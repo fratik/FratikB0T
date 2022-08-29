@@ -51,10 +51,6 @@ public class RundkaCommand extends NewCommand {
 
     @SubCommand(name = "rozpocznij", usage = "<numer_rundki:integer> <vote_channel:textchannel> <talk_channel:textchannel>")
     public void start(@NotNull NewCommandContext context) {
-        if (!UserUtil.isBotOwner(context.getSender().getIdLong())) {
-            context.replyEphemeral(context.getTranslated("generic.no.permissions"));
-            return;
-        }
         if (rundkaOn) {
             context.replyEphemeral("Rundka już jest aktywna.");
             return;
@@ -76,10 +72,6 @@ public class RundkaCommand extends NewCommand {
 
     @SubCommand(name = "zakoncz")
     public void stop(@NotNull NewCommandContext context) {
-        if (!UserUtil.isBotOwner(context.getSender().getIdLong())) {
-            context.replyEphemeral(context.getTranslated("generic.no.permissions"));
-            return;
-        }
         rundkaOn = false;
         Rundka rundka = rundkaDao.get(numerRundy);
         rundka.setTrwa(false);
@@ -95,5 +87,14 @@ public class RundkaCommand extends NewCommand {
             option.setMinValue(1);
             option.setMaxValue(Integer.MAX_VALUE);
         }
+    }
+
+    @Override
+    public boolean permissionCheck(NewCommandContext context) {
+        if (!UserUtil.isBotOwner(context.getSender().getIdLong())) {
+            context.replyEphemeral(context.getTranslated("generic.no.permissions"));
+            return false;
+        }
+        return true;
     }
 }

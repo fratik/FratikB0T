@@ -20,69 +20,57 @@ package pl.fratik.music.commands;
 import lavalink.client.io.LavalinkSocket;
 import lombok.Getter;
 import lombok.Setter;
-import net.dv8tion.jda.api.entities.ChannelType;
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.sharding.ShardManager;
-import pl.fratik.core.command.PermLevel;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
-import pl.fratik.core.util.CommonErrors;
-import pl.fratik.core.util.UserUtil;
 import pl.fratik.music.managers.NowyManagerMuzyki;
 
 import java.util.Objects;
 
-public abstract class MusicCommand extends Command {
+public abstract class MusicCommand extends NewCommand {
 
     @Getter protected boolean requireConnection = false;
     @Setter private static NowyManagerMuzyki managerMuzyki;
 
     @Override
-    public boolean preExecute(CommandContext context) {
-        if (context.getMessageChannel().getType() != ChannelType.TEXT) {
-            context.reply(context.getTranslated("generic.text.only"));
-            return false;
-        }
-        if (context.getRawArgs().length != 0) {
-            String subcommand = context.getRawArgs()[0].toLowerCase();
-            if (subcommand.equalsIgnoreCase("-h") || subcommand.equalsIgnoreCase("--help")) {
-                CommonErrors.usage(context);
-                return false;
-            }
-        }
+    public boolean permissionCheck(NewCommandContext context) {
         if (managerMuzyki.getLavaClient().getNodes().stream().noneMatch(LavalinkSocket::isAvailable)) {
-            context.reply(context.getTranslated("music.nodes.unavailble"));
+            context.replyEphemeral(context.getTranslated("music.nodes.unavailble"));
             return false;
         }
-        if (!requireConnection) {
-            return super.preExecute(context);
-        }
+
+        if (!requireConnection) return true;
+
         if (context.getMember().getVoiceState() == null || !context.getMember().getVoiceState().inAudioChannel()) {
-            context.reply(context.getTranslated("music.notconnected"));
+            context.replyEphemeral(context.getTranslated("music.notconnected"));
             return false;
         }
-        if (context.getGuild().getSelfMember().getVoiceState() == null ||
-                !context.getGuild().getSelfMember().getVoiceState().inAudioChannel()) {
-            context.reply(context.getTranslated("music.self.notconnected"));
+
+        if (context.getGuild().getSelfMember().getVoiceState() == null || !context.getGuild().getSelfMember().getVoiceState().inAudioChannel()) {
+            context.replyEphemeral(context.getTranslated("music.self.notconnected"));
             return false;
         }
+
         if (!Objects.equals(context.getMember().getVoiceState().getChannel(),
                 context.getGuild().getSelfMember().getVoiceState().getChannel())) {
-            context.reply(context.getTranslated("music.different.channels"));
+            context.replyEphemeral(context.getTranslated("music.different.channels"));
             return false;
         }
-        return super.preExecute(context);
+
+        return true;
     }
 
-    protected boolean hasFullDjPerms(Member member, ShardManager shardManager, GuildDao guildDao) {
-        return hasFullDjPerms(member, shardManager, guildDao, guildDao.get(member.getGuild()));
+    protected boolean hasFullDjPerms(Member member, GuildDao guildDao) {
+        return hasFullDjPerms(member, guildDao.get(member.getGuild()));
     }
 
-    protected boolean hasFullDjPerms(Member member, ShardManager shardManager, GuildDao guildDao, GuildConfig gc) {
+    protected boolean hasFullDjPerms(Member member, GuildConfig gc) {
         if (!isDjConfigured(gc)) return true;
-        else return UserUtil.getPermlevel(member, guildDao, shardManager).getNum() >= PermLevel.MOD
-                .getNum() || (isDj(member, gc) && isDjConfigured(gc));
+        else return member.hasPermission(Permission.MESSAGE_MANAGE) || (isDj(member, gc) && isDjConfigured(gc));
     }
 
     protected boolean isDj(Member member, GuildDao guildDao) {
@@ -102,8 +90,4 @@ public abstract class MusicCommand extends Command {
         return gc.getTylkoDjWGoreMozeDodawacPiosenki() != null && gc.getTylkoDjWGoreMozeDodawacPiosenki();
     }
 
-    @Override
-    public CommandCategory getCategory() {
-        return CommandCategory.MUSIC;
-    }
 }

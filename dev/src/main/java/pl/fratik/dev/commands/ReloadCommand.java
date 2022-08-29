@@ -53,10 +53,6 @@ public class ReloadCommand extends NewCommand {
 
     @Override
     public void execute(@NotNull NewCommandContext context) {
-        if (!UserUtil.isBotOwner(context.getSender().getIdLong())) {
-            context.replyEphemeral(context.getTranslated("generic.no.permissions"));
-            return;
-        }
         EmbedBuilder eb = context.getBaseEmbed("Reload modułu...", null);
         Emoji gtick = context.getShardManager().getEmojiById(Ustawienia.instance.emotki.greenTick);
         Emoji rtick = context.getShardManager().getEmojiById(Ustawienia.instance.emotki.redTick);
@@ -116,5 +112,14 @@ public class ReloadCommand extends NewCommand {
                 gtick.getFormatted() + LOAD));
         eb.setColor(Color.green);
         hook.editOriginalEmbeds(eb.build()).complete();
+    }
+
+    @Override
+    public boolean permissionCheck(NewCommandContext context) {
+        if (!UserUtil.isBotOwner(context.getSender().getIdLong())) {
+            context.replyEphemeral(context.getTranslated("generic.no.permissions"));
+            return false;
+        }
+        return true;
     }
 }

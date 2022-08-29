@@ -20,7 +20,8 @@ package pl.fratik.music.commands;
 import com.google.common.eventbus.EventBus;
 import lombok.AllArgsConstructor;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.interactions.InteractionHook;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -31,7 +32,11 @@ import org.jsoup.nodes.Node;
 import org.jsoup.nodes.TextNode;
 import org.jsoup.select.Elements;
 import pl.fratik.core.Ustawienia;
-import pl.fratik.core.util.*;
+import pl.fratik.core.command.NewCommandContext;
+import pl.fratik.core.util.ClassicEmbedPaginator;
+import pl.fratik.core.util.CommonUtil;
+import pl.fratik.core.util.EventWaiter;
+import pl.fratik.core.util.NetworkUtil;
 import pl.fratik.music.managers.NowyManagerMuzyki;
 
 import java.io.IOException;
@@ -50,33 +55,29 @@ public class TekstCommand extends MusicCommand {
         this.managerMuzyki = managerMuzyki;
         name = "tekst";
         requireConnection = false;
-        uzycie = new Uzycie("tytul", "string", false);
-        allowPermLevelChange = false;
+        usage = "[tytul:string]";
     }
 
     @Override
-    protected boolean execute(@NotNull CommandContext context) {
-        String q;
-        boolean usedTitle = false;
-        if (context.getArgs().length >= 1 && context.getArgs()[0] != null) {
-            q = (String) context.getArgs()[0];
-        } else if (managerMuzyki.getManagerMuzykiSerwera(context.getGuild()).isPlaying()) {
-            q = managerMuzyki.getManagerMuzykiSerwera(context.getGuild()).getAktualnaPiosenka().getAudioTrack()
-                    .getInfo().title;
-            usedTitle = true;
-        } else {
-            CommonErrors.usage(context);
-            return false;
+    public void execute(@NotNull NewCommandContext context) {
+        String q = context.getArgumentOr("tytul",
+            managerMuzyki.getManagerMuzykiSerwera(context.getGuild()).isPlaying() ? managerMuzyki.getManagerMuzykiSerwera(context.getGuild()).getAktualnaPiosenka().getAudioTrack().getInfo().title
+                : null,
+            OptionMapping::getAsString);
+
+        if (q == null) {
+            context.replyEphemeral(context.getTranslated("tekst.empty.args"));
+            return;
         }
-        Message loading = context.reply(context.getTranslated("generic.loading"));
+
+        InteractionHook hook = context.defer(false);
         try {
             Piosenka p = requestGenius(q);
             if (p == null) {
                 p = requestTekstowo(q);
                 if (p == null) {
-                    if (!usedTitle) loading.editMessage(context.getTranslated("tekst.not.found")).queue();
-                    else loading.editMessage(context.getTranslated("tekst.not.found.usedtitle")).queue();
-                    return false;
+                    context.sendMessage(context.getTranslated("tekst.not.found.usedtitle"));
+                    return;
                 }
             }
             if (p.slowa.length() >= 2000) {
@@ -98,16 +99,14 @@ public class TekstCommand extends MusicCommand {
                             .setDescription(sb));
                 }
                 new ClassicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(),
-                        context.getTlumaczenia(), eventBus).create(loading);
-                return true;
+                        context.getTlumaczenia(), eventBus).create(hook);
+                return;
             }
-            loading.editMessageEmbeds(new EmbedBuilder().setTitle(p.title, p.website)
+            hook.editOriginalEmbeds(new EmbedBuilder().setTitle(p.title, p.website)
                     .setThumbnail(p.imageLink).setColor(CommonUtil.getPrimColorFromImageUrl(p.imageLink))
-                    .setDescription(p.slowa).build()).override(true).complete();
-            return true;
+                    .setDescription(p.slowa).build()).setContent("").complete();
         } catch (Exception e) {
-            loading.editMessage(context.getTranslated("tekst.failed")).queue();
-            return false;
+            context.sendMessage(context.getTranslated("tekst.failed"));
         }
     }
 

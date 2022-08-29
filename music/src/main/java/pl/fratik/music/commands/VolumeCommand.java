@@ -17,7 +17,9 @@
 
 package pl.fratik.music.commands;
 
+import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.music.managers.ManagerMuzykiSerwera;
 import pl.fratik.music.managers.NowyManagerMuzyki;
@@ -32,28 +34,37 @@ public class VolumeCommand extends MusicCommand {
         this.guildDao = guildDao;
         name = "volume";
         requireConnection = true;
-        uzycie = new Uzycie("glosnosc", "integer");
-        aliases = new String[] {"vol"};
+        usage = "[glosnosc:integer]";
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        if (!hasFullDjPerms(context.getMember(), context.getShardManager(), guildDao)) {
-            context.reply(context.getTranslated("volume.dj"));
-            return false;
-        }
+    public void execute(@NotNull NewCommandContext context) {
         ManagerMuzykiSerwera mms = managerMuzyki.getManagerMuzykiSerwera(context.getGuild());
-        if (context.getArgs().length == 0 || context.getArgs()[0] == null) {
+        if (!context.getArguments().containsKey("glosnosc")) {
             context.reply(context.getTranslated("volume.get", mms.getVolume() + "%"));
-            return false;
+            return;
         }
-        Integer glosnosc = (Integer) context.getArgs()[0];
-        if (glosnosc < 1 || glosnosc > 150) {
-            context.reply(context.getTranslated("volume.limit"));
-            return false;
-        }
+
+        int glosnosc = context.getArguments().get("glosnosc").getAsInt();
+
         mms.setVolume(glosnosc);
-        context.reply(context.getTranslated("volume.success", ((Integer) context.getArgs()[0]).toString() + "%"));
-        return true;
+        context.reply(context.getTranslated("volume.success", glosnosc + "%"));
+    }
+
+    @Override
+    public boolean permissionCheck(NewCommandContext context) {
+        if (!hasFullDjPerms(context.getMember(), guildDao)) {
+            context.replyEphemeral(context.getTranslated("volume.dj"));
+            return false;
+        }
+        return super.permissionCheck(context);
+    }
+
+    @Override
+    public void updateOptionData(OptionData option) {
+        if (option.getName().equals("glosnosc")) {
+            option.setMinValue(1);
+            option.setMaxValue(150);
+        }
     }
 }
