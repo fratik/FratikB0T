@@ -18,9 +18,12 @@
 package pl.fratik.commands.zabawa;
 
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.interactions.InteractionHook;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.util.NetworkUtil;
 import pl.fratik.core.util.UserUtil;
 
@@ -28,23 +31,19 @@ import java.io.IOException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class AvatarCommand extends Command {
+public class AvatarCommand extends NewCommand {
 
     private static final Pattern URL_EX = Pattern.compile("(\\.(gif|jpe?g|tiff?|png))");
 
     public AvatarCommand() {
         name = "avatar";
-        category = CommandCategory.FUN;
-        uzycie = new Uzycie("osoba", "user");
-        permissions.add(Permission.MESSAGE_EMBED_LINKS);
-        aliases = new String[] {"prof", "profilowe", "awatar"};
-        allowPermLevelChange = false;
+        usage = "[osoba:user]";
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        User osoba = context.getSender();
-        if (context.getArgs().length > 0 && context.getArgs()[0] != null) osoba = (User) context.getArgs()[0];
+    public void execute(@NotNull NewCommandContext context) {
+        InteractionHook hook = context.defer(false);
+        User osoba = context.getArgumentOr("osoba", context.getSender(), OptionMapping::getAsUser);
 
         String url = osoba.getEffectiveAvatarUrl() + "?size=2048";
         String ex = "png";
@@ -58,15 +57,13 @@ public class AvatarCommand extends Command {
         eb.setColor(UserUtil.getPrimColor(osoba));
 
         try {
-            context.getMessageChannel()
+            hook
                     .sendFile(NetworkUtil.download(url), name)
-                    .setEmbeds(eb.setImage("attachment://" + name).build())
-                    .reference(context.getMessage())
+                    .addEmbeds(eb.setImage("attachment://" + name).build())
                     .queue();
         } catch (IOException e) {
-            context.reply(eb.setImage(url).build());
+            context.sendMessage(eb.setImage(url).build());
         }
 
-        return true;
     }
 }

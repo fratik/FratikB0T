@@ -18,14 +18,18 @@
 package pl.fratik.commands.narzedzia;
 
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
+import net.dv8tion.jda.api.requests.ErrorResponse;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.command.PermLevel;
+import pl.fratik.core.command.CommandType;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.entity.GbanDao;
 import pl.fratik.core.entity.GbanData;
 import pl.fratik.core.manager.ManagerArgumentow;
 import pl.fratik.core.util.UserUtil;
 
-public class UngbanCommand extends Command {
+public class UngbanCommand extends NewCommand {
 
     private final GbanDao gbanDao;
     private final ManagerArgumentow managerArgumentow;
@@ -34,36 +38,31 @@ public class UngbanCommand extends Command {
         this.gbanDao = gbanDao;
         this.managerArgumentow = managerArgumentow;
         name = "ungban";
-        category = CommandCategory.UTILITY;
-        permLevel = PermLevel.GADMIN;
-        uzycie = new Uzycie("podmiot", "string", true);
-        uzycieDelim = " ";
-        allowPermLevelChange = false;
+        permissions = DefaultMemberPermissions.DISABLED;
+        type = CommandType.SUPPORT_SERVER;
+        usage = "<podmiot:string>";
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        String guild;
-        guild = (String) context.getArgs()[0];
-        User user = (User) managerArgumentow.getArguments().get("user").execute((String) context.getArgs()[0],
-                context.getTlumaczenia(), context.getLanguage());
+    public void execute(@NotNull NewCommandContext context) {
+        String guild = context.getArguments().get("podmiot").getAsString();
+        context.deferAsync(false);
+        User user;
+        try {
+            long id = Long.parseLong(guild);
+            user = context.getShardManager().retrieveUserById(id)
+                    .onErrorMap(ErrorResponse.UNKNOWN_USER::test, x -> null).complete();
+        } catch (Exception e) {
+            context.sendMessage(context.getTranslated("gban.invalid.id"));
+            return;
+        }
         GbanData gdata;
-        gdata = gbanDao.get(guild);
         if (user != null) gdata = gbanDao.get(user);
+        else gdata = gbanDao.get(guild);
         if (gdata == null) throw new IllegalStateException("gdata == null");
         if (!gdata.isGbanned()) {
-            context.reply(context.getTranslated("ungban.no.gban"));
-            return false;
-        }
-        if (user != null) {
-            gdata.setGbanned(false);
-            gdata.setIssuer(null);
-            gdata.setIssuerId(null);
-            gdata.setName(null);
-            gdata.setReason(null);
-            gbanDao.save(gdata);
-            context.reply(context.getTranslated("ungban.success.user", UserUtil.formatDiscrim(user)));
-            return true;
+            context.sendMessage(context.getTranslated("ungban.no.gban"));
+            return;
         }
         gdata.setGbanned(false);
         gdata.setIssuer(null);
@@ -71,7 +70,7 @@ public class UngbanCommand extends Command {
         gdata.setName(null);
         gdata.setReason(null);
         gbanDao.save(gdata);
-        context.reply(context.getTranslated("ungban.success.guild", guild));
-        return true;
+        if (user != null) context.sendMessage(context.getTranslated("ungban.success.user", UserUtil.formatDiscrim(user)));
+        else context.sendMessage(context.getTranslated("ungban.success.guild", guild));
     }
 }

@@ -19,40 +19,32 @@ package pl.fratik.commands.system;
 
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.commands.entity.Blacklist;
 import pl.fratik.commands.entity.BlacklistDao;
-import pl.fratik.core.command.PermLevel;
+import pl.fratik.core.command.CommandType;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.util.CommonUtil;
 
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.stream.Collectors;
-
-public class BlacklistPopCommand extends Command {
+public class BlacklistPopCommand extends NewCommand {
 
     private final BlacklistDao blacklistDao;
 
     public BlacklistPopCommand(BlacklistDao blacklistDao) {
         this.blacklistDao = blacklistDao;
         name = "blacklistpop";
-        category = CommandCategory.UTILITY;
-        permLevel = PermLevel.GADMIN;
-        LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
-        hmap.put("id", "string");
-        hmap.put("powod", "string");
-        hmap.put("[...]", "string");
-        uzycie = new Uzycie(hmap, new boolean[] {true, true, false});
-        uzycieDelim = " ";
+        permissions = DefaultMemberPermissions.DISABLED;
+        type = CommandType.SUPPORT_SERVER;
+        usage = "<id:string> <powod:string>";
         allowInDMs = true;
-        allowPermLevelChange = false;
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        String id = (String) context.getArgs()[0];
-        String powod = Arrays.stream(Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length))
-                .map(o -> o == null ? "" : o.toString()).collect(Collectors.joining(uzycieDelim));
+    public void execute(@NotNull NewCommandContext context) {
+        String id = context.getArguments().get("id").getAsString();
+        String powod = context.getArguments().get("powod").getAsString();
         User user = null;
         Guild server = null;
         try {
@@ -64,7 +56,7 @@ public class BlacklistPopCommand extends Command {
         if (user == null && server == null) {
             if (!CommonUtil.ID_REGEX.matcher(id).matches()) {
                 context.reply(context.getTranslated("blacklistpop.invalid.id"));
-                return false;
+                return;
             }
         }
         Blacklist xd = blacklistDao.get(id);
@@ -80,6 +72,5 @@ public class BlacklistPopCommand extends Command {
             context.reply(context.getTranslated("blacklistpop.success.added"));
         }
         blacklistDao.save(xd);
-        return true;
     }
 }

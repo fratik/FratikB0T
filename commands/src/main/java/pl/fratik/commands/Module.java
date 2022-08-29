@@ -40,6 +40,8 @@ import pl.fratik.core.util.EventWaiter;
 import pl.fratik.core.webhook.WebhookManager;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 
 @SuppressWarnings("unused")
 public class Module implements Modul {
@@ -74,30 +76,32 @@ public class Module implements Modul {
         commands = new ArrayList<>();
 
         commands.add(new PingCommand());
-        commands.add(new HelpCommand(managerKomend, guildDao, shardManager, redisCacheManager));
-        commands.add(new LanguageCommand(eventBus, userDao, tlumaczenia));
-        commands.add(new UstawieniaCommand(eventWaiter, userDao, guildDao, managerArgumentow, shardManager, tlumaczenia));
-        commands.add(new PoziomCommand(guildDao, shardManager));
+//        commands.add(new HelpCommand(managerKomend, guildDao, shardManager, redisCacheManager));
+//        commands.add(new LanguageCommand(eventBus, userDao, tlumaczenia));
+//        commands.add(new UstawieniaCommand(eventWaiter, userDao, guildDao, managerArgumentow, shardManager, tlumaczenia));
+//        commands.add(new PoziomCommand(guildDao, shardManager));
         commands.add(new BotstatsCommand(shardManager, managerModulow));
         if (Ustawienia.instance.apiUrls.get("image-server") != null && Ustawienia.instance.apiKeys.get("image-server") != null) {
-            commands.add(new BlurpleCommand());
-            commands.add(new StarcatchCommand());
-            commands.add(new HugCommand());
-            commands.add(new GraficznaCommand("startouch", "/api/image/startouch", "avatarURL", false));
-            commands.add(new GraficznaCommand("slap", "/api/image/slap", "avatarURL", true));
-            commands.add(new GraficznaCommand("rip", "/api/image/rip", "avatarURL", false));
-            commands.add(new GraficznaCommand("sleep", "/api/image/sleep", "avatarURL", false));
-            commands.add(new GraficznaCommand("wanted", "/api/image/wanted", "avatarURL", false));
-//            commands.add(new GraficznaCommand("wave", "/api/image/wave", "avatarURL"))
-            commands.add(new GraficznaCommand("tapeta", "/api/image/tapeta", false));
-            commands.add(new GraficznaCommand("roksana", "/api/image/roksana", "avatarURL", false));
-            commands.add(new GraficznaCommand("debilizm", "/api/image/debilizm", "avatarURL", false));
-            commands.add(new GraficznaCommand("bog", "/api/image/god", "avatarURL", false));
-            commands.add(new EatCommand());
-            commands.add(new BigemojiCommand());
-            commands.add(new ChainCommand());
+            Set<NewCommand> graficzne = new HashSet<>();
+            graficzne.add(new BlurpleCommand());
+            graficzne.add(new StarcatchCommand());
+            graficzne.add(new HugCommand());
+            graficzne.add(new GraficznaCommand("startouch", "/api/image/startouch", "avatarURL", false));
+            graficzne.add(new GraficznaCommand("slap", "/api/image/slap", "avatarURL", true));
+            graficzne.add(new GraficznaCommand("rip", "/api/image/rip", "avatarURL", false));
+            graficzne.add(new GraficznaCommand("sleep", "/api/image/sleep", "avatarURL", false));
+            graficzne.add(new GraficznaCommand("wanted", "/api/image/wanted", "avatarURL", false));
+//            graficzne.add(new GraficznaCommand("wave", "/api/image/wave", "avatarURL"))
+            graficzne.add(new GraficznaCommand("tapeta", "/api/image/tapeta", false));
+            graficzne.add(new GraficznaCommand("roksana", "/api/image/roksana", "avatarURL", false));
+            graficzne.add(new GraficznaCommand("debilizm", "/api/image/debilizm", "avatarURL", false));
+            graficzne.add(new GraficznaCommand("bog", "/api/image/god", "avatarURL", false));
+            graficzne.add(new EatCommand());
+            graficzne.add(new BigemojiCommand());
+            graficzne.add(new ChainCommand());
+            commands.add(new GraficznaWrapper(graficzne));
         }
-        commands.add(new OgloszenieCommand(shardManager, guildDao, eventBus, tlumaczenia, managerKomend, redisCacheManager));
+        commands.add(new OgloszenieCommand(shardManager, guildDao, eventBus, tlumaczenia, redisCacheManager));
         commands.add(new ServerinfoCommand(userDao, eventBus));
         commands.add(new UserinfoCommand(userDao, shardManager, eventBus));
         commands.add(new KolorCommand());
@@ -114,8 +118,10 @@ public class Module implements Modul {
         commands.add(new DashboardCommand());
         commands.add(new DonateCommand());
 //        commands.add(new BoomCommand(eventWaiter, userDao, redisCacheManager));
-        commands.add(new PomocCommand());
-        commands.add(new PopCommand(shardManager, guildDao, eventWaiter, eventBus, tlumaczenia, blacklistDao, redisCacheManager));
+//        commands.add(new PomocCommand());
+        PopCommand pop = new PopCommand(shardManager, eventWaiter, eventBus, tlumaczenia, blacklistDao, redisCacheManager);
+        commands.add(pop);
+        commands.add(new PopAdminCommand(pop));
         commands.add(new PowiadomOPomocyCommand(shardManager));
         commands.add(new OsiemBallCommand());
         commands.add(new ChooseCommand());
@@ -141,12 +147,12 @@ public class Module implements Modul {
         commands.add(new EmojiInfoCommand());
         if (Ustawienia.instance.apiKeys.get("osu") != null)
             commands.add(new OsuCommand(shardManager, eventWaiter, eventBus));
-        commands.add(new Rule34Command(eventWaiter, eventBus, managerArgumentow));
+        commands.add(new Rule34Command(eventWaiter, eventBus));
         commands.add(new CoronastatsCommand(eventWaiter, eventBus));
-        commands.add(new UstawPoziomCommand(guildDao, managerKomend));
-        commands.add(new PoziomyUprawnienCommand());
+//        commands.add(new UstawPoziomCommand(guildDao, managerKomend));
+//        commands.add(new PoziomyUprawnienCommand());
         commands.add(new BlacklistPopCommand(blacklistDao));
-        commands.add(new ShipCommand(managerArgumentow));
+        commands.add(new ShipCommand());
         commands.add(new AdministratorzyCommand(guildDao, redisCacheManager));
         commands.add(new SasinCommand());
 

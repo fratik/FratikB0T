@@ -19,11 +19,11 @@ package pl.fratik.commands.system;
 
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDAInfo;
-import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.Statyczne;
-import pl.fratik.core.command.PermLevel;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.manager.ManagerModulow;
 import pl.fratik.core.manager.implementation.ManagerModulowImpl;
 import pl.fratik.core.util.DurationUtil;
@@ -32,24 +32,19 @@ import java.lang.management.ManagementFactory;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
-public class BotstatsCommand extends Command {
+public class BotstatsCommand extends NewCommand {
 
     private final ShardManager shardManager;
     private final ManagerModulow managerModulow;
 
     public BotstatsCommand(ShardManager shardManager, ManagerModulow managerModulow) {
         this.managerModulow = managerModulow;
-        name = "botstats";
-        category = CommandCategory.SYSTEM;
-        permLevel = PermLevel.EVERYONE;
         this.shardManager = shardManager;
-        aliases = new String[] {"statyfratikb0ta", "botinfo"};
-        permissions.add(Permission.MESSAGE_EMBED_LINKS);
-        allowPermLevelChange = false;
+        name = "botstats";
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
+    public void execute(@NotNull NewCommandContext context) {
         long free = Runtime.getRuntime().freeMemory();
         long total = Runtime.getRuntime().totalMemory();
         double used = round((double) (total - free) / 1024 / 1024);
@@ -61,7 +56,7 @@ public class BotstatsCommand extends Command {
         eb.addField(context.getTranslated("botstats.users"), String.valueOf(shardManager.getUsers().size()), true);
         eb.addField(context.getTranslated("botstats.guilds"), String.valueOf(shardManager.getGuilds().size()), true);
         eb.addField(context.getTranslated("botstats.channels"), String.valueOf(shardManager.getTextChannels().size()), true);
-        eb.addField(context.getTranslated("botstats.shard"), context.getEvent().getJDA().getShardInfo().getShardString(), true);
+        eb.addField(context.getTranslated("botstats.shard"), context.getSender().getJDA().getShardInfo().getShardString(), true);
         eb.addField(context.getTranslated("botstats.version"), Statyczne.WERSJA, true);
         eb.addField(context.getTranslated("botstats.jda"), JDAInfo.VERSION, true);
         if (managerModulow.getModules().get("music") != null) {
@@ -79,7 +74,7 @@ public class BotstatsCommand extends Command {
             }
         }
         context.reply(eb.build());
-        return true;
+        return;
     }
 
     private static double round(double value) {

@@ -17,41 +17,41 @@
 
 package pl.fratik.commands.zabawa;
 
-import net.dv8tion.jda.api.Permission;
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.util.NetworkUtil;
 
 import java.io.IOException;
 import java.util.Random;
 
-public class AchievementCommand extends Command {
+public class AchievementCommand extends NewCommand {
     private static final Random RANDOM = new Random();
 
     public AchievementCommand() {
         name = "achievement";
-        category = CommandCategory.FUN;
-        aliases = new String[] {"mca", "osiagniecie"};
-        permissions.add(Permission.MESSAGE_ATTACH_FILES);
-        uzycie = new Uzycie("tresc", "string", true);
+        usage = "<tekst:string>";
         cooldown = 5;
-        allowPermLevelChange = false;
         allowInDMs = true;
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
+    public void execute(@NotNull NewCommandContext context) {
+        String tekst = context.getArguments().get("tekst").getAsString();
         int rnd = RANDOM.nextInt(39) + 1;
 
-        if (((String) context.getArgs()[0]).length() > 22) {
-            context.reply(context.getTranslated("achievement.maxsize"));
-            return false;
+        if (tekst.length() > 22) {
+            context.replyEphemeral(context.getTranslated("achievement.maxsize"));
+            return;
         }
-        String url ="https://www.minecraftskinstealer.com/achievement/a.php?i=" + rnd + "&h=" + NetworkUtil.encodeURIComponent(context.getTranslated("achievement.msg")) + "&t=" + NetworkUtil.encodeURIComponent((String) context.getArgs()[0]);
+        context.deferAsync(false);
+        String url = "https://www.minecraftskinstealer.com/achievement/a.php?i=" + rnd + "&h=" +
+                NetworkUtil.encodeURIComponent(context.getTranslated("achievement.msg")) + "&t=" +
+                NetworkUtil.encodeURIComponent(tekst);
         try {
-            context.getMessageChannel().sendFile(NetworkUtil.download(url), "achievement.png").reference(context.getMessage()).queue();
+            context.sendMessage("achievement.png", NetworkUtil.download(url));
         } catch (IOException e) {
-            context.reply(context.getTranslated("image.server.fail"));
+            context.sendMessage(context.getTranslated("image.server.fail"));
         }
-        return true;
     }
 }

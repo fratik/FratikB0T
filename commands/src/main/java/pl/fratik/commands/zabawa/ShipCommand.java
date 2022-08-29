@@ -18,88 +18,56 @@
 package pl.fratik.commands.zabawa;
 
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.utils.MarkdownSanitizer;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.manager.ManagerArgumentow;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
-import pl.fratik.core.util.UserUtil;
 
 import java.awt.*;
 import java.time.Instant;
-import java.util.LinkedHashMap;
 import java.util.Random;
 
 import static pl.fratik.core.util.CommonUtil.generateProgressBar;
 
-public class ShipCommand extends Command {
-
-    private final ManagerArgumentow managerArgumentow;
+public class ShipCommand extends NewCommand {
 
     private static final String HEART1 = "\u2764\uFE0F";
     private static final String HEART2 = "\uD83D\uDC9F\uFE0F";
     private static final long SEED_DATE = Instant.now().toEpochMilli();
 
-    public ShipCommand(ManagerArgumentow managerArgumentow) {
+    public ShipCommand() {
         name = "ship";
+        usage = "<co:string> <z_czym:string>";
         cooldown = 5;
-        category = CommandCategory.FUN;
-        LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
-        uzycieDelim = " ";
-        permissions.add(Permission.MESSAGE_EMBED_LINKS);
-        hmap.put("rzecz1", "string");
-        hmap.put("rzecz2", "string");
-        uzycie = new Uzycie(hmap, new boolean[] {true, false});
-        this.managerArgumentow = managerArgumentow;
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        String arg0 = (String) context.getArgs()[0];
-
-        // sprawdzamy czy arg0 jest userem
-        User user = (User) managerArgumentow.getArguments().get("user").execute(arg0,
-                context.getTlumaczenia(), context.getLanguage());
-        if (user != null) {
-            if (context.getArgs().length == 1 || (context.getArgs().length > 1 && context.getArgs()[1] == null)) {
-                // shipujemy arg0 i sendera
-                if (user.getId().equals(context.getMember().getId())) {
-                    context.reply(context.getTranslated("ship.urself"));
-                    return false;
-                }
-                return ship(UserUtil.formatDiscrim(context.getSender()), UserUtil.formatDiscrim(user), context,
-                        context.getSender().getAsMention(), user.getAsMention());
-            } else { // sprawdzamy czy mamy shipowac user1 i user2
-                User user2 = (User) managerArgumentow.getArguments().get("user").execute((String) context.getArgs()[1],
-                        context.getTlumaczenia(), context.getLanguage());
-                if (user2 != null) { // shipujemy user1 i user2
-                    return ship(UserUtil.formatDiscrim(user), UserUtil.formatDiscrim(user2), context,
-                            user.getAsMention(), user2.getAsMention());
-                } else { // shipujemy user1 i rzecz2
-                    return ship(UserUtil.formatDiscrim(user), (String) context.getArgs()[1], context,
-                            user.getAsMention(), "");
-                }
-            }
+    public void execute(@NotNull NewCommandContext context) {
+        OptionMapping coMapping = context.getArguments().get("co");
+        OptionMapping zCzymMapping = context.getArguments().get("z_czym");
+        String rzecz1 = coMapping.getAsString();
+        String wyswietlana1 = null;
+        String rzecz2 = zCzymMapping.getAsString();
+        String wyswietlana2 = null;
+        if (rzecz1.startsWith("<@") && rzecz1.endsWith(">") && coMapping.getMentions().getUsers().size() == 1) {
+            rzecz1 = coMapping.getMentions().getUsers().get(0).getAsTag();
+            wyswietlana1 = coMapping.getMentions().getUsers().get(0).getAsMention();
         }
-        if (context.getArgs().length > 1) { // shipujemy rzecz1 i rzecz2
-            return ship(arg0, (String) context.getArgs()[1], context);
+        if (rzecz2.startsWith("<@") && rzecz1.endsWith(">") && zCzymMapping.getMentions().getUsers().size() == 1) {
+            rzecz2 = zCzymMapping.getMentions().getUsers().get(0).getAsTag();
+            wyswietlana2 = zCzymMapping.getMentions().getUsers().get(0).getAsMention();
         }
-        // shipujemy sendera i rzecz1
-        return ship(UserUtil.formatDiscrim(context.getSender()), (String) context.getArgs()[0], context,
-                context.getSender().getAsMention(), "");
-    }
-
-    private boolean ship(String rzecz1, String rzecz2, CommandContext context) {
-        return ship(rzecz1, rzecz2, context, "", "");
+        ship(rzecz1, rzecz2, context, wyswietlana1, wyswietlana2);
     }
 
     private boolean ship(String rzecz1,
                          String rzecz2,
-                         CommandContext context,
-                         @NotNull String wyswietlana1,
-                         @NotNull String wyswietlana2) {
+                         NewCommandContext context,
+                         String wyswietlana1,
+                         String wyswietlana2) {
         EmbedBuilder eb = context.getBaseEmbed(null, null);
         eb.setTitle("Ship");
         eb.setColor(Color.pink);
@@ -107,14 +75,14 @@ public class ShipCommand extends Command {
         String shipFormat = HEART1 + " %s %s %s " + HEART1 + "\n";
 
         if (rzecz1.equalsIgnoreCase(rzecz2)) {
-            context.reply(context.getTranslated("ship.same"));
+            context.replyEphemeral(context.getTranslated("ship.same"));
             return false;
         }
 
         shipFormat = String.format(shipFormat,
-                MarkdownSanitizer.escape(wyswietlana1.isEmpty() ? rzecz1 : wyswietlana1),
+                MarkdownSanitizer.escape(wyswietlana1 == null ? rzecz1 : wyswietlana1),
                 HEART2,
-                MarkdownSanitizer.escape(wyswietlana2.isEmpty() ? rzecz2 : wyswietlana2));
+                MarkdownSanitizer.escape(wyswietlana2 == null ? rzecz2 : wyswietlana2));
 
         int procent = calc(rzecz1 + "x" + rzecz2);
 
@@ -141,5 +109,5 @@ public class ShipCommand extends Command {
         Random rand = new Random((s.toUpperCase().trim().hashCode()) + SEED_DATE);
         return rand.nextInt(101);
     }
-    
+
 }

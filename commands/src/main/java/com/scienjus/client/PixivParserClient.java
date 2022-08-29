@@ -39,7 +39,8 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pl.fratik.core.util.GsonUtil;
 
 import java.io.BufferedReader;
@@ -61,7 +62,7 @@ public class PixivParserClient {
      * 日志文件
      * the logger
      */
-    private static final Logger LOGGER = Logger.getLogger(PixivParserClient.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(PixivParserClient.class);
 
     /**
      * 日期格式化

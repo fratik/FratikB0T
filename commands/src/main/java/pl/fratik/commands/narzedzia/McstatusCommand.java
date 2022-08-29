@@ -18,18 +18,8 @@
 package pl.fratik.commands.narzedzia;
 
 import de.zh32.slp.ServerListPing17;
-import lombok.Getter;
-import me.dilley.MineStat;
 import me.vankka.reserializer.discord.DiscordSerializer;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.MessageChannel;
-import net.dv8tion.jda.api.entities.MessageEmbed;
-import net.dv8tion.jda.api.requests.restaction.MessageAction;
-import net.dv8tion.jda.api.utils.AttachmentOption;
-import net.dv8tion.jda.internal.requests.restaction.MessageActionImpl;
 import net.kyori.text.serializer.legacy.LegacyComponentSerializer;
 import org.jetbrains.annotations.NotNull;
 import org.xbill.DNS.Lookup;
@@ -37,32 +27,20 @@ import org.xbill.DNS.Record;
 import org.xbill.DNS.SRVRecord;
 import org.xbill.DNS.Type;
 import pl.fratik.core.command.NewCommand;
-import pl.fratik.core.util.NamedThreadFactory;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.util.UserUtil;
 
-import javax.annotation.Nonnull;
-import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.FutureTask;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
-//todo https://www.youtube.com/watch?v=-L2o5OHTgKU - to aż błaga o rewrite
 public class McstatusCommand extends NewCommand {
 
     public McstatusCommand() {
         name = "mcstatus";
-        uzycie = new Uzycie("ip", "string", true);
+        usage = "<ip:string>";
         allowInDMs = true;
-        cooldown = 13;
+        cooldown = 8;
         allowInDMs = true;
     }
 
@@ -71,102 +49,40 @@ public class McstatusCommand extends NewCommand {
             "[a-zA-Z0-9]\\.[^\\s/]{2,}?[^/]|www\\.[a-zA-Z0-9]\\.[^\\s/]{2,})");
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        Object[] sraka = resolveIpAndPort((String) context.getArgs()[0]);
+    public void execute(@NotNull NewCommandContext context) {
+        context.defer(false);
+        Object[] sraka = resolveIpAndPort(context.getArguments().get("ip").getAsString());
         String ip = (String) sraka[0];
         int port = (Integer) sraka[1];
-        List<FjuczerTask<MesydzAkszyn>> futures = new ArrayList<>();
-        ExecutorService executor = null;
         try {
-            futures.add(new FjuczerTask<>("ten gorszy", () -> {
-                try {
-                    MineStat ms = new MineStat(ip, port);
-                    EmbedBuilder eb = new EmbedBuilder();
-                    eb.setColor(UserUtil.getPrimColor(context.getMember().getUser()));
-                    eb.setAuthor(context.getTranslated("mcstatus.embed.author", (String) context.getArgs()[0]));
-                    eb.addField(context.getTranslated("mcstatus.embed.players"),
-                            ms.getCurrentPlayers() + "/" + ms.getMaximumPlayers(), false);
-                    eb.addField(context.getTranslated("mcstatus.embed.version"), ms.getVersion(), false);
-                    eb.addField(context.getTranslated("mcstatus.embed.motd"),
-                            replaceMinecraftFormatting(ms.getMotd()), false);
-                    if (ms.getProtocolVersion().equals("127")) {
-                        eb.addField(context.getTranslated("mcstatus.embed.old.protocol"),
-                                context.getTranslated("mcstatus.embed.old.protocol.desc"), false);
-                    }
-                    eb.addField(context.getTranslated("mcstatus.embed.ip"), ip + ":" + port, false);
-                    eb.setFooter(ms.getLatency() + " ms", null);
-                    MessageChannel ch = context.getMessageChannel();
-                    return new MesydzAkszyn("ten gorszy", ch.getJDA(), null, ch).reference(context.getMessage()).setEmbeds(eb.build());
-                } catch (Exception e) {
-                    return null;
-                }
-            }));
-            futures.add(new FjuczerTask<>("ten lepszy", () -> {
-                try {
-                    ServerListPing17.StatusResponse resp = new ServerListPing17(new InetSocketAddress(ip, port)).fetchData();
-                    EmbedBuilder eb = new EmbedBuilder();
-                    eb.setColor(UserUtil.getPrimColor(context.getMember().getUser()));
-                    eb.setAuthor(context.getTranslated("mcstatus.embed.author", (String) context.getArgs()[0]));
-                    StringBuilder players = new StringBuilder();
-                    players.append("**").append(resp.getPlayers().getOnline()).append("/")
-                            .append(resp.getPlayers().getMax()).append("**\n\n");
-                    if (resp.getPlayers().getSample() != null && !resp.getPlayers().getSample().isEmpty()) {
-                        int plejers = resp.getPlayers().getOnline();
-                        for (ServerListPing17.Player p : resp.getPlayers().getSample()/*.stream().sorted((a, b) -> a.getName()
+            ServerListPing17.StatusResponse resp = new ServerListPing17(new InetSocketAddress(ip, port)).fetchData();
+            EmbedBuilder eb = new EmbedBuilder();
+            eb.setColor(UserUtil.getPrimColor(context.getMember().getUser()));
+            eb.setAuthor(context.getTranslated("mcstatus.embed.author", context.getArguments().get("ip").getAsString()));
+            StringBuilder players = new StringBuilder();
+            players.append("**").append(resp.getPlayers().getOnline()).append("/")
+                    .append(resp.getPlayers().getMax()).append("**\n\n");
+            if (resp.getPlayers().getSample() != null && !resp.getPlayers().getSample().isEmpty()) {
+                int plejers = resp.getPlayers().getOnline();
+                for (ServerListPing17.Player p : resp.getPlayers().getSample()/*.stream().sorted((a, b) -> a.getName()
                                 .compareToIgnoreCase(b.getName())).collect(Collectors.toList())*/) {
-                            if (players.length() + (p.getName() + "\n").length() > 1000 -
-                                    (context.getTranslated("mcstatus.embed.players.more", plejers)).length()) {
-                                players.append(context.getTranslated("mcstatus.embed.players.more", plejers));
-                            }
-                            players.append(replaceMinecraftFormatting(p.getName())).append("\n");
-                        }
+                    if (players.length() + (p.getName() + "\n").length() > 1000 -
+                            (context.getTranslated("mcstatus.embed.players.more", plejers)).length()) {
+                        players.append(context.getTranslated("mcstatus.embed.players.more", plejers));
                     }
-                    eb.addField(context.getTranslated("mcstatus.embed.players"), players.toString(), false);
-                    eb.addField(context.getTranslated("mcstatus.embed.version"),
-                            replaceMinecraftFormatting(resp.getVersion().getName()), false);
-                    eb.addField(context.getTranslated("mcstatus.embed.motd"), formatMotd(resp.getDescription()), false);
-                    eb.addField(context.getTranslated("mcstatus.embed.ip"), ip + ":" + port, false);
-                    eb.setFooter(resp.getTime() + " ms", null);
-                    MessageChannel ch = context.getMessageChannel();
-                    MesydzAkszyn ma = new MesydzAkszyn("ten lepszy", ch.getJDA(), null, ch).reference(context.getMessage());
-                    eb.setThumbnail("https://eu.mc-api.net/v3/server/favicon/" + ip + ":" + port);
-                    ma = ma.setEmbeds(eb.build());
-                    return ma;
-                } catch (Exception e) {
-                    return null;
+                    players.append(replaceMinecraftFormatting(p.getName())).append("\n");
                 }
-            }));
-            executor = Executors.newFixedThreadPool(2, new NamedThreadFactory("McStatus-" + context.getSender().getId()));
-            futures.forEach(executor::submit);
-            MesydzAkszyn ma = check(futures);
-            if (ma == null) throw new IllegalStateException("serwer offline");
-            Message me = ma.complete();
-            if (!ma.getName().equals("ten gorszy")) return true;
-            while (!futures.stream().allMatch(FutureTask::isDone)) {
-                Thread.sleep(100);
             }
-            for (FjuczerTask<MesydzAkszyn> f : futures) {
-                if (!f.getName().equals("ten lepszy")) continue;
-                MessageAction ma1 = me.editMessageEmbeds(f.get().getEmbed()).override(true);
-                if (f.get().getFiles() != null && !f.get().getFiles().isEmpty()) {
-                    me.delete().queue();
-                    ma1 = me.getTextChannel().sendMessageEmbeds(f.get().getEmbed()).reference(context.getMessage());
-                    for (Map.Entry<String, InputStream> file : f.get().getFiles().entrySet()) {
-                        ma1 = ma1.addFile(file.getValue(), file.getKey());
-                    }
-                }
-                ma1.complete();
-                executor.shutdown();
-                return true;
-            }
-            executor.shutdown();
-            return true;
+            eb.addField(context.getTranslated("mcstatus.embed.players"), players.toString(), false);
+            eb.addField(context.getTranslated("mcstatus.embed.version"),
+                    replaceMinecraftFormatting(resp.getVersion().getName()), false);
+            eb.addField(context.getTranslated("mcstatus.embed.motd"), formatMotd(resp.getDescription()), false);
+            eb.addField(context.getTranslated("mcstatus.embed.ip"), ip + ":" + port, false);
+            eb.setFooter(resp.getTime() + " ms", null);
+            eb.setThumbnail("https://eu.mc-api.net/v3/server/favicon/" + ip + ":" + port);
+            context.sendMessage(eb.build());
         } catch (Exception e) {
-            if (executor != null) {
-                executor.shutdown();
-            }
-            context.reply(context.getTranslated("mcstatus.offline"));
-            return false;
+            context.sendMessage(context.getTranslated("mcstatus.offline"));
         }
     }
 
@@ -217,33 +133,6 @@ public class McstatusCommand extends NewCommand {
         return xd;
     }
 
-    private MesydzAkszyn check(List<FjuczerTask<MesydzAkszyn>> futures) throws Exception {
-        while (futures.stream().noneMatch(FutureTask::isDone)) {
-            Thread.sleep(100);
-        }
-        List<FutureTask<MesydzAkszyn>> mas = futures.stream().filter(FutureTask::isDone).collect(Collectors.toList());
-        if (mas.size() == 2 && mas.stream().map(t -> {
-            try {
-                return t.get();
-            } catch (Exception e) {
-                return null;
-            }
-        }).allMatch(Objects::isNull)) {
-            return null;
-        } else if (mas.size() == 1 && mas.get(0).get() == null) {
-            while (futures.stream().allMatch(FutureTask::isDone)) {
-                Thread.sleep(100);
-            }
-        } else if (mas.size() == 0) throw new IllegalStateException("tu nie dojdziemy raczej");
-        return mas.stream().map(a -> {
-            try {
-                return a.get();
-            } catch (Exception e) {
-                return null;
-            }
-        }).filter(Objects::nonNull).findAny().orElse(null);
-    }
-
     private String formatMotd(ServerListPing17.Description motd) {
         StringBuilder sb = new StringBuilder();
         sb.append(replaceMinecraftFormatting(motd.getText()));
@@ -268,56 +157,6 @@ public class McstatusCommand extends NewCommand {
     private String replaceMinecraftFormatting(String text) {
         return DiscordSerializer.serialize(LegacyComponentSerializer.legacy().deserialize(text,
                 text.contains("\uFFFD") ? '\uFFFD' : '\u00A7'), true);
-    }
-
-    private static class FjuczerTask<V> extends FutureTask<V> {
-        @Getter private final String name;
-
-        FjuczerTask(@NotNull String name, @NotNull Callable<V> callable) {
-            super(callable);
-            this.name = name;
-        }
-    }
-
-    private static class MesydzAkszyn extends MessageActionImpl {
-        @Getter private final String name;
-
-        MesydzAkszyn(String name, JDA api, String messageId, MessageChannel channel) {
-            super(api, messageId, channel);
-            this.name = name;
-        }
-
-        MessageEmbed getEmbed() {
-            return embeds.get(0);
-        }
-
-        Map<String, InputStream> getFiles() {
-            return files;
-        }
-
-        @NotNull
-        @Override
-        public MesydzAkszyn setEmbeds(@NotNull MessageEmbed... embed) {
-            //noinspection ResultOfMethodCallIgnored
-            super.setEmbeds(embed);
-            return this;
-        }
-
-        @NotNull
-        @Override
-        public MesydzAkszyn reference(@NotNull Message message) {
-            //noinspection ResultOfMethodCallIgnored
-            super.reference(message);
-            return this;
-        }
-
-        @NotNull
-        @Override
-        public MesydzAkszyn addFile(@Nonnull byte[] data, @Nonnull String name, @Nonnull AttachmentOption... options) {
-            //noinspection ResultOfMethodCallIgnored
-            super.addFile(data, name);
-            return this;
-        }
     }
 
 }

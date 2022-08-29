@@ -18,21 +18,20 @@
 package pl.fratik.commands.system;
 
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 
 import java.util.Random;
 
-public class RzutMonetaCommand extends Command {
+public class RzutMonetaCommand extends NewCommand {
     private static final Random random = new Random();
 
     public RzutMonetaCommand() {
         name = "rzutmoneta";
-        category = CommandCategory.FUN;
-        aliases = new String[] {"rzutm", "moneta", "rm"};
-        allowPermLevelChange = false;
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
+    public void execute(@NotNull NewCommandContext context) {
         Moneta moneta;
         switch (random.nextInt(2)) {
             case 1:
@@ -43,7 +42,6 @@ public class RzutMonetaCommand extends Command {
                 moneta = Moneta.ORZEL; //prosty fallback
         }
         context.reply(context.getTranslated("rzutmoneta.response", context.getSender().getAsMention(), context.getTranslated("rzutmoneta." + moneta.name().toLowerCase())));
-        return true;
     }
 
     private enum Moneta {

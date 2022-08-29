@@ -17,57 +17,43 @@
 
 package pl.fratik.commands.system;
 
-import net.dv8tion.jda.api.entities.GuildChannel;
+import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.command.PermLevel;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
+import pl.fratik.core.command.SubCommand;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
-import pl.fratik.core.util.CommonErrors;
 
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.stream.Collectors;
-
-public class UstawPowitanieCommand extends Command {
+public class UstawPowitanieCommand extends NewCommand {
     private final GuildDao guildDao;
 
     public UstawPowitanieCommand(GuildDao guildDao) {
         this.guildDao = guildDao;
         name = "ustawpowitanie";
-        category = CommandCategory.SYSTEM;
-        permLevel = PermLevel.ADMIN;
-        LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
-        hmap.put("kanalDoPowitan", "channel");
-        hmap.put("tekst", "string");
-        hmap.put("[...]", "string");
-        uzycie = new Uzycie(hmap, new boolean[] {true, false, false});
-        uzycieDelim = " ";
+        permissions = DefaultMemberPermissions.enabledFor(Permission.MANAGE_SERVER);
     }
 
-    @Override
-    public boolean execute(@NotNull CommandContext context) {
-        String tekst;
+    @SubCommand(name = "usun", usage = "<kanal:textchannel>")
+    public void delete(@NotNull NewCommandContext context) {
+        context.defer(false);
         GuildConfig gc = guildDao.get(context.getGuild());
-        if (context.getMessage().getContentRaw().contains("--delete")) {
-            String usunieto = gc.getPowitania().remove(((GuildChannel) context.getArgs()[0]).getId());
-            if (usunieto == null) {
-                context.reply(context.getTranslated("ustawpowitanie.delete.failure"));
-                return false;
-            }
-            context.reply(context.getTranslated("ustawpowitanie.delete.success"));
-            guildDao.save(gc);
-            return true;
+        String usunieto = gc.getPowitania().remove(context.getArguments().get("kanal").getAsChannel().getId());
+        if (usunieto == null) {
+            context.sendMessage(context.getTranslated("ustawpowitanie.delete.failure"));
+            return;
         }
-        if (context.getArgs().length > 1 && context.getArgs()[1] != null)
-            tekst = Arrays.stream(Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length))
-                    .map(o -> o == null ? "" : o.toString()).collect(Collectors.joining(uzycieDelim));
-        else {
-            CommonErrors.usage(context);
-            return false;
-        }
-        gc.getPowitania().put(((GuildChannel) context.getArgs()[0]).getId(), tekst);
+        context.sendMessage(context.getTranslated("ustawpowitanie.delete.success"));
         guildDao.save(gc);
-        context.reply(context.getTranslated("ustawpowitanie.response"));
-        return true;
+    }
+    @SubCommand(name = "ustaw", usage = "<kanal:textchannel> <tekst:string>")
+    public void set(@NotNull NewCommandContext context) {
+        context.defer(false);
+        String tekst = context.getArguments().get("tekst").getAsString();
+        GuildConfig gc = guildDao.get(context.getGuild());
+        gc.getPowitania().put(context.getArguments().get("kanal").getAsChannel().getId(), tekst);
+        guildDao.save(gc);
+        context.sendMessage(context.getTranslated("ustawpowitanie.response"));
     }
 }
