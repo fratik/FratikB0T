@@ -18,6 +18,7 @@
 package pl.fratik.core.manager.implementation;
 
 import com.google.common.eventbus.AllowConcurrentEvents;
+import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -29,6 +30,7 @@ import pl.fratik.core.Ustawienia;
 import pl.fratik.core.command.CommandType;
 import pl.fratik.core.command.NewCommand;
 import pl.fratik.core.command.NewCommandContext;
+import pl.fratik.core.event.CommandSyncEvent;
 import pl.fratik.core.manager.NewManagerKomend;
 import pl.fratik.core.moduly.Modul;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
@@ -44,10 +46,12 @@ public class NewManagerKomendImpl implements NewManagerKomend {
     private final Tlumaczenia tlumaczenia;
     private final Map<Modul, Set<NewCommand>> commands;
     private final Logger logger;
+    private final EventBus eventBus;
 
-    public NewManagerKomendImpl(ShardManager shardManager, Tlumaczenia tlumaczenia) {
+    public NewManagerKomendImpl(ShardManager shardManager, Tlumaczenia tlumaczenia, EventBus eventBus) {
         this.shardManager = shardManager;
         this.tlumaczenia = tlumaczenia;
+        this.eventBus = eventBus;
         commands = new HashMap<>();
         logger = LoggerFactory.getLogger(getClass());
     }
@@ -57,6 +61,7 @@ public class NewManagerKomendImpl implements NewManagerKomend {
         Set<NewCommand> set = this.commands.computeIfAbsent(modul, k -> new HashSet<>());
         set.addAll(commands);
         for (NewCommand command : commands) {
+            command.registerSubcommands();
             try {
                 command.onRegister();
             } catch (Exception e) {
@@ -86,6 +91,7 @@ public class NewManagerKomendImpl implements NewManagerKomend {
         if (guild == null) logger.warn("Nie znaleziono serwera {}", Ustawienia.instance.botGuild);
         else guild.updateCommands().addCommands(guildCmds).complete();
         shardManager.getShardById(0).updateCommands().addCommands(cmds).complete();
+        eventBus.post(new CommandSyncEvent(cmds, guildCmds));
     }
 
     @Override
@@ -130,11 +136,15 @@ public class NewManagerKomendImpl implements NewManagerKomend {
     @AllowConcurrentEvents
     public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
         String name = event.getName();
-        NewCommand command = commandsStream().filter(c -> c.getName().equals(name)).findAny().orElse(null);
+        NewCommand command = commandsStream()
+                .filter(c -> event.isGuildCommand() ? c.getType() == CommandType.SUPPORT_SERVER : c.getType() == CommandType.NORMAL)
+                .filter(c -> c.getName().equals(name)).findAny().orElse(null);
         if (command == null) {
             logger.warn("Nie znaleziono komendy {}", name);
             return;
         }
+        if (command.getType() == CommandType.SUPPORT_SERVER && !event.getGuild().getId().equals(Ustawienia.instance.botGuild))
+            return;
         NewCommandContext ctx = new NewCommandContext(shardManager, command, tlumaczenia, event.getInteraction());
         if (!command.permissionCheck(ctx)) return;
         if (event.getSubcommandName() != null) {

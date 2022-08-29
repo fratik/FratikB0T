@@ -108,7 +108,7 @@ public class Module implements Modul {
         logger.info("Rozpoczynam migrację spraw!");
         try {
             AtomicReference<SQLException> sqlEx = new AtomicReference<>(); // pgStore to gówno i tylko loguje SQLException
-            managerBazyDanych.getPgStore().sql(new PgStore.SqlConsumer<Connection>() {
+            managerBazyDanych.getPgStore().sql(new PgStore.SqlConsumer<>() {
                 @Override
                 public void accept(Connection con) {
                     try {
@@ -165,9 +165,13 @@ public class Module implements Modul {
             });
             if (sqlEx.get() != null) throw sqlEx.get();
         } catch (Exception e) {
-            logger.error("Migracja nieudana!", e);
-            Sentry.capture(e);
-            return false;
+            if (e instanceof SQLException && ((SQLException) e).getSQLState().equals("42P01")) {
+                logger.warn("Prawdopodobnie nie znaleziono tabeli cases, więc ignoruję", e);
+            } else {
+                logger.error("Migracja nieudana!", e);
+                Sentry.capture(e);
+                return false;
+            }
         }
         caseDao = new CaseDao(managerBazyDanych, eventBus);
         purgeDao = new PurgeDao(managerBazyDanych, eventBus);

@@ -25,8 +25,6 @@ import pl.fratik.core.entity.MemberConfig;
 import pl.fratik.core.entity.MemberDao;
 import pl.fratik.core.util.UserUtil;
 
-import java.util.LinkedHashMap;
-
 public class UsunFcCommand extends MoneyCommand {
 
     private final MemberDao memberDao;
@@ -42,22 +40,23 @@ public class UsunFcCommand extends MoneyCommand {
         Member komu = context.getArguments().get("osoba").getAsMember();
         int ile = context.getArguments().get("ile").getAsInt();
         if (ile == 0) {
-            context.reply(context.getTranslated("usunfc.badnumber"));
+            context.replyEphemeral(context.getTranslated("usunfc.badnumber"));
             return;
         }
         if (komu.getUser().isBot()) {
-            context.reply(context.getTranslated("usunfc.bot"));
+            context.replyEphemeral(context.getTranslated("usunfc.bot"));
             return;
         }
+        context.defer(false);
         MemberConfig mc = memberDao.get(komu);
         long hajs = mc.getFratikCoiny() - ile;
         if (hajs < 0) {
-            context.reply(context.getTranslated("usunfc.badnumber.sub"));
+            context.sendMessage(context.getTranslated("usunfc.badnumber.sub"));
             return;
         }
         Emoji fc = getFratikCoin(context);
         mc.setFratikCoiny(hajs);
         memberDao.save(mc);
-        context.reply(context.getTranslated("usunfc.success", UserUtil.formatDiscrim(komu), hajs, fc.getFormatted()));
+        context.sendMessage(context.getTranslated("usunfc.success", UserUtil.formatDiscrim(komu), hajs, fc.getFormatted()));
     }
 }

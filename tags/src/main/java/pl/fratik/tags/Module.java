@@ -21,16 +21,15 @@ import com.google.common.eventbus.EventBus;
 import com.google.inject.Inject;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import pl.fratik.core.cache.RedisCacheManager;
+import pl.fratik.core.command.NewCommand;
 import pl.fratik.core.manager.ManagerBazyDanych;
 import pl.fratik.core.manager.ManagerModulow;
+import pl.fratik.core.manager.NewManagerKomend;
 import pl.fratik.core.moduly.Modul;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.EventWaiter;
 import pl.fratik.core.webhook.WebhookManager;
-import pl.fratik.tags.commands.CreateTagCommand;
-import pl.fratik.tags.commands.DeleteTagCommand;
-import pl.fratik.tags.commands.ListTagCommand;
-import pl.fratik.tags.commands.TakeTagCommand;
+import pl.fratik.tags.commands.TagCommand;
 import pl.fratik.tags.entity.TagsDao;
 
 import java.util.ArrayList;
@@ -42,7 +41,7 @@ public class Module implements Modul {
     @Inject private EventBus eventBus;
     @Inject private ManagerBazyDanych managerBazyDanych;
     @Inject private EventWaiter eventWaiter;
-    @Inject private ManagerKomend managerKomend;
+    @Inject private NewManagerKomend managerKomend;
     @Inject private ShardManager shardManager;
     @Inject private ManagerModulow managerModulow;
     @Inject private Tlumaczenia tlumaczenia;
@@ -51,7 +50,7 @@ public class Module implements Modul {
 
     private TagsDao tagsDao;
     private TagsManager tagsManager;
-    private ArrayList<Command> commands;
+    private ArrayList<NewCommand> commands;
 
     public Module() {
         commands = new ArrayList<>();
@@ -60,22 +59,19 @@ public class Module implements Modul {
     @Override
     public boolean startUp() {
         tagsDao = new TagsDao(managerBazyDanych, eventBus);
-        tagsManager = new TagsManager(tagsDao, managerKomend, shardManager, tlumaczenia, redisCacheManager, webhookManager);
+        tagsManager = new TagsManager(tagsDao, managerKomend, shardManager, tlumaczenia, redisCacheManager);
         commands = new ArrayList<>();
 
-        commands.add(new CreateTagCommand(tagsDao, managerKomend));
-        commands.add(new DeleteTagCommand(tagsDao));
-        commands.add(new TakeTagCommand(tagsDao));
-        commands.add(new ListTagCommand(tagsDao, eventWaiter, eventBus));
+        commands.add(new TagCommand(tagsDao, eventWaiter, eventBus, tagsManager));
 
-        commands.forEach(managerKomend::registerCommand);
+        managerKomend.registerCommands(this, commands);
         eventBus.register(tagsManager);
         return true;
     }
 
     @Override
     public boolean shutDown() {
-        commands.forEach(managerKomend::unregisterCommand);
+        managerKomend.unregisterCommands(commands);
         eventBus.unregister(tagsManager);
         return true;
     }

@@ -17,118 +17,106 @@
 
 package pl.fratik.tags;
 
-import club.minnced.discord.webhook.send.AllowedMentions;
-import club.minnced.discord.webhook.send.WebhookMessageBuilder;
+import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.Subscribe;
-import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.entities.*;
-import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.interactions.commands.build.CommandData;
+import net.dv8tion.jda.api.interactions.commands.build.Commands;
+import net.dv8tion.jda.api.requests.ErrorResponse;
+import net.dv8tion.jda.api.requests.restaction.CommandListUpdateAction;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pl.fratik.core.Ustawienia;
 import pl.fratik.core.cache.Cache;
 import pl.fratik.core.cache.RedisCacheManager;
+import pl.fratik.core.event.CommandSyncEvent;
+import pl.fratik.core.manager.NewManagerKomend;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
-import pl.fratik.core.util.CommonUtil;
-import pl.fratik.core.util.UserUtil;
-import pl.fratik.core.webhook.WebhookManager;
 import pl.fratik.tags.entity.Tag;
 import pl.fratik.tags.entity.Tags;
 import pl.fratik.tags.entity.TagsDao;
 
-import java.awt.*;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Pattern;
 
-import static pl.fratik.core.Statyczne.BRAND_COLOR;
-import static pl.fratik.tags.Module.MAX_TAG_NAME_LENGTH;
-
-class TagsManager {
+public class TagsManager {
     private final TagsDao tagsDao;
-    private final ManagerKomend managerKomend;
+    private final NewManagerKomend managerKomend;
     private final ShardManager shardManager;
     private final Tlumaczenia tlumaczenia;
-    private final WebhookManager webhookManager;
     private final Cache<Tags> tagsCache;
+    private final Logger logger;
 
-    TagsManager(TagsDao tagsDao, ManagerKomend managerKomend, ShardManager shardManager, Tlumaczenia tlumaczenia, RedisCacheManager redisCacheManager, WebhookManager webhookManager) {
+    TagsManager(TagsDao tagsDao, NewManagerKomend managerKomend, ShardManager shardManager, Tlumaczenia tlumaczenia, RedisCacheManager redisCacheManager) {
         this.tagsDao = tagsDao;
         this.managerKomend = managerKomend;
         this.shardManager = shardManager;
         this.tlumaczenia = tlumaczenia;
-        this.webhookManager = webhookManager;
+        logger = LoggerFactory.getLogger(getClass());
         tagsCache = redisCacheManager.new CacheRetriever<Tags>(){}.getCache((int) TimeUnit.HOURS.toSeconds(1));
     }
 
     @Subscribe
-    public void onMessage(MessageReceivedEvent e) {
+    @AllowConcurrentEvents
+    public void onMessage(SlashCommandInteractionEvent e) {
         if (!e.isFromGuild()) return;
         @NotNull Tags tagi = Objects.requireNonNull(tagsCache.get(e.getGuild().getId(), tagsDao::get));
-        Tag tag = getTagByName(getFirstWord(e.getMessage()), tagi);
+        Tag tag = getTagByName(e.getName(), tagi);
         if (tag == null) return;
-        if (tag.getName().length() > MAX_TAG_NAME_LENGTH) return;
-        if (managerKomend.getRegistered().stream().anyMatch(c -> c.getName().equalsIgnoreCase(tag.getName()) ||
-                Arrays.asList(c.getAliases(tlumaczenia)).contains(tag.getName()))) return;
-        try {
-            SelfUser su = e.getJDA().getSelfUser();
-            webhookManager.send(new WebhookMessageBuilder().setContent(tag.getContent()).setAvatarUrl(su.getAvatarUrl())
-                    .setAllowedMentions(AllowedMentions.none()).setUsername(su.getName()).build(), (GuildChannel) e.getChannel());
-        } catch (Exception err) {
-            e.getChannel().sendMessageEmbeds(generateEmbed(tag, tlumaczenia.getLanguage(e.getMember()), e.getGuild())).queue();
-        }
-        try {
-            Emoji reakcja = managerKomend.getReakcja(e.getMessage().getAuthor(), true);
-            if (reakcja.isUnicode()) e.getMessage().addReaction(reakcja.getName()).queue();
-            else if (shardManager.getEmoteById(reakcja.getIdLong()) != null)
-                e.getMessage().addReaction(reakcja).queue();
-            else {
-                Emote emotka = shardManager.getEmoteById(Ustawienia.instance.emotki.greenTick);
-                if (emotka != null) e.getMessage().addReaction(emotka).queue();
-            }
-        } catch (Exception ignored) {
-            /*lul*/
-        }
+        e.reply(tag.getContent()).complete();
     }
 
-    private String getFirstWord(Message message) {
-        String content = message.getContentRaw().toLowerCase();
-        for (String prefix : managerKomend.getPrefixes(message.getGuild())) {
-            if (!content.startsWith(prefix)) continue;
-            return content.replaceFirst(Pattern.quote(prefix), "").split(" ")[0];
+    @Subscribe
+    public void onSync(CommandSyncEvent e) {
+        logger.debug("Rozpoczynam synchronizację tagów");
+        for (Tags tags : tagsDao.getAll()) {
+            Guild guild = shardManager.getGuildById(tags.getId());
+            if (guild == null) continue;
+            syncGuild(guild.getId().equals(Ustawienia.instance.botGuild) ? e.getSupportGuildCommands() : null, tags, guild);
         }
-        return null;
+        logger.debug("Synchronizacja tagów ukończona");
+    }
+
+    public void syncGuild(Tags tags, Guild guild) {
+        if (guild.getId().equals(Ustawienia.instance.botGuild)) {
+            managerKomend.sync();
+            return;
+        }
+        syncGuild(null, tags, guild);
+    }
+
+    private void syncGuild(Set<CommandData> existingCommands, Tags tags, Guild guild) {
+        Language language = tlumaczenia.getLanguage(guild);
+        CommandListUpdateAction action = guild.updateCommands();
+        if (existingCommands != null) action = action.addCommands(existingCommands);
+        Set<CommandData> commands = new HashSet<>();
+        for (Iterator<Tag> iter = tags.getTagi().stream().sorted(Comparator.comparing(t -> t.getName().toLowerCase())).iterator(); iter.hasNext();) {
+            Tag tag = iter.next();
+            String createdBy = tag.getCreatedBy();
+            if (createdBy == null) createdBy = "???";
+            else {
+                User user = shardManager.retrieveUserById(createdBy)
+                        .onErrorMap(ErrorResponse.UNKNOWN_USER::test, x -> null).complete();
+                if (user != null) createdBy = user.getAsTag();
+            }
+            try {
+                commands.add(Commands.slash(tag.getName(), tlumaczenia.get(language, "tag.command.description", createdBy)));
+            } catch (IllegalArgumentException ex) {
+                // ignoruj, nieprawidłowe tagi zostaną wylistowane w /tag list
+            }
+            if (commands.size() == 100) break;
+        }
+        action.addCommands(commands).complete();
     }
 
     @Nullable
     private Tag getTagByName(String name, Tags tags) {
         return tags.getTagi().stream().filter(t -> t.getName().equalsIgnoreCase(name)).findFirst().orElse(null);
-    }
-
-    private MessageEmbed generateEmbed(Tag tag, Language lang, Guild guild) {
-        EmbedBuilder eb = new EmbedBuilder();
-        if (tag.getCreatedBy() != null) {
-            User createdBy = shardManager.retrieveUserById(tag.getCreatedBy()).complete();
-            if (createdBy == null) createdBy = shardManager.retrieveUserById(tag.getCreatedBy()).complete();
-            eb.setFooter(createdBy.getAsTag(), createdBy.getEffectiveAvatarUrl());
-            Member mem = guild.getMember(createdBy);
-            eb.setColor(mem == null || mem.getColor() == null ? UserUtil.getPrimColor(createdBy) : mem.getColor());
-        } else {
-            eb.setColor(Color.decode(BRAND_COLOR));
-            List<String> prefixes = managerKomend.getPrefixes(guild);
-            if (prefixes.isEmpty()) prefixes.add(Ustawienia.instance.prefix);
-            eb.setFooter(tlumaczenia.get(lang, "tag.creator.unknown", prefixes.get(0),
-                    tag.getName()), null);
-        }
-        eb.setAuthor(tag.getName());
-        eb.setDescription(tag.getContent());
-        eb.setImage(CommonUtil.getImageUrl(tag.getContent()));
-        eb.addField(tlumaczenia.get(lang, "tag.warning"),
-                tlumaczenia.get(lang, "tag.warning.content"), false);
-        return eb.build();
     }
 }

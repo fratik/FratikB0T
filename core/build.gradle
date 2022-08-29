@@ -95,7 +95,7 @@ dependencies {
 
 shadowJar {
     manifest {
-        attributes 'api-Title': 'FratikB0T', 'api-Version': version
+        attributes 'Implementation-Title': 'FratikB0T', 'Implementation-Version': version
         attributes 'Main-Class': 'pl.fratik.core.Main'
     }
     mergeServiceFiles()
