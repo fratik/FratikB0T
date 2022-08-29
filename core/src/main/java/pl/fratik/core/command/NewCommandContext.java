@@ -61,6 +61,10 @@ public class NewCommandContext {
         this.language = language;
     }
 
+    public String getCommandPath() {
+        return interaction.getCommandPath();
+    }
+
     public InteractionHook defer(boolean ephemeral) {
         return interaction.deferReply(ephemeral).complete();
     }

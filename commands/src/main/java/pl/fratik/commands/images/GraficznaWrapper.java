@@ -36,6 +36,12 @@ public class GraficznaWrapper extends NewCommand {
         name = "zdjecia";
     }
 
+    public void xDxDxD(NewCommandContext context) {
+        commands.stream()
+                .filter(c -> c.getName().equals(context.getCommandPath().substring(name.length() + 1)))
+                .findFirst().orElseThrow().execute(context);
+    }
+
     @Override
     public CommandData generateCommandData(Tlumaczenia tlumaczenia) {
         SlashCommandData data = generateBasicCommandData(tlumaczenia);
@@ -57,7 +63,7 @@ public class GraficznaWrapper extends NewCommand {
         subcommands.clear();
         for (NewCommand command : commands) {
             try {
-                subcommands.put(command.getName(), command.getClass().getDeclaredMethod("execute", NewCommandContext.class));
+                subcommands.put(command.getName(), getClass().getDeclaredMethod("xDxDxD", NewCommandContext.class));
             } catch (NoSuchMethodException e) {
                 throw new IllegalArgumentException(e);
             }
