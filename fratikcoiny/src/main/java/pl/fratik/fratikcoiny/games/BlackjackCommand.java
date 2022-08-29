@@ -38,7 +38,7 @@ public class BlackjackCommand extends NewCommand {
         this.memberDao = memberDao;
         this.eventWaiter = eventWaiter;
         name = "blackjack";
-        usage = "<zaklad:number>";
+        usage = "<zaklad:int>";
     }
 
     @Override

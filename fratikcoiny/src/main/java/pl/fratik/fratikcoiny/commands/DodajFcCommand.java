@@ -34,7 +34,7 @@ public class DodajFcCommand extends NewCommand {
         this.memberDao = memberDao;
         permissions = DefaultMemberPermissions.enabledFor(Permission.MANAGE_SERVER);
         name = "dodajfc";
-        usage = "<osoba:user> <ile:number>";
+        usage = "<osoba:user> <ile:int>";
     }
 
     @Override

@@ -31,7 +31,7 @@ public class GiveCommand extends NewCommand {
     public GiveCommand(MemberDao memberDao) {
         this.memberDao = memberDao;
         name = "give";
-        usage = "<osoba:user> <ile:number>";
+        usage = "<osoba:user> <ile:int>";
     }
 
     @Override

@@ -43,7 +43,7 @@ public class FixstarCommand extends NewCommand {
         try {
             message = context.getChannel().retrieveMessageById(context.getArguments().get("id_wiadomosci").getAsString()).complete();
         } catch (Exception e) {
-            context.sendMessage(context.getTranslated("fixstar.success"));
+            context.sendMessage(context.getTranslated("fixstar.error"));
             return;
         }
         starManager.fixStars(message, starDataDao.get(context.getGuild()));
