@@ -100,6 +100,7 @@ public class TagCommand extends NewCommand {
                 .orElseThrow(IllegalStateException::new);
         tags.getTagi().remove(tag);
         tagsDao.save(tags);
+        tagsManager.syncGuild(tags, context.getGuild());
         context.sendMessage(context.getTranslated("deletetag.success"));
     }
 
@@ -167,6 +168,8 @@ public class TagCommand extends NewCommand {
         }
         tags.getTagi().remove(tag);
         tags.getTagi().add(new Tag(nowaNazwa, context.getSender().getId(), tag.getContent()));
+        tagsDao.save(tags);
+        tagsManager.syncGuild(tags, context.getGuild());
         context.sendMessage(context.getTranslated("tag.edit.name.success"));
     }
 
@@ -184,6 +187,7 @@ public class TagCommand extends NewCommand {
         }
         tags.getTagi().remove(tag);
         tags.getTagi().add(new Tag(tag.getName(), context.getSender().getId(), content));
+        tagsDao.save(tags);
         context.sendMessage(context.getTranslated("tag.edit.content.success"));
     }
 
