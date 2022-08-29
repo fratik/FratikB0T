@@ -25,7 +25,6 @@ mainClassName = 'pl.fratik.invite.Module'
 build.dependsOn jar
 
 dependencies {
-    implementation project(":arguments")
     implementation project(":core")
 }
 

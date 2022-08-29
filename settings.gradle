@@ -18,14 +18,9 @@
 rootProject.name = 'FratikB0T'
 include ':core'
 include ':commands'
-include ':arguments'
 include ':api'
 include ':punkty'
 include ':starboard'
-if(file('sdk').exists()){
-    include ':sdk'
-    apply from: 'sdk/settings.gradle'
-}
 include ':moderation'
 include ':fratikcoiny'
 include ':music'
