@@ -135,7 +135,7 @@ public class HypixelCommand extends NewCommand {
             eb.addField(context.getTranslated("hypixel.embed.player.lastlogin"), date.format(lastlogin), true);
             eb.addField(context.getTranslated("hypixel.embed.player.language"), jezyk, false);
             eb.addField(context.getTranslated("hypixel.embed.player.karma"), String.valueOf(karma), true);
-            context.reply(eb.build());
+            context.sendMessage(eb.build());
         } else if (cos.equals("guild")) {
             try {
                 GuildReply gr = hypixelAPI.getGuildByName(arg).join();
@@ -149,21 +149,21 @@ public class HypixelCommand extends NewCommand {
                 tagcolor = g.getTagColor();
                 coins = g.getCoins();
             } catch (Exception e) {
-                context.reply(context.getTranslated("hypixel.error.guildapi"));
+                context.sendMessage(context.getTranslated("hypixel.error.guildapi"));
                 return;
             }
             EmbedBuilder eb = new EmbedBuilder();
-            eb.setColor(Kolory.valueOf(tagcolor).color);
+            if (tagcolor != null) eb.setColor(Kolory.valueOf(tagcolor).color);
             eb.addField(context.getTranslated("hypixel.embed.guild.profile"), "[" + name + "](https://hypixel.net/guilds/" + name + ")", false);
             eb.addField(context.getTranslated("hypixel.embed.guild.des"), des == null || des.isEmpty() ?
                     context.getTranslated("hypixel.embed.guild.des.empty") : des, false);
             eb.addField(context.getTranslated("hypixel.embed.guild.created"), date.format(created), false);
             eb.addField(context.getTranslated("hypixel.embed.guild.tagname"), tagname, false);
-            eb.addField(context.getTranslated("hypixel.embed.guild.tagcolor"), tagcolor, true);
+            if (tagcolor != null) eb.addField(context.getTranslated("hypixel.embed.guild.tagcolor"), tagcolor, false);
             eb.addField(context.getTranslated("hypixel.embed.guild.members"), String.valueOf(members), false);
             eb.addField(context.getTranslated("hypixel.embed.guild.coiny"), String.valueOf(coins), false);
             eb.addField(context.getTranslated("hypixel.embed.guild.exp"), String.valueOf(exp), true);
-            context.reply(eb.build());
+            context.sendMessage(eb.build());
         }
     }
 

@@ -24,9 +24,7 @@ import gg.amy.pgorm.PgStore;
 import io.sentry.Sentry;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.events.StatusChangeEvent;
-import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,7 +32,6 @@ import pl.fratik.core.Globals;
 import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.command.NewCommand;
 import pl.fratik.core.entity.GuildDao;
-import pl.fratik.core.entity.Kara;
 import pl.fratik.core.entity.ScheduleDao;
 import pl.fratik.core.entity.UserDao;
 import pl.fratik.core.event.ModuleLoadedEvent;
@@ -60,12 +57,9 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.EnumSet;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 public class Module implements Modul {
     @Inject private NewManagerKomend managerKomend;
@@ -247,29 +241,6 @@ public class Module implements Modul {
             /*lul*/
         }
         return true;
-    }
-
-    @Subscribe
-    private void onMemberJoin(GuildMemberJoinEvent e) {
-        if (!modLogListener.checkPermissions(e)) return;
-        Role rola = modLogListener.getMuteRole(e.getGuild());
-        if (rola == null) return;
-        List<Case> cList = caseDao.getCasesByMember(e.getMember()).stream().filter(c -> c.getType() == Kara.MUTE &&
-                c.isValid()).collect(Collectors.toList());
-        if (cList.size() > 1) {
-            for (Case aCase : cList) {
-                aCase.setValid(false);
-                aCase.setValidTo(Instant.now());
-                Case c = new Case.Builder(aCase.getGuildId(), aCase.getUserId(), Instant.now(), Kara.UNMUTE)
-                        .setIssuerId(Globals.clientId)
-                        .setReasonKey("modlog.reason.twomutesoneuser")
-                        .build();
-                caseDao.createNew(aCase, c, false);
-            }
-        } else if (cList.size() != 1) return;
-        e.getGuild().addRoleToMember(e.getMember(), rola)
-                .reason(tlumaczenia.get(tlumaczenia.getLanguage(e.getGuild()), "modlog.reason.audit.autoreturnmute",
-                        cList.get(0).getCaseNumber())).queue();
     }
 
     @Subscribe
