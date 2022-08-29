@@ -19,12 +19,12 @@ package pl.fratik.commands.system;
 
 import com.google.common.eventbus.EventBus;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.requests.ErrorResponse;
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.entity.UserDao;
 import pl.fratik.core.event.PluginMessageEvent;
 import pl.fratik.core.util.GuildUtil;
@@ -33,9 +33,8 @@ import pl.fratik.core.util.UserUtil;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
-public class ServerinfoCommand extends Command {
+public class ServerinfoCommand extends NewCommand {
 
     private final UserDao userDao;
     private final EventBus eventBus;
@@ -44,18 +43,13 @@ public class ServerinfoCommand extends Command {
         this.userDao = userDao;
         this.eventBus = eventBus;
         name = "serverinfo";
-        category = CommandCategory.SYSTEM;
-        permissions.add(Permission.MESSAGE_EMBED_LINKS);
-        aliases = new String[] {"serwerinfo"};
-        allowPermLevelChange = false;
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        CompletableFuture<Message> f = context.getMessageChannel().sendMessage(context.getTranslated("generic.loading"))
-                .reference(context.getMessage()).submit();
+    public void execute(@NotNull NewCommandContext context) {
+        context.deferAsync(false);
         EmbedBuilder eb = new EmbedBuilder();
-        eb.setTitle(context.getTranslated("serverinfo.name", context.getGuild().getName()));
+        eb.setTitle(context.getTranslated("serverinfo.embed.name", context.getGuild().getName()));
         eb.addField(context.getTranslated("serverinfo.id"), context.getGuild().getId(), true);
         SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy',' HH:mm:ss z", context.getLanguage().getLocale());
         sdf.setTimeZone(UserUtil.getTimeZone(context.getSender(), userDao));
@@ -103,15 +97,7 @@ public class ServerinfoCommand extends Command {
         if (context.getGuild().getIconUrl() != null)
             eb.setThumbnail(context.getGuild().getIconUrl().replace(".webp", ".png") + "?size=2048");
         eb.setColor(GuildUtil.getPrimColor(context.getGuild()));
-        Message m;
-        try {
-            m = f.join();
-        } catch (Exception e) {
-            m = null;
-        }
-        if (m != null) m.editMessageEmbeds(eb.build()).override(true).complete();
-        else context.reply(eb.build());
-        return true;
+        context.sendMessage(eb.build());
     }
 
     private void awaitPluginResponse(PluginMessageEvent event) {

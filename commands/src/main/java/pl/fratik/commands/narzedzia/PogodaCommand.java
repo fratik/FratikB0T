@@ -17,65 +17,56 @@
 
 package pl.fratik.commands.narzedzia;
 
-import net.dv8tion.jda.api.Permission;
 import org.jetbrains.annotations.NotNull;
 import org.jsoup.Jsoup;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.entity.UserDao;
 import pl.fratik.core.util.NetworkUtil;
 
 import java.awt.*;
-import java.util.Objects;
 
-public class PogodaCommand extends Command {
+public class PogodaCommand extends NewCommand {
 
     private final UserDao userDao;
 
     public PogodaCommand(UserDao userDao) {
         this.userDao = userDao;
         name = "pogoda";
-        category = CommandCategory.UTILITY;
-        uzycie = new Uzycie("miejsce", "string");
-        aliases = new String[] {"pg", "prognoza", "pogodynka", "meteo", "meteostp", "warunkiatmosferyczne"};
+        usage = "[miasto:string]";
         allowInDMs = true;
-        permissions.add(Permission.MESSAGE_EMBED_LINKS);
-        allowPermLevelChange = false;
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        String nibyLokacja = userDao.get(context.getSender()).getLocation();
-        if (context.getArgs().length == 0 && (nibyLokacja == null || !Objects.equals(nibyLokacja, ""))) {
-            context.reply(context.getTranslated("pogoda.no.place", context.getPrefix()));
-            return false;
+    public void execute(@NotNull NewCommandContext context) {
+        String lokacja;
+        if (context.getArguments().containsKey("miasto")) lokacja = context.getArguments().get("miasto").getAsString();
+        else lokacja = userDao.get(context.getSender()).getLocation();
+        if (lokacja == null || lokacja.isEmpty()) {
+            context.replyEphemeral(context.getTranslated("pogoda.no.place"));
+            return;
         }
-        String lokacja = nibyLokacja;
-        if (context.getArgs().length != 0 && context.getArgs()[0] != null && !((String) context.getArgs()[0]).isEmpty())
-            lokacja = (String) context.getArgs()[0];
-        if (lokacja == null) {
-            context.reply(context.getTranslated("pogoda.no.place", context.getPrefix()));
-            return false;
-        }
+        context.deferAsync(false);
         try {
             String downloaded = new String(NetworkUtil.download("http://en.wttr.in/" +
                     NetworkUtil.encodeURIComponent(lokacja) + "?T"));
             downloaded = Jsoup.parse(downloaded).getElementsByTag("body").text();
             if (downloaded.startsWith("ERROR:")) {
-                context.reply(context.getTranslated("pogoda.failed"));
-                return false;
+                context.sendMessage(context.getTranslated("pogoda.failed"));
+                return;
             }
             if (downloaded.contains("We were unable to find your location")) {
-                context.reply(context.getTranslated("pogoda.unknown.location"));
-                return false;
+                context.sendMessage(context.getTranslated("pogoda.unknown.location"));
+                return;
             }
-            context.reply(context.getBaseEmbed(context.getTranslated("pogoda.embed.header", lokacja), null)
+            context.sendMessage(context.getBaseEmbed(context.getTranslated("pogoda.embed.header", lokacja), null)
                     .setImage("http://" + context.getLanguage().getLocale()
                             .getLanguage().toLowerCase().split("_")[0] + ".wttr.in/" +
                             NetworkUtil.encodeURIComponent(lokacja) + ".png?0m")
                     .setColor(Color.GREEN).build());
         } catch (Exception e) {
-            context.reply(context.getTranslated("pogoda.failed"));
-            return false;
+            context.sendMessage(context.getTranslated("pogoda.failed"));
         }
-        return true;
+
     }
 }

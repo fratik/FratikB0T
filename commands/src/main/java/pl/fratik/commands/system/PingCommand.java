@@ -17,27 +17,24 @@
 
 package pl.fratik.commands.system;
 
-import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.interactions.InteractionHook;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.command.PermLevel;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 
 import java.time.temporal.ChronoUnit;
 
-public class PingCommand extends Command {
+public class PingCommand extends NewCommand {
 
     public PingCommand() {
         name = "ping";
-        category = CommandCategory.BASIC;
-        permLevel = PermLevel.EVERYONE;
-        allowPermLevelChange = false;
         allowInDMs = true;
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        Message message = context.reply(context.getTranslated("ping.pinging"));
-        long ping = context.getEvent().getMessage().getTimeCreated().until(message.getTimeCreated(), ChronoUnit.MILLIS);
-        message.editMessage(context.getTranslated("ping.delay", ping, context.getMessage().getJDA().getGatewayPing())).complete();
-        return true;
+    public void execute(@NotNull NewCommandContext context) {
+        InteractionHook hook = context.reply(context.getTranslated("ping.pinging"));
+        long ping = hook.getInteraction().getTimeCreated().until(hook.retrieveOriginal().complete().getTimeCreated(), ChronoUnit.MILLIS);
+        context.editOriginal(context.getTranslated("ping.delay", ping, context.getSender().getJDA().getGatewayPing()));
     }
 }

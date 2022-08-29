@@ -19,13 +19,14 @@ package pl.fratik.commands.system;
 
 import com.google.common.eventbus.EventBus;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.entity.UserDao;
 import pl.fratik.core.event.PluginMessageEvent;
 import pl.fratik.core.util.UserUtil;
@@ -33,9 +34,8 @@ import pl.fratik.core.util.UserUtil;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
-public class UserinfoCommand extends Command {
+public class UserinfoCommand extends NewCommand {
 
     private final UserDao userDao;
     private final ShardManager shardManager;
@@ -46,21 +46,15 @@ public class UserinfoCommand extends Command {
         this.shardManager = shardManager;
         this.eventBus = eventBus;
         name = "userinfo";
-        category = CommandCategory.SYSTEM;
-        uzycie = new Uzycie("osoba", "user");
-        permissions.add(Permission.MESSAGE_EMBED_LINKS);
-        allowPermLevelChange = false;
+        usage = "[osoba:user]";
         allowInDMs = true;
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        CompletableFuture<Message> f = context.getMessageChannel().sendMessage(context.getTranslated("generic.loading"))
-                .reference(context.getMessage()).submit();
-        User osoba = null;
+    public void execute(@NotNull NewCommandContext context) {
+        context.defer(false);
+        User osoba = context.getArgumentOr("osoba", context.getSender(), OptionMapping::getAsUser );
         Member member;
-        if (context.getArgs().length != 0) osoba = (User) context.getArgs()[0];
-        if (osoba == null) osoba = context.getSender();
         User.Profile profile = osoba.retrieveProfile().complete();
         try {
             member = context.getGuild().retrieveMember(osoba).complete();
@@ -68,13 +62,13 @@ public class UserinfoCommand extends Command {
             member = null;
         }
         EmbedBuilder eb = new EmbedBuilder();
-        eb.setTitle(context.getTranslated("userinfo.name", UserUtil.formatDiscrim(osoba)));
+        eb.setTitle(context.getTranslated("userinfo.embed.name", UserUtil.formatDiscrim(osoba)));
         eb.addField(context.getTranslated("userinfo.id"), osoba.getId(), true);
         SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy',' HH:mm:ss z", context.getLanguage().getLocale());
         sdf.setTimeZone(UserUtil.getTimeZone(context.getSender(), userDao));
         eb.addField(context.getTranslated("userinfo.created"),
                 sdf.format(new Date(osoba.getTimeCreated().toInstant().toEpochMilli())), true);
-        if (!context.isDirect()) {
+        if (context.getGuild() != null) {
             if (member != null) eb.addField(context.getTranslated("userinfo.joinedat"),
                     sdf.format(new Date(member.getTimeJoined().toInstant().toEpochMilli())), true);
             else eb.addField(context.getTranslated("userinfo.joinedat"),
@@ -109,15 +103,7 @@ public class UserinfoCommand extends Command {
         eb.setThumbnail(osoba.getEffectiveAvatarUrl().replace(".webp", ".png") + "?size=2048");
         eb.setImage(profile.getBannerId() == null ? null : profile.getBannerUrl() + "?size=2048");
         eb.setColor(UserUtil.getPrimColor(osoba));
-        Message m;
-        try {
-            m = f.join();
-        } catch (Exception e) {
-            m = null;
-        }
-        if (m != null) m.editMessageEmbeds(eb.build()).override(true).complete();
-        else context.reply(eb.build());
-        return true;
+        context.sendMessage(eb.build());
     }
 
     private void awaitPluginResponse(PluginMessageEvent event) {

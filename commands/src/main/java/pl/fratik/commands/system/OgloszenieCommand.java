@@ -19,8 +19,6 @@ package pl.fratik.commands.system;
 
 import com.google.common.eventbus.EventBus;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.Emote;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
@@ -33,22 +31,20 @@ import pl.fratik.core.Globals;
 import pl.fratik.core.Ustawienia;
 import pl.fratik.core.cache.Cache;
 import pl.fratik.core.cache.RedisCacheManager;
-import pl.fratik.core.command.*;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
-import pl.fratik.core.event.PluginMessageEvent;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.CommonUtil;
 import pl.fratik.core.util.UserUtil;
 
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class OgloszenieCommand extends Command {
+public class OgloszenieCommand extends NewCommand {
 
     private static final Pattern CODE_REGEX = Pattern.compile("<js>(.*?)</js>", Pattern.MULTILINE | Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
 
@@ -56,112 +52,32 @@ public class OgloszenieCommand extends Command {
     private final GuildDao guildDao;
     private final EventBus eventBus;
     private final Tlumaczenia tlumaczenia;
-    private final ManagerKomend managerKomend;
 
     private final Cache<GuildConfig> gcCache;
 
-    public OgloszenieCommand(ShardManager shardManager, GuildDao guildDao, EventBus eventBus, Tlumaczenia tlumaczenia, ManagerKomend managerKomend, RedisCacheManager rcm) {
+    public OgloszenieCommand(ShardManager shardManager, GuildDao guildDao, EventBus eventBus, Tlumaczenia tlumaczenia, RedisCacheManager rcm) {
         this.guildDao = guildDao;
         this.shardManager = shardManager;
         this.eventBus = eventBus;
         this.tlumaczenia = tlumaczenia;
-        this.managerKomend = managerKomend;
         name = "ogloszenie";
-        permissions.add(Permission.MESSAGE_EMBED_LINKS);
-        category = CommandCategory.SYSTEM;
-        aliases = new String[] {"broadcast"};
-        allowPermLevelChange = false;
         gcCache = rcm.new CacheRetriever<GuildConfig>(){}.getCache();
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
+    public void execute(@NotNull NewCommandContext context) {
         if (!Globals.inFratikDev) throw new IllegalStateException("nie na FratikDev");
         TextChannel kanau = shardManager.getTextChannelById(Ustawienia.instance.ogloszeniaBota);
         if (kanau == null) throw new IllegalStateException("brak kanału");
         List<Message> msgs = kanau.getHistory().retrievePast(1).complete();
         if (msgs.isEmpty()) {
             context.reply(context.getTranslated("ogloszenie.no.message"));
-            return false;
+            return;
         }
         EmbedBuilder eb = ogloszenieEmbed(msgs.get(0), context.getTlumaczenia(), context.getLanguage(),
                 context.getGuild());
         context.reply(eb.build());
-        return true;
-    }
-
-    @SubCommand(name = "post")
-    public boolean post(@NotNull CommandContext context) {
-        if (UserUtil.getPermlevel(context.getMember(), guildDao, context.getShardManager()).getNum() < 10) {
-            return execute(context);
-        }
-        if (!Globals.inFratikDev) throw new IllegalStateException("nie na FratikDev");
-        TextChannel kanau = shardManager.getTextChannelById(Ustawienia.instance.ogloszeniaBota);
-        if (kanau == null) throw new IllegalStateException("brak kanału");
-        List<Message> msgs = kanau.getHistory().retrievePast(1).complete();
-        if (msgs.isEmpty()) {
-            context.reply(context.getTranslated("ogloszenie.no.message"));
-            return false;
-        }
-        Emote emotka = shardManager.getEmoteById(Ustawienia.instance.emotki.loading);
-        Message wiadomosc;
-        if (emotka == null) wiadomosc = context.reply(context.getTranslated("ogloszenie.post.sending.starting",
-                "\u2699"));
-        else wiadomosc = context.reply(context.getTranslated("ogloszenie.post.sending.starting",
-                emotka.getAsMention()));
-        AtomicInteger udane = new AtomicInteger();
-        AtomicInteger nieudane = new AtomicInteger();
-        AtomicInteger nieMaKanalu = new AtomicInteger();
-        AtomicInteger nieWysylaj = new AtomicInteger();
-        AtomicBoolean skonczone = new AtomicBoolean();
-        final List<Guild> serwery = shardManager.getGuilds();
-        Thread t = new Thread(() -> {
-            for (Guild gu : serwery) { //NOSONAR
-                if (Thread.currentThread().isInterrupted()) {
-                    break;
-                }
-                try {
-                    EmbedBuilder eb = ogloszenieEmbed(msgs.get(0), tlumaczenia, tlumaczenia.getLanguage(gu), gu);
-                    GuildConfig gc = gcCache.get(gu.getId(), guildDao::get);
-                    if (gc.getWysylajOgloszenia() == null || !gc.getWysylajOgloszenia()) {
-                        udane.getAndAdd(1);
-                        nieWysylaj.getAndAdd(1);
-                        continue;
-                    }
-                    String admc = gc.getKanalAdministracji();
-                    TextChannel channel = null;
-                    if (admc != null && !admc.isEmpty()) channel = gu.getTextChannelById(admc);
-                    if (channel != null) channel.sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(gu),
-                            "ogloszenie.auto.repost", managerKomend.getPrefixes(gu).get(0))).setEmbeds(eb.build())
-                            .complete();
-                    if (channel == null) nieMaKanalu.getAndAdd(1);
-                } catch (Exception e1) {
-                    nieudane.getAndAdd(1);
-                }
-                udane.getAndAdd(1);
-            }
-            skonczone.set(true);
-        }, "ogloszenie-poster");
-        t.start();
-        while (!skonczone.get()) {
-            try {
-                Thread.sleep(5000);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                t.interrupt();
-                break;
-            }
-            eventBus.post(new PluginMessageEvent("commands", "moderation", "znaneAkcje-add:" +
-                    wiadomosc.getId()));
-            if (emotka == null) wiadomosc.editMessage(context.getTranslated("ogloszenie.post.sending",
-                    "\u2699", udane.get(), serwery.size(), nieudane.get(), nieWysylaj.get(), nieMaKanalu.get()))
-                    .complete();
-            else wiadomosc = wiadomosc.editMessage(context.getTranslated("ogloszenie.post.sending",
-                    emotka.getAsMention(), udane.get(), serwery.size(), nieudane.get(), nieWysylaj.get(),
-                    nieMaKanalu.get())).complete();
-        }
-        context.reply(context.getTranslated("ogloszenie.post.done"));
-        return true;
+        return;
     }
 
     private EmbedBuilder ogloszenieEmbed(Message msg, Tlumaczenia t, Language jezyk, Guild g) {
@@ -170,8 +86,7 @@ public class OgloszenieCommand extends Command {
                 msg.getAuthor().getEffectiveAvatarUrl().replace(".webp", ".png"));
         eb.setTitle(t.get(jezyk, "ogloszenie.title"));
         eb.setImage(CommonUtil.getImageUrl(msg));
-        eb.setDescription(parseContent(msg.getContentRaw(), g,
-                UserUtil.getPermlevel(msg.getAuthor(), shardManager) == PermLevel.BOTOWNER, jezyk));
+        eb.setDescription(parseContent(msg.getContentRaw(), g, UserUtil.isBotOwner(msg.getAuthor().getIdLong()), jezyk));
         eb.setTimestamp(msg.isEdited() ? msg.getTimeEdited() : msg.getTimeCreated());
         if (msg.getMember() != null) eb.setColor(msg.getMember().getColor());
         else eb.setColor(UserUtil.getPrimColor(msg.getAuthor()));
@@ -204,6 +119,6 @@ public class OgloszenieCommand extends Command {
             }
             matcher.appendTail(buf);
         } else buf = new StringBuffer(cnt);
-        return buf.toString().replace("%PREFIX%", managerKomend.getPrefixes(g).get(0));
+        return buf.toString();
     }
 }

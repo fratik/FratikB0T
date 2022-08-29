@@ -17,82 +17,72 @@
 
 package pl.fratik.commands.system;
 
-import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
 import okhttp3.Response;
-import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.Ustawienia;
-import pl.fratik.core.command.*;
+import pl.fratik.core.command.CommandType;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
+import pl.fratik.core.command.SubCommand;
 import pl.fratik.core.entity.SilentExecutionFail;
-import pl.fratik.core.util.CommonErrors;
 import pl.fratik.core.util.NetworkUtil;
 
 import java.io.IOException;
 import java.util.HashMap;
 
-public class SelfieCommand extends Command {
+public class SelfieCommand extends NewCommand {
     public SelfieCommand() {
         name = "selfie";
-        category = CommandCategory.SYSTEM;
-        permLevel = PermLevel.BOTOWNER;
-        aliases = new String[] {"ryjfratika"};
-        permissions.add(Permission.MESSAGE_ATTACH_FILES);
-        allowPermLevelChange = false;
+        permissions = DefaultMemberPermissions.DISABLED;
+        type = CommandType.SUPPORT_SERVER;
         allowInDMs = true;
     }
 
     @SubCommand(name="pc")
-    public boolean pc(CommandContext context) {
+    public void pc(NewCommandContext context) {
         String ipUrlPc = Ustawienia.instance.apiUrls.get("networkIpPc");
         if (ipUrlPc == null) throw new SilentExecutionFail();
         HashMap<String, String> xd = new HashMap<>();
         xd.put("Requester", context.getSender().getAsTag());
+        context.deferAsync(false);
         try (Response res = NetworkUtil.downloadResponse(ipUrlPc,
                 Ustawienia.instance.apiKeys.get("networkIpPc"), xd)) {
             if (res.code() == 401) {
-                context.reply(context.getTranslated("selfie.invalidpass"));
-                return false;
+                context.sendMessage(context.getTranslated("selfie.invalidpass"));
+                return;
             }
             if (res.code() == 403) {
-                context.reply(context.getTranslated("selfie.rejected"));
-                return false;
+                context.sendMessage(context.getTranslated("selfie.rejected"));
+                return;
             }
             if (res.body() == null) throw new IOException();
-            context.getMessageChannel().sendFile(res.body().bytes(), "ryjfratika.jpg").reference(context.getMessage()).queue();
-            return true;
+            context.sendMessage("ryjfratika.jpg", res.body().bytes());
         } catch (IOException e) {
-            context.reply(context.getTranslated("image.server.fail"));
-            return false;
+            context.sendMessage(context.getTranslated("image.server.fail"));
         }
     }
 
     @SubCommand(name="mb")
-    public boolean mb(CommandContext context) {
+    public void mb(NewCommandContext context) {
         String ipUrlMb = Ustawienia.instance.apiUrls.get("networkIpMb");
         if (ipUrlMb == null) throw new SilentExecutionFail();
         HashMap<String, String> xd = new HashMap<>();
         xd.put("Requester", context.getSender().getAsTag());
+        context.deferAsync(false);
         try (Response res = NetworkUtil.downloadResponse(ipUrlMb,
                 Ustawienia.instance.apiKeys.get("networkIpMb"), xd)) {
             if (res.code() == 401) {
                 context.reply(context.getTranslated("selfie.invalidpass"));
-                return false;
+                return;
             }
             if (res.code() == 403) {
                 context.reply(context.getTranslated("selfie.rejected"));
-                return false;
+                return;
             }
             if (res.body() == null) throw new IOException();
-            context.getMessageChannel().sendFile(res.body().bytes(), "ryjfratika.jpg").reference(context.getMessage()).queue();
-            return true;
+            context.sendMessage("ryjfratika.jpg", res.body().bytes());
         } catch (IOException e) {
-            context.reply(context.getTranslated("image.server.fail"));
-            return false;
+            context.sendMessage(context.getTranslated("image.server.fail"));
         }
-    }
-
-    @Override
-    public boolean execute(@NotNull CommandContext context) {
-        CommonErrors.usage(context);
-        return false;
     }
 }

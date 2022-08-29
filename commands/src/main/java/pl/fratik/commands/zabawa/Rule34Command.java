@@ -32,15 +32,18 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.interactions.InteractionHook;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
+import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import org.jetbrains.annotations.NotNull;
 import org.json.XML;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.Ustawienia;
 import pl.fratik.core.arguments.Argument;
 import pl.fratik.core.arguments.ArgumentContext;
-import pl.fratik.core.command.NsfwCommand;
-import pl.fratik.core.manager.ManagerArgumentow;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.util.DynamicEmbedPaginator;
 import pl.fratik.core.util.EventWaiter;
 import pl.fratik.core.util.GsonUtil;
@@ -52,25 +55,21 @@ import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.FutureTask;
-import java.util.stream.Collectors;
 
-public class Rule34Command extends NsfwCommand {
+public class Rule34Command extends NewCommand {
+    private final Logger logger;
     private final EventWaiter eventWaiter;
     private final EventBus eventBus;
-    private final ManagerArgumentow managerArgumentow;
     private PixivParserClient pixiv;
-    private SourcesArgument arg;
 
-    public Rule34Command(EventWaiter eventWaiter, EventBus eventBus, ManagerArgumentow managerArgumentow) {
+    public Rule34Command(EventWaiter eventWaiter, EventBus eventBus) {
+        this.logger = LoggerFactory.getLogger(getClass());
         this.eventWaiter = eventWaiter;
         this.eventBus = eventBus;
-        this.managerArgumentow = managerArgumentow;
         name = "rule34";
-        aliases = new String[] {"r34"};
-        category = CommandCategory.NSFW;
         cooldown = 5;
-        uzycieDelim = " ";
         pixiv = new PixivParserClient();
+        usage = "<zrodlo:string> <tagi:string> [pokaz:boolean]";
         try {
             pixiv.setUsername(Ustawienia.instance.apiKeys.get("pixiv").split(":=:")[0]);
             pixiv.setPassword(Ustawienia.instance.apiKeys.get("pixiv").split(":=:")[1]);
@@ -79,37 +78,19 @@ public class Rule34Command extends NsfwCommand {
             LoggerFactory.getLogger(getClass()).error("Pixiv nie możliwy do użycia - nieprawidłowe dane logowania!");
             pixiv = null;
         }
-        allowPermLevelChange = false;
     }
 
     @Override
-    public void onRegister() {
-        arg = new SourcesArgument();
-        managerArgumentow.registerArgument(arg);
-        LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
-        hmap.put("źródło", "source");
-        hmap.put("tag", "string");
-        hmap.put("[...]", "string");
-        uzycie = new Uzycie(hmap, new boolean[] {true, true, false});
-    }
-
-    @Override
-    public void onUnregister() {
-        try {managerArgumentow.unregisterArgument(arg);} catch (Exception e) {/*lul*/}
-        arg = null;
-    }
-
-    @Override
-    protected boolean execute(@NotNull CommandContext context) {
-        Message loading = context.reply(context.getTranslated("generic.loading"));
+    public void execute(@NotNull NewCommandContext context) {
+        InteractionHook hook = context.defer(!context.getArgumentOr("pokaz", false, OptionMapping::getAsBoolean));
         try {
             List<FutureTask<EmbedBuilder>> pages;
-            switch ((Sources) context.getArgs()[0]) {
+            switch (Sources.valueOf(context.getArguments().get("zrodlo").getAsString())) {
                 case RULE34:
                     pages = resolveRule34(context);
                     break;
                 case E621:
-                    pages = resolveE621(context, loading);
+                    pages = resolveE621(context);
                     break;
                 case PIXIV:
                     if (pixiv == null) throw new IOException("gej");
@@ -122,36 +103,32 @@ public class Rule34Command extends NsfwCommand {
                     pages = resolveDanbooru(context);
                     break;
                 default:
-                    return false;
+                    return;
             }
             if (pages.isEmpty()) {
-                loading.editMessage(context.getTranslated("rule34.empty")).complete();
-                return false;
+                context.sendMessage(context.getTranslated("rule34.empty"));
+                return;
             }
             new DynamicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(),
-                    context.getTlumaczenia(), eventBus).setEnableShuffle(true).setEnableDelett(true).setTimeout(300).create(loading);
-            return true;
+                    context.getTlumaczenia(), eventBus).setEnableShuffle(true).setEnableDelett(true).setTimeout(300).create(hook);
         } catch (IOException e) {
-            context.reply(context.getTranslated("rule34.fail"));
-            return false;
+            context.sendMessage(context.getTranslated("rule34.fail"));
         }
     }
 
-    public List<FutureTask<EmbedBuilder>> resolveRule34(CommandContext context) throws IOException {
-        Object[] argi = Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length);
+    public List<FutureTask<EmbedBuilder>> resolveRule34(NewCommandContext context) throws IOException {
+        String tagi = context.getArguments().get("tagi").getAsString();
         int count = resolvePostsNumber("https://rule34.xxx/index.php?page=dapi&s=post&q=index&tags=" +
-                NetworkUtil.encodeURIComponent(Arrays.stream(argi).map(Object::toString)
-                        .collect(Collectors.joining(" "))));
+                NetworkUtil.encodeURIComponent(tagi));
         if (count == 0) {
             return Collections.emptyList();
         }
         return generatePages(context, "https://rule34.xxx/index.php?page=dapi&json=1&s=post&q=index&tags=" +
-                NetworkUtil.encodeURIComponent(Arrays.stream(argi)
-                        .map(o -> o == null ? "" : o.toString()).collect(Collectors.joining(" "))), "pid", count,
+                NetworkUtil.encodeURIComponent(tagi), "pid", count,
                 100, new TypeToken<List<Rule34Post>>() {});
     }
 
-    private <T extends List<? extends Post>> List<FutureTask<EmbedBuilder>> generatePages(CommandContext context, String url, String pgq, int count, int limit, TypeToken<T> postCls) {
+    private <T extends List<? extends Post>> List<FutureTask<EmbedBuilder>> generatePages(NewCommandContext context, String url, String pgq, int count, int limit, TypeToken<T> postCls) {
         Map<Integer, FutureTask<T>> strony = new HashMap<>();
         List<FutureTask<EmbedBuilder>> pages = new ArrayList<>();
         for (int i = 0; i <= count / limit; i++) {
@@ -183,7 +160,7 @@ public class Rule34Command extends NsfwCommand {
     }
 
     @NotNull
-    private EmbedBuilder generateEmbed(CommandContext context, Post post) {
+    private EmbedBuilder generateEmbed(NewCommandContext context, Post post) {
         EmbedBuilder eb = new EmbedBuilder();
         eb.setColor(context.getMember().getColor());
         eb.addField(context.getTranslated("rule34.score"), String.valueOf(post.getScore()), true);
@@ -203,8 +180,8 @@ public class Rule34Command extends NsfwCommand {
         return eb;
     }
 
-    public List<FutureTask<EmbedBuilder>> resolveE621(CommandContext context, Message loading) throws IOException {
-        Object[] argi = Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length);
+    public List<FutureTask<EmbedBuilder>> resolveE621(NewCommandContext context) throws IOException {
+        String tagi = context.getArguments().get("tagi").getAsString();
         Map<Integer, List<E621Post>> strony = new HashMap<>();
         List<FutureTask<EmbedBuilder>> pages = new ArrayList<>();
         int i = 0;
@@ -213,8 +190,7 @@ public class Rule34Command extends NsfwCommand {
             String url;
             if (strony.isEmpty())
                 url = "https://e621.net/posts.json?limit=320&tags=" +
-                        NetworkUtil.encodeURIComponent(Arrays.stream(argi).map(o -> o == null ? "" : o.toString())
-                                .collect(Collectors.joining(" ")) + " -type:swf ");
+                        NetworkUtil.encodeURIComponent(tagi + " -type:swf ");
             else {
                 long lastId = -1;
                 for (E621Post post : strony.get(i - 1)) {
@@ -222,13 +198,10 @@ public class Rule34Command extends NsfwCommand {
                     else if (lastId >= post.getId()) lastId = post.getId();
                 }
                 url = "https://e621.net/posts.json?limit=320&page=b" + lastId + "&tags=" +
-                        NetworkUtil.encodeURIComponent(Arrays.stream(argi).map(o -> o == null ? "" : o.toString())
-                                .collect(Collectors.joining(" ")) + " -type:swf ");
+                        NetworkUtil.encodeURIComponent(tagi + " -type:swf ");
             }
             strony.put(i, GsonUtil.fromJSON(NetworkUtil.download(url), new TypeToken<E621Wrapper>() {}).getPosts());
             i++;
-            loading.editMessage(context.getTranslated("rule34.loading", ((i - 1) * 320) + strony.get(i - 1)
-                    .size())).queue();
         } while (!strony.get(i - 1).isEmpty());
         if (strony.get(i - 1).isEmpty())
             strony.remove(i - 1);
@@ -247,10 +220,9 @@ public class Rule34Command extends NsfwCommand {
         return pages;
     }
 
-    public List<FutureTask<EmbedBuilder>> resolvePixiv(CommandContext context) {
-        Object[] argi = Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length);
-        List<Work> works = pixiv.search(Arrays.stream(argi).map(o -> o == null ? "" : o.toString())
-                        .collect(Collectors.joining(" ")));
+    public List<FutureTask<EmbedBuilder>> resolvePixiv(NewCommandContext context) {
+        String tagi = context.getArguments().get("tagi").getAsString();
+        List<Work> works = pixiv.search(tagi);
         if (works.isEmpty()) {
             return Collections.emptyList();
         }
@@ -290,11 +262,10 @@ public class Rule34Command extends NsfwCommand {
         return pages;
     }
 
-    public List<FutureTask<EmbedBuilder>> resolvePaheal(CommandContext context) throws IOException {
-        Object[] argi = Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length);
+    public List<FutureTask<EmbedBuilder>> resolvePaheal(NewCommandContext context) throws IOException {
+        String tagi = context.getArguments().get("tagi").getAsString();
         String url = "https://rule34.paheal.net/api/danbooru/find_posts/index.xml?s=post&tags=" +
-                NetworkUtil.encodeURIComponent(Arrays.stream(argi).map(o -> o == null ? "" : o.toString())
-                        .collect(Collectors.joining(" ")));
+                NetworkUtil.encodeURIComponent(tagi);
         PahealPostsRoot root = GsonUtil.GSON.fromJson(XML.toJSONObject(new String(NetworkUtil.download(url))).toString(), PahealPostsRoot.class);
         int count = root.getPosts().getCount();
         if (count == 0) {
@@ -322,18 +293,16 @@ public class Rule34Command extends NsfwCommand {
         return pages;
     }
 
-    public List<FutureTask<EmbedBuilder>> resolveDanbooru(CommandContext context) throws IOException {
-        Object[] argi = Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length);
+    public List<FutureTask<EmbedBuilder>> resolveDanbooru(NewCommandContext context) throws IOException {
+        String tagi = context.getArguments().get("tagi").getAsString();
         int count = GsonUtil.fromJSON(NetworkUtil.download("https://danbooru.donmai.us/counts/posts.json?tags=" +
-                NetworkUtil.encodeURIComponent(Arrays.stream(argi).map(o -> o == null ? "" : o.toString())
-                        .collect(Collectors.joining(" ")))), JsonObject.class).getAsJsonObject("counts")
+                NetworkUtil.encodeURIComponent(tagi)), JsonObject.class).getAsJsonObject("counts")
                 .get("posts").getAsInt();
         if (count == 0) {
             return Collections.emptyList();
         }
         return generatePages(context, "https://danbooru.donmai.us/posts.json?limit=200&tags=" +
-                        NetworkUtil.encodeURIComponent(Arrays.stream(argi).map(o -> o == null ? "" : o.toString())
-                                .collect(Collectors.joining(" "))), "page", count,
+                        NetworkUtil.encodeURIComponent(tagi), "page", count,
                 200, new TypeToken<List<DanbooruPost>>() {});
     }
 
@@ -344,6 +313,16 @@ public class Rule34Command extends NsfwCommand {
         ApiXMLResponse resp = xmlMapper.readValue(NetworkUtil.download(url), ApiXMLResponse.class);
         Map<Integer, FutureTask<List<Rule34Post>>> strony = new HashMap<>();
         return resp.count;
+    }
+
+    @Override
+    public void updateOptionData(OptionData option) {
+        if (option.getName().equals("zrodlo")) {
+            for (Sources source : Sources.values()) {
+                if (source == Sources.PIXIV && pixiv == null) continue;
+                option.addChoice(source.name().toLowerCase(), source.name());
+            }
+        }
     }
 
     public enum Sources {

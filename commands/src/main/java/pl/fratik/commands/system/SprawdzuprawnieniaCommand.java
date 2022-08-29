@@ -19,10 +19,11 @@ package pl.fratik.commands.system;
 
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.ChannelType;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -30,14 +31,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class SprawdzuprawnieniaCommand extends Command {
+public class SprawdzuprawnieniaCommand extends NewCommand {
     public SprawdzuprawnieniaCommand() {
         name = "sprawdzuprawnienia";
-        category = CommandCategory.SYSTEM;
-        uzycie = new Uzycie("kanal", "channel", false);
-        aliases = new String[] {"sprawdzpermy"};
-        permissions.add(Permission.MESSAGE_EMBED_LINKS);
-        allowPermLevelChange = false;
+        usage = "[kanal:textchannel]";
     }
 
     private static final List<Permission> perms;
@@ -52,24 +49,9 @@ public class SprawdzuprawnieniaCommand extends Command {
     }
 
     @Override
-    public boolean preExecute(CommandContext context) {
-        if (context.getMessageChannel().getType() != ChannelType.TEXT) {
-            context.reply(context.getTranslated("generic.text.only"));
-            return false;
-        }
-        return super.preExecute(context);
-    }
-
-    @Override
-    public boolean execute(@NotNull CommandContext context) {
-        TextChannel kanal;
-        if (context.getArgs().length == 1 && context.getArgs()[0] != null) kanal = (TextChannel) context.getArgs()[0];
-        else kanal = context.getTextChannel();
+    public void execute(@NotNull NewCommandContext context) {
+        TextChannel kanal = context.getArgumentOr("kanal", context.getChannel().asTextChannel(), o -> o.getAsChannel().asTextChannel());
         Member sm = context.getGuild().getSelfMember();
-        if (!sm.hasPermission(context.getTextChannel(), Permission.MESSAGE_EMBED_LINKS)) {
-            context.reply(context.getTranslated("sprawdzuprawnienia.no.embed.perms"));
-            return false;
-        }
         EmbedBuilder eb = new EmbedBuilder();
         eb.setAuthor(context.getTranslated("sprawdzuprawnienia.embed.author"), null,
                 sm.getUser().getAvatarUrl());
@@ -104,7 +86,6 @@ public class SprawdzuprawnieniaCommand extends Command {
         eb.setFooter(procent + "%", null);
         eb.setColor(Color.decode(procent >= 50 ? "#00ff00" : procent >= 25 ? "#ffff00" : "#ff0000")); // NOSONAR
         context.reply(eb.build());
-        return true;
     }
 
     private int calculatePrecent(Member sm, TextChannel kanal) {

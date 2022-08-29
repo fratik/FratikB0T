@@ -470,14 +470,14 @@ public class Module implements Modul {
                             credit.getKrotkiPowod(), credit.getDluzszyPowod(), credit.getSociale()));
                 }
                 hmap.put("credits", credits);
-                Guild lnodev = shardManager.getGuildById(Ustawienia.instance.botGuild);
-                if (lnodev != null) {
+                Guild fdev = shardManager.getGuildById(Ustawienia.instance.botGuild);
+                if (fdev != null) {
                     Map<User, Status> map = new HashMap<>();
-                    for (Member member : lnodev.getMembersWithRoles(lnodev.getRoleById(Ustawienia.instance.gadmRole)))
+                    for (Member member : fdev.getMembersWithRoles(fdev.getRoleById(Ustawienia.instance.gadmRole)))
                         map.put(member.getUser(), Status.GLOBALADMIN);
-                    for (Member member : lnodev.getMembersWithRoles(lnodev.getRoleById(Ustawienia.instance.zgaRole)))
+                    for (Member member : fdev.getMembersWithRoles(fdev.getRoleById(Ustawienia.instance.zgaRole)))
                         map.put(member.getUser(), Status.ZGA);
-                    for (Member member : lnodev.getMembersWithRoles(lnodev.getRoleById(Ustawienia.instance.devRole)))
+                    for (Member member : fdev.getMembersWithRoles(fdev.getRoleById(Ustawienia.instance.devRole)))
                         map.put(member.getUser(), Status.DEV);
                     List<Credits.ParsedCredits> devy = new ArrayList<>();
                     List<Credits.ParsedCredits> zga = new ArrayList<>();

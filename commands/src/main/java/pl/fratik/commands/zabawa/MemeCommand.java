@@ -20,11 +20,12 @@ package pl.fratik.commands.zabawa;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.Permission;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.Ustawienia;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.util.NetworkUtil;
 
 import java.awt.*;
@@ -32,30 +33,27 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.util.Random;
 
-public class MemeCommand extends Command {
+public class MemeCommand extends NewCommand {
     private static final Random random = new Random();
 
     public MemeCommand() {
         name = "meme";
-        category = CommandCategory.FUN;
-        permissions.add(Permission.MESSAGE_EMBED_LINKS);
-        aliases = new String[] {"memes", "pokazmiswojetowary", "memez"};
-        allowPermLevelChange = false;
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
+    public void execute(@NotNull NewCommandContext context) {
+        context.deferAsync(false);
         JSONObject json;
         Object[] posts;
         try {
             json = NetworkUtil.getJson("https://www.reddit.com/r/dankmemes/top/.json?sort=top&t=day&limit=500");
-            if (json == null) throw new IOException("kasia to pizda");
+            if (json == null) throw new IOException();
             posts = json.getJSONObject("data").getJSONArray("children").toList()
                     .stream().filter(a -> new JSONObject(writeValueAsString(a)).getJSONObject("data")
                             .getString("post_hint").equals("image")).toArray();
         } catch (Exception e) {
-            context.reply(context.getTranslated("meme.failed"));
-            return false;
+            context.sendMessage(context.getTranslated("meme.failed"));
+            return;
         }
         JSONObject post = new JSONObject(writeValueAsString(posts[random.nextInt(posts.length)]));
         Color color;
@@ -88,8 +86,7 @@ public class MemeCommand extends Command {
                 post.getJSONObject("data").getString("permalink"));
         eb.setFooter("\uD83D\uDC4D " + post.getJSONObject("data").getInt("ups") + " | \uD83D\uDCAC " +
                 post.getJSONObject("data").getInt("num_comments"), null);
-        context.reply(eb.build());
-        return true;
+        context.sendMessage(eb.build());
     }
 
     private String writeValueAsString(Object a) {

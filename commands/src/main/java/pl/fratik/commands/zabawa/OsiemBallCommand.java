@@ -17,31 +17,31 @@
 
 package pl.fratik.commands.zabawa;
 
+import net.dv8tion.jda.api.interactions.InteractionHook;
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
-public class OsiemBallCommand extends Command {
+public class OsiemBallCommand extends NewCommand {
     private static final Random random = new Random();
 
     public OsiemBallCommand() {
         name = "8ball";
-        category = CommandCategory.FUN;
-        uzycie = new Uzycie("pytanie", "string", true);
-        aliases = new String[] {"pytanie"};
-        allowPermLevelChange = false;
+        usage = "<pytanie:string>";
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
+    public void execute(@NotNull NewCommandContext context) {
         String[] odpowiedzi = context.getTranslated("8ball.responses").split(";");
         String odp = odpowiedzi[random.nextInt(odpowiedzi.length)];
-        if (!((String) context.getArgs()[0]).endsWith("?")) {
-            context.reply(context.getTranslated("8ball.not.a.question"));
-            return false;
+        if (!context.getArguments().get("pytanie").getAsString().endsWith("?")) {
+            context.replyEphemeral(context.getTranslated("8ball.not.a.question"));
+            return;
         }
-        context.reply("\uD83E\uDD14", m -> m.editMessage(odp).queueAfter(3, TimeUnit.SECONDS));
-        return true;
+        InteractionHook hook = context.reply("\uD83E\uDD14");
+        hook.editOriginal(odp).queueAfter(3, TimeUnit.SECONDS);
     }
 }
