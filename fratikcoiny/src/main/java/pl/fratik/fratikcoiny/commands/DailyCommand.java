@@ -37,6 +37,7 @@ public class DailyCommand extends MoneyCommand {
 
     @Override
     public void execute(@NotNull NewCommandContext context) {
+        context.defer(false);
         Emoji emotkaFc = getFratikCoin(context);
         MemberConfig mc = memberDao.get(context.getMember());
         Date dailyDate = mc.getDailyDate();
@@ -44,7 +45,7 @@ public class DailyCommand extends MoneyCommand {
         if (mc.getDailyDate() != null) {
             long dist = dailyDate.getTime() - teraz.getTime();
             if (dist >= 0) {
-                context.reply(context.getTranslated("daily.cooldown"));
+                context.sendMessage(context.getTranslated("daily.cooldown"));
                 return;
             }
         }
@@ -58,10 +59,10 @@ public class DailyCommand extends MoneyCommand {
         mc.setFratikCoiny(fc);
         mc.setDailyDate(dailyDate);
         memberDao.save(mc);
-        context.reply(context.getTranslated(msg, emotkaFc.getFormatted(), mc.getFratikCoiny(), emotkaFc.getFormatted()));
+        context.sendMessage(context.getTranslated(msg, emotkaFc.getFormatted(), mc.getFratikCoiny(), emotkaFc.getFormatted()));
     }
 
-    private static Boolean isHoliday() { // mozna to pozniej gdzies przeniesc
+    private static boolean isHoliday() { // mozna to pozniej gdzies przeniesc
         Date teraz = new Date();
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(teraz);

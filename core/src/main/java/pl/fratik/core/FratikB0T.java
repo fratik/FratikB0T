@@ -211,7 +211,7 @@ class FratikB0T {
                 NetworkUtil.setUpContentInformationCache(redisCacheManager);
                 Tlumaczenia.setShardManager(shardManager);
                 Tlumaczenia tlumaczenia = new Tlumaczenia(userDao, guildDao, redisCacheManager);
-                managerKomend = new NewManagerKomendImpl(shardManager, tlumaczenia);
+                managerKomend = new NewManagerKomendImpl(shardManager, tlumaczenia, eventBus);
                 moduleManager = new ManagerModulowImpl(shardManager, mbd, guildDao, webhookManager, memberDao, userDao,
                         redisCacheManager, gbanDao, scheduleDao, managerKomend, managerArgumentow, eventWaiter,
                         tlumaczenia, eventBus);

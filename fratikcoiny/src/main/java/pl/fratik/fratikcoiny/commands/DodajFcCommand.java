@@ -20,15 +20,11 @@ package pl.fratik.fratikcoiny.commands;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
-import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.NewCommand;
 import pl.fratik.core.command.NewCommandContext;
-import pl.fratik.core.command.PermLevel;
 import pl.fratik.core.entity.MemberConfig;
 import pl.fratik.core.entity.MemberDao;
-
-import java.util.LinkedHashMap;
 
 public class DodajFcCommand extends NewCommand {
 
@@ -44,18 +40,23 @@ public class DodajFcCommand extends NewCommand {
     @Override
     public void execute(@NotNull NewCommandContext context) {
         Member komu = context.getArguments().get("osoba").getAsMember();
+        if (komu == null) {
+            context.replyEphemeral(context.getTranslated("generic.no.member"));
+            return;
+        }
         int ile = context.getArguments().get("ile").getAsInt();
         if (ile == 0) {
-            context.reply(context.getTranslated("dodajfc.badnumber"));
+            context.replyEphemeral(context.getTranslated("dodajfc.badnumber"));
             return;
         }
         if (komu.getUser().isBot()) {
-            context.reply(context.getTranslated("dodajfc.bot"));
+            context.replyEphemeral(context.getTranslated("dodajfc.bot"));
             return;
         }
+        context.defer(false);
         MemberConfig mc = memberDao.get(komu);
         mc.setFratikCoiny(mc.getFratikCoiny() + ile);
         memberDao.save(mc);
-        context.reply(context.getTranslated("dodajfc.success"));
+        context.sendMessage(context.getTranslated("dodajfc.success"));
     }
 }
