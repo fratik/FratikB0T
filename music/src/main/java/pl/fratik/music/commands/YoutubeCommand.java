@@ -114,6 +114,7 @@ public class YoutubeCommand extends MusicCommand {
                     return;
                 }
                 if (!mms.isConnected()) {
+                    if (!context.getChannel().canTalk()) context.sendMessage(context.getTranslated("play.no.perms.warning"));
                     mms.setAnnounceChannel(context.getChannel());
                     mms.connect(finalKanal);
                 }
@@ -124,9 +125,9 @@ public class YoutubeCommand extends MusicCommand {
                     added.add(at);
                 }
                 if (added.size() == 1) {
-                    if (!mms.isPlaying()) mms.play();
-                    else context.getChannel().sendMessage(context.getTranslated("play.queued",
+                    context.getChannel().sendMessage(context.getTranslated("play.queued",
                             added.get(0).getInfo().title)).reference(e.getMessage()).queue();
+                    if (!mms.isPlaying()) mms.play();
                 } else {
                     context.getChannel().sendMessage(context.getTranslated("play.queued.multiple",
                             added.size())).reference(e.getMessage()).queue();

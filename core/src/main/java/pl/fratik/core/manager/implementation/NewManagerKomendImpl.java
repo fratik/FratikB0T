@@ -30,6 +30,7 @@ import pl.fratik.core.Ustawienia;
 import pl.fratik.core.command.CommandType;
 import pl.fratik.core.command.NewCommand;
 import pl.fratik.core.command.NewCommandContext;
+import pl.fratik.core.event.CommandDispatchedEvent;
 import pl.fratik.core.event.CommandSyncEvent;
 import pl.fratik.core.manager.NewManagerKomend;
 import pl.fratik.core.moduly.Modul;
@@ -154,6 +155,7 @@ public class NewManagerKomendImpl implements NewManagerKomend {
                 logger.warn("Nie znaleziono subkomendy {} w komendzie {}", subname, name);
                 return;
             }
+            eventBus.post(new CommandDispatchedEvent(ctx));
             try {
                 method.invoke(command, ctx);
             } catch (IllegalAccessException e) {
@@ -164,6 +166,7 @@ public class NewManagerKomendImpl implements NewManagerKomend {
             }
             return;
         }
+        eventBus.post(new CommandDispatchedEvent(ctx));
         command.execute(ctx);
     }
 

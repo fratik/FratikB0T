@@ -25,6 +25,7 @@ import net.dv8tion.jda.api.entities.channel.unions.MessageChannelUnion;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.commands.CommandInteraction;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
+import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
@@ -107,6 +108,10 @@ public class NewCommandContext {
 
     public Message sendMessage(String content) {
         return interaction.getHook().sendMessage(content).complete();
+    }
+
+    public Message sendMessage(String content, ActionRow actionRow) {
+        return interaction.getHook().sendMessage(content).addActionRows(actionRow).complete();
     }
 
     public Message sendMessage(Message message) {
