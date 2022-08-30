@@ -193,7 +193,7 @@ public class PopCommand extends NewCommand {
                                 invite.getCode()).setEmbeds(eb.build())
                         .setActionRow(Button.danger(BUTTON_CLOSE, "Zamknij prośbę"))
                         .mentionRoles(Ustawienia.instance.popRole).complete();
-                context.sendMessage(context.getTranslated("pop.success"));
+                ev.editMessage(context.getTranslated("pop.success")).queue();
                 TextChannel poplch = fdev.getTextChannelById(Ustawienia.instance.popLogChannel);
                 if (poplch == null) throw new IllegalStateException("nie ma popLogChannel/nieprawidłowy");
                 poplch.sendMessage(String.format("%s(%s) wysłał prośbę o pomoc dla serwera %s[%s]\nTreść pomocy to: `%s`." +
@@ -209,7 +209,7 @@ public class PopCommand extends NewCommand {
                                     context.getTranslated("pop.request.modal.input"), TextInputStyle.PARAGRAPH)
                                     .setRequiredRange(15, 1000).build()
                     ).build()).complete();
-            msg.editMessage(context.getTranslated("pop.continue.modal")).setActionRow(Set.of()).queue(null, x -> {});
+            msg.editMessage(context.getTranslated("pop.continue.modal")).setActionRows(Set.of()).queue(null, x -> {});
 
         });
         bw.setTimeoutHandler(() -> msg.editMessage(context.getTranslated("pop.aborted")).queue(null, x -> {}));

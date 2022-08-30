@@ -22,7 +22,6 @@ import net.dv8tion.jda.api.entities.User;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.commands.entity.Priv;
 import pl.fratik.commands.entity.PrivDao;
-import pl.fratik.core.Ustawienia;
 import pl.fratik.core.command.NewCommand;
 import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.entity.UserConfig;
@@ -90,8 +89,7 @@ public class PrivCommand extends NewCommand {
         String id = StringUtil.generateId();
         try {
             ch.sendMessage(context.getTlumaczenia().get(context.getTlumaczenia().getLanguage(doKogo),
-                    "priv.message", sender.getAsTag(), sender.getId(), tresc,
-                    Ustawienia.instance.prefix, sender.getId(), Ustawienia.instance.prefix, id)).complete();
+                    "priv.message", sender.getAsTag(), sender.getId(), tresc, sender.getId(), id)).complete();
             privDao.save(new Priv(id, sender.getId(), doKogo.getId(), tresc, null));
             context.sendMessage(context.getTranslated("priv.success"));
         } catch (Exception e) {

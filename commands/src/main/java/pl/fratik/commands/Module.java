@@ -78,7 +78,7 @@ public class Module implements Modul {
         commands.add(new PingCommand());
 //        commands.add(new HelpCommand(managerKomend, guildDao, shardManager, redisCacheManager));
 //        commands.add(new LanguageCommand(eventBus, userDao, tlumaczenia));
-//        commands.add(new UstawieniaCommand(eventWaiter, userDao, guildDao, managerArgumentow, shardManager, tlumaczenia));
+        commands.add(new UstawieniaCommand(userDao, eventWaiter));
 //        commands.add(new PoziomCommand(guildDao, shardManager));
         commands.add(new BotstatsCommand(shardManager, managerModulow));
         if (Ustawienia.instance.apiUrls.get("image-server") != null && Ustawienia.instance.apiKeys.get("image-server") != null) {
@@ -153,7 +153,7 @@ public class Module implements Modul {
 //        commands.add(new PoziomyUprawnienCommand());
         commands.add(new BlacklistPopCommand(blacklistDao));
         commands.add(new ShipCommand());
-        commands.add(new AdministratorzyCommand(guildDao, redisCacheManager));
+//        commands.add(new AdministratorzyCommand(guildDao, redisCacheManager));
         commands.add(new SasinCommand());
 
         listener = new MemberListener(guildDao, eventBus, redisCacheManager);

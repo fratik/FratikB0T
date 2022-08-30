@@ -36,5 +36,4 @@ public class BasicInfo {
     private final List<Language> languages;
     private final boolean inBotGuild = Globals.inFratikDev;
     private final String ownerId = String.valueOf(Globals.ownerId);
-    private final String prefix = Ustawienia.instance.prefix;
 }

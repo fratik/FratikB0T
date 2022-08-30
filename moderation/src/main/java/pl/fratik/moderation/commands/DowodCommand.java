@@ -107,7 +107,7 @@ public class DowodCommand extends ModerationCommand {
             aCase = caseDao.get(CaseDao.getId(context.getGuild(), context.getArguments().get("numer_sprawy").getAsLong()));
             if (aCase == null) throw new NullPointerException("e");
         } catch (NumberFormatException | IndexOutOfBoundsException | NullPointerException e) {
-            context.replyEphemeral(context.getTranslated("dowod.invalid.case"));
+            context.sendMessage(context.getTranslated("dowod.invalid.case"));
             return;
         }
         for (Dowod dowod : aCase.getDowody()) {

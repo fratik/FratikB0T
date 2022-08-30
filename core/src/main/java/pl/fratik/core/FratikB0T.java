@@ -226,7 +226,7 @@ class FratikB0T {
                 glownyService.awaitHealthy();
 
                 shardManager.setStatus(OnlineStatus.ONLINE);
-                shardManager.setActivity(Activity.playing("jebać interakcje! | v" + WERSJA));
+                shardManager.setActivity(Activity.playing("Dzień doberek! | v" + WERSJA));
                 statusService.startAsync();
                 scheduleService.startAsync();
 
