@@ -21,6 +21,8 @@ import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.GuildMessageChannel;
 import net.dv8tion.jda.api.entities.ThreadChannel;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.interactions.InteractionHook;
@@ -140,8 +142,13 @@ public class ChinczykCommand extends NewCommand {
             context.replyEphemeral(context.getTranslated("chinczyk.parent.game.in.progress"));
             return;
         }
+        GuildMessageChannel chan = context.getChannel().asGuildMessageChannel();
+        if (!chan.canTalk() || !context.getGuild().getSelfMember()
+                .hasPermission(chan, Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_ATTACH_FILES)) {
+            context.replyEphemeral(context.getTranslated("chinczyk.game.no.perms"));
+            return;
+        }
         context.deferAsync(true);
-        // todo check na permy
         instances.add(new Chinczyk(context, eventBus, this::endCallback));
         context.sendMessage(context.getTranslated("chinczyk.game.started.message"));
     }

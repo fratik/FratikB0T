@@ -75,12 +75,12 @@ class LogManager {
         executor.submit(() -> {
             WebhookClient cl = getWebhook(webhook);
             if (e.getContext().getGuild() != null)
-                cl.send(String.format("%s(%s) %s[%s] %s[%s]", e.getContext().getCommand().getName(),
+                cl.send(String.format("%s(%s) %s[%s] %s[%s]", e.getContext().getCommandPath(),
                         e.getContext().getArguments().values().stream().map(OptionMapping::getAsString).collect(Collectors.joining(",")),
                         e.getContext().getSender().getName(), e.getContext().getSender().getId(),
                         e.getContext().getGuild().getName(), e.getContext().getGuild().getId()));
             else
-                cl.send(String.format("%s(%s) %s[%s] Direct Messages", e.getContext().getCommand().getName(),
+                cl.send(String.format("%s(%s) %s[%s] Direct Messages", e.getContext().getCommandPath(),
                         e.getContext().getArguments().values().stream().map(OptionMapping::getAsString).collect(Collectors.joining(",")),
                         e.getContext().getSender().getName(), e.getContext().getSender().getId()));
         });

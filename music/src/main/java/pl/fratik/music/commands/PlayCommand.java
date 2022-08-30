@@ -145,6 +145,7 @@ public class PlayCommand extends MusicCommand {
                 if (!iteml.isEmpty()) {
                     int dodanePiosenki = 0;
                     if (!mms.isConnected()) {
+                        if (!context.getChannel().canTalk()) context.sendMessage(context.getTranslated("play.no.perms.warning"));
                         mms.setAnnounceChannel(context.getChannel());
                         mms.connect(kanal);
                     }
@@ -176,13 +177,14 @@ public class PlayCommand extends MusicCommand {
             identifier = wynik.getEntries().get(0).getUrl();
         }
         if (!mms.isConnected()) {
-            mms.setAnnounceChannel(context.getChannel()); // todo permcheck
+            if (!context.getChannel().canTalk()) context.sendMessage(context.getTranslated("play.no.perms.warning"));
+            mms.setAnnounceChannel(context.getChannel());
             mms.connect(kanal);
         }
         if (!mms.isConnected()) return;
         managerMuzyki.getAudioTracksAsync(identifier, audioTrackList -> {
             if (audioTrackList.isEmpty()) {
-                context.reply(context.getTranslated("play.not.found"));
+                context.sendMessage(context.getTranslated("play.not.found"));
                 mms.disconnect();
                 return;
             }
@@ -191,10 +193,9 @@ public class PlayCommand extends MusicCommand {
                 mms.addToQueue(context.getSender(), at, context.getLanguage(), null);
             } else {
                 for (AudioTrack at : audioTrackList) mms.addToQueue(context.getSender(), at, context.getLanguage());
-                context.reply(context.getTranslated("play.queued.playlist", audioTrackList.size()));
+                context.sendMessage(context.getTranslated("play.queued.playlist", audioTrackList.size()));
             }
-            if (!mms.isPlaying()) mms.play();
-            else context.sendMessage(context.getTranslated("play.queued", audioTrackList.get(0).getInfo().title));
+            context.sendMessage(context.getTranslated("play.queued", audioTrackList.get(0).getInfo().title));
         });
     }
 
