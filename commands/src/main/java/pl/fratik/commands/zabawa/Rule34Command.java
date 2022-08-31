@@ -32,6 +32,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.ChannelType;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
@@ -78,6 +79,15 @@ public class Rule34Command extends NewCommand {
             LoggerFactory.getLogger(getClass()).error("Pixiv nie możliwy do użycia - nieprawidłowe dane logowania!");
             pixiv = null;
         }
+    }
+
+    @Override
+    public boolean permissionCheck(NewCommandContext context) {
+        if (context.getChannel().getType() != ChannelType.TEXT || !context.getChannel().asTextChannel().isNSFW()) {
+            context.replyEphemeral(context.getTranslated("generic.not.nsfw"));
+            return false;
+        }
+        return true;
     }
 
     @Override
