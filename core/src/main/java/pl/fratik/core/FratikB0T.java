@@ -143,8 +143,7 @@ class FratikB0T {
                 DefaultShardManagerBuilder builder = DefaultShardManagerBuilder.create(token,
                         GatewayIntent.GUILD_MEMBERS, GatewayIntent.GUILD_BANS, GatewayIntent.GUILD_VOICE_STATES,
                         GatewayIntent.GUILD_MESSAGES, GatewayIntent.GUILD_MESSAGE_REACTIONS, GatewayIntent.GUILD_INVITES,
-                        GatewayIntent.DIRECT_MESSAGES, GatewayIntent.DIRECT_MESSAGE_REACTIONS, GatewayIntent.GUILD_EMOJIS_AND_STICKERS,
-                        GatewayIntent.MESSAGE_CONTENT);
+                        GatewayIntent.DIRECT_MESSAGES, GatewayIntent.DIRECT_MESSAGE_REACTIONS, GatewayIntent.GUILD_EMOJIS_AND_STICKERS);
                 builder.setShardsTotal(count);
                 builder.setShards(min, max);
                 builder.setEnableShutdownHook(false);
