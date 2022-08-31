@@ -52,7 +52,7 @@ public class PremiaAdminCommand extends MoneyCommand {
         permissions = DefaultMemberPermissions.enabledFor(Permission.MANAGE_ROLES, Permission.MANAGE_SERVER);
     }
 
-    @SubCommand(name = "ustaw", usage = "<rola:role> <coiny:number> <cooldown:string>")
+    @SubCommand(name = "ustaw", usage = "<rola:role> <coiny:int> <cooldown:string>")
     public void set(@NotNull NewCommandContext context) {
         context.defer(false);
         try {
