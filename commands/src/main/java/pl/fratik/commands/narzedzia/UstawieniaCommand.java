@@ -66,26 +66,31 @@ public class UstawieniaCommand extends NewCommand {
             buttons.add(Button.of(ButtonStyle.DANGER, LVLUP_MSG_DM_TOGGLE, "Wyłącz wiad. o wyższym poziomie w DM"));
         else
             buttons.add(Button.of(ButtonStyle.SUCCESS, LVLUP_MSG_DM_TOGGLE, "Włącz wiad. o wyższym poziomie w DM"));
-        ButtonWaiter bw = new ButtonWaiter(eventWaiter, context, hook.getInteraction(), ButtonWaiter.ResponseType.REPLY_EPHEMERAL);
+        ButtonWaiter bw = new ButtonWaiter(eventWaiter, context, hook.getInteraction(), ButtonWaiter.ResponseType.EDIT);
         bw.setButtonHandler(e -> {
             UserConfig uc = userDao.get(context.getSender());
             switch (e.getComponentId()) {
                 case PRIV_TOGGLE: {
                     uc.setPrivWlaczone(!uc.isPrivWlaczone());
-                    if (uc.isPrivWlaczone()) e.getHook().sendMessage("Pomyślnie włączono wiadomości prywatne /priv").queue();
-                    else e.getHook().sendMessage("Pomyślnie wyłączono wiadomości prywatne /priv").queue();
+                    if (uc.isPrivWlaczone()) e.getHook().editOriginal("Pomyślnie włączono wiadomości prywatne /priv")
+                            .setActionRows(Set.of()).queue();
+                    else e.getHook().editOriginal("Pomyślnie wyłączono wiadomości prywatne /priv").setActionRows(Set.of()).queue();
                     break;
                 }
                 case LVLUP_MSG_TOGGLE: {
                     uc.setLvlupMessages(!uc.isLvlupMessages());
-                    if (uc.isLvlupMessages()) e.getHook().sendMessage("Pomyślnie włączono wiadomości o zdobyciu wyższego poziomu").queue();
-                    else e.getHook().sendMessage("Pomyślnie wyłączono wiadomości o zdobyciu wyższego poziomu").queue();
+                    if (uc.isLvlupMessages()) e.getHook().editOriginal("Pomyślnie włączono wiadomości o zdobyciu wyższego poziomu")
+                            .setActionRows(Set.of()).queue();
+                    else e.getHook().editOriginal("Pomyślnie wyłączono wiadomości o zdobyciu wyższego poziomu")
+                            .setActionRows(Set.of()).queue();
                     break;
                 }
                 case LVLUP_MSG_DM_TOGGLE: {
                     uc.setLvlUpOnDM(!uc.isLvlUpOnDM());
-                    if (uc.isLvlUpOnDM()) e.getHook().sendMessage("Pomyślnie włączono wiadomości o zdobyciu wyższego poziomu w DM").queue();
-                    else e.getHook().sendMessage("Pomyślnie wyłączono wiadomości o zdobyciu wyższego poziomu w DM").queue();
+                    if (uc.isLvlUpOnDM()) e.getHook().editOriginal("Pomyślnie włączono wiadomości o zdobyciu wyższego poziomu w DM")
+                            .setActionRows(Set.of()).queue();
+                    else e.getHook().editOriginal("Pomyślnie wyłączono wiadomości o zdobyciu wyższego poziomu w DM")
+                            .setActionRows(Set.of()).queue();
                     break;
                 }
             }
