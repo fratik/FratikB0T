@@ -1,5 +1,0 @@
-{
-  "name": "starboard",
-  "main": "pl.fratik.starboard.Module",
-  "coreVersion": "@core.version@"
-}

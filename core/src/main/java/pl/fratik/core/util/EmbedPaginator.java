@@ -53,7 +53,7 @@ public abstract class EmbedPaginator {
     private static final String RIGHT_EMOJI = "\u25B6";
     private static final String LAST_EMOJI = "\u23ED";
     private static final String STOP_EMOJI = "\u23F9";
-    private static final String ONETWOTHREEFOUR_EMOJI = "\uD83D\uDD22";
+//    private static final String ONETWOTHREEFOUR_EMOJI = "\uD83D\uDD22";
     private static final String SHUFFLE_EMOJI = "\uD83D\uDD00";
     private static final String TRASH_EMOJI = "\uD83D\uDDD1";
 
@@ -202,7 +202,7 @@ public abstract class EmbedPaginator {
     private List<ActionRow> getActionRows(boolean disabled) {
         List<Button> secondRowButtons = new ArrayList<>();
         secondRowButtons.add(Button.danger("STOP_PAGE", Emoji.fromUnicode(STOP_EMOJI)).withDisabled(disabled));
-        secondRowButtons.add(Button.secondary("CHOOSE_PAGE", Emoji.fromUnicode(ONETWOTHREEFOUR_EMOJI)).withDisabled(disabled));
+//        secondRowButtons.add(Button.secondary("CHOOSE_PAGE", Emoji.fromUnicode(ONETWOTHREEFOUR_EMOJI)).withDisabled(disabled));
         if (enableShuffle) secondRowButtons.add(Button.secondary("SHUFFLE_PAGE", Emoji.fromUnicode(SHUFFLE_EMOJI)).withDisabled(disabled));
         if (enableDelett) secondRowButtons.add(Button.danger("TRASH_PAGE", Emoji.fromUnicode(TRASH_EMOJI)).withDisabled(disabled));
         return List.of(ActionRow.of(
@@ -230,7 +230,7 @@ public abstract class EmbedPaginator {
                 case "NEXT_PAGE":
                 case "LAST_PAGE":
                 case "STOP_PAGE":
-                case "CHOOSE_PAGE":
+//                case "CHOOSE_PAGE":
                     return true;
                 case "SHUFFLE_PAGE":
                     return enableShuffle;
@@ -262,14 +262,14 @@ public abstract class EmbedPaginator {
             case "STOP_PAGE":
                 clearReactions();
                 return;
-            case "CHOOSE_PAGE":
-                if (addPaginator()) {
-                    addReactions(message.editMessage(MessageEditData.fromMessage(message)), true).setReplace(true).queue();
-                    doKtorej = event.getChannel().sendMessage(tlumaczenia.get(language, "paginator.waiting.for.pageno")).complete();
-                    eventWaiter.waitForEvent(MessageReceivedEvent.class, this::checkMessage,
-                            this::handleMessage, timeout, TimeUnit.SECONDS, this::clearReactions);
-                }
-                return;
+//            case "CHOOSE_PAGE":
+//                if (addPaginator()) {
+//                    addReactions(message.editMessage(MessageEditData.fromMessage(message)), true).setReplace(true).queue();
+//                    doKtorej = event.getChannel().sendMessage(tlumaczenia.get(language, "paginator.waiting.for.pageno")).complete();
+//                    eventWaiter.waitForEvent(MessageReceivedEvent.class, this::checkMessage,
+//                            this::handleMessage, timeout, TimeUnit.SECONDS, this::clearReactions);
+//                }
+//                return;
             case "SHUFFLE_PAGE":
                 pageNo = ThreadLocalRandom.current().nextInt(getPageCount()) + 1;
                 break;

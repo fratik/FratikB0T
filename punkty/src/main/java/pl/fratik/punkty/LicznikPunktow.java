@@ -46,7 +46,6 @@ import pl.fratik.core.manager.NewManagerKomend;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.MapUtil;
-import pl.fratik.core.util.NetworkUtil;
 import pl.fratik.core.util.TimeUtil;
 import pl.fratik.core.util.UserUtil;
 import pl.fratik.punkty.entity.PunktyDao;
@@ -54,14 +53,12 @@ import pl.fratik.punkty.entity.PunktyRow;
 import pl.fratik.punkty.komendy.StatsCommand;
 import redis.clients.jedis.exceptions.JedisException;
 
-import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class LicznikPunktow {
@@ -239,34 +236,6 @@ public class LicznikPunktow {
                 if (punktyRaw != null) punkty = punktyRaw;
                 int lvlOld = calculateLvl(punkty, 0);
                 int przyrost = 1;
-                if (!event.getMessage().getAttachments().isEmpty())
-                    przyrost = getPktFromFileSize(event.getMessage().getAttachments().get(0).getSize());
-                Matcher matcher = URLPATTERN.matcher(event.getMessage().getContentRaw());
-                if (matcher.find()) {
-                    String url = matcher.group();
-                    try {
-                        String rawHeader;
-                        if (url.startsWith("http")) {
-                            NetworkUtil.ContentInformation ci = NetworkUtil.contentInformation(url);
-                            if (ci == null || ci.getCode() != 200) {
-                                throw new IOException("null");
-                            }
-                            rawHeader = ci.getContentLength();
-                        } else {
-                            log.debug("{} ({}): znaleziono url {}, ignoruje przez brak protokołu", event.getAuthor(), event.getGuild(), url);
-                            rawHeader = null;
-                        }
-                        if (rawHeader == null) {
-                            log.debug("{} ({}): znaleziono url {}, content-length nieznany", event.getAuthor(), event.getGuild(), url);
-                        } else {
-                            log.debug("{} ({}): znaleziono url {}, content-length: {}", event.getAuthor(), event.getGuild(), url, rawHeader);
-                            int byteLength = Integer.parseInt(rawHeader);
-                            przyrost = getPktFromFileSize(byteLength);
-                        }
-                    } catch (NumberFormatException | IOException e) {
-                        log.debug("{} ({}): znaleziono url {}, nie udało się połączyć", event.getAuthor(), event.getGuild(), url);
-                    }
-                }
                 log.debug("{} na serwerze {} ma {} + {} punktów (lvl {}), zapisuje do cache",
                         event.getAuthor(), event.getGuild(), punkty, przyrost, calculateLvl(punkty, przyrost));
                 mapa.put(event.getAuthor().getId(), punkty + przyrost);

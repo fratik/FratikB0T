@@ -220,22 +220,22 @@ public class Module implements Modul {
         ModLogBuilder.setGuildDao(guildDao);
         LogListener.setTlumaczenia(tlumaczenia);
         modLogListener = new ModLogListener(shardManager, caseDao, guildDao, scheduleDao, tlumaczenia, redisCacheManager);
-        logListener = new LogListener(guildDao, purgeDao, redisCacheManager, password);
-        przeklenstwaListener = new PrzeklenstwaListener(guildDao, tlumaczenia, shardManager, caseDao, redisCacheManager);
-        linkListener = new LinkListener(guildDao, tlumaczenia, shardManager, caseDao, redisCacheManager, eventBus);
+//        logListener = new LogListener(guildDao, purgeDao, redisCacheManager, password);
+//        przeklenstwaListener = new PrzeklenstwaListener(guildDao, tlumaczenia, shardManager, caseDao, redisCacheManager);
+//        linkListener = new LinkListener(guildDao, tlumaczenia, shardManager, caseDao, redisCacheManager, eventBus);
         autobanListener = new AutobanListener(guildDao, tlumaczenia, modLogListener);
-        antiInviteListener = new AntiInviteListener(guildDao, tlumaczenia, shardManager, caseDao, redisCacheManager);
-        antiRaidListener = new AntiRaidListener(guildDao, shardManager, eventBus, tlumaczenia, redisCacheManager);
+//        antiInviteListener = new AntiInviteListener(guildDao, tlumaczenia, shardManager, caseDao, redisCacheManager);
+//        antiRaidListener = new AntiRaidListener(guildDao, shardManager, eventBus, tlumaczenia, redisCacheManager);
 //        publishListener = new PublishListener(guildDao, tlumaczenia, managerKomend, shardManager, caseDao, redisCacheManager);
 
         eventBus.register(this);
         eventBus.register(modLogListener);
-        eventBus.register(logListener);
-        eventBus.register(przeklenstwaListener);
-        eventBus.register(linkListener);
+//        eventBus.register(logListener);
+//        eventBus.register(przeklenstwaListener);
+//        eventBus.register(linkListener);
         eventBus.register(autobanListener);
-        eventBus.register(antiInviteListener);
-        eventBus.register(antiRaidListener);
+//        eventBus.register(antiInviteListener);
+//        eventBus.register(antiRaidListener);
 //        eventBus.register(publishListener);
 
         commands = new ArrayList<>();
@@ -288,16 +288,16 @@ public class Module implements Modul {
     @Override
     public boolean shutDown() {
         managerKomend.unregisterCommands(commands);
-        antiRaidListener.shutdown();
+//        antiRaidListener.shutdown();
         try {
             eventBus.unregister(this);
             eventBus.unregister(modLogListener);
-            eventBus.unregister(logListener);
-            eventBus.unregister(przeklenstwaListener);
-            eventBus.unregister(linkListener);
+//            eventBus.unregister(logListener);
+//            eventBus.unregister(przeklenstwaListener);
+//            eventBus.unregister(linkListener);
             eventBus.unregister(autobanListener);
-            eventBus.unregister(antiInviteListener);
-            eventBus.unregister(antiRaidListener);
+//            eventBus.unregister(antiInviteListener);
+//            eventBus.unregister(antiRaidListener);
 //            eventBus.unregister(publishListener);
         } catch (Exception ignored) {
             /*lul*/

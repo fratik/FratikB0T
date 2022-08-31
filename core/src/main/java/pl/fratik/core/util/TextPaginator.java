@@ -37,7 +37,7 @@ class TextPaginator {
     private static final String RIGHT_EMOJI = "\u25B6";
     private static final String LAST_EMOJI = "\u23ED";
     private static final String STOP_EMOJI = "\u23F9";
-    private static final String ONETWOTHREEFOUR_EMOJI = "\uD83D\uDD22";
+//    private static final String ONETWOTHREEFOUR_EMOJI = "\uD83D\uDD22";
 
     private final EventWaiter eventWaiter;
     private final List<String> pages;
@@ -85,7 +85,7 @@ class TextPaginator {
         message.addReaction(Emoji.fromUnicode(RIGHT_EMOJI)).queue();
         message.addReaction(Emoji.fromUnicode(LAST_EMOJI)).queue();
         message.addReaction(Emoji.fromUnicode(STOP_EMOJI)).queue();
-        message.addReaction(Emoji.fromUnicode(ONETWOTHREEFOUR_EMOJI)).queue();
+//        message.addReaction(Emoji.fromUnicode(ONETWOTHREEFOUR_EMOJI)).queue();
     }
 
     private void waitForReaction() {
@@ -101,7 +101,7 @@ class TextPaginator {
                 case RIGHT_EMOJI:
                 case LAST_EMOJI:
                 case STOP_EMOJI:
-                case ONETWOTHREEFOUR_EMOJI:
+//                case ONETWOTHREEFOUR_EMOJI:
                     return event.getUserIdLong() == userId;
                 default:
                     return false;
@@ -128,11 +128,11 @@ class TextPaginator {
                 case STOP_EMOJI:
                     clearReactions();
                     return;
-                case ONETWOTHREEFOUR_EMOJI:
-                    event.getChannel().sendMessage(tlumaczenia.get(language, "paginator.waiting.for.pageno")).queue();
-                    eventWaiter.waitForEvent(MessageReceivedEvent.class, this::checkMessage,
-                            this::handleMessage, 30, TimeUnit.SECONDS, this::clearReactions);
-                    break;
+//                case ONETWOTHREEFOUR_EMOJI:
+//                    event.getChannel().sendMessage(tlumaczenia.get(language, "paginator.waiting.for.pageno")).queue();
+//                    eventWaiter.waitForEvent(MessageReceivedEvent.class, this::checkMessage,
+//                            this::handleMessage, 30, TimeUnit.SECONDS, this::clearReactions);
+//                    break;
                 default: break;
             }
         }

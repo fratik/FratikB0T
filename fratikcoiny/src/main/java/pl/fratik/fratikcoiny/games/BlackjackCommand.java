@@ -20,11 +20,8 @@ package pl.fratik.fratikcoiny.games;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.NewCommand;
 import pl.fratik.core.command.NewCommandContext;
-import pl.fratik.core.entity.MemberConfig;
 import pl.fratik.core.entity.MemberDao;
 import pl.fratik.core.util.EventWaiter;
-import pl.fratik.fratikcoiny.libs.blackjack.BlackjackResult;
-import pl.fratik.fratikcoiny.libs.blackjack.DiscordBlackJack;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -43,22 +40,7 @@ public class BlackjackCommand extends NewCommand {
 
     @Override
     public void execute(@NotNull NewCommandContext context) {
-        if (locki.contains(context.getSender().getId())) {
-            context.reply(context.getTranslated("blackjack.in.progress"));
-            return;
-        }
-        MemberConfig mc = memberDao.get(context.getMember());
-        long zaklad = context.getArguments().get("zaklad").getAsLong();
-        if (zaklad == 0 || mc.getFratikCoiny() < zaklad) {
-            context.reply(context.getTranslated("blackjack.no.money"));
-            return;
-        }
-        locki.add(context.getSender().getId());
-        DiscordBlackJack bj = new DiscordBlackJack(context, mc.getFratikCoiny(), eventWaiter);
-        BlackjackResult bjres = bj.startPlay(zaklad);
-        mc.setFratikCoiny(bjres.getMoney());
-        memberDao.save(mc);
-        locki.remove(context.getSender().getId());
+        context.replyEphemeral(context.getTranslated("generic.intent.temp.off"));
     }
 
 }

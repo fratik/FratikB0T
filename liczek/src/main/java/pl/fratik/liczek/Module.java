@@ -59,8 +59,8 @@ public class Module implements Modul {
 
         commands.add(new LiczekCommand(guildDao));
 
-        listener = new LiczekListener(guildDao, tlumaczenia, redisCacheManager);
-        eventBus.register(listener);
+//        listener = new LiczekListener(guildDao, tlumaczenia, redisCacheManager);
+//        eventBus.register(listener);
 
         managerKomend.registerCommands(this, commands);
         return true;
@@ -69,7 +69,7 @@ public class Module implements Modul {
     @Override
     public boolean shutDown() {
         managerKomend.unregisterCommands(commands);
-        eventBus.unregister(listener);
+//        eventBus.unregister(listener);
         return true;
     }
 }

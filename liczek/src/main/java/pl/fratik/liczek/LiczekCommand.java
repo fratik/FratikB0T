@@ -22,7 +22,6 @@ import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
 import pl.fratik.core.command.NewCommand;
 import pl.fratik.core.command.NewCommandContext;
-import pl.fratik.core.command.SubCommand;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 
@@ -36,7 +35,12 @@ public class LiczekCommand extends NewCommand {
         permissions = DefaultMemberPermissions.enabledFor(Permission.MANAGE_SERVER);
     }
 
-    @SubCommand(name = "info")
+    @Override
+    public void execute(NewCommandContext context) {
+        context.replyEphemeral(context.getTranslated("generic.intent.temp.off"));
+    }
+
+    //    @SubCommand(name = "info")
     public void info(NewCommandContext context) {
         GuildConfig gc = guildDao.get(context.getGuild());
         if (gc.getLiczekKanal() == null || gc.getLiczekKanal().isEmpty()) {
@@ -51,7 +55,7 @@ public class LiczekCommand extends NewCommand {
         context.reply(context.getTranslated("liczek.info", txt.getAsMention()));
     }
 
-    @SubCommand(name = "usun")
+//    @SubCommand(name = "usun")
     public void remove(NewCommandContext context) {
         context.deferAsync(false);
         GuildConfig gc = guildDao.get(context.getGuild());
@@ -64,7 +68,7 @@ public class LiczekCommand extends NewCommand {
         context.sendMessage(context.getTranslated("liczek.success.remove"));
     }
 
-    @SubCommand(name = "ustaw", usage = "<kanal:textchannel>")
+//    @SubCommand(name = "ustaw", usage = "<kanal:textchannel>")
     public void set(NewCommandContext context) {
         GuildConfig gc = guildDao.get(context.getGuild());
         TextChannel txt = context.getArguments().get("kanal").getAsChannel().asTextChannel();
