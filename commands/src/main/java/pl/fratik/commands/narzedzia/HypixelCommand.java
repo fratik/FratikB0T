@@ -59,11 +59,8 @@ public class HypixelCommand extends NewCommand {
         //Player
         String cos = context.getArguments().get("typ").getAsString();
         String player;
-        String wersja;
         String tryb;
-        String jezyk;
         String ranga = "Member";
-        Integer karma;
         long last;
         long first;
         int level = 100;
@@ -99,10 +96,7 @@ public class HypixelCommand extends NewCommand {
                     }
                 }
                 player = pl.get("displayname").getAsString();
-                wersja = pl.get("mcVersionRp").getAsString();
                 tryb = pl.get("mostRecentGameType").getAsString();
-                jezyk = pl.has("userLanguage") ? pl.get("userLanguage").getAsString() : context.getTranslated("hypixel.player.language.notset");
-                karma = pl.get("karma").getAsInt();
                 last = pl.get("lastLogin").getAsLong();
                 first = pl.get("firstLogin").getAsLong();
                 lastlogin = new Date(last);
@@ -129,12 +123,9 @@ public class HypixelCommand extends NewCommand {
             eb.addField(context.getTranslated("hypixel.embed.player.profile"), "[Hypixel.net](https://hypixel.net/player/" + player + ")", false);
             eb.addField(context.getTranslated("hypixel.embed.player.rank"), ranga, false);
             eb.addField(context.getTranslated("hypixel.embed.player.level"), String.valueOf(level), true);
-            eb.addField(context.getTranslated("hypixel.embed.player.version"), wersja, false);
             eb.addField(context.getTranslated("hypixel.embed.player.lasttryb"), tryb, true);
             eb.addField(context.getTranslated("hypixel.embed.player.firstlogin"), date.format(firstlogin), false);
             eb.addField(context.getTranslated("hypixel.embed.player.lastlogin"), date.format(lastlogin), true);
-            eb.addField(context.getTranslated("hypixel.embed.player.language"), jezyk, false);
-            eb.addField(context.getTranslated("hypixel.embed.player.karma"), String.valueOf(karma), true);
             context.sendMessage(eb.build());
         } else if (cos.equals("guild")) {
             try {
