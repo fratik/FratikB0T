@@ -27,6 +27,7 @@ import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.User;
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.entity.DatabaseEntity;
 import pl.fratik.core.entity.Kara;
 import pl.fratik.core.tlumaczenia.Language;
@@ -70,7 +71,7 @@ public class Case implements DatabaseEntity, Comparable<Case> {
     @Setter @NotNull private List<Dowod> dowody = new ArrayList<>();
     @Setter private boolean needsUpdate = false; // wiadomość o sprawie powinna zostać zaktualizowana; flaga awaryjna, do użycia w migracji
 
-    public String getReason(CommandContext ctx) {
+    public String getReason(NewCommandContext ctx) {
         return getReason(ctx.getTlumaczenia(), ctx.getLanguage());
     }
 
@@ -91,7 +92,7 @@ public class Case implements DatabaseEntity, Comparable<Case> {
                 key = reason.substring(10);
                 arguments = null;
             }
-            if (arguments != null) return t.get(l, key, arguments);
+            if (arguments != null) return t.get(l, key, (Object[]) arguments);
             else return t.get(l, key);
         }
         return reason;

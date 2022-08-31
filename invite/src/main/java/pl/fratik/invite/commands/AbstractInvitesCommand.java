@@ -17,10 +17,12 @@
 
 package pl.fratik.invite.commands;
 
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.invite.cache.InvitesCache;
 import pl.fratik.invite.entity.InviteDao;
 
-public abstract class AbstractInvitesCommand extends Command {
+public abstract class AbstractInvitesCommand extends NewCommand {
     protected final InviteDao inviteDao;
     protected final InvitesCache invitesCache;
 
@@ -29,9 +31,9 @@ public abstract class AbstractInvitesCommand extends Command {
         this.invitesCache = invitesCache;
     }
 
-    protected boolean checkEnabled(CommandContext context) {
+    protected boolean checkEnabled(NewCommandContext context) {
         if (!invitesCache.tracksInvites(context.getGuild())) {
-            context.reply(context.getTranslated("invites.disabled"));
+            context.replyEphemeral(context.getTranslated("invites.disabled"));
             return false;
         }
         return true;

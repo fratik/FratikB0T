@@ -19,9 +19,10 @@ package pl.fratik.invite.commands;
 
 import com.google.common.eventbus.EventBus;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.interactions.InteractionHook;
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.util.ClassicEmbedPaginator;
 import pl.fratik.core.util.EventWaiter;
 import pl.fratik.core.util.MapUtil;
@@ -42,19 +43,16 @@ public class TopInvitesCommand extends AbstractInvitesCommand {
 
     public TopInvitesCommand(InviteDao inviteDao, InvitesCache invitesCache, EventWaiter eventWaiter, EventBus eventBus) {
         super(inviteDao, invitesCache);
-        name = "topinvites";
-        aliases = new String[] {"topinvite", "topinv", "topinvs"};
-        category = CommandCategory.INVITES;
-        cooldown = 10;
         this.eventWaiter = eventWaiter;
         this.eventBus = eventBus;
-        allowPermLevelChange = true;
+        name = "topinvites";
+        cooldown = 10;
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        if (!checkEnabled(context)) return false;
-        Message msg = context.reply(context.getTranslated("generic.loading"));
+    public void execute(@NotNull NewCommandContext context) {
+        if (!checkEnabled(context)) return;
+        InteractionHook hook = context.defer(false);
         EmbedBuilder eb = new EmbedBuilder();
         StringBuilder sb = new StringBuilder();
         List<EmbedBuilder> pages = new ArrayList<>();
@@ -67,8 +65,8 @@ public class TopInvitesCommand extends AbstractInvitesCommand {
         }
 
         if (zaproszenia.isEmpty()) {
-            context.reply(context.getTranslated("topinvites.empty"));
-            return false;
+            context.sendMessage(context.getTranslated("topinvites.empty"));
+            return;
         }
 
         int rank = 1;
@@ -98,8 +96,7 @@ public class TopInvitesCommand extends AbstractInvitesCommand {
         }
 
         new ClassicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(), context.getTlumaczenia(), eventBus)
-                .create(msg);
-        return true;
+                .create(hook);
     }
 
 }

@@ -36,6 +36,7 @@ import org.xbill.DNS.Lookup;
 import org.xbill.DNS.Record;
 import org.xbill.DNS.SRVRecord;
 import org.xbill.DNS.Type;
+import pl.fratik.core.command.NewCommand;
 import pl.fratik.core.util.NamedThreadFactory;
 import pl.fratik.core.util.UserUtil;
 
@@ -55,16 +56,13 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 //todo https://www.youtube.com/watch?v=-L2o5OHTgKU - to aż błaga o rewrite
-public class McstatusCommand extends Command {
+public class McstatusCommand extends NewCommand {
 
     public McstatusCommand() {
         name = "mcstatus";
-        category = CommandCategory.UTILITY;
         uzycie = new Uzycie("ip", "string", true);
         allowInDMs = true;
-        permissions.add(Permission.MESSAGE_EMBED_LINKS);
         cooldown = 13;
-        allowPermLevelChange = false;
         allowInDMs = true;
     }
 

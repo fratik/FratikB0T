@@ -23,6 +23,7 @@ import net.dv8tion.jda.api.sharding.ShardManager;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.manager.ManagerBazyDanych;
 import pl.fratik.core.manager.ManagerModulow;
+import pl.fratik.core.manager.NewManagerKomend;
 import pl.fratik.core.moduly.Modul;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.EventWaiter;
@@ -31,7 +32,7 @@ public class Module implements Modul {
     @Inject private EventBus eventBus;
     @Inject private ManagerBazyDanych managerBazyDanych;
     @Inject private EventWaiter eventWaiter;
-    @Inject private ManagerKomend managerKomend;
+    @Inject private NewManagerKomend managerKomend;
     @Inject private ShardManager shardManager;
     @Inject private ManagerModulow managerModulow;
     @Inject private Tlumaczenia tlumaczenia;

@@ -19,38 +19,34 @@ package pl.fratik.commands.narzedzia;
 
 import net.dv8tion.jda.api.entities.User;
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.entity.UserConfig;
 import pl.fratik.core.entity.UserDao;
 
-public class IgnoreCommand extends Command {
+public class IgnoreCommand extends NewCommand {
     private final UserDao userDao;
 
     public IgnoreCommand(UserDao userDao) {
         this.userDao = userDao;
         name = "ignore";
-        aliases = new String[] {"unignore"};
-        category = CommandCategory.UTILITY;
         cooldown = 15;
-        uzycie = new Uzycie("osoba", "user", true);
-        aliases = new String[] {"ignoruj", "wezgoodemnie"};
-        uzycieDelim = " ";
+        usage = "<osoba:user>";
         allowInDMs = true;
-        allowPermLevelChange = false;
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        User ignore = (User) context.getArgs()[0];
+    public void execute(@NotNull NewCommandContext context) {
+        User ignore =  context.getArguments().get("osoba").getAsUser();
         UserConfig uc = userDao.get(context.getSender());
         if (uc.getPrivIgnored().contains(ignore.getId())) {
             uc.getPrivIgnored().remove(ignore.getId());
             userDao.save(uc);
             context.reply(context.getTranslated("ignore.unignored"));
-            return false;
+            return;
         }
         uc.getPrivIgnored().add(ignore.getId());
         userDao.save(uc);
         context.reply(context.getTranslated("ignore.ignored"));
-        return true;
     }
 }

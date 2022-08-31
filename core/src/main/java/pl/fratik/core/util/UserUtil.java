@@ -72,10 +72,12 @@ public class UserUtil {
         return gbanData.isGbanned();
     }
 
+    @Deprecated
     public static PermLevel getPermlevel(User user, ShardManager shardManager) {
         return getPermlevel(user, shardManager, PermLevel.BOTOWNER);
     }
 
+    @Deprecated
     public static PermLevel getPermlevel(User user, ShardManager shardManager, PermLevel max) {
         if (max.getNum() >= 10 && isBotOwner(user.getIdLong()))
             return PermLevel.BOTOWNER;
@@ -86,10 +88,12 @@ public class UserUtil {
         return PermLevel.EVERYONE;
     }
 
+    @Deprecated
     public static PermLevel getPermlevel(Member member, GuildDao guildDao, ShardManager shardManager) {
         return getPermlevel(member, guildDao, shardManager, PermLevel.BOTOWNER);
     }
 
+    @Deprecated
     public static PermLevel getPermlevel(Member member, GuildDao guildDao, ShardManager shardManager, PermLevel max) {
         if (max.getNum() >= 10 && isBotOwner(member.getUser().getIdLong()))
             return PermLevel.BOTOWNER;
@@ -115,17 +119,18 @@ public class UserUtil {
         return Globals.ownerId == memberId;
     }
 
+    @Deprecated
     public static PermLevel getPermlevel(Member member, GuildDao guildDao, ShardManager shardManager, int max) {
         PermLevel permLevel = PermLevel.getPermLevel(max);
         if (permLevel == null) throw new IllegalArgumentException("Nieprawidłowa liczba!");
         return getPermlevel(member, guildDao, shardManager, permLevel);
     }
 
-    private static boolean isZga(Member member, ShardManager shardManager) {
+    public static boolean isZga(Member member, ShardManager shardManager) {
         return isZga(member.getUser(), shardManager);
     }
 
-    private static boolean isZga(User user, ShardManager shardManager) {
+    public static boolean isZga(User user, ShardManager shardManager) {
         Ustawienia s = Ustawienia.instance;
         if (!Globals.inFratikDev) return false;
         Guild g = shardManager.getGuildById(s.botGuild);

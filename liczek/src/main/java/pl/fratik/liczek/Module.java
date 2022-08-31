@@ -21,12 +21,14 @@ import com.google.common.eventbus.EventBus;
 import com.google.inject.Inject;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import pl.fratik.core.cache.RedisCacheManager;
+import pl.fratik.core.command.NewCommand;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.MemberDao;
 import pl.fratik.core.entity.UserDao;
 import pl.fratik.core.manager.ManagerArgumentow;
 import pl.fratik.core.manager.ManagerBazyDanych;
 import pl.fratik.core.manager.ManagerModulow;
+import pl.fratik.core.manager.NewManagerKomend;
 import pl.fratik.core.moduly.Modul;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.EventWaiter;
@@ -35,7 +37,7 @@ import pl.fratik.liczek.listener.LiczekListener;
 import java.util.ArrayList;
 
 public class Module implements Modul {
-    @Inject private ManagerKomend managerKomend;
+    @Inject private NewManagerKomend managerKomend;
     @Inject private ManagerArgumentow managerArgumentow;
     @Inject private EventWaiter eventWaiter;
     @Inject private GuildDao guildDao;
@@ -48,7 +50,7 @@ public class Module implements Modul {
     @Inject private EventBus eventBus;
     @Inject private RedisCacheManager redisCacheManager;
 
-    private ArrayList<Command> commands;
+    private ArrayList<NewCommand> commands;
     private LiczekListener listener;
 
     @Override
@@ -60,13 +62,13 @@ public class Module implements Modul {
         listener = new LiczekListener(guildDao, tlumaczenia, redisCacheManager);
         eventBus.register(listener);
 
-        commands.forEach(managerKomend::registerCommand);
+        managerKomend.registerCommands(this, commands);
         return true;
     }
 
     @Override
     public boolean shutDown() {
-        commands.forEach(managerKomend::unregisterCommand);
+        managerKomend.unregisterCommands(commands);
         eventBus.unregister(listener);
         return true;
     }

@@ -30,24 +30,28 @@ import net.dv8tion.jda.api.sharding.ShardManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.cache.RedisCacheManager;
+import pl.fratik.core.command.NewCommand;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.event.ConnectedEvent;
 import pl.fratik.core.event.PluginMessageEvent;
 import pl.fratik.core.manager.ManagerArgumentow;
 import pl.fratik.core.manager.ManagerBazyDanych;
+import pl.fratik.core.manager.NewManagerKomend;
 import pl.fratik.core.moduly.Modul;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.EventWaiter;
 import pl.fratik.invite.cache.InvitesCache;
-import pl.fratik.invite.commands.*;
-import pl.fratik.invite.entity.InviteData;
+import pl.fratik.invite.commands.InvitesAdminCommand;
+import pl.fratik.invite.commands.InvitesCommand;
+import pl.fratik.invite.commands.TopInvitesCommand;
 import pl.fratik.invite.entity.InviteDao;
+import pl.fratik.invite.entity.InviteData;
 import pl.fratik.invite.listeners.JoinListener;
 
 import java.util.ArrayList;
 
 public class Module implements Modul {
-    @Inject private ManagerKomend managerKomend;
+    @Inject private NewManagerKomend managerKomend;
     @Inject private ManagerBazyDanych managerBazyDanych;
     @Inject private EventBus eventBus;
     @Inject private EventWaiter eventWaiter;
@@ -57,7 +61,7 @@ public class Module implements Modul {
     @Inject private ManagerArgumentow managerArgumentow;
     @Inject private Tlumaczenia tlumaczenia;
 
-    private ArrayList<Command> commands;
+    private ArrayList<NewCommand> commands;
     private JoinListener joinListener;
     private InvitesCache invitesCache;
     private InviteDao inviteDao;
@@ -76,14 +80,13 @@ public class Module implements Modul {
         eventBus.register(joinListener);
 
         commands = new ArrayList<>();
-        commands.add(new InvitesCommand(inviteDao, invitesCache, guildDao, managerArgumentow, eventWaiter, eventBus));
+        commands.add(new InvitesCommand(inviteDao, invitesCache, guildDao, eventWaiter, eventBus));
+        commands.add(new InvitesAdminCommand(inviteDao, invitesCache, guildDao, eventWaiter, eventBus));
         commands.add(new TopInvitesCommand(inviteDao, invitesCache, eventWaiter, eventBus));
 
-        commands.forEach(managerKomend::registerCommand);
+        managerKomend.registerCommands(this, commands);
 
-        if (shardManager.getShards().stream().anyMatch(s -> !s.getStatus().equals(JDA.Status.CONNECTED))) return true;
-
-        invitesCache.load();
+        if (shardManager.getShards().stream().allMatch(s -> s.getStatus().equals(JDA.Status.CONNECTED))) invitesCache.load();
 
         return true;
     }
@@ -97,7 +100,7 @@ public class Module implements Modul {
     public boolean shutDown() {
         eventBus.unregister(this);
         eventBus.unregister(joinListener);
-        commands.forEach(managerKomend::unregisterCommand);
+        managerKomend.unregisterCommands(commands);
         invitesCache.getInviteCache().invalidateAll();
         return true;
     }

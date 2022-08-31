@@ -134,7 +134,7 @@ public class PremiaCommand extends MoneyCommand {
         }
     }
 
-    @SubCommand(name = "usuń", usage = "<rola:role>")
+    @SubCommand(name = "usun", usage = "<rola:role>")
     public void remove(@NotNull NewCommandContext context) {
         if (UserUtil.getPermlevel(context.getMember(), guildDao, context.getShardManager()).getNum() < 2) {
             execute(context);

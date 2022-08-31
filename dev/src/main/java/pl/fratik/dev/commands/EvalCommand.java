@@ -18,30 +18,34 @@
 package pl.fratik.dev.commands;
 
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.interactions.InteractionHook;
+import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
 import org.mozilla.javascript.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pl.fratik.core.command.PermLevel;
+import pl.fratik.core.command.CommandType;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.MemberDao;
 import pl.fratik.core.entity.UserDao;
 import pl.fratik.core.manager.ManagerArgumentow;
 import pl.fratik.core.manager.ManagerBazyDanych;
 import pl.fratik.core.manager.ManagerModulow;
+import pl.fratik.core.manager.NewManagerKomend;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
+import pl.fratik.core.util.UserUtil;
 
 import javax.annotation.Nullable;
 import java.awt.*;
 import java.util.Arrays;
 
-public class EvalCommand extends Command {
+public class EvalCommand extends NewCommand {
 
     private final Logger logger = LoggerFactory.getLogger(EvalCommand.class);
-    private final ManagerKomend managerKomend;
+    private final NewManagerKomend managerKomend;
     private final ManagerArgumentow managerArgumentow;
     private final ManagerBazyDanych managerBazyDanych;
     private final ManagerModulow managerModulow;
@@ -51,7 +55,7 @@ public class EvalCommand extends Command {
     private final UserDao userDao;
     private final MemberDao memberDao;
 
-    public EvalCommand(ManagerKomend managerKomend, ManagerArgumentow managerArgumentow, ManagerBazyDanych managerBazyDanych, ManagerModulow managerModulow, ShardManager shardManager, Tlumaczenia tlumaczenia, GuildDao guildDao, UserDao userDao, MemberDao memberDao) {
+    public EvalCommand(NewManagerKomend managerKomend, ManagerArgumentow managerArgumentow, ManagerBazyDanych managerBazyDanych, ManagerModulow managerModulow, ShardManager shardManager, Tlumaczenia tlumaczenia, GuildDao guildDao, UserDao userDao, MemberDao memberDao) {
         this.managerKomend = managerKomend;
         this.managerArgumentow = managerArgumentow;
         this.managerBazyDanych = managerBazyDanych;
@@ -62,22 +66,24 @@ public class EvalCommand extends Command {
         this.userDao = userDao;
         this.memberDao = memberDao;
         name = "eval";
-        uzycie = new Uzycie("code", "string", true);
-        category = CommandCategory.SYSTEM;
-        permLevel = PermLevel.BOTOWNER;
-        permissions.add(Permission.MESSAGE_EMBED_LINKS);
-        aliases = new String[] {"ev"};
-        allowPermLevelChange = false;
-        allowInDMs = true;
+        usage = "<pokaz:bool> <kod:string>";
+        permissions = DefaultMemberPermissions.DISABLED;
+        type = CommandType.SUPPORT_SERVER;
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
+    public void execute(@NotNull NewCommandContext context) {
+        if (!UserUtil.isBotOwner(context.getSender().getIdLong())) {
+            context.replyEphemeral(context.getTranslated("generic.no.permissions"));
+            return;
+        }
+        String code = context.getArguments().get("kod").getAsString();
+        boolean ephemeral = !context.getArguments().get("pokaz").getAsBoolean();
         EmbedBuilder ebStart = new EmbedBuilder();
         ebStart.setColor(Color.YELLOW);
-        ebStart.addField("\ud83d\udce4 INPUT", codeBlock("js", (String) context.getArgs()[0]), false);
+        ebStart.addField("\ud83d\udce4 INPUT", codeBlock("js", code), false);
         ebStart.addField("\ud83d\udce5 OUPTUT", "Oczekiwanie...", false);
-        Message message = context.reply(ebStart.build());
+        InteractionHook hook = ephemeral ? context.replyEphemeral(ebStart.build()) : context.reply(ebStart.build());
         try {
             Context ctx = Context.enter();
             ctx.setLanguageVersion(Context.VERSION_ES6);
@@ -95,7 +101,7 @@ public class EvalCommand extends Command {
             scr.defineProperty("memberDao", memberDao, flags);
             scr.defineProperty("context", context, flags);
             @Nullable Object o;
-            Script eval = ctx.compileString((String) context.getArgs()[0], "<eval>", 1, null);
+            Script eval = ctx.compileString(code, "<eval>", 1, null);
             o = eval.exec(ctx, scr);
             String e;
             if (o instanceof NativeArray) e = Arrays.toString(((NativeArray) o).toArray());
@@ -125,31 +131,19 @@ public class EvalCommand extends Command {
             else e = Undefined.isUndefined(o) || o == null ? "undefined" : (String) Context.jsToJava(o, String.class);
 //            if (babelEnabled && e.equals("use strict")) e = "null";
             if (e.length() > 1000) e = e.substring(0, 1000);
-            if (context.checkSensitive(e)) {
-                logger.info("Output evala:");
-                logger.info(e);
-                EmbedBuilder eb = new EmbedBuilder();
-                eb.setColor(Color.GREEN);
-                eb.addField("\ud83d\udce4 INPUT", codeBlock("js", (String) context.getArgs()[0]), false);
-                eb.addField("\ud83d\udce5 OUTPUT", "Output evala został ukryty bo zawiera prywatne " +
-                        "dane: sprawdź konsolę!", false);
-                message.editMessageEmbeds(eb.build()).override(true).queue();
-            } else {
-                EmbedBuilder eb = new EmbedBuilder();
-                eb.setColor(Color.GREEN);
-                eb.addField("\ud83d\udce4 INPUT", codeBlock("js", (String) context.getArgs()[0]), false);
-                eb.addField("\ud83d\udce5 OUTPUT", codeBlock(e), false);
-                message.editMessageEmbeds(eb.build()).override(true).queue();
-            }
+            EmbedBuilder eb = new EmbedBuilder();
+            eb.setColor(Color.GREEN);
+            eb.addField("\ud83d\udce4 INPUT", codeBlock("js", code), false);
+            eb.addField("\ud83d\udce5 OUTPUT", codeBlock(e), false);
+            hook.editOriginalEmbeds(eb.build()).queue();
         } catch (Exception e) {
             logger.error("Eval error:", e);
             EmbedBuilder eb = new EmbedBuilder();
             eb.setColor(Color.RED);
-            eb.addField("\ud83d\udce4 INPUT", codeBlock("js", (String) context.getArgs()[0]), false);
+            eb.addField("\ud83d\udce4 INPUT", codeBlock("js", code), false);
             eb.addField("\u2620\ufe0f ERROR", codeBlock(e.toString()), false);
-            message.editMessageEmbeds(eb.build()).override(true).queue();
+            hook.editOriginalEmbeds(eb.build()).queue();
         }
-        return true;
     }
 
     private String toString(Object[] arr) {
@@ -163,7 +157,7 @@ public class EvalCommand extends Command {
     }
 
     private String codeBlock(String code, String text) {
-        return "```" + code + "\n" + text.replaceAll("`", "\u200b`\u200b") + "```";
+        return "```" + code + "\n" + text.replace("`", "\u200b`\u200b") + "```";
     }
 
 }

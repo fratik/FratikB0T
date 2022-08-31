@@ -17,48 +17,35 @@
 
 package pl.fratik.commands.images;
 
-import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 import pl.fratik.core.Ustawienia;
-import pl.fratik.core.command.PermLevel;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.util.NetworkUtil;
 
 import java.io.IOException;
 import java.net.URLEncoder;
-import java.util.LinkedHashMap;
 
-public class ChainCommand extends Command {
+public class ChainCommand extends NewCommand {
     public ChainCommand() {
         name = "chain";
-        category = CommandCategory.IMAGES;
-        LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
-        hmap.put("nalozku", "user");
-        hmap.put("obok", "user");
-        uzycie = new Uzycie(hmap, new boolean[] {true, false});
-        uzycieDelim = " ";
-        permLevel = PermLevel.EVERYONE;
-        permissions.add(Permission.MESSAGE_ATTACH_FILES);
+        usage = "<nalozku:user> [obok:user]";
         cooldown = 5;
-        aliases = new String[] {"lozeczko"};
-        allowPermLevelChange = false;
         allowInDMs = true;
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        User nalozku = (User) context.getArgs()[0];
-        User obok;
-        if  (context.getArgs().length > 1 && context.getArgs()[1] != null) {
-            obok = (User) context.getArgs()[1];
-        } else {
-            obok = context.getSender();
-        }
+    public void execute(@NotNull NewCommandContext context) {
+        User nalozku = context.getArguments().get("nalozku").getAsUser();
+        User obok = context.getArgumentOr("obok", context.getSender(), OptionMapping::getAsUser);
         if (nalozku.getId().equals(obok.getId())) {
-            context.reply(context.getTranslated("chain.selfchain"));
-            return false;
+            context.replyEphemeral(context.getTranslated("chain.selfchain"));
+            return;
         }
+        context.deferAsync(false);
         try {
             JSONObject zdjecie = NetworkUtil.getJson(String.format("%s/api/image/chain?avatarURL=%s&avatarURL2=%s",
                     Ustawienia.instance.apiUrls.get("image-server"),
@@ -67,15 +54,15 @@ public class ChainCommand extends Command {
                     URLEncoder.encode(obok.getEffectiveAvatarUrl().replace(".webp", ".png")
                             + "?size=2048", "UTF-8")), Ustawienia.instance.apiKeys.get("image-server"));
             if (zdjecie == null || !zdjecie.getBoolean("success")) {
-                context.reply("Wystąpił błąd ze zdobyciem zdjęcia!");
-                return false;
+                context.sendMessage("Wystąpił błąd ze zdobyciem zdjęcia!");
+                return;
             }
             byte[] img = NetworkUtil.getBytesFromBufferArray(zdjecie.getJSONObject("image").getJSONArray("data"));
-            context.getMessageChannel().sendFile(img, "chain.png").reference(context.getMessage()).queue();
+            context.sendMessage("chain.png", img);
         } catch (IOException | NullPointerException e) {
             context.reply(context.getTranslated("image.server.fail"));
         }
 
-        return true;
+
     }
 }

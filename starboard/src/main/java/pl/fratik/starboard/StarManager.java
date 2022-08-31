@@ -21,6 +21,7 @@ import com.google.common.eventbus.EventBus;
 import emoji4j.EmojiUtils;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
 import pl.fratik.core.cache.Cache;
 import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.starboard.entity.StarData;
@@ -61,9 +62,9 @@ public class StarManager {
 
     public void fixStars(Message message, StarsData std) {
         Optional<MessageReaction> reaction = message.getReactions().stream()
-                .filter(r -> r.getReactionEmote().isEmote() ?
-                        r.getReactionEmote().getEmote().equals(getStar(message.getGuild())) :
-                        r.getReactionEmote().getName().equals(getStar(message.getGuild()))).findFirst();
+                .filter(r -> r.getEmoji().getType() ==  Emoji.Type.CUSTOM ?
+                        r.getEmoji().asCustom().equals(getStar(message.getGuild())) :
+                        r.getEmoji().asUnicode().getName().equals(getStar(message.getGuild()))).findFirst();
         if (reaction.isPresent()) fixStars(message, std, reaction.get());
         else fixStars(message, std, null);
     }
@@ -87,7 +88,7 @@ public class StarManager {
             starDataMap.remove(message.getId());
             std.setStarData(starDataMap);
             starDataDao.save(std);
-            eventBus.post(new StarEvent(null, message, starredBy.size(), message.getTextChannel(),
+            eventBus.post(new StarEvent(null, message, starredBy.size(), message.getChannel(),
                     std.getStarboardChannel(), starData.getStarboardMessageId()));
             return;
         }
@@ -96,9 +97,8 @@ public class StarManager {
                 Message msg = Objects.requireNonNull(message.getGuild().getTextChannelById(std.getStarboardChannel()))
                         .retrieveMessageById(starData.getStarboardMessageId()).complete();
                 for (MessageReaction reacc : msg.getReactions()) {
-                    if ((reacc.getReactionEmote().isEmote() && !reacc.getReactionEmote().getEmote().getId()
-                            .equals(getStar(message.getGuild()))) || (!reacc.getReactionEmote().isEmote()
-                            && !reacc.getReactionEmote().getName().equals(getStar(message.getGuild())))) continue;
+                    if ((reacc.getEmoji().getType() == Emoji.Type.CUSTOM && !reacc.getEmoji().asCustom().getId().equals(getStar(message.getGuild())))
+                        || (reacc.getEmoji().getType() == Emoji.Type.UNICODE && !reacc.getEmoji().asUnicode().getName().equals(getStar(message.getGuild())))) continue;
                     List<User> userList = reacc.retrieveUsers().complete();
                     for (User user : userList) {
                         if (starredBy.contains(user.getId())) {
@@ -132,7 +132,7 @@ public class StarManager {
             starDataMap.remove(message.getId());
             std.setStarData(starDataMap);
             starDataDao.save(std);
-            eventBus.post(new StarEvent(null, message, starredBy.size(), message.getTextChannel(), std.getStarboardChannel(), starData.getStarboardMessageId()));
+            eventBus.post(new StarEvent(null, message, starredBy.size(), message.getGuildChannel(), std.getStarboardChannel(), starData.getStarboardMessageId()));
             return;
         }
         starData.setStarredBy(starredBy);
@@ -150,14 +150,14 @@ public class StarManager {
         StarData starData = starDataMap.remove(message.getId());
         std.setStarData(starDataMap);
         starDataDao.save(std);
-        eventBus.post(new StarEvent(null, message, 0, message.getTextChannel(), std.getStarboardChannel(), starData.getStarboardMessageId()));
+        eventBus.post(new StarEvent(null, message, 0, message.getGuildChannel(), std.getStarboardChannel(), starData.getStarboardMessageId()));
     }
 
     Object getStar(Guild guild) {
         String e = stdCache.get(guild.getId(), starDataDao::get).getStarEmoji();
         Object emotka = null;
         try {
-            emotka = guild.getEmoteById(e);
+            emotka = guild.getEmojiById(e);
         } catch (Exception ignored) {
             if (EmojiUtils.isEmoji(e)) emotka = e;
         }
@@ -166,7 +166,7 @@ public class StarManager {
     }
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
-    public static boolean checkPermissions(TextChannel kanal) {
+    public static boolean checkPermissions(GuildMessageChannel kanal) {
         return kanal.getGuild().getSelfMember().hasPermission(kanal, Permission.MESSAGE_SEND,
                 Permission.MESSAGE_EMBED_LINKS, Permission.MESSAGE_HISTORY);
     }

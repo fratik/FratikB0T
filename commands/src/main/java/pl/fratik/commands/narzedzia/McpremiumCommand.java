@@ -21,35 +21,33 @@ import io.sentry.Sentry;
 import io.sentry.event.EventBuilder;
 import io.sentry.event.interfaces.ExceptionInterface;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.utils.MarkdownSanitizer;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.util.NetworkUtil;
 import pl.fratik.core.util.UserUtil;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-public class McpremiumCommand extends Command {
+public class McpremiumCommand extends NewCommand {
 
     public McpremiumCommand() {
         name = "mcpremium";
-        category = CommandCategory.UTILITY;
-        uzycie = new Uzycie("nick", "string", true);
+        usage = "<nick:string>";
         allowInDMs = true;
-        aliases = new String[] {"minecraftpremium", "premka", "mcpremka", "premiummc"};
-        permissions.add(Permission.MESSAGE_EMBED_LINKS);
-        allowPermLevelChange = false;
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
+    public void execute(@NotNull NewCommandContext context) {
         String uuid;
         String name;
         List<String> listaNazw = new ArrayList<>();
-        String nick = (String) context.getArgs()[0];
+        String nick = context.getArguments().get("nick").getAsString();
+        context.deferAsync(false);
         try {
             JSONObject jOb = NetworkUtil.getJson("https://api.mojang.com/users/profiles/minecraft/" + NetworkUtil.encodeURIComponent(nick));
             uuid = Objects.requireNonNull(jOb).getString("id");
@@ -80,10 +78,10 @@ public class McpremiumCommand extends Command {
                 }
             }
         } catch (Exception e) {
-            context.reply(context.getTranslated("mcpremium.failed", nick));
+            context.sendMessage(context.getTranslated("mcpremium.failed", nick));
             Sentry.capture(new EventBuilder().withMessage(e.getMessage())
                     .withSentryInterface(new ExceptionInterface(e)).withExtra("nick", nick));
-            return false;
+            return;
         }
         EmbedBuilder eb = new EmbedBuilder();
         eb.setColor(UserUtil.getPrimColor(context.getMember().getUser()));
@@ -98,7 +96,7 @@ public class McpremiumCommand extends Command {
         eb.setThumbnail("https://minotar.net/helm/" + name + "/2048.png");
         eb.setImage("https://minotar.net/armor/body/" + name + "/124.png");
         context.reply(eb.build());
-        return true;
+        return;
     }
 
     private static String formatUuid(String uuid) {

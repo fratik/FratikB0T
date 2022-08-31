@@ -32,6 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.Globals;
 import pl.fratik.core.cache.RedisCacheManager;
+import pl.fratik.core.command.NewCommand;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Kara;
 import pl.fratik.core.entity.ScheduleDao;
@@ -39,6 +40,7 @@ import pl.fratik.core.entity.UserDao;
 import pl.fratik.core.event.ModuleLoadedEvent;
 import pl.fratik.core.manager.ManagerBazyDanych;
 import pl.fratik.core.manager.ManagerModulow;
+import pl.fratik.core.manager.NewManagerKomend;
 import pl.fratik.core.moduly.Modul;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.EventWaiter;
@@ -66,7 +68,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 public class Module implements Modul {
-    @Inject private ManagerKomend managerKomend;
+    @Inject private NewManagerKomend managerKomend;
     @Inject private EventWaiter eventWaiter;
     @Inject private GuildDao guildDao;
     @Inject private UserDao userDao;
@@ -78,7 +80,7 @@ public class Module implements Modul {
     @Inject private ManagerModulow managerModulow;
     @Inject private RedisCacheManager redisCacheManager;
 
-    private ArrayList<Command> commands;
+    private ArrayList<NewCommand> commands;
     private ModLogListener modLogListener;
     private LogListener logListener;
     private PrzeklenstwaListener przeklenstwaListener;
@@ -177,15 +179,14 @@ public class Module implements Modul {
         purgeDao = new PurgeDao(managerBazyDanych, eventBus);
         ModLogBuilder.setTlumaczenia(tlumaczenia);
         ModLogBuilder.setGuildDao(guildDao);
-        ModLogBuilder.setManagerKomend(managerKomend);
         LogListener.setTlumaczenia(tlumaczenia);
-        modLogListener = new ModLogListener(shardManager, caseDao, guildDao, scheduleDao, tlumaczenia, managerKomend, redisCacheManager);
+        modLogListener = new ModLogListener(shardManager, caseDao, guildDao, scheduleDao, tlumaczenia, redisCacheManager);
         logListener = new LogListener(guildDao, purgeDao, redisCacheManager);
-        przeklenstwaListener = new PrzeklenstwaListener(guildDao, tlumaczenia, managerKomend, shardManager, caseDao, redisCacheManager);
-        linkListener = new LinkListener(guildDao, tlumaczenia, managerKomend, shardManager, caseDao, redisCacheManager, eventBus);
+        przeklenstwaListener = new PrzeklenstwaListener(guildDao, tlumaczenia, shardManager, caseDao, redisCacheManager);
+        linkListener = new LinkListener(guildDao, tlumaczenia, shardManager, caseDao, redisCacheManager, eventBus);
         autobanListener = new AutobanListener(guildDao, tlumaczenia, modLogListener);
-        antiInviteListener = new AntiInviteListener(guildDao, tlumaczenia, managerKomend, shardManager, caseDao, redisCacheManager);
-        antiRaidListener = new AntiRaidListener(guildDao, shardManager, eventBus, tlumaczenia, redisCacheManager, managerKomend);
+        antiInviteListener = new AntiInviteListener(guildDao, tlumaczenia, shardManager, caseDao, redisCacheManager);
+        antiRaidListener = new AntiRaidListener(guildDao, shardManager, eventBus, tlumaczenia, redisCacheManager);
 //        publishListener = new PublishListener(guildDao, tlumaczenia, managerKomend, shardManager, caseDao, redisCacheManager);
 
         eventBus.register(this);
@@ -201,26 +202,22 @@ public class Module implements Modul {
         commands = new ArrayList<>();
 
         commands.add(new PurgeCommand(logListener));
-        commands.add(new BanCommand(modLogListener, scheduleDao));
+        commands.add(new BanCommand(modLogListener));
         commands.add(new UnbanCommand(modLogListener));
         commands.add(new KickCommand(modLogListener));
         commands.add(new WarnCommand(caseDao));
         commands.add(new UnwarnCommand(caseDao));
-        commands.add(new AkcjeCommand(caseDao, shardManager, eventWaiter, eventBus, managerKomend, guildDao));
+        commands.add(new AkcjeCommand(caseDao, shardManager, eventWaiter, eventBus, guildDao));
         commands.add(new ReasonCommand(scheduleDao, caseDao));
-        commands.add(new RolesCommand());
-        commands.add(new HideCommand(guildDao, managerKomend));
-        commands.add(new LockCommand(guildDao, managerKomend));
-        commands.add(new MuteCommand(guildDao, modLogListener));
-        commands.add(new UnmuteCommand(guildDao, modLogListener));
+        commands.add(new MuteCommand(modLogListener));
+        commands.add(new UnmuteCommand(modLogListener));
         commands.add(new ZglosCommand(guildDao));
         commands.add(new RegulaminCommand());
         commands.add(new RolaCommand(guildDao));
         commands.add(new NotatkaCommand(caseDao));
-        commands.add(new RolementionCommand());
-        commands.add(new DowodCommand(guildDao, caseDao, managerKomend, eventWaiter, eventBus));
+        commands.add(new DowodCommand(guildDao, caseDao, eventWaiter, eventBus));
 
-        commands.forEach(managerKomend::registerCommand);
+        managerKomend.registerCommands(this, commands);
 
         if (managerModulow.getModules().get("api") != null)
             new PurgeForApi(managerModulow.getModules().get("api"), shardManager, purgeDao, guildDao);
@@ -234,7 +231,7 @@ public class Module implements Modul {
 
     @Override
     public boolean shutDown() {
-        commands.forEach(managerKomend::unregisterCommand);
+        managerKomend.unregisterCommands(commands);
         antiRaidListener.shutdown();
         try {
             eventBus.unregister(this);

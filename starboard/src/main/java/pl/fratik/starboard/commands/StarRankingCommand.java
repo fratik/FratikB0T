@@ -15,15 +15,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package pl.fratik.starboard.komendy;
+package pl.fratik.starboard.commands;
 
 import com.google.common.eventbus.EventBus;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.interactions.InteractionHook;
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.util.CommonUtil;
 import pl.fratik.core.util.DynamicEmbedPaginator;
 import pl.fratik.core.util.EventWaiter;
@@ -39,7 +41,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.FutureTask;
 
-public class StarRankingCommand extends Command {
+public class StarRankingCommand extends NewCommand {
 
     private final StarDataDao starDataDao;
     private final EventWaiter eventWaiter;
@@ -50,26 +52,25 @@ public class StarRankingCommand extends Command {
         this.eventWaiter = eventWaiter;
         this.eventBus = eventBus;
         name = "starranking";
-        category = CommandCategory.STARBOARD;
-        cooldown = 15;
-        permissions.add(Permission.MESSAGE_EMBED_LINKS);
-        allowPermLevelChange = false;
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        Message msg = context.send(context.getTranslated("generic.loading"));
+    public void execute(@NotNull NewCommandContext context) {
         List<FutureTask<EmbedBuilder>> pages = new LinkedList<>();
         StarsData std = starDataDao.get(context.getGuild());
         if (std.getStarboardChannel() == null || std.getStarboardChannel().isEmpty()) {
-            context.reply(context.getTranslated("starranking.no.channel"));
-            return false;
+            context.replyEphemeral(context.getTranslated("starranking.no.channel"));
+            return;
         }
+
         TextChannel stdch = context.getShardManager().getTextChannelById(std.getStarboardChannel());
         if (stdch == null) {
-            context.reply(context.getTranslated("starranking.no.channel"));
-            return false;
+            context.replyEphemeral(context.getTranslated("starranking.no.channel"));
+            return;
         }
+
+        InteractionHook hook = context.defer(false);
+
         List<StarData> starDataList = new ArrayList<>(std.getStarData().values());
         starDataList.sort((uno, dos) -> dos.getStarredBy().size() - uno.getStarredBy().size());
         for (StarData sd : starDataList) {
@@ -101,12 +102,11 @@ public class StarRankingCommand extends Command {
             }));
         }
         if (pages.isEmpty()) {
-            context.send(context.getTranslated("starranking.nostars"));
-            return false;
+            context.sendMessage(context.getTranslated("starranking.nostars"));
+            return;
         }
         new DynamicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(),
-                context.getTlumaczenia(), eventBus).setCustomFooter(true).create(msg);
-        return true;
+                context.getTlumaczenia(), eventBus).setCustomFooter(true).create(hook);
     }
 
 }

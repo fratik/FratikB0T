@@ -51,14 +51,12 @@ public class PrzeklenstwaListener {
     private final List<String> przeklenstwa;
     private final GuildDao guildDao;
     private final Tlumaczenia tlumaczenia;
-    private final ManagerKomend managerKomend;
     private final ShardManager shardManager;
     private final CaseDao caseDao;
     private final Cache<GuildConfig> gcCache;
-    public PrzeklenstwaListener(GuildDao guildDao, Tlumaczenia tlumaczenia, ManagerKomend managerKomend, ShardManager shardManager, CaseDao caseDao, RedisCacheManager redisCacheManager) {
+    public PrzeklenstwaListener(GuildDao guildDao, Tlumaczenia tlumaczenia, ShardManager shardManager, CaseDao caseDao, RedisCacheManager redisCacheManager) {
         this.guildDao = guildDao;
         this.tlumaczenia = tlumaczenia;
-        this.managerKomend = managerKomend;
         this.shardManager = shardManager;
         this.caseDao = caseDao;
         gcCache = redisCacheManager.new CacheRetriever<GuildConfig>(){}.getCache();
@@ -102,8 +100,7 @@ public class PrzeklenstwaListener {
                 caseDao.createNew(null, c, false, e.getChannel(), tlumaczenia.getLanguage(e.getMember()));
                 MessageAction m = e.getChannel().sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(e.getMember()),
                         "antiswear.notice", e.getAuthor().getAsMention(),
-                        WarnUtil.countCases(caseDao.getCasesByMember(e.getMember()), e.getAuthor().getId()),
-                        managerKomend.getPrefixes(e.getGuild()).get(0)));
+                        WarnUtil.countCases(caseDao.getCasesByMember(e.getMember()), e.getAuthor().getId())));
                 boolean deleteSwearMessage = gc.isDeleteSwearMessage();
                 if (deleteSwearMessage) m.queue();
                 else m.reference(e.getMessage()).queue();
@@ -156,15 +153,6 @@ public class PrzeklenstwaListener {
             return message;
         }
 
-        /**
-         * The Author of the Message received as {@link net.dv8tion.jda.api.entities.User User} object.
-         * <br>This will be never-null but might be a fake user if Message was sent via Webhook (Guild only).
-         *
-         * @return The Author of the Message.
-         *
-         * @see #isWebhookMessage()
-         * @see net.dv8tion.jda.api.entities.User#isFake()
-         */
         @Nonnull
         User getAuthor() {
             return message.getAuthor();

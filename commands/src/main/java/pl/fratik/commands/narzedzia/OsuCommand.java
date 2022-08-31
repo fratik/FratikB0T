@@ -32,9 +32,12 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Emote;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.Ustawienia;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.command.SubCommand;
 import pl.fratik.core.util.*;
 
@@ -54,7 +57,7 @@ import java.util.stream.Collectors;
 import static pl.fratik.core.Ustawienia.instance;
 import static pl.fratik.core.util.CommonUtil.round;
 
-public class OsuCommand extends Command {
+public class OsuCommand extends NewCommand {
     private final Osu osu;
     private final ShardManager shardManager;
     private final EventWaiter eventWaiter;
@@ -65,34 +68,20 @@ public class OsuCommand extends Command {
         this.eventWaiter = eventWaiter;
         this.eventBus = eventBus;
         name = "osu";
-        category = CommandCategory.UTILITY;
-        LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
-        hmap.put("nick", "string");
-        hmap.put("[...]", "string");
-        uzycie = new Uzycie(hmap, new boolean[] {true, false});
-        uzycieDelim = " ";
         allowInDMs = true;
-        permissions.add(Permission.MESSAGE_EMBED_LINKS);
         osu = Osu.getAPI(instance.apiKeys.get("osu"));
         cooldown = 15;
-        allowPermLevelChange = false;
     }
 
-    @Override
-    protected boolean execute(@NotNull CommandContext context) {
-        CommonErrors.usage(context);
-        return false;
-    }
-
-    @SubCommand(name = "user")
-    public boolean user(@NotNull CommandContext context) {
+    @SubCommand(name = "user", usage = "<nick:string>")
+    public void user(@NotNull NewCommandContext context) {
         NumberFormat nf = NumberFormat.getInstance(context.getLanguage().getLocale());
-        Message mes = context.reply(context.getTranslated("generic.loading"));
+        context.deferAsync(false);
         try {
-            OsuUser u = osu.users.query(new EndpointUsers.ArgumentsBuilder(resolveUserName(context)).build());
+            OsuUser u = osu.users.query(new EndpointUsers.ArgumentsBuilder(context.getArguments().get("nick").getAsString()).build());
             if (u == null) {
-                mes.editMessage(context.getTranslated("osu.user.not.found")).complete();
-                return false;
+                context.sendMessage(context.getTranslated("osu.user.not.found"));
+                return;
             }
             EmbedBuilder eb = new EmbedBuilder();
             eb.setAuthor(u.getUsername(), u.getURL().toString(), "https://a.ppy.sh/" + u.getID());
@@ -118,20 +107,20 @@ public class OsuCommand extends Command {
                     DurationUtil.humanReadableFormat(u.getTotalSecondsPlayed() * 1000, false),
                     true);
             eb.setColor(context.getMember().getColorRaw());
-            mes.editMessageEmbeds(eb.build()).override(true).complete();
+            context.sendMessage(eb.build());
         } catch (OsuAPIException | MalformedURLException e) {
-            mes.editMessage(context.getTranslated("osu.error")).queue();
+            context.sendMessage(context.getTranslated("osu.error"));
             return false;
         }
         return true;
     }
 
     @SubCommand(name = "topPlay")
-    public boolean topPlay(@NotNull CommandContext context) {
+    public boolean topPlay(@NotNull NewCommandContext context) {
         Message mes = context.reply(context.getTranslated("generic.loading"));
         try {
             List<OsuScore> wyniki = osu.userBests
-                    .query(new EndpointUserBests.ArgumentsBuilder(resolveUserName(context)).setLimit(100).build());
+                    .query(new EndpointUserBests.ArgumentsBuilder(context.getArguments().get("nick").getAsString()).setLimit(100).build());
             if (wyniki.isEmpty()) {
                 mes.editMessage(context.getTranslated("osu.topplay.empty")).queue();
                 return false;
@@ -145,11 +134,11 @@ public class OsuCommand extends Command {
     }
 
     @SubCommand(name = "recentPlay")
-    public boolean recentPlay(@NotNull CommandContext context) {
+    public boolean recentPlay(@NotNull NewCommandContext context) {
         Message mes = context.reply(context.getTranslated("generic.loading"));
         try {
             List<OsuScore> wyniki = osu.userRecents
-                    .query(new EndpointUserRecents.ArgumentsBuilder(resolveUserName(context)).setLimit(50).build());
+                    .query(new EndpointUserRecents.ArgumentsBuilder(context.getArguments().get("nick").getAsString()).setLimit(50).build());
             if (wyniki.isEmpty()) {
                 mes.editMessage(context.getTranslated("osu.recentplay.empty")).queue();
                 return false;
@@ -162,7 +151,7 @@ public class OsuCommand extends Command {
         return true;
     }
 
-    private void renderScores(@NotNull CommandContext context, Message mes, List<OsuScore> wyniki) {
+    private void renderScores(@NotNull NewCommandContext context, Message mes, List<OsuScore> wyniki) {
         List<FutureTask<EmbedBuilder>> pages = new ArrayList<>();
         for (OsuScore w : wyniki) {
             pages.add(new FutureTask<>(() -> renderScore(context, w)));
@@ -173,7 +162,7 @@ public class OsuCommand extends Command {
     }
 
     @NotNull
-    private EmbedBuilder renderScore(@NotNull CommandContext context, OsuScore w) throws IOException {
+    private EmbedBuilder renderScore(@NotNull NewCommandContext context, OsuScore w) throws IOException {
         NumberFormat nf = NumberFormat.getInstance(context.getLanguage().getLocale());
         OsuUser u = w.getUser().get();
         OsuBeatmap m = w.getBeatmap().get();
@@ -366,28 +355,28 @@ public class OsuCommand extends Command {
         switch (rank) {
             case "XH":
                 return checkEmotkiStr(instance.emotki.osuSSH) ? Objects.requireNonNull(shardManager
-                        .getEmoteById(instance.emotki.osuSSH)).getAsMention() : "XH";
+                        .getEmojiById(instance.emotki.osuSSH)).getAsMention() : "XH";
             case "X":
                 return checkEmotkiStr(instance.emotki.osuSS) ? Objects.requireNonNull(shardManager
-                        .getEmoteById(instance.emotki.osuSS)).getAsMention() : "X";
+                        .getEmojiById(instance.emotki.osuSS)).getAsMention() : "X";
             case "SH":
                 return checkEmotkiStr(instance.emotki.osuSH) ? Objects.requireNonNull(shardManager
-                        .getEmoteById(instance.emotki.osuSH)).getAsMention() : "SH";
+                        .getEmojiById(instance.emotki.osuSH)).getAsMention() : "SH";
             case "S":
                 return checkEmotkiStr(instance.emotki.osuS) ? Objects.requireNonNull(shardManager
-                        .getEmoteById(instance.emotki.osuS)).getAsMention() : "S";
+                        .getEmojiById(instance.emotki.osuS)).getAsMention() : "S";
             case "A":
                 return checkEmotkiStr(instance.emotki.osuA) ? Objects.requireNonNull(shardManager
-                        .getEmoteById(instance.emotki.osuA)).getAsMention() : "A";
+                        .getEmojiById(instance.emotki.osuA)).getAsMention() : "A";
             case "B":
                 return checkEmotkiStr(instance.emotki.osuB) ? Objects.requireNonNull(shardManager
-                        .getEmoteById(instance.emotki.osuB)).getAsMention() : "B";
+                        .getEmojiById(instance.emotki.osuB)).getAsMention() : "B";
             case "C":
                 return checkEmotkiStr(instance.emotki.osuC) ? Objects.requireNonNull(shardManager
-                        .getEmoteById(instance.emotki.osuC)).getAsMention() : "C";
+                        .getEmojiById(instance.emotki.osuC)).getAsMention() : "C";
             case "D":
                 return checkEmotkiStr(instance.emotki.osuD) ? Objects.requireNonNull(shardManager
-                        .getEmoteById(instance.emotki.osuD)).getAsMention() : "D";
+                        .getEmojiById(instance.emotki.osuD)).getAsMention() : "D";
             case "F":
                 return "FAIL";
             default:
@@ -437,12 +426,12 @@ public class OsuCommand extends Command {
     }
     
     private boolean checkEmotkiStr(String uwuOwo) {
-        return uwuOwo != null && !uwuOwo.isEmpty() && shardManager.getEmoteById(uwuOwo) != null;
+        return uwuOwo != null && !uwuOwo.isEmpty() && shardManager.getEmojiById(uwuOwo) != null;
     }
 
-    private Emote getEmotka(String id) {
+    private String getEmotka(String id) {
         if (id == null || id.isEmpty()) return null;
-        return shardManager.getEmoteById(id);
+        return shardManager.getEmojiById(id).getAsMention();
     }
 
     private String generateBeatmapString(OsuBeatmap m) throws MalformedURLException {
@@ -473,10 +462,5 @@ public class OsuCommand extends Command {
                 return new Color(0XFF0000);
         }
         return null;
-    }
-
-    private String resolveUserName(CommandContext context) {
-        return Arrays.stream(Arrays.copyOfRange(context.getArgs(), 0, context.getArgs().length))
-                .map(e -> e == null ? "" : e).map(Objects::toString).collect(Collectors.joining(uzycieDelim));
     }
 }

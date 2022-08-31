@@ -17,8 +17,11 @@
 
 package pl.fratik.moderation.commands;
 
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.entity.Kara;
 import pl.fratik.core.util.UserUtil;
 import pl.fratik.moderation.entity.Case;
@@ -26,10 +29,6 @@ import pl.fratik.moderation.entity.CaseDao;
 import pl.fratik.moderation.utils.ReasonUtils;
 
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class NotatkaCommand extends ModerationCommand {
 
@@ -39,45 +38,39 @@ public class NotatkaCommand extends ModerationCommand {
         super(true);
         this.caseDao = casesDao;
         name = "notatka";
-        category = CommandCategory.MODERATION;
-        uzycieDelim = " ";
+        permissions = DefaultMemberPermissions.enabledFor(Permission.MODERATE_MEMBERS);
         cooldown = 5;
-        LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
-        hmap.put("uzytkownik", "member");
-        hmap.put("notatka", "string");
-        hmap.put("[...]", "string");
-        uzycie = new Uzycie(hmap, new boolean[] {true, true, false});
-        aliases = new String[] {"notka"};
+        usage = "<osoba:user> <notatka:string>";
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        String powod;
-        Member uzytkownik = (Member) context.getArgs()[0];
-        if (context.getArgs().length > 1 && context.getArgs()[1] != null)
-            powod = Arrays.stream(Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length))
-                    .map(e -> e == null ? "" : e).map(Objects::toString).collect(Collectors.joining(uzycieDelim));
-        else throw new IllegalStateException("nie ma powodu, wtf");
+    public void execute(@NotNull NewCommandContext context) {
+        Member uzytkownik = context.getArguments().get("osoba").getAsMember();
+        String powod = context.getArguments().get("notatka").getAsString();
+        if (uzytkownik == null) {
+            context.replyEphemeral(context.getTranslated("generic.no.member"));
+            return;
+        }
         if (uzytkownik.equals(context.getMember())) {
-            context.reply(context.getTranslated("notatka.cant.note.yourself"));
-            return false;
+            context.replyEphemeral(context.getTranslated("notatka.cant.note.yourself"));
+            return;
         }
         if (uzytkownik.isOwner()) {
-            context.reply(context.getTranslated("notatka.cant.note.owner"));
-            return false;
+            context.replyEphemeral(context.getTranslated("notatka.cant.note.owner"));
+            return;
         }
         if (!context.getMember().canInteract(uzytkownik)) {
-            context.reply(context.getTranslated("notatka.user.cant.interact"));
-            return false;
+            context.replyEphemeral(context.getTranslated("notatka.user.cant.interact"));
+            return;
         }
         if (!context.getGuild().getSelfMember().canInteract(uzytkownik)) {
-            context.reply(context.getTranslated("notatka.bot.cant.interact"));
-            return false;
+            context.replyEphemeral(context.getTranslated("notatka.bot.cant.interact"));
+            return;
         }
+        context.defer(false);
         Case aCase = new Case.Builder(uzytkownik, Instant.now(), Kara.NOTATKA).setIssuerId(context.getSender().getIdLong()).build();
         ReasonUtils.parseFlags(aCase, powod);
         caseDao.createNew(null, aCase, false);
-        context.reply(context.getTranslated("notatka.success", UserUtil.formatDiscrim(uzytkownik)));
-        return true;
+        context.sendMessage(context.getTranslated("notatka.success", UserUtil.formatDiscrim(uzytkownik)));
     }
 }

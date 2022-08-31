@@ -18,32 +18,37 @@
 package pl.fratik.commands.narzedzia;
 
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.command.PermLevel;
+import pl.fratik.core.command.CommandType;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.entity.UserConfig;
 import pl.fratik.core.entity.UserDao;
+import pl.fratik.core.util.UserUtil;
 
-public class BlacklistPrivCommand extends Command {
+public class BlacklistPrivCommand extends NewCommand {
     private final UserDao userDao;
 
     public BlacklistPrivCommand(UserDao userDao) {
         this.userDao = userDao;
         name = "blacklistpriv";
-        category = CommandCategory.UTILITY;
-        permLevel = PermLevel.GADMIN;
-        uzycie = new Uzycie("osoba", "user", true);
-        uzycieDelim = " ";
-        allowInDMs = true;
-        allowPermLevelChange = false;
+        usage = "<osoba:user>";
+        permissions = DefaultMemberPermissions.DISABLED;
+        type = CommandType.SUPPORT_SERVER;
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        User ignore = (User) context.getArgs()[0];
+    public void execute(@NotNull NewCommandContext context) {
+        if (!UserUtil.isStaff(context.getSender(), context.getShardManager())) {
+            context.replyEphemeral(context.getTranslated("generic.no.permissions"));
+            return;
+        }
+        User ignore = context.getArguments().get("osoba").getAsUser();
         UserConfig uc = userDao.get(ignore);
         uc.setPrivBlacklist(true);
         userDao.save(uc);
         context.reply(context.getTranslated("blacklistpriv.success"));
-        return true;
+
     }
 }
