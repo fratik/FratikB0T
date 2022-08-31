@@ -72,20 +72,20 @@ public class UstawieniaCommand extends NewCommand {
             switch (e.getComponentId()) {
                 case PRIV_TOGGLE: {
                     uc.setPrivWlaczone(!uc.isPrivWlaczone());
-                    if (uc.isPrivWlaczone()) e.editMessage("Pomyślnie włączono wiadomości prywatne /priv").queue();
-                    else e.editMessage("Pomyślnie wyłączono wiadomości prywatne /priv").queue();
+                    if (uc.isPrivWlaczone()) e.getHook().sendMessage("Pomyślnie włączono wiadomości prywatne /priv").queue();
+                    else e.getHook().sendMessage("Pomyślnie wyłączono wiadomości prywatne /priv").queue();
                     break;
                 }
                 case LVLUP_MSG_TOGGLE: {
                     uc.setLvlupMessages(!uc.isLvlupMessages());
-                    if (uc.isLvlupMessages()) e.editMessage("Pomyślnie włączono wiadomości o zdobyciu wyższego poziomu").queue();
-                    else e.editMessage("Pomyślnie wyłączono wiadomości o zdobyciu wyższego poziomu").queue();
+                    if (uc.isLvlupMessages()) e.getHook().sendMessage("Pomyślnie włączono wiadomości o zdobyciu wyższego poziomu").queue();
+                    else e.getHook().sendMessage("Pomyślnie wyłączono wiadomości o zdobyciu wyższego poziomu").queue();
                     break;
                 }
                 case LVLUP_MSG_DM_TOGGLE: {
                     uc.setLvlUpOnDM(!uc.isLvlUpOnDM());
-                    if (uc.isLvlUpOnDM()) e.editMessage("Pomyślnie włączono wiadomości o zdobyciu wyższego poziomu w DM").queue();
-                    else e.editMessage("Pomyślnie wyłączono wiadomości o zdobyciu wyższego poziomu w DM").queue();
+                    if (uc.isLvlUpOnDM()) e.getHook().sendMessage("Pomyślnie włączono wiadomości o zdobyciu wyższego poziomu w DM").queue();
+                    else e.getHook().sendMessage("Pomyślnie wyłączono wiadomości o zdobyciu wyższego poziomu w DM").queue();
                     break;
                 }
             }
