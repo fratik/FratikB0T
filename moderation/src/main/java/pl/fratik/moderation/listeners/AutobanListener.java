@@ -19,6 +19,7 @@ package pl.fratik.moderation.listeners;
 
 import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.Subscribe;
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
 import pl.fratik.core.Globals;
 import pl.fratik.core.entity.GuildConfig;
@@ -44,6 +45,7 @@ public class AutobanListener {
     @Subscribe
     @AllowConcurrentEvents
     public void onGuildMemberJoinEvent(GuildMemberJoinEvent e) {
+        if (!e.getGuild().getSelfMember().hasPermission(Permission.BAN_MEMBERS)) return;
         GuildConfig gc = guildDao.get(e.getGuild());
         if (gc.getAutoban() != null && gc.getAutoban()) {
             Case aCase = new Case.Builder(e.getMember(), Instant.now(), Kara.BAN).setIssuerId(Globals.clientId)
