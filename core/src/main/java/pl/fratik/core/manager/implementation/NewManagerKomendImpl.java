@@ -21,7 +21,9 @@ import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.slf4j.Logger;
@@ -168,6 +170,22 @@ public class NewManagerKomendImpl implements NewManagerKomend {
         }
         eventBus.post(new CommandDispatchedEvent(ctx));
         command.execute(ctx);
+    }
+
+    @Subscribe
+    @AllowConcurrentEvents
+    public void onMessage(MessageReceivedEvent event) {
+        if (event.getMessage().getMentions().getUsers().contains(event.getJDA().getSelfUser()) &&
+                event.getMessage().getContentRaw().equals("<@" + event.getJDA().getSelfUser().getId() + ">")) {
+            if (event.getChannel().canTalk())
+                event.getMessage().reply("\uD83C\uDDF5\uD83C\uDDF1 Tak, wszystko działa! Jeśli próbujesz użyć " +
+                        "moich komend, teraz znajdziesz je pod `/`. Po więcej informacji, skorzystaj z komendy `/ogloszenie`.\n\n" +
+                        "\uD83C\uDDEC\uD83C\uDDE7 Yes, I'm still working! If you're trying to use my commands, type `/`. " +
+                        "Currently most of the commands will be Polish-only, as well as the notice in the `/ogloszenie` command " +
+                        "(former `/news`) but that will probably change in the next few weeks, as people begin " +
+                        "translating all the new stuff.").queue(null, x->{});
+            else event.getMessage().addReaction(Emoji.fromUnicode("\u274c")).queue();
+        }
     }
 
     @Override
