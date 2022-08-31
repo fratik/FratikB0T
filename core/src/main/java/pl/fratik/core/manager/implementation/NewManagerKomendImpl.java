@@ -179,11 +179,13 @@ public class NewManagerKomendImpl implements NewManagerKomend {
                 event.getMessage().getContentRaw().equals("<@" + event.getJDA().getSelfUser().getId() + ">")) {
             if (event.getChannel().canTalk())
                 event.getMessage().reply("\uD83C\uDDF5\uD83C\uDDF1 Tak, wszystko działa! Jeśli próbujesz użyć " +
-                        "moich komend, teraz znajdziesz je pod `/`. Po więcej informacji, skorzystaj z komendy `/ogloszenie`.\n\n" +
+                        "moich komend, teraz znajdziesz je pod `/`. Po więcej informacji, skorzystaj z komendy `/ogloszenie`.\n" +
+                        "Jeśli nie widzisz komend ukośnikowych, dodaj ponownie bota na <https://fratikbot.pl/dodaj>.\n\n" +
                         "\uD83C\uDDEC\uD83C\uDDE7 Yes, I'm still working! If you're trying to use my commands, type `/`. " +
                         "Currently most of the commands will be Polish-only, as well as the notice in the `/ogloszenie` command " +
                         "(former `/news`) but that will probably change in the next few weeks, as people begin " +
-                        "translating all the new stuff.").queue(null, x->{});
+                        "translating all the new stuff. If you can't see the slash commands, please try " +
+                        "adding the bot again at <https://fratikbot.pl/dodaj>.").queue(null, x->{});
             else event.getMessage().addReaction(Emoji.fromUnicode("\u274c")).queue();
         }
     }
