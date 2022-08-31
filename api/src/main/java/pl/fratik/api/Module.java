@@ -61,6 +61,7 @@ import pl.fratik.api.internale.*;
 import pl.fratik.core.Globals;
 import pl.fratik.core.Statyczne;
 import pl.fratik.core.Ustawienia;
+import pl.fratik.core.command.CommandType;
 import pl.fratik.core.command.NewCommand;
 import pl.fratik.core.entity.*;
 import pl.fratik.core.manager.ManagerArgumentow;
@@ -194,16 +195,13 @@ public class Module implements Modul {
                 return;
             }
             List<Komenda> komendy = new ArrayList<>();
-            for (Iterator<NewCommand> iter = managerKomend.commandsStream().iterator(); iter.hasNext();) { //fixme
+            for (Iterator<NewCommand> iter = managerKomend.commandsStream().iterator(); iter.hasNext();) {
+                //fixme
                 NewCommand cmd = iter.next();
-                komendy.add(new Komenda(cmd.getName(), new String[0],
-                        tlumaczenia.get(lang, cmd.getName() + ".help.description"),
-                        tlumaczenia.get(lang, cmd.getName() + ".help.uzycie"),
-                        tlumaczenia.get(lang, cmd.getName() + ".help.extended"), -1,
-                        null, cmd.getCooldown(), List.of()));
+                if (cmd.getType() != CommandType.NORMAL) continue;
+                komendy.add(new Komenda(cmd.getName(), tlumaczenia.get(lang, cmd.getName() + ".description"),
+                        cmd.getCooldown()));
             }
-            komendy.sort((komenda, komenda1) -> Ordering.usingToString().compare(komenda.getCategory(),
-                    komenda1.getCategory()));
             komendy.sort((komenda, komenda1) -> Ordering.usingToString().compare(komenda.getNazwa(),
                     komenda1.getNazwa()));
             Exchange.body().sendJson(ex, komendy);
