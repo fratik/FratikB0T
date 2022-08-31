@@ -66,6 +66,7 @@ public class OgloszenieCommand extends NewCommand {
 
     @Override
     public void execute(@NotNull NewCommandContext context) {
+        context.deferAsync(false);
         if (!Globals.inFratikDev) throw new IllegalStateException("nie na FratikDev");
         TextChannel kanau = shardManager.getTextChannelById(Ustawienia.instance.ogloszeniaBota);
         if (kanau == null) throw new IllegalStateException("brak kanału");
@@ -76,8 +77,7 @@ public class OgloszenieCommand extends NewCommand {
         }
         EmbedBuilder eb = ogloszenieEmbed(msgs.get(0), context.getTlumaczenia(), context.getLanguage(),
                 context.getGuild());
-        context.reply(eb.build());
-        return;
+        context.sendMessage(eb.build());
     }
 
     private EmbedBuilder ogloszenieEmbed(Message msg, Tlumaczenia t, Language jezyk, Guild g) {
