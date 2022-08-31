@@ -17,10 +17,13 @@
 
 package pl.fratik.core;
 
+import io.sentry.Sentry;
 import net.dv8tion.jda.api.exceptions.ContextException;
 import net.dv8tion.jda.api.requests.RestAction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.function.Consumer;
 
 class Main {
 
@@ -32,17 +35,22 @@ class Main {
             System.exit(1);
         }
 
+        Consumer<Throwable> failure = e -> {
+            RestAction.getDefaultFailure().accept(e);
+            Sentry.capture(e);
+        };
+
         if (args.length > 1 && args[1].equals("debug")) {
             LOGGER.warn("= TRYB DEBUG WŁĄCZONY =");
             LOGGER.warn("Stacktrace będzie wysyłany do każdego RestAction, ma to negatywny wpływ na wydajność!");
             RestAction.setPassContext(true);
-            RestAction.setDefaultFailure(ContextException.herePrintingTrace());
+            RestAction.setDefaultFailure(ContextException.here(failure));
             try {
                 Thread.sleep(500);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
-        }
+        } else RestAction.setDefaultFailure(failure);
         new FratikB0T(args[0]);
     }
 }
