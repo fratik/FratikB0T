@@ -36,7 +36,7 @@ public class ChooseCommand extends NewCommand {
     public void execute(@NotNull NewCommandContext context) {
         Object[] odpowiedzi = context.getArguments().get("opcje").getAsString().split("\\|");
         if (odpowiedzi.length < 2) {
-            context.sendMessage(context.getTranslated("choose.not.enough.arguments"));
+            context.replyEphemeral(context.getTranslated("choose.not.enough.arguments"));
             return;
         }
         String odp = (String) odpowiedzi[random.nextInt(odpowiedzi.length)];
