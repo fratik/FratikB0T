@@ -61,7 +61,7 @@ public class TagCommand extends NewCommand {
     @SubCommand(name = "utworz", usage = "<nazwa:string> <tresc:string>")
     public void create(NewCommandContext context) {
         String tagName = context.getArguments().get("nazwa").getAsString().toLowerCase();
-        String content = context.getArguments().get("tresc").getAsString().toLowerCase();
+        String content = context.getArguments().get("tresc").getAsString();
         if (!checkName(context, tagName)) return;
         Tags tags = tagsDao.get(context.getGuild().getId());
         if (tags.getTagi().stream().anyMatch(t -> t.getName().equalsIgnoreCase(tagName))) {
@@ -89,7 +89,7 @@ public class TagCommand extends NewCommand {
 
     @SubCommand(name = "usun", usage = "<nazwa:string>")
     public void delete(NewCommandContext context) {
-        String tagName = context.getArguments().get("nazwa").getAsString();
+        String tagName = context.getArguments().get("nazwa").getAsString().toLowerCase();
         Tags tags = tagsDao.get(context.getGuild().getId());
         if (tags.getTagi().stream().noneMatch(t -> t.getName().equalsIgnoreCase(tagName))) {
             context.reply(context.getTranslated("deletetag.doesnt.exist"));
@@ -157,7 +157,7 @@ public class TagCommand extends NewCommand {
     @SubCommand(name = "nazwa", usage = "<stara_nazwa:string> <nowa_nazwa:string>")
     public void editName(NewCommandContext context) {
         String staraNazwa = context.getArguments().get("stara_nazwa").getAsString();
-        String nowaNazwa = context.getArguments().get("nowa_nazwa").getAsString();
+        String nowaNazwa = context.getArguments().get("nowa_nazwa").getAsString().toLowerCase();
         if (!checkName(context, nowaNazwa)) return;
         context.defer(false);
         Tags tags = tagsDao.get(context.getGuild().getId());
@@ -176,8 +176,8 @@ public class TagCommand extends NewCommand {
     @SubCommandGroup(name = "edytuj")
     @SubCommand(name = "tresc", usage = "<nazwa:string> <tresc:string>")
     public void editContent(NewCommandContext context) {
-        String nazwa = context.getArguments().get("nazwa").getAsString();
-        String content = context.getArguments().get("tresc").getAsString().toLowerCase();
+        String nazwa = context.getArguments().get("nazwa").getAsString().toLowerCase();
+        String content = context.getArguments().get("tresc").getAsString();
         context.defer(false);
         Tags tags = tagsDao.get(context.getGuild().getId());
         Tag tag = tags.getTagi().stream().filter(t -> t.getName().equalsIgnoreCase(nazwa)).findAny().orElse(null);
