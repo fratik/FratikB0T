@@ -33,6 +33,7 @@ import pl.fratik.core.util.GuildUtil;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 public class UstawieniaCommand extends NewCommand {
     private static final String PRIV_TOGGLE = "PRIV_TOGGLE";
@@ -90,6 +91,8 @@ public class UstawieniaCommand extends NewCommand {
             }
             userDao.save(uc);
         });
+        bw.setTimeoutHandler(() -> hook.editOriginal(context.getTranslated("ustawienia.timeout")).setActionRows(Set.of()).queue());
+        bw.create();
         context.sendMessage(new MessageBuilder("Witamy w nowym, niekompletnym systemie konfiguracji użytkownika. " +
                 "Kiedyś to będzie działać dobrze, ale na razie ~~pobaw się tymi paroma guzikami~~ możesz zmienić tylko te ustawienia.")
                 .setActionRows(ActionRow.of(buttons)).build());
