@@ -19,60 +19,58 @@ package pl.fratik.commands.narzedzia;
 
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
+import net.dv8tion.jda.api.requests.ErrorResponse;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.command.PermLevel;
+import pl.fratik.core.command.CommandType;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.entity.GbanDao;
 import pl.fratik.core.entity.GbanData;
 import pl.fratik.core.manager.ManagerArgumentow;
-import pl.fratik.core.util.CommonErrors;
 import pl.fratik.core.util.UserUtil;
 
-import java.util.Arrays;
-import java.util.LinkedHashMap;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
-public class GbanCommand extends Command {
+public class GbanCommand extends NewCommand {
 
     private final GbanDao gbanDao;
     private final ManagerArgumentow managerArgumentow;
-    private static final String STRINGARGTYPE = "string";
 
     public GbanCommand(GbanDao gbanDao, ManagerArgumentow managerArgumentow) {
         this.gbanDao = gbanDao;
         this.managerArgumentow = managerArgumentow;
         name = "gban";
-        category = CommandCategory.UTILITY;
-        permLevel = PermLevel.GADMIN;
-        LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
-        hmap.put("podmiot", STRINGARGTYPE);
-        hmap.put("powod", STRINGARGTYPE);
-        hmap.put("[...]", STRINGARGTYPE);
-        uzycie = new Uzycie(hmap, new boolean[] {true, true, false});
-        uzycieDelim = " ";
-        allowPermLevelChange = false;
+        type = CommandType.SUPPORT_SERVER;
+        usage = "<podmiot:string> <powod:string>";
+        permissions = DefaultMemberPermissions.DISABLED;
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        String guild;
-        String reason = Arrays.stream(Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length))
-                .map(o -> o == null ? "" : o.toString()).collect(Collectors.joining(uzycieDelim));
-        guild = (String) context.getArgs()[0];
-        User user = (User) managerArgumentow.getArguments().get("user").execute((String) context.getArgs()[0],
-                context.getTlumaczenia(), context.getLanguage());
+    public void execute(@NotNull NewCommandContext context) {
+        if (!UserUtil.isStaff(context.getSender(), context.getShardManager())) {
+            context.replyEphemeral(context.getTranslated("generic.no.permissions"));
+            return;
+        }
+        String guild = context.getArguments().get("podmiot").getAsString();
+        String reason = context.getArguments().get("powod").getAsString();
+        context.deferAsync(false);
+        User user;
         try {
-            Long.parseLong(String.valueOf(context.getArgs()[0]));
+            long id = Long.parseLong(guild);
+            user = context.getShardManager().retrieveUserById(id)
+                    .onErrorMap(ErrorResponse.UNKNOWN_USER::test, x -> null).complete();
         } catch (Exception e) {
-            CommonErrors.usage(context);
+            context.sendMessage(context.getTranslated("gban.invalid.id"));
+            return;
         }
         GbanData gdata;
         gdata = gbanDao.get(guild);
         if (user != null) gdata = gbanDao.get(user);
         if (gdata == null) throw new IllegalStateException("gdata == null");
         if (gdata.isGbanned()) {
-            context.reply(context.getTranslated("gban.already.gbanned"));
-            return false;
+            context.sendMessage(context.getTranslated("gban.already.gbanned"));
+            return;
         }
         if (user != null) {
             gdata.setGbanned(true);
@@ -82,8 +80,8 @@ public class GbanCommand extends Command {
             gdata.setReason(reason);
             gdata.setType(GbanData.Type.USER);
             gbanDao.save(gdata);
-            context.reply(context.getTranslated("gban.success.user", UserUtil.formatDiscrim(user)));
-            return true;
+            context.sendMessage(context.getTranslated("gban.success.user", UserUtil.formatDiscrim(user)));
+            return;
         }
         gdata.setGbanned(true);
         gdata.setIssuer(UserUtil.formatDiscrim(context.getSender()));
@@ -93,7 +91,6 @@ public class GbanCommand extends Command {
         gdata.setReason(reason);
         gdata.setType(GbanData.Type.GUILD);
         gbanDao.save(gdata);
-        context.reply(context.getTranslated("gban.success.guild", guild));
-        return true;
+        context.sendMessage(context.getTranslated("gban.success.guild", guild));
     }
 }

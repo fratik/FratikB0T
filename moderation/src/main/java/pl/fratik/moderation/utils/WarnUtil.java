@@ -43,14 +43,13 @@ public class WarnUtil {
 
     private WarnUtil() {}
 
-    public static void takeAction(ModLogListener listener, GuildDao guildDao, CaseDao caseDao, Member member, MessageChannel channel, Language lang, Tlumaczenia tlumaczenia, ManagerKomend managerKomend) {
+    public static void takeAction(ModLogListener listener, GuildDao guildDao, CaseDao caseDao, Member member, MessageChannel channel, Language lang, Tlumaczenia tlumaczenia) {
         ReentrantLock lock = locks.computeIfAbsent(member.getGuild().getId() + "." + member.getId(), i -> new ReentrantLock());
         lock.lock();
         try {
             int cases = countCases(caseDao.getCasesByMember(member), member.getId());
             if (cases < 0) {
-                String prefix = managerKomend.getPrefixes(member.getGuild()).get(0);
-                channel.sendMessage(tlumaczenia.get(lang, "modlog.take.action.unexpected.error", prefix, prefix)).queue();
+                channel.sendMessage(tlumaczenia.get(lang, "modlog.take.action.unexpected.error")).queue();
                 return;
             }
             GuildConfig gc = guildDao.get(member.getGuild());
@@ -62,15 +61,13 @@ public class WarnUtil {
                 try {
                     member.getGuild().kick(member).reason(tlumaczenia.get(lang, "modlog.auto.kick.audit.reason", cases)).complete();
                     channel.sendMessage(tlumaczenia.get(lang, "modlog.auto.kick.notice",
-                            member.getUser().getAsTag(),
-                            cases, managerKomend.getPrefixes(member.getGuild()).get(0))).complete();
+                            member.getUser().getAsTag(), cases)).complete();
                 } catch (Exception e) {
                     errored = true;
                 }
                 if (errored) {
                     channel.sendMessage(tlumaczenia.get(lang, "modlog.auto.kick.cant",
-                            member.getUser().getAsTag(),
-                            cases, managerKomend.getPrefixes(member.getGuild()).get(0))).complete();
+                            member.getUser().getAsTag(), cases)).complete();
                     return;
                 }
             }
@@ -89,16 +86,14 @@ public class WarnUtil {
                             gc.getDlugoscTymczasowegoBanaZaWarny())).complete();
                     channel.sendMessage(tlumaczenia.get(lang, "modlog.auto.tempban.notice",
                             member.getUser().getAsTag(),
-                            gc.getDlugoscTymczasowegoBanaZaWarny(), cases,
-                            managerKomend.getPrefixes(member.getGuild()).get(0))).complete();
+                            gc.getDlugoscTymczasowegoBanaZaWarny(), cases)).complete();
                 } catch (Exception e) {
                     errored = true;
                 }
                 if (errored) {
                     channel.sendMessage(tlumaczenia.get(lang, "modlog.auto.tempban.cant",
                             member.getUser().getAsTag(),
-                            gc.getDlugoscTymczasowegoBanaZaWarny(), cases,
-                            managerKomend.getPrefixes(member.getGuild()).get(0))).complete();
+                            gc.getDlugoscTymczasowegoBanaZaWarny(), cases)).complete();
                 }
             }
             if (cases == gc.getWarnyNaBan()) {
@@ -110,15 +105,13 @@ public class WarnUtil {
                     member.getGuild().ban(member, 0).reason(tlumaczenia.get(lang,
                             "modlog.auto.ban.audit.reason", cases)).complete();
                     channel.sendMessage(tlumaczenia.get(lang, "modlog.auto.ban.notice",
-                            member.getUser().getAsTag(),
-                            cases, managerKomend.getPrefixes(member.getGuild()).get(0))).complete();
+                            member.getUser().getAsTag(), cases)).complete();
                 } catch (Exception e) {
                     errored = true;
                 }
                 if (errored) {
                     channel.sendMessage(tlumaczenia.get(lang, "modlog.auto.ban.cant",
-                            member.getUser().getAsTag(),
-                            cases, managerKomend.getPrefixes(member.getGuild()).get(0))).complete();
+                            member.getUser().getAsTag(), cases)).complete();
                 }
                 if (gc.isResetujOstrzezeniaPrzyBanie()) {
                     Case ca = new Case.Builder(member, nc.getTimestamp(), Kara.UNWARN).setIleRazy(cases)

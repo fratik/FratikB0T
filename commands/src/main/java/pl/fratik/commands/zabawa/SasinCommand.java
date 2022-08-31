@@ -18,32 +18,26 @@
 package pl.fratik.commands.zabawa;
 
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.util.CommonErrors;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
-public class SasinCommand extends Command {
+public class SasinCommand extends NewCommand {
     public SasinCommand() {
         name = "sasin";
-        category = CommandCategory.FUN;
-        uzycie = new Uzycie("liczba", "integer", true);
-        allowPermLevelChange = false;
+        usage = "<liczba:number>";
         allowInDMs = true;
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        if (context.getArgs().length == 0 || context.getArgs()[0] == null) {
-            CommonErrors.usage(context);
-            return false;
-        }
-        Integer liczba = ((Integer) context.getArgs()[0]);
-        BigDecimal sasiny = new BigDecimal(liczba / 70_000_000d).setScale(9, RoundingMode.HALF_UP);
+    public void execute(@NotNull NewCommandContext context) {
+        double liczba = context.getArguments().get("liczba").getAsDouble();
+        BigDecimal sasiny = BigDecimal.valueOf(liczba / 70_000_000d).setScale(9, RoundingMode.HALF_UP);
         String sasinyStr;
         if (sasiny.intValue() == sasiny.doubleValue()) sasinyStr = String.valueOf(sasiny.intValue());
         else sasinyStr = sasiny.toPlainString();
         context.reply(context.getTranslated("sasin.result", liczba, sasinyStr));
-        return true;
     }
 }

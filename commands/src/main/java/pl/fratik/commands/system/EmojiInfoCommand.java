@@ -18,44 +18,42 @@
 package pl.fratik.commands.system;
 
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.emoji.CustomEmoji;
+import net.dv8tion.jda.api.entities.emoji.RichCustomEmoji;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.command.PermLevel;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.util.CommonUtil;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-public class EmojiInfoCommand extends Command {
+public class EmojiInfoCommand extends NewCommand {
 
     public EmojiInfoCommand() {
         name = "emojiinfo";
-        category = CommandCategory.UTILITY;
-        permLevel = PermLevel.EVERYONE;
-        aliases = new String[] {"infoemotka", "infoemoji"};
-        permissions.add(Permission.MESSAGE_EMBED_LINKS);
-        uzycie = new Uzycie("emotka", "emote", true);
-        allowPermLevelChange = false;
+        usage = "<emotka:string>";
+        allowInDMs = true;
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        Emoji em = (Emoji) context.getArgs()[0];
-        if (em.isUnicode()) {
-            context.reply(context.getTranslated("emojiinfo.unicode"));
-            return false;
+    public void execute(@NotNull NewCommandContext context) {
+        if (context.getArguments().get("emotka").getMentions().getCustomEmojis().size() != 1) {
+            context.reply(context.getTranslated("emojiinfo.not.detected"));
+            return;
         }
+        CustomEmoji em = context.getArguments().get("emotka").getMentions().getCustomEmojis().get(0);
         EmbedBuilder eb = new EmbedBuilder();
         SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy',' HH:mm:ss z", context.getLanguage().getLocale());
         String time = sdf.format(new Date(em.getTimeCreated().toInstant().toEpochMilli()));
         eb.setTitle(context.getTranslated("emojiinfo.embed.title", em.getName()));
         eb.addField(context.getTranslated("emojiinfo.embed.emoteid"), em.getId(), false);
-        Guild g = em.getGuild();
+        RichCustomEmoji richEm = context.getShardManager().getEmojiById(em.getId());
+        Guild g = richEm == null ? null : richEm.getGuild();
         if (g != null) {
             eb.addField(context.getTranslated("emojiinfo.embed.emoteguild.title"),
-                    context.getTranslated("emojiinfo.embed.emoteguild.value", em.getGuild().getName(),
-                            em.getGuild().getId()), false);
+                    context.getTranslated("emojiinfo.embed.emoteguild.value", g.getName(), g.getId()), false);
         } else {
             eb.addField(context.getTranslated("emojiinfo.embed.emoteguild.title"),
                     context.getTranslated("emojiinfo.embed.emoteguild.value.empty"), false);
@@ -68,7 +66,6 @@ public class EmojiInfoCommand extends Command {
         eb.setThumbnail(em.getImageUrl());
         eb.setColor(CommonUtil.getPrimColorFromImageUrl(em.getImageUrl()));
         context.reply(eb.build());
-        return true;
     }
 
 }

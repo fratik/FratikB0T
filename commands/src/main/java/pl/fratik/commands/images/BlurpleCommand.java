@@ -17,68 +17,46 @@
 
 package pl.fratik.commands.images;
 
-import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 import pl.fratik.core.Ustawienia;
-import pl.fratik.core.command.PermLevel;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.util.NetworkUtil;
 
 import java.io.IOException;
 import java.net.URLEncoder;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
-public class BlurpleCommand extends Command {
+public class BlurpleCommand extends NewCommand {
     public BlurpleCommand() {
         name = "blurple";
-        category = CommandCategory.IMAGES;
-        LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
-        hmap.put("osoba", "user");
-        hmap.put("flagi", "string");
-        hmap.put("[...]", "string");
-        uzycieDelim = " ";
-        uzycie = new Uzycie(hmap, new boolean[] {false, false, false});
-        permLevel = PermLevel.EVERYONE;
-        permissions.add(Permission.MESSAGE_ATTACH_FILES);
+        usage = "[osoba:user] [klasyczny:bool] [odwrotnie:bool]";
         cooldown = 5;
         allowInDMs = true;
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        User user = (User) context.getArgs()[0];
-        if (user == null) user = context.getSender();
-        boolean reverse = false;
-        boolean classic = false;
-        if (context.getArgs().length > 1 && context.getArgs()[1] != null) {
-            String arg = Arrays.stream(Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length))
-                    .map(e -> e == null ? "" : e).map(Objects::toString).collect(Collectors.joining(uzycieDelim)).toLowerCase();
-            if (arg.contains("-r") || arg.contains("--reverse") || arg.contains("—reverse")) {
-                reverse = true;
-            }
-            if (arg.contains("-c") || arg.contains("--classic") || arg.contains("—classic")) {
-                classic = true;
-            }
-        }
+    public void execute(@NotNull NewCommandContext context) {
+        context.deferAsync(false);
+        User user = context.getArgumentOr("osoba", context.getSender(), OptionMapping::getAsUser);
+        boolean reverse = context.getArgumentOr("odwrotnie", false, OptionMapping::getAsBoolean);
+        boolean classic = context.getArgumentOr("klasyczny", false, OptionMapping::getAsBoolean);
         try {
             JSONObject zdjecie = NetworkUtil.getJson(String.format("%s/api/image/blurple?avatarURL=%s&reverse=%s&classic=%s",
                     Ustawienia.instance.apiUrls.get("image-server"),
                     URLEncoder.encode(user.getEffectiveAvatarUrl().replace(".webp", ".png")
                             + "?size=2048", "UTF-8"), reverse, classic), Ustawienia.instance.apiKeys.get("image-server"));
             if (zdjecie == null || !zdjecie.getBoolean("success")) {
-                context.reply("Wystąpił błąd ze zdobyciem zdjęcia!");
-                return false;
+                context.sendMessage("Wystąpił błąd ze zdobyciem zdjęcia!");
+                return;
             }
             byte[] img = NetworkUtil.getBytesFromBufferArray(zdjecie.getJSONObject("image").getJSONArray("data"));
-            context.getMessageChannel().sendFile(img, "blurple.png").reference(context.getMessage()).queue();
+            context.sendMessage("blurple.png", img);
         } catch (IOException | NullPointerException e) {
-            context.reply(context.getTranslated("image.server.fail"));
+            context.sendMessage(context.getTranslated("image.server.fail"));
         }
 
-        return true;
     }
 }

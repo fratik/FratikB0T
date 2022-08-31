@@ -19,13 +19,14 @@ package pl.fratik.commands.narzedzia;
 
 import com.google.common.eventbus.EventBus;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.interactions.InteractionHook;
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.command.SubCommand;
 import pl.fratik.core.entity.Akcja;
 import pl.fratik.core.entity.Schedule;
 import pl.fratik.core.entity.ScheduleDao;
-import pl.fratik.core.event.PluginMessageEvent;
 import pl.fratik.core.util.DurationUtil;
 import pl.fratik.core.util.DynamicEmbedPaginator;
 import pl.fratik.core.util.EventWaiter;
@@ -33,12 +34,13 @@ import pl.fratik.core.util.EventWaiter;
 import java.awt.*;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.FutureTask;
-import java.util.stream.Collectors;
 
-public class RemindCommand extends Command {
+public class RemindCommand extends NewCommand {
     private final ScheduleDao scheduleDao;
     private final EventWaiter eventWaiter;
     private final EventBus eventBus;
@@ -48,53 +50,41 @@ public class RemindCommand extends Command {
         this.eventWaiter = eventWaiter;
         this.eventBus = eventBus;
         name = "remind";
-        category = CommandCategory.UTILITY;
-        LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
-        hmap.put("tekstICzas", "string");
-        hmap.put("[...]", "string");
-        uzycie = new Uzycie(hmap, new boolean[] {true, false});
-        uzycieDelim = " ";
         allowInDMs = true;
-        aliases = new String[] {"remindme", "przypomnij", "todo", "reminder", "przypomnienie", "rappel", "przypomniszmi"};
-        allowPermLevelChange = false;
     }
 
-    @Override
-    public boolean execute(@NotNull CommandContext context) {
-        String content;
-        if (context.getArgs().length > 0 && context.getArgs()[0] != null)
-            content = Arrays.stream(Arrays.copyOfRange(context.getArgs(), 0, context.getArgs().length))
-                    .map(e -> e == null ? "" : e).map(Objects::toString).collect(Collectors.joining(uzycieDelim));
-        else throw new IllegalStateException("brak argumentów");
+    @SubCommand(name = "utworz", usage = "<tekst_z_czasem:string>")
+    public void create(@NotNull NewCommandContext context) {
+        String content = context.getArguments().get("tekst_z_czasem").getAsString();
         DurationUtil.Response res;
         try {
             res = DurationUtil.parseDuration(content);
         } catch (IllegalArgumentException e) {
-            context.reply(context.getTranslated("remind.max.duration"));
-            return false;
+            context.replyEphemeral(context.getTranslated("remind.max.duration"));
+            return;
         }
         if (res.getDoKiedy() == null) {
-            context.reply(context.getTranslated("remind.failed"));
-            return false;
+            context.replyEphemeral(context.getTranslated("remind.failed"));
+            return;
         }
         if (res.getTekst().isEmpty()) {
-            context.reply(context.getTranslated("remind.empty"));
-            return false;
+            context.replyEphemeral(context.getTranslated("remind.empty"));
+            return;
         }
         if (res.getTekst().length() > 1000) {
-            context.reply(context.getTranslated("remind.char.limit"));
-            return false;
+            context.replyEphemeral(context.getTranslated("remind.char.limit"));
+            return;
         }
+        InteractionHook hook = context.defer(false);
         scheduleDao.save(scheduleDao.createNew(res.getDoKiedy().toEpochMilli(), context.getSender().getId(),
                 Akcja.REMIND, new Schedule.Przypomnienie(context.getSender().getId(), res.getTekst(),
-                        Collections.singletonList(context.getMessage().getJumpUrl()))));
-        context.reply(context.getTranslated("remind.success"));
-        return true;
+                        Collections.singletonList(hook.retrieveOriginal().complete().getJumpUrl()))));
+        context.sendMessage(context.getTranslated("remind.success"));
     }
 
-    @SubCommand(name = "list", emptyUsage = true)
-    public boolean list(@NotNull CommandContext context) {
-        Message msg = context.reply(context.getTranslated("generic.loading"));
+    @SubCommand(name = "lista")
+    public boolean list(@NotNull NewCommandContext context) {
+        InteractionHook hook = context.defer(false);
         List<Schedule> schedules = scheduleDao.getAll();
         List<FutureTask<EmbedBuilder>> pages = new ArrayList<>();
         SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy',' HH:mm:ss z", context.getLanguage().getLocale());
@@ -125,28 +115,27 @@ public class RemindCommand extends Command {
             }
         }
         if (pages.isEmpty()) {
-            eventBus.post(new PluginMessageEvent("commands", "moderation", "znaneAkcje-add:" + msg.getId()));
-            msg.editMessage(context.getTranslated("remind.list.empty")).queue();
+            context.sendMessage(context.getTranslated("remind.list.empty"));
             return false;
         }
         new DynamicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(),
-                context.getTlumaczenia(), eventBus).create(msg);
+                context.getTlumaczenia(), eventBus).create(hook);
         return true;
     }
 
-    @SubCommand(name = "delete")
-    public boolean delete(@NotNull CommandContext context) {
-        Schedule sch = scheduleDao.get((String) context.getArgs()[0]);
+    @SubCommand(name = "usun", usage = "<id:string>")
+    public void delete(@NotNull NewCommandContext context) {
+        context.defer(true);
+        Schedule sch = scheduleDao.get(context.getArguments().get("id").getAsString());
         if (sch == null || !(sch.getContent() instanceof Schedule.Przypomnienie)) {
             context.reply(context.getTranslated("remind.delete.not.found"));
-            return false;
+            return;
         }
         if (!((Schedule.Przypomnienie) sch.getContent()).getOsoba().equals(context.getSender().getId())) {
-            context.reply(context.getTranslated("remind.delete.not.yours"));
-            return false;
+            context.sendMessage(context.getTranslated("remind.delete.not.yours"));
+            return;
         }
         scheduleDao.delete(String.valueOf(sch.getId()));
-        context.reply(context.getTranslated("remind.delete.success"));
-        return true;
+        context.sendMessage(context.getTranslated("remind.delete.success"));
     }
 }

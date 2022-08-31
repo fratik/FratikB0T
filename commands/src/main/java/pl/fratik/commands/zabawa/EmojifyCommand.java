@@ -18,34 +18,33 @@
 package pl.fratik.commands.zabawa;
 
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
-public class EmojifyCommand extends Command {
+public class EmojifyCommand extends NewCommand {
     public EmojifyCommand() {
         name = "emojify";
-        category = CommandCategory.FUN;
         cooldown = 10;
-        uzycie = new Uzycie("tekst", "string", true);
-        allowPermLevelChange = false;
+        usage = "<tekst:string>";
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        String str = (String) context.getArgs()[0];
+    public void execute(@NotNull NewCommandContext context) {
+        String str = context.getArguments().get("tekst").getAsString();
         String res = Arrays.stream(str.split(" ")).map(this::replaceChars)
                 .collect(Collectors.joining("\n"));
         if (!str.matches("^[a-zA-Z ]+$")) {
             context.reply(context.getTranslated("emojify.regex"));
-            return false;
+            return;
         }
         if (res.length() >= 2000) {
             context.reply(context.getTranslated("emojify.toolong"));
-            return false;
+            return;
         }
         context.reply(res.trim());
-        return true;
     }
 
     private String replaceChars(String slowo) {

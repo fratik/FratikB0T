@@ -39,11 +39,12 @@ public class KasaCommand extends MoneyCommand {
     public void execute(@NotNull NewCommandContext context) {
         Member m = context.getArgumentOr("osoba", context.getMember(), OptionMapping::getAsMember);
         Emoji e = getFratikCoin(context);
+        context.deferAsync(false);
         MemberConfig mc = memberDao.get(m);
         if (m.equals(context.getMember()))
-            context.reply(context.getTranslated("kasa.success.self", String.valueOf(mc.getFratikCoiny()), e.getFormatted()));
+            context.sendMessage(context.getTranslated("kasa.success.self", String.valueOf(mc.getFratikCoiny()), e.getFormatted()));
         else
-            context.reply(context.getTranslated("kasa.success.other", m.getUser().getAsTag(),
+            context.sendMessage(context.getTranslated("kasa.success.other", m.getUser().getAsTag(),
                     String.valueOf(mc.getFratikCoiny()), e.getFormatted()));
     }
 }

@@ -26,6 +26,7 @@ import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
 import net.dv8tion.jda.api.events.message.react.MessageReactionRemoveEvent;
 import net.dv8tion.jda.api.sharding.ShardManager;
@@ -176,8 +177,8 @@ class RundkaGa {
                             .mentionRoles(Ustawienia.instance.gadmRole)
                             .complete();
                 }
-                msg.addReaction(Objects.requireNonNull(fdev.getEmoteById(Ustawienia.instance.emotki.greenTick))).complete();
-                msg.addReaction(Objects.requireNonNull(fdev.getEmoteById(Ustawienia.instance.emotki.redTick))).complete();
+                msg.addReaction(Objects.requireNonNull(fdev.getEmojiById(Ustawienia.instance.emotki.greenTick))).complete();
+                msg.addReaction(Objects.requireNonNull(fdev.getEmojiById(Ustawienia.instance.emotki.redTick))).complete();
                 msg.pin().complete();
                 odp.setMessageId(msg.getId());
                 try {
@@ -208,7 +209,7 @@ class RundkaGa {
 
     @Subscribe
     private void onReactionAdd(MessageReactionAddEvent e) {
-        if (e.getUser().equals(e.getJDA().getSelfUser())) return;
+        if (e.getUserId().equals(e.getJDA().getSelfUser().getId())) return;
         Rundka rundka = rundkaDao.get(RundkaCommand.getNumerRundy());
         if (rundka == null) return;
         TextChannel ch = shardManager.getTextChannelById(rundka.getVoteChannel());
@@ -218,13 +219,13 @@ class RundkaGa {
         RundkaOdpowiedzFull odp = rundka.getZgloszenia().stream()
                 .filter(o -> o.getMessageId().equals(msg.getId())).findFirst().orElse(null);
         if (odp == null) return;
-        if (!e.getReactionEmote().isEmote() ||
-                !(e.getReactionEmote().getEmote().getId().equals(Ustawienia.instance.emotki.greenTick) ||
-                        e.getReactionEmote().getEmote().getId().equals(Ustawienia.instance.emotki.redTick))) return;
-        if (e.getReactionEmote().getId().equals(Ustawienia.instance.emotki.greenTick))
-            odp.getOceny().getTak().add(e.getUser().getId());
-        if (e.getReactionEmote().getId().equals(Ustawienia.instance.emotki.redTick))
-            odp.getOceny().getNie().add(e.getUser().getId());
+        if (!e.getEmoji().getType().equals(Emoji.Type.CUSTOM) ||
+                !(e.getEmoji().asCustom().getId().equals(Ustawienia.instance.emotki.greenTick) ||
+                        e.getEmoji().asCustom().getId().equals(Ustawienia.instance.emotki.redTick))) return;
+        if (e.getEmoji().asCustom().getId().equals(Ustawienia.instance.emotki.greenTick))
+            odp.getOceny().getTak().add(e.getUserId());
+        if (e.getEmoji().asCustom().getId().equals(Ustawienia.instance.emotki.redTick))
+            odp.getOceny().getNie().add(e.getUserId());
         eventBus.post(new RundkaAnswerVoteEvent(odp));
         rundkaDao.save(rundka);
     }
@@ -240,13 +241,13 @@ class RundkaGa {
         RundkaOdpowiedzFull odp = rundka.getZgloszenia().stream()
                 .filter(o -> o.getMessageId().equals(msg.getId())).findFirst().orElse(null);
         if (odp == null) return;
-        if (!e.getReactionEmote().isEmote() ||
-                !(e.getReactionEmote().getEmote().getId().equals(Ustawienia.instance.emotki.greenTick) ||
-                        e.getReactionEmote().getEmote().getId().equals(Ustawienia.instance.emotki.redTick))) return;
-        if (e.getReactionEmote().getId().equals(Ustawienia.instance.emotki.greenTick))
-            odp.getOceny().getTak().remove(e.getUser().getId());
-        if (e.getReactionEmote().getId().equals(Ustawienia.instance.emotki.redTick))
-            odp.getOceny().getNie().remove(e.getUser().getId());
+        if (!e.getEmoji().getType().equals(Emoji.Type.CUSTOM) ||
+                !(e.getEmoji().asCustom().getId().equals(Ustawienia.instance.emotki.greenTick) ||
+                        e.getEmoji().asCustom().getId().equals(Ustawienia.instance.emotki.redTick))) return;
+        if (e.getEmoji().asCustom().getId().equals(Ustawienia.instance.emotki.greenTick))
+            odp.getOceny().getTak().remove(e.getUserId());
+        if (e.getEmoji().asCustom().getId().equals(Ustawienia.instance.emotki.redTick))
+            odp.getOceny().getNie().remove(e.getUserId());
         eventBus.post(new RundkaAnswerVoteEvent(odp));
         rundkaDao.save(rundka);
     }

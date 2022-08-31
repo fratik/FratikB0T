@@ -25,6 +25,7 @@ import pl.fratik.core.command.NewCommandContext;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
+@Deprecated
 public class MessageWaiter {
     private final EventWaiter eventWaiter;
     private final NewCommandContext context;

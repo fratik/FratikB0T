@@ -18,39 +18,28 @@
 package pl.fratik.commands.system;
 
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.util.CommonErrors;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.util.StringUtil;
 
-import java.util.Arrays;
-import java.util.LinkedHashMap;
 import java.util.Random;
 
-public class ChooseCommand extends Command {
+public class ChooseCommand extends NewCommand {
     private static final Random random = new Random();
-    private static final String STRINGARGTYPE = "string";
 
     public ChooseCommand() {
         name = "choose";
-        category = CommandCategory.FUN;
-        uzycieDelim = ";";
-        LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
-        hmap.put("opcja1", STRINGARGTYPE);
-        hmap.put("opcja2", STRINGARGTYPE);
-        hmap.put("[...]", STRINGARGTYPE);
-        uzycie = new Uzycie(hmap, new boolean[] {true, true, false});
-        aliases = new String[] {"chose", "wybierz", "choisi", "choisis", "losuj", "wylosuj", "losowanie", "pomozwybrac"};
-        allowPermLevelChange = false;
+        usage = "<opcje:string>";
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        Object[] odpowiedzi = Arrays.stream(context.getArgs()).filter(s -> !((String) s).isEmpty()).toArray();
+    public void execute(@NotNull NewCommandContext context) {
+        Object[] odpowiedzi = context.getArguments().get("opcje").getAsString().split("\\|");
         if (odpowiedzi.length < 2) {
-            CommonErrors.usage(context);
-            return false;
+            context.sendMessage(context.getTranslated("choose.not.enough.arguments"));
+            return;
         }
         String odp = (String) odpowiedzi[random.nextInt(odpowiedzi.length)];
         context.reply(context.getTranslated("choose.choosing", "\uD83E\uDD14", StringUtil.escapeMarkdown(odp.trim())));
-        return true;
     }
 }

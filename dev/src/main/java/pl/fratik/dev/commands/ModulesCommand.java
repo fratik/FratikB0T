@@ -18,43 +18,59 @@
 package pl.fratik.dev.commands;
 
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.Emote;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
+import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.Ustawienia;
-import pl.fratik.core.command.PermLevel;
+import pl.fratik.core.command.CommandType;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.manager.ManagerModulow;
+import pl.fratik.core.manager.NewManagerKomend;
+import pl.fratik.core.moduly.Modul;
+import pl.fratik.core.util.UserUtil;
 
-public class ModulesCommand extends Command {
+import java.util.Map;
+import java.util.Set;
+
+public class ModulesCommand extends NewCommand {
 
     private final ManagerModulow managerModulow;
-    private final ManagerKomend managerKomend;
+    private final NewManagerKomend managerKomend;
 
-    public ModulesCommand(ManagerModulow managerModulow, ManagerKomend managerKomend) {
+    public ModulesCommand(ManagerModulow managerModulow, NewManagerKomend managerKomend) {
         this.managerModulow = managerModulow;
         this.managerKomend = managerKomend;
         name = "modules";
-        category = CommandCategory.SYSTEM;
-        permLevel = PermLevel.BOTOWNER;
-        permissions.add(Permission.MESSAGE_EMBED_LINKS);
-        allowPermLevelChange = false;
+        type = CommandType.SUPPORT_SERVER;
+        permissions = DefaultMemberPermissions.DISABLED;
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
+    public void execute(@NotNull NewCommandContext context) {
         EmbedBuilder eb = context.getBaseEmbed("Moduły", null);
-        Emote gtick = context.getShardManager().getEmoteById(Ustawienia.instance.emotki.greenTick);
-        Emote rtick = context.getShardManager().getEmoteById(Ustawienia.instance.emotki.redTick);
+        Emoji gtick = context.getShardManager().getEmojiById(Ustawienia.instance.emotki.greenTick);
+        Emoji rtick = context.getShardManager().getEmojiById(Ustawienia.instance.emotki.redTick);
         if (gtick == null || rtick == null) throw new NullPointerException("emotki są null");
-        for (String nazwa : managerModulow.getModules().keySet()) {
-            if (managerModulow.isStarted(nazwa)) eb.getDescriptionBuilder().append(gtick.getAsMention()).append(" ")
+        for (Map.Entry<String, Modul> entry : managerModulow.getModules().entrySet()) {
+            String nazwa = entry.getKey();
+            Modul modul = entry.getValue();
+            if (managerModulow.isStarted(nazwa)) eb.getDescriptionBuilder().append(gtick.getFormatted()).append(" ")
                     .append(nazwa).append(" (")
-                    .append(managerKomend.getRegisteredPerModule().getOrDefault(nazwa, 0).toString())
+                    .append(managerKomend.getRegistered().getOrDefault(modul, Set.of()).size())
                     .append(" zarejestrowanych komend)");
-            else eb.getDescriptionBuilder().append(rtick.getAsMention()).append(" ").append(nazwa);
+            else eb.getDescriptionBuilder().append(rtick.getFormatted()).append(" ").append(nazwa);
             eb.getDescriptionBuilder().append("\n");
         }
-        context.reply(eb.build());
+        context.replyEphemeral(eb.build());
+    }
+
+    @Override
+    public boolean permissionCheck(NewCommandContext context) {
+        if (!UserUtil.isBotOwner(context.getSender().getIdLong())) {
+            context.replyEphemeral(context.getTranslated("generic.no.permissions"));
+            return false;
+        }
         return true;
     }
 }

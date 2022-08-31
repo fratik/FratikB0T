@@ -17,45 +17,40 @@
 
 package pl.fratik.commands.zabawa;
 
-import net.dv8tion.jda.api.entities.PrivateChannel;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
+import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.util.StringUtil;
 
-public class PasswordCommand extends Command {
+public class PasswordCommand extends NewCommand {
 
     public PasswordCommand() {
         name = "password";
-        category = CommandCategory.FUN;
-        aliases = new String[] {"haslo", "wygenerujhaslo"};
-        uzycie = new Uzycie("znaki", "integer", false);
-        cooldown = 4;
-        allowPermLevelChange = false;
+        usage = "[znaki:int]";
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        Integer arg;
-        if (context.getArgs().length != 0 && context.getArgs()[0] != null)
-            arg = (Integer) context.getArgs()[0];
-        else arg = 9;
+    public void execute(@NotNull NewCommandContext context) {
+        Integer arg = context.getArgumentOr("znaki", 9, OptionMapping::getAsInt);
         if (arg > 32 || arg <= 0) {
-            context.reply(context.getTranslated("password.length"));
-            return false;
+            context.replyEphemeral(context.getTranslated("password.length"));
+            return;
         }
         String haslo;
         haslo = StringUtil.generateId(arg, true, true, true, true);
         if (haslo.isEmpty()) {
-            context.reply(context.getTranslated("password.empty", "\uD83E\uDD14"));
-            return false;
+            context.replyEphemeral(context.getTranslated("password.empty", "\uD83E\uDD14"));
+            return;
         }
-        try {
-            PrivateChannel c = context.getMember().getUser().openPrivateChannel().complete();
-            c.sendMessage(context.getTranslated("password.msg", "\uD83D\uDD11", "\uD83D\uDD11", haslo)).complete();
-            context.reply(context.getTranslated("password.sent"));
-            return true;
-        } catch (Exception e) {
-            context.reply(context.getTranslated("password.cantmessage"));
-            return false;
+        context.replyEphemeral(context.getTranslated("password.msg", "\uD83D\uDD11", "\uD83D\uDD11", haslo));
+    }
+
+    @Override
+    public void updateOptionData(OptionData option) {
+        if (option.getName().equals("znaki")) {
+            option.setRequiredRange(1, 32);
         }
     }
 }

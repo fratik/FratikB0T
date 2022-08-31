@@ -18,19 +18,10 @@
 package pl.fratik.api.entity;
 
 import lombok.Data;
-import net.dv8tion.jda.api.Permission;
-
-import java.util.List;
 
 @Data
 public class Komenda {
     private final String nazwa;
-    private final String[] aliases;
     private final String opis;
-    private final String uzycie;
-    private final String extendedHelp;
-    private final int permLevel;
-    private final String category;
     private final int cooldown;
-    private final List<Permission> requiredPermissions;
 }

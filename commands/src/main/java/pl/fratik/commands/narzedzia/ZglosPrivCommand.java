@@ -24,29 +24,28 @@ import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.User;
-import net.dv8tion.jda.api.events.interaction.ButtonClickEvent;
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
+import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
-import net.dv8tion.jda.api.interactions.components.Button;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.commands.entity.Priv;
 import pl.fratik.commands.entity.PrivDao;
 import pl.fratik.core.Globals;
 import pl.fratik.core.Ustawienia;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.ButtonWaiter;
-import pl.fratik.core.util.CommonErrors;
 import pl.fratik.core.util.EventWaiter;
 import pl.fratik.core.util.StringUtil;
 
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
-public class ZglosPrivCommand extends Command {
+public class ZglosPrivCommand extends NewCommand {
     private final PrivDao privDao;
     private final EventWaiter eventWaiter;
     private final EventBus eventBus;
@@ -60,14 +59,8 @@ public class ZglosPrivCommand extends Command {
         this.shardManager = shardManager;
         this.tlumaczenia = tlumaczenia;
         name = "zglospriv";
+        usage = "<id:string> <powod:string>";
         allowInDMs = true;
-        LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
-        hmap.put("id", "string"); //NOSONAR
-        hmap.put("powod", "string"); //NOSONAR
-        hmap.put("[...]", "string"); //NOSONAR
-        uzycie = new Uzycie(hmap, new boolean[] {true, true, false});
-        uzycieDelim = " ";
-        allowPermLevelChange = false;
     }
 
     @Override
@@ -81,41 +74,34 @@ public class ZglosPrivCommand extends Command {
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
+    public void execute(@NotNull NewCommandContext context) {
         if (!Globals.inFratikDev) throw new IllegalStateException("nie na fdev");
         Guild botgild = Objects.requireNonNull(shardManager.getGuildById(Ustawienia.instance.botGuild));
-        String powod = "";
-        String id = (String) context.getArgs()[0];
-        if (context.getArgs().length > 1 && context.getArgs()[1] != null)
-            powod = Arrays.stream(Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length))
-                    .map(o -> o == null ? "" : o.toString()).collect(Collectors.joining(uzycieDelim));
-        if (powod.isEmpty()) {
-            CommonErrors.usage(context);
-            return false;
-        }
+        String id = context.getArguments().get("id").getAsString();
+        String powod = context.getArguments().get("powod").getAsString();
+        InteractionHook hook = context.defer(true);
         Priv priv = privDao.get(id);
         if (priv == null || !priv.getDoKogo().equals(context.getSender().getId())) {
-            context.reply(context.getTranslated("zglospriv.no.priv"));
-            return false;
+            context.sendMessage(context.getTranslated("zglospriv.no.priv"));
+            return;
         }
         if (priv.getZgloszone() != null) {
             if (priv.getZgloszone()) {
-                context.reply(context.getTranslated("zglospriv.reported"));
-                return false;
+                context.sendMessage(context.getTranslated("zglospriv.reported"));
+                return;
             }
-            context.reply(context.getTranslated("zglospriv.reported.answered"));
-            return false;
+            context.sendMessage(context.getTranslated("zglospriv.reported.answered"));
+            return;
         }
-        Message msg = context.getMessageChannel().sendMessage(context.getTranslated("zglospriv.confirmation"))
+        Message msg = hook.editOriginal(context.getTranslated("zglospriv.confirmation"))
                 .setActionRows(ActionRow.of(
                         Button.danger("YES", context.getTranslated("generic.yes")),
                         Button.secondary("NO", context.getTranslated("generic.no"))
-                ))
-                .reference(context.getMessage()).complete();
+                )).complete();
         ButtonWaiter waiter = new ButtonWaiter(eventWaiter, context, msg.getIdLong(), ButtonWaiter.ResponseType.REPLY);
         waiter.setTimeoutHandler(() -> {
             msg.editMessage(msg.getContentRaw()).setActionRows(Collections.emptySet()).queue();
-            context.reply(context.getTranslated("zglospriv.cancelled"));
+            hook.sendMessage(context.getTranslated("zglospriv.cancelled")).setEphemeral(true).queue();
         });
         String finalPowod = powod;
         waiter.setButtonHandler(e -> {
@@ -154,11 +140,10 @@ public class ZglosPrivCommand extends Command {
             e.getHook().editOriginal(context.getTranslated("zglospriv.success")).queue();
         });
         waiter.create();
-        return true;
     }
 
     @Subscribe
-    private void onButtonClick(ButtonClickEvent e) {
+    private void onButtonClick(ButtonInteractionEvent e) {
         if (!e.getChannel().getId().equals(Ustawienia.instance.zglosPrivChannel)) return;
         if (e.getUser().isBot()) return;
         if (e.getComponentId().equals("CLOSE")) {

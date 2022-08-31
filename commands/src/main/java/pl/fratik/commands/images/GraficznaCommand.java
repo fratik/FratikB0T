@@ -17,18 +17,19 @@
 
 package pl.fratik.commands.images;
 
-import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 import pl.fratik.core.Ustawienia;
-import pl.fratik.core.command.PermLevel;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.util.NetworkUtil;
 
 import java.io.IOException;
 import java.net.URLEncoder;
 
-public class GraficznaCommand extends Command {
+public class GraficznaCommand extends NewCommand {
 
     private final String endpoint;
     private final String param;
@@ -36,8 +37,7 @@ public class GraficznaCommand extends Command {
 
     { //NOSONAR
         cooldown = 5;
-        uzycie = new Uzycie("osoba", "user");
-        allowPermLevelChange = false;
+        usage = "[osoba:user]";
         allowInDMs = true;
     }
 
@@ -47,52 +47,19 @@ public class GraficznaCommand extends Command {
 
     public GraficznaCommand(String name, String endpoint, String param, boolean preventOnSender) {
         this.name = name;
-        category = CommandCategory.IMAGES;
-        permissions.add(Permission.MESSAGE_ATTACH_FILES);
-
-        this.endpoint = endpoint;
-        this.param = param;
-        this.preventOnSender = preventOnSender;
-    }
-
-    public GraficznaCommand(String name, String endpoint, String[] aliases, boolean preventOnSender) {
-        this(name, endpoint, aliases, "imageURL", preventOnSender);
-    }
-
-    private GraficznaCommand(String name, String endpoint, String[] aliases, String param, boolean preventOnSender) {
-        this.name = name;
-        category = CommandCategory.IMAGES;
-        permissions.add(Permission.MESSAGE_ATTACH_FILES);
-        this.aliases = aliases;
-
-        this.endpoint = endpoint;
-        this.param = param;
-        this.preventOnSender = preventOnSender;
-    }
-
-    public GraficznaCommand(String name, String endpoint, PermLevel permLvl, boolean preventOnSender) {
-        this(name, endpoint, permLvl, "imageURL", preventOnSender);
-    }
-
-    private GraficznaCommand(String name, String endpoint, PermLevel permLvl, String param, boolean preventOnSender) {
-        this.name = name;
-        category = CommandCategory.IMAGES;
-        permissions.add(Permission.MESSAGE_ATTACH_FILES);
-        permLevel = permLvl;
-
         this.endpoint = endpoint;
         this.param = param;
         this.preventOnSender = preventOnSender;
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        User user = context.getSender();
-        if (context.getArgs().length != 0 && context.getArgs()[0] != null) user = (User) context.getArgs()[0];
+    public void execute(@NotNull NewCommandContext context) {
+        User user = context.getArgumentOr("osoba", context.getSender(), OptionMapping::getAsUser);
         if (user.equals(context.getSender()) && preventOnSender) {
             context.reply(context.getTranslated(name + ".prevent.on.sender"));
-            return false;
+            return;
         }
+        context.deferAsync(false);
         try {
             JSONObject zdjecie = NetworkUtil.getJson(Ustawienia.instance.apiUrls.get("image-server") +
                             endpoint + "?" + param + "=" + URLEncoder.encode(user.getEffectiveAvatarUrl()
@@ -100,13 +67,12 @@ public class GraficznaCommand extends Command {
                     Ustawienia.instance.apiKeys.get("image-server"));
             if (zdjecie == null || !zdjecie.getBoolean("success")) {
                 context.reply(context.getTranslated("image.server.fail"));
-                return false;
+                return;
             }
             byte[] img = NetworkUtil.getBytesFromBufferArray(zdjecie.getJSONObject("image").getJSONArray("data"));
-            context.getMessageChannel().sendFile(img, name + ".png").reference(context.getMessage()).queue();
+            context.sendMessage(name + ".png", img);
         } catch (IOException | NullPointerException e) {
-            context.reply(context.getTranslated("image.server.fail"));
+            context.sendMessage(context.getTranslated("image.server.fail"));
         }
-        return true;
     }
 }

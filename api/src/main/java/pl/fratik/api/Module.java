@@ -61,10 +61,13 @@ import pl.fratik.api.internale.*;
 import pl.fratik.core.Globals;
 import pl.fratik.core.Statyczne;
 import pl.fratik.core.Ustawienia;
+import pl.fratik.core.command.CommandType;
+import pl.fratik.core.command.NewCommand;
 import pl.fratik.core.entity.*;
 import pl.fratik.core.manager.ManagerArgumentow;
 import pl.fratik.core.manager.ManagerBazyDanych;
 import pl.fratik.core.manager.ManagerModulow;
+import pl.fratik.core.manager.NewManagerKomend;
 import pl.fratik.core.moduly.Modul;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
@@ -88,7 +91,7 @@ import static io.undertow.Handlers.websocket;
 @SuppressWarnings("FieldCanBeLocal")
 public class Module implements Modul {
 
-    @Inject private ManagerKomend managerKomend;
+    @Inject private NewManagerKomend managerKomend;
     @Inject private ManagerArgumentow managerArgumentow;
     @Inject private EventWaiter eventWaiter;
     @Inject private GuildDao guildDao;
@@ -104,7 +107,7 @@ public class Module implements Modul {
     private Undertow undertow;
     @Getter private RoutingHandler routes;
     private Map<String, WscWrapper> webSocketChannels = new HashMap<>();
-    private List<Command> commands = new ArrayList<>();
+    private List<NewCommand> commands = new ArrayList<>();
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Module.class);
     private RundkaDao rundkaDao;
@@ -192,16 +195,13 @@ public class Module implements Modul {
                 return;
             }
             List<Komenda> komendy = new ArrayList<>();
-            for (Command cmd : managerKomend.getRegistered()) {
-                komendy.add(new Komenda(cmd.getName(), cmd.getAliases(tlumaczenia),
-                        tlumaczenia.get(lang, cmd.getName() + ".help.description"),
-                        tlumaczenia.get(lang, cmd.getName() + ".help.uzycie"),
-                        tlumaczenia.get(lang, cmd.getName() + ".help.extended"), cmd.getPermLevel().getNum(),
-                        String.format(tlumaczenia.get(lang, "help.category." + cmd.getCategory().name()
-                                .toLowerCase()), Ustawienia.instance.prefix), cmd.getCooldown(), cmd.getPermissions()));
+            for (Iterator<NewCommand> iter = managerKomend.commandsStream().iterator(); iter.hasNext();) {
+                //fixme
+                NewCommand cmd = iter.next();
+                if (cmd.getType() != CommandType.NORMAL) continue;
+                komendy.add(new Komenda(cmd.getName(), tlumaczenia.get(lang, cmd.getName() + ".description"),
+                        cmd.getCooldown()));
             }
-            komendy.sort((komenda, komenda1) -> Ordering.usingToString().compare(komenda.getCategory(),
-                    komenda1.getCategory()));
             komendy.sort((komenda, komenda1) -> Ordering.usingToString().compare(komenda.getNazwa(),
                     komenda1.getNazwa()));
             Exchange.body().sendJson(ex, komendy);
@@ -422,7 +422,7 @@ public class Module implements Modul {
                 return;
             }
             RestAction<Guild.Ban> banAction = Objects.requireNonNull(shardManager.getGuildById(Ustawienia.instance.botGuild))
-                    .retrieveBanById(userId);
+                    .retrieveBan(User.fromId(userId));
             Guild.Ban banne = null;
             try {
                 banne = banAction.submit().get();
@@ -445,7 +445,7 @@ public class Module implements Modul {
             }
             try {
                 Objects.requireNonNull(shardManager.getGuildById(Ustawienia.instance.botGuild))
-                        .addMember(Objects.requireNonNull(accessToken), userId).complete();
+                        .addMember(Objects.requireNonNull(accessToken), User.fromId(userId)).complete();
             } catch (Exception e) {
                 Exchange.body().sendJson(ex, new Exceptions.GenericException("join error"), 500);
                 return;
@@ -468,14 +468,14 @@ public class Module implements Modul {
                             credit.getKrotkiPowod(), credit.getDluzszyPowod(), credit.getSociale()));
                 }
                 hmap.put("credits", credits);
-                Guild lnodev = shardManager.getGuildById(Ustawienia.instance.botGuild);
-                if (lnodev != null) {
+                Guild fdev = shardManager.getGuildById(Ustawienia.instance.botGuild);
+                if (fdev != null) {
                     Map<User, Status> map = new HashMap<>();
-                    for (Member member : lnodev.getMembersWithRoles(lnodev.getRoleById(Ustawienia.instance.gadmRole)))
+                    for (Member member : fdev.getMembersWithRoles(fdev.getRoleById(Ustawienia.instance.gadmRole)))
                         map.put(member.getUser(), Status.GLOBALADMIN);
-                    for (Member member : lnodev.getMembersWithRoles(lnodev.getRoleById(Ustawienia.instance.zgaRole)))
+                    for (Member member : fdev.getMembersWithRoles(fdev.getRoleById(Ustawienia.instance.zgaRole)))
                         map.put(member.getUser(), Status.ZGA);
-                    for (Member member : lnodev.getMembersWithRoles(lnodev.getRoleById(Ustawienia.instance.devRole)))
+                    for (Member member : fdev.getMembersWithRoles(fdev.getRoleById(Ustawienia.instance.devRole)))
                         map.put(member.getUser(), Status.DEV);
                     List<Credits.ParsedCredits> devy = new ArrayList<>();
                     List<Credits.ParsedCredits> zga = new ArrayList<>();
@@ -521,7 +521,7 @@ public class Module implements Modul {
         eventBus.register(rundkaGa);
         commands.add(new RundkaCommand(eventBus, rundkaDao));
 //        commands.add(new TestCommand(eventBus));
-        commands.forEach(managerKomend::registerCommand);
+        managerKomend.registerCommands(this, commands);
         return true;
     }
 
@@ -611,7 +611,7 @@ public class Module implements Modul {
         webSocketChannels = new HashMap<>();
         eventBus.unregister(this);
         eventBus.unregister(rundkaGa);
-        commands.forEach(managerKomend::unregisterCommand);
+        managerKomend.unregisterCommands(commands);
         return true;
     }
 

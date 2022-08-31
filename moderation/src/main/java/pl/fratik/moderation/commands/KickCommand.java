@@ -20,7 +20,10 @@ package pl.fratik.moderation.commands;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.exceptions.HierarchyException;
+import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.entity.Kara;
 import pl.fratik.core.util.UserUtil;
 import pl.fratik.moderation.entity.Case;
@@ -28,10 +31,6 @@ import pl.fratik.moderation.listeners.ModLogListener;
 import pl.fratik.moderation.utils.ReasonUtils;
 
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class KickCommand extends ModerationCommand {
     private final ModLogListener modLogListener;
@@ -40,53 +39,46 @@ public class KickCommand extends ModerationCommand {
         super(true);
         this.modLogListener = modLogListener;
         name = "kick";
-        category = CommandCategory.MODERATION;
-        uzycieDelim = " ";
-        permissions.add(Permission.KICK_MEMBERS);
-        LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
-        hmap.put("uzytkownik", "member");
-        hmap.put("powod", "string");
-        hmap.put("[...]", "string");
-        uzycie = new Uzycie(hmap, new boolean[] {true, false, false});
-        aliases = new String[] {"wyrzuc", "wywalgo", "kickmen", "kopnij", "aidzpan", "wykoptypa", "wykop.pl", "won"};
+        permissions = DefaultMemberPermissions.enabledFor(Permission.KICK_MEMBERS);
+        usage = "<osoba:user> [powod:string]";
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        String powod;
-        Member uzytkownik = (Member) context.getArgs()[0];
-        if (context.getArgs().length > 1 && context.getArgs()[1] != null)
-            powod = Arrays.stream(Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length))
-                    .map(e -> e == null ? "" : e).map(Objects::toString).collect(Collectors.joining(uzycieDelim));
-        else powod = context.getTranslated("kick.reason.default");
+    public void execute(@NotNull NewCommandContext context) {
+        Member uzytkownik = context.getArguments().get("osoba").getAsMember();
+        String powod = context.getArgumentOr("powod", context.getTranslated("kick.reason.default"), OptionMapping::getAsString);
+        if (uzytkownik == null) {
+            context.replyEphemeral(context.getTranslated("generic.no.member"));
+            return;
+        }
         if (uzytkownik.equals(context.getMember())) {
-            context.reply(context.getTranslated("kick.cant.kick.yourself"));
-            return false;
+            context.replyEphemeral(context.getTranslated("kick.cant.kick.yourself"));
+            return;
         }
         if (uzytkownik.isOwner()) {
-            context.reply(context.getTranslated("kick.cant.kick.owner"));
-            return false;
+            context.replyEphemeral(context.getTranslated("kick.cant.kick.owner"));
+            return;
         }
         if (!context.getMember().canInteract(uzytkownik)) {
-            context.reply(context.getTranslated("kick.cant.interact"));
-            return false;
+            context.replyEphemeral(context.getTranslated("kick.cant.interact"));
+            return;
         }
         if (!context.getGuild().getSelfMember().canInteract(uzytkownik)) {
-            context.reply(context.getTranslated("kick.bot.cant.interact"));
-            return false;
+            context.replyEphemeral(context.getTranslated("kick.bot.cant.interact"));
+            return;
         }
+        context.defer(false);
         Case aCase = new Case.Builder(uzytkownik, Instant.now(), Kara.KICK)
                 .setIssuerId(context.getSender().getIdLong()).build();
         ReasonUtils.parseFlags(aCase, powod);
         modLogListener.getKnownCases().put(ModLogListener.generateKey(uzytkownik), aCase);
         try {
             context.getGuild().kick(uzytkownik).reason(aCase.getReason(context)).complete();
-            context.reply(context.getTranslated("kick.success", UserUtil.formatDiscrim(uzytkownik)));
+            context.sendMessage(context.getTranslated("kick.success", UserUtil.formatDiscrim(uzytkownik)));
         } catch (HierarchyException e) {
-            context.reply(context.getTranslated("kick.failed.hierarchy"));
+            context.sendMessage(context.getTranslated("kick.failed.hierarchy"));
         } catch (Exception e) {
-            context.reply(context.getTranslated("kick.failed"));
+            context.sendMessage(context.getTranslated("kick.failed"));
         }
-        return true;
     }
 }

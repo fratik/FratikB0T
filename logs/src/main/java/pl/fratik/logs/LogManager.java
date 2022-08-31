@@ -24,25 +24,23 @@ import com.google.common.eventbus.Subscribe;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.events.guild.GuildJoinEvent;
 import net.dv8tion.jda.api.events.guild.GuildLeaveEvent;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.sharding.ShardManager;
-import pl.fratik.core.command.PermLevel;
 import pl.fratik.core.entity.GbanData;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.event.CommandDispatchedEvent;
 import pl.fratik.core.event.ConnectedEvent;
 import pl.fratik.core.event.DatabaseUpdateEvent;
 import pl.fratik.core.event.LvlupEvent;
-import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
-import pl.fratik.core.util.CommonUtil;
 import pl.fratik.core.util.NetworkUtil;
-import pl.fratik.core.util.UserUtil;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static pl.fratik.core.Statyczne.CORE_VERSION;
 import static pl.fratik.core.Statyczne.WERSJA;
@@ -77,44 +75,15 @@ class LogManager {
         executor.submit(() -> {
             WebhookClient cl = getWebhook(webhook);
             if (e.getContext().getGuild() != null)
-                cl.send(String.format("%s(%s) %s[%s] %s[%s]", e.getContext().getCommand().getName(),
-                        String.join(",", e.getContext().getRawArgs()),
+                cl.send(String.format("%s(%s) %s[%s] %s[%s]", e.getContext().getCommandPath(),
+                        e.getContext().getArguments().values().stream().map(OptionMapping::getAsString).collect(Collectors.joining(",")),
                         e.getContext().getSender().getName(), e.getContext().getSender().getId(),
                         e.getContext().getGuild().getName(), e.getContext().getGuild().getId()));
             else
-                cl.send(String.format("%s(%s) %s[%s] Direct Messages", e.getContext().getCommand().getName(),
-                        String.join(",", e.getContext().getRawArgs()),
+                cl.send(String.format("%s(%s) %s[%s] Direct Messages", e.getContext().getCommandPath(),
+                        e.getContext().getArguments().values().stream().map(OptionMapping::getAsString).collect(Collectors.joining(",")),
                         e.getContext().getSender().getName(), e.getContext().getSender().getId()));
         });
-        if (webhookGa == null) return;
-        if (UserUtil.isGadm(e.getContext().getSender(), shardManager)) {
-            if (e.getContext().getGuild() == null) return;
-            PermLevel pLevel = UserUtil.getPermlevel(e.getContext().getMember(), guildDao, shardManager,
-                    PermLevel.OWNER);
-            executor.submit(() -> {
-                WebhookClient cl = getWebhook(webhookGa);
-                cl.send(String.format("%s[%s] użył komendy %s(%s) na serwerze %s[%s]. Jego/jej uprawnienia na tym " +
-                        "serwerze (oprócz 5/6) to %s (%s).", e.getContext().getSender().getAsTag(),
-                        e.getContext().getSender().getId(), e.getContext().getCommand().getName(),
-                        String.join(",", e.getContext().getRawArgs()), e.getContext().getGuild().getName(),
-                        e.getContext().getGuild().getId(), pLevel.getNum(),
-                        tlumaczenia.get(Language.DEFAULT, pLevel.getLanguageKey())));
-            });
-            PermLevel cmdLvl = e.getContext().getCommand().getPermLevel();
-            if (webhookGaLvl == null || cmdLvl.getNum() >= 5 || pLevel.getNum() >= cmdLvl.getNum()) return;
-            executor.submit(() -> {
-                WebhookClient cl = getWebhook(webhookGaLvl);
-                cl.send(String.format("%s[%s] użył komendy %s(%s) na serwerze %s[%s] i tym samym nadużył swoich uprawnień.  " +
-                                "Jego permisje na serwerze to %s(%s), a komenda wymaga permisji %s (%s) Serwer %s.",
-                        e.getContext().getSender().getAsTag(), e.getContext().getSender().getId(),
-                        e.getContext().getCommand().getName(), String.join(",", e.getContext().getRawArgs()),
-                        e.getContext().getGuild().getName(), e.getContext().getGuild().getId(),
-                        pLevel.getNum(), tlumaczenia.get(Language.DEFAULT, pLevel.getLanguageKey()),
-                        cmdLvl.getNum(), tlumaczenia.get(Language.DEFAULT, cmdLvl.getLanguageKey()),
-                        CommonUtil.isPomoc(shardManager, e.getContext().getGuild()) ?
-                                "ma prośbę o pomoc." : "nie ma prośby o pomoc."));
-            });
-        }
     }
 
     private WebhookClient getWebhook(String webhook) {

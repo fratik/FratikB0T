@@ -23,12 +23,8 @@ import pl.fratik.core.command.NewCommandContext;
 @Getter
 public class CommandDispatchedEvent {
     private final NewCommandContext context;
-    private final boolean success;
-    private final long time;
 
-    public CommandDispatchedEvent(NewCommandContext context, boolean success, long time) {
+    public CommandDispatchedEvent(NewCommandContext context) {
         this.context = context;
-        this.success = success;
-        this.time = time;
     }
 }

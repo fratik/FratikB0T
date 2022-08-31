@@ -19,10 +19,7 @@ package pl.fratik.starboard.event;
 
 import lombok.Getter;
 import lombok.Setter;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.MessageChannel;
-import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.entities.*;
 import org.jetbrains.annotations.Nullable;
 import pl.fratik.starboard.entity.StarData;
 
@@ -32,12 +29,12 @@ public class StarEvent {
     private final Message message;
     private final int gwiazdki;
     private final MessageChannel channel;
-    private final TextChannel starboardChannel;
+    private final GuildMessageChannel starboardChannel;
     private final String starboardMessageId;
     @Setter
     private boolean cancelled;
 
-    public StarEvent(@Nullable User user, Message message, int gwiazdki, MessageChannel channel, TextChannel starboardChannel, String starboardMessageId) {
+    public StarEvent(@Nullable User user, Message message, int gwiazdki, MessageChannel channel, GuildMessageChannel starboardChannel, String starboardMessageId) {
         this.user = user;
         this.message = message;
         this.gwiazdki = gwiazdki;
@@ -46,7 +43,7 @@ public class StarEvent {
         this.starboardMessageId = starboardMessageId;
     }
 
-    public StarEvent(@Nullable User user, Message message, int gwiazdki, TextChannel channel, String starboardChannel, String starboardMessageId) {
+    public StarEvent(@Nullable User user, Message message, int gwiazdki, MessageChannel channel, String starboardChannel, String starboardMessageId) {
         this.user = user;
         this.message = message;
         this.gwiazdki = gwiazdki;
@@ -56,7 +53,7 @@ public class StarEvent {
         this.starboardMessageId = starboardMessageId;
     }
 
-    public StarEvent(@Nullable User user, Message message, int gwiazdki, TextChannel channel, String starboardChannel, Message starboardMessage) {
+    public StarEvent(@Nullable User user, Message message, int gwiazdki, MessageChannel channel, String starboardChannel, Message starboardMessage) {
         this.user = user;
         this.message = message;
         this.gwiazdki = gwiazdki;
@@ -66,7 +63,7 @@ public class StarEvent {
         this.starboardMessageId = starboardMessage.getId();
     }
 
-    public StarEvent(@Nullable User user, Message message, StarData starData, TextChannel starboardChannel) {
+    public StarEvent(@Nullable User user, Message message, StarData starData, GuildMessageChannel starboardChannel) {
         this.user = user;
         this.message = message;
         this.gwiazdki = starData.getStarredBy().size();

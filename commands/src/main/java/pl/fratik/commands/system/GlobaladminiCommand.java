@@ -19,14 +19,15 @@ package pl.fratik.commands.system;
 
 import com.google.common.eventbus.EventBus;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.interactions.InteractionHook;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.Globals;
 import pl.fratik.core.Ustawienia;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.util.ClassicEmbedPaginator;
 import pl.fratik.core.util.EventWaiter;
 import pl.fratik.core.util.StringUtil;
@@ -35,7 +36,7 @@ import pl.fratik.core.util.UserUtil;
 import javax.annotation.Nonnull;
 import java.util.*;
 
-public class GlobaladminiCommand extends Command {
+public class GlobaladminiCommand extends NewCommand {
     private final EventWaiter eventWaiter;
     private final EventBus eventBus;
 
@@ -43,23 +44,18 @@ public class GlobaladminiCommand extends Command {
         this.eventWaiter = eventWaiter;
         this.eventBus = eventBus;
         name = "globaladmini";
-        category = CommandCategory.SYSTEM;
-        permissions.add(Permission.MESSAGE_EMBED_LINKS);
-        permissions.add(Permission.MESSAGE_ADD_REACTION);
-        permissions.add(Permission.MESSAGE_MANAGE); // TODO: 22.02.19 wersja bez tych permow, wersja w DMach
-        aliases = new String[] {"ga", "globaladmin"};
-        allowPermLevelChange = false;
+        allowInDMs = true;
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
+    public void execute(@NotNull NewCommandContext context) {
         if (!Globals.inFratikDev) throw new IllegalStateException("nie na fdev");
-        Message msg = context.reply(context.getTranslated("generic.loading"));
+        InteractionHook hook = context.defer(false);
         Map<User, Status> map = new HashMap<>();
-        @Nonnull Guild lnodev = Objects.requireNonNull(context.getShardManager().getGuildById(Ustawienia.instance.botGuild));
-        for (Member member : lnodev.getMembersWithRoles(lnodev.getRoleById(Ustawienia.instance.gadmRole))) map.put(member.getUser(), Status.GLOBALADMIN);
-        for (Member member : lnodev.getMembersWithRoles(lnodev.getRoleById(Ustawienia.instance.zgaRole))) map.put(member.getUser(), Status.ZGA);
-        for (Member member : lnodev.getMembersWithRoles(lnodev.getRoleById(Ustawienia.instance.devRole))) map.put(member.getUser(), Status.DEV);
+        @Nonnull Guild fdev = Objects.requireNonNull(context.getShardManager().getGuildById(Ustawienia.instance.botGuild));
+        for (Member member : fdev.getMembersWithRoles(fdev.getRoleById(Ustawienia.instance.gadmRole))) map.put(member.getUser(), Status.GLOBALADMIN);
+        for (Member member : fdev.getMembersWithRoles(fdev.getRoleById(Ustawienia.instance.zgaRole))) map.put(member.getUser(), Status.ZGA);
+        for (Member member : fdev.getMembersWithRoles(fdev.getRoleById(Ustawienia.instance.devRole))) map.put(member.getUser(), Status.DEV);
         EmbedBuilder ebGa = context.getBaseEmbed(null, null);
         EmbedBuilder ebZga = context.getBaseEmbed(null, null);
         EmbedBuilder ebDev = context.getBaseEmbed(null, null);
@@ -85,8 +81,7 @@ public class GlobaladminiCommand extends Command {
         List<EmbedBuilder> pages = new ArrayList<>();
         Collections.addAll(pages, ebGa, ebZga, ebDev);
         new ClassicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(), context.getTlumaczenia(), eventBus)
-                .create(msg);
-        return true;
+                .create(hook);
     }
 
     private String escapeMarkdown(String string) {

@@ -19,11 +19,13 @@ package pl.fratik.commands.narzedzia;
 
 import com.google.common.eventbus.EventBus;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.interactions.InteractionHook;
+import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.command.PermLevel;
+import pl.fratik.core.command.CommandType;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.entity.GbanDao;
 import pl.fratik.core.entity.GbanData;
 import pl.fratik.core.util.DynamicEmbedPaginator;
@@ -38,7 +40,7 @@ import java.util.concurrent.FutureTask;
 import static pl.fratik.core.entity.GbanData.Type.GUILD;
 import static pl.fratik.core.entity.GbanData.Type.USER;
 
-public class GbanlistCommand extends Command {
+public class GbanlistCommand extends NewCommand {
 
     private final GbanDao gbanDao;
     private final EventWaiter eventWaiter;
@@ -49,19 +51,16 @@ public class GbanlistCommand extends Command {
         this.eventWaiter = eventWaiter;
         this.eventBus = eventBus;
         name = "gbanlist";
-        category = CommandCategory.UTILITY;
-        permLevel = PermLevel.GADMIN;
-        permissions.add(Permission.MESSAGE_EMBED_LINKS);
-        permissions.add(Permission.MESSAGE_MANAGE);
-        permissions.add(Permission.MESSAGE_ADD_REACTION);
-        allowPermLevelChange = false;
+        type = CommandType.SUPPORT_SERVER;
+        permissions = DefaultMemberPermissions.DISABLED;
+
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
+    public void execute(@NotNull NewCommandContext context) {
         List<GbanData> gdataList = gbanDao.getAll();
         List<FutureTask<EmbedBuilder>> pages = new ArrayList<>();
-        Message m = context.reply(context.getTranslated("generic.loading"));
+        InteractionHook hook = context.defer(false);
         for (GbanData gdata : gdataList) {
             if (!gdata.isGbanned()) continue;
             pages.add(new FutureTask<>(() -> {
@@ -98,11 +97,10 @@ public class GbanlistCommand extends Command {
             }));
         }
         if (pages.isEmpty()) {
-            context.reply(context.getTranslated("gbanlist.empty"));
-            return false;
+            context.sendMessage(context.getTranslated("gbanlist.empty"));
+            return;
         }
-        new DynamicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(), context.getTlumaczenia(), eventBus).create(m);
-        return true;
+        new DynamicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(), context.getTlumaczenia(), eventBus).create(hook);
     }
 }
 

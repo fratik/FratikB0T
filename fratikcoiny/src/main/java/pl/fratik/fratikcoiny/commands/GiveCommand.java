@@ -31,28 +31,33 @@ public class GiveCommand extends NewCommand {
     public GiveCommand(MemberDao memberDao) {
         this.memberDao = memberDao;
         name = "give";
-        usage = "<osoba:user> <ile:number>";
+        usage = "<osoba:user> <ile:int>";
     }
 
     @Override
     public void execute(@NotNull NewCommandContext context) {
         Member komu = context.getArguments().get("osoba").getAsMember();
+        if (komu == null) {
+            context.replyEphemeral(context.getTranslated("generic.no.member"));
+            return;
+        }
+        context.deferAsync(false);
         int ile = context.getArguments().get("ile").getAsInt();
         MemberConfig od = memberDao.get(context.getMember());
         MemberConfig kurwaDo = memberDao.get(komu);
         if (od.getFratikCoiny() < ile) {
-            context.reply(context.getTranslated("give.no.money"));
+            context.sendMessage(context.getTranslated("give.no.money"));
             return;
         }
         if (context.getSender().getId().contains(komu.getUser().getId())) {
-            context.reply(context.getTranslated("give.no.self"));
+            context.sendMessage(context.getTranslated("give.no.self"));
             return;
         }
         od.setFratikCoiny(od.getFratikCoiny() - ile);
         kurwaDo.setFratikCoiny(kurwaDo.getFratikCoiny() + ile);
         memberDao.save(od);
         memberDao.save(kurwaDo);
-        context.reply(context.getTranslated("give.success"));
+        context.sendMessage(context.getTranslated("give.success"));
     }
 
 }

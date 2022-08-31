@@ -18,69 +18,81 @@
 package pl.fratik.dev.commands;
 
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.Emote;
-import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
+import net.dv8tion.jda.api.interactions.InteractionHook;
+import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pl.fratik.core.Ustawienia;
-import pl.fratik.core.command.PermLevel;
+import pl.fratik.core.command.CommandType;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.manager.ManagerModulow;
+import pl.fratik.core.util.UserUtil;
 
 import java.awt.*;
 
-public class UnloadCommand extends Command {
+public class UnloadCommand extends NewCommand {
 
     private final ManagerModulow managerModulow;
+    private final Logger logger;
     private static final String SPMO = " Sprawdzam moduł";
     private static final String UNLOAD = " Unload";
 
     public UnloadCommand(ManagerModulow managerModulow) {
         this.managerModulow = managerModulow;
+        logger = LoggerFactory.getLogger(getClass());
         name = "unload";
-        category = CommandCategory.SYSTEM;
-        permLevel = PermLevel.BOTOWNER;
-        uzycie = new Uzycie("modul", "string");
-        permissions.add(Permission.MESSAGE_EMBED_LINKS);
-        allowPermLevelChange = false;
-        allowInDMs = true;
+        usage = "<modul:string>";
+        type = CommandType.SUPPORT_SERVER;
+        permissions = DefaultMemberPermissions.DISABLED;
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
+    public void execute(@NotNull NewCommandContext context) {
         EmbedBuilder eb = context.getBaseEmbed("Wyłączanie modułu...", null);
-        Emote gtick = context.getShardManager().getEmoteById(Ustawienia.instance.emotki.greenTick);
-        Emote rtick = context.getShardManager().getEmoteById(Ustawienia.instance.emotki.redTick);
+        Emoji gtick = context.getShardManager().getEmojiById(Ustawienia.instance.emotki.greenTick);
+        Emoji rtick = context.getShardManager().getEmojiById(Ustawienia.instance.emotki.redTick);
         if (gtick == null || rtick == null) throw new NullPointerException("nie znaleziono emotek");
         String pytajnik = "\u2753";
         eb.appendDescription(pytajnik + SPMO + "\n");
         eb.appendDescription(pytajnik + UNLOAD + "\n");
-        Message msg = context.reply(eb.build());
-        if (!managerModulow.isLoaded((String) context.getArgs()[0])) {
+        InteractionHook hook = context.replyEphemeral(eb.build());
+        if (!managerModulow.isLoaded(context.getArguments().get("modul").getAsString())) {
             eb.setDescription(eb.getDescriptionBuilder().toString().replace(pytajnik + SPMO,
-                    rtick.getAsMention() + SPMO + ": moduł nie jest wczytany"));
+                    rtick.getFormatted() + SPMO + ": moduł nie jest wczytany"));
             eb.setColor(Color.decode("#ff0000"));
-            msg.editMessageEmbeds(eb.build()).override(true).complete();
-            return false;
+            hook.editOriginalEmbeds(eb.build()).complete();
+            return;
         }
         eb.setDescription(eb.getDescriptionBuilder().toString().replace(pytajnik + SPMO,
-                gtick.getAsMention() + SPMO));
-        msg.editMessageEmbeds(eb.build()).override(true).complete();
+                gtick.getFormatted() + SPMO));
+        hook.editOriginalEmbeds(eb.build()).complete();
         try {
-            boolean odp = managerModulow.stopModule((String) context.getArgs()[0]);
+            boolean odp = managerModulow.stopModule(context.getArguments().get("modul").getAsString());
             if (!odp) throw new Exception("Unload modułu nieudany - sprawdź konsolę.");
-            managerModulow.unload((String) context.getArgs()[0], true);
+            managerModulow.unload(context.getArguments().get("modul").getAsString(), true);
         } catch (Exception e) {
             logger.error("Błąd w komendzie unload:", e);
             eb.setDescription(eb.getDescriptionBuilder().toString().replace(pytajnik +  UNLOAD,
-                    rtick.getAsMention() + UNLOAD + ": " + e.getMessage()));
+                    rtick.getFormatted() + UNLOAD + ": " + e.getMessage()));
             eb.setColor(Color.decode("#ff0000"));
-            msg.editMessageEmbeds(eb.build()).override(true).complete();
-            return false;
+            hook.editOriginalEmbeds(eb.build()).complete();
+            return;
         }
         eb.setDescription(eb.getDescriptionBuilder().toString().replace(pytajnik +  UNLOAD,
-                gtick.getAsMention() + UNLOAD));
+                gtick.getFormatted() + UNLOAD));
         eb.setColor(Color.decode("#00ff00"));
-        msg.editMessageEmbeds(eb.build()).override(true).complete();
+        hook.editOriginalEmbeds(eb.build()).complete();
+    }
+
+    @Override
+    public boolean permissionCheck(NewCommandContext context) {
+        if (!UserUtil.isBotOwner(context.getSender().getIdLong())) {
+            context.replyEphemeral(context.getTranslated("generic.no.permissions"));
+            return false;
+        }
         return true;
     }
 }

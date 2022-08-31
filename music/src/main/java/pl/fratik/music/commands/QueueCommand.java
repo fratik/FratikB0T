@@ -17,14 +17,13 @@
 
 package pl.fratik.music.commands;
 
-import com.google.common.base.Strings;
 import com.google.common.eventbus.EventBus;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo;
 import lombok.Setter;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.interactions.InteractionHook;
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.util.DynamicEmbedPaginator;
 import pl.fratik.core.util.EventWaiter;
 import pl.fratik.core.util.TimeUtil;
@@ -37,7 +36,6 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.FutureTask;
-import java.util.stream.Stream;
 
 public class QueueCommand extends MusicCommand {
 
@@ -53,62 +51,25 @@ public class QueueCommand extends MusicCommand {
         this.eventBus = eventBus;
         name = "queue";
         requireConnection = true;
-        aliases = new String[] {"q", "que", "songlist", "songslist", "songlists", "listapiosenek", "listamuzyki", "kolejka"};
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
+    public void execute(@NotNull NewCommandContext context) {
         ManagerMuzykiSerwera mms = managerMuzyki.getManagerMuzykiSerwera(context.getGuild());
         if (mms == null || (mms.getKolejka().isEmpty() && mms.getAktualnaPiosenka() == null)) {
-            context.reply(context.getTranslated("queue.empty"));
-            return false;
+            context.replyEphemeral(context.getTranslated("queue.empty"));
+            return;
         }
-        if (Stream.of(Permission.MESSAGE_ADD_REACTION, Permission.MESSAGE_MANAGE, Permission.MESSAGE_EMBED_LINKS)
-                .allMatch(a -> context.getGuild().getSelfMember().getPermissions(context.getTextChannel()).contains(a))) {
-            Message m = context.reply(context.getTranslated("generic.loading"));
-            List<FutureTask<EmbedBuilder>> pages = new ArrayList<>();
-            pages.add(new FutureTask<>(() -> generateEmbed(mms.getAktualnaPiosenka(), context)));
-            for (Piosenka piosenka : mms.getKolejka()) {
-                pages.add(new FutureTask<>(() -> generateEmbed(piosenka, context)));
-            }
-            new DynamicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(), context.getTlumaczenia(),
-                    eventBus).create(m);
-        } else {
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < Math.min(mms.getKolejka().size(), 10); i++) {
-                if (i == 0) {
-                    sb.append("[__`").append(Strings.padStart(String.valueOf(i + 1), 2, '0'))
-                            .append("`__] *")
-                            .append(mms.getAktualnaPiosenka().getAudioTrack().getInfo().title
-                                    .replaceAll("`", "`" + "\u8203"))
-                            .append("* ").append(context.getTranslated("queue.queued.by")).append(" **")
-                            .append(mms.getAktualnaPiosenka().getRequester()).append("**\n");
-                    sb.append("   └── <").append(mms.getAktualnaPiosenka().getAudioTrack().getInfo().uri).append("> (")
-                            .append(mms.getAktualnaPiosenka().getAudioTrack().getInfo().isStream ?
-                                    context.getTranslated(QUEMLI) :
-                                    TimeUtil.getStringFromMillis(mms.getAktualnaPiosenka().getAudioTrack().getInfo().length))
-                            .append(")\n\n");
-                    continue;
-                }
-                sb.append("[__`").append(Strings.padStart(String.valueOf(i + 1), 2, '0'))
-                        .append("`__] *")
-                        .append(mms.getKolejka().get(i).getAudioTrack().getInfo().title
-                                .replaceAll("`", "`\u8203"))
-                        .append("* ").append(context.getTranslated("queue.queued.by")).append(" **").append(mms.getKolejka().get(i).getRequester())
-                        .append("**\n");
-                sb.append("   └── <").append(mms.getKolejka().get(i).getAudioTrack().getInfo().uri).append("> (")
-                        .append(mms.getKolejka().get(i).getAudioTrack().getInfo().isStream ?
-                                context.getTranslated(QUEMLI) :
-                                TimeUtil.getStringFromMillis(mms.getKolejka().get(i).getAudioTrack().getInfo().length))
-                        .append(")\n");
-                if (i + 1 < Math.min(mms.getKolejka().size(), 10)) sb.append("\n");
-            }
-            context.reply(sb.toString());
+        InteractionHook hook = context.defer(false);
+        List<FutureTask<EmbedBuilder>> pages = new ArrayList<>();
+        pages.add(new FutureTask<>(() -> generateEmbed(mms.getAktualnaPiosenka(), context)));
+        for (Piosenka piosenka : mms.getKolejka()) {
+            pages.add(new FutureTask<>(() -> generateEmbed(piosenka, context)));
         }
-        return true;
+        new DynamicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(), context.getTlumaczenia(), eventBus).create(hook);
     }
 
-    private static EmbedBuilder generateEmbed(Piosenka piosenka, CommandContext context) {
+    private static EmbedBuilder generateEmbed(Piosenka piosenka, NewCommandContext context) {
         AudioTrackInfo info = piosenka.getAudioTrack().getInfo();
         EmbedBuilder eb = new EmbedBuilder();
         eb.setAuthor(context.getTranslated("queue.embed.header"), info.uri);

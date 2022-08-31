@@ -22,16 +22,13 @@ import net.dv8tion.jda.api.entities.User;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.commands.entity.Priv;
 import pl.fratik.commands.entity.PrivDao;
-import pl.fratik.core.Ustawienia;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.entity.UserConfig;
 import pl.fratik.core.entity.UserDao;
 import pl.fratik.core.util.StringUtil;
 
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.stream.Collectors;
-
-public class PrivCommand extends Command {
+public class PrivCommand extends NewCommand {
     private final PrivDao privDao;
     private final UserDao userDao;
 
@@ -39,51 +36,43 @@ public class PrivCommand extends Command {
         this.privDao = privDao;
         this.userDao = userDao;
         name = "priv";
-        category = CommandCategory.UTILITY;
         cooldown = 15;
-        LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
-        hmap.put("osoba", "user");
-        hmap.put("treść", "string");
-        hmap.put("[...]", "string");
-        uzycie = new Uzycie(hmap, new boolean[] {true, true, false});
+        usage = "<osoba:user> <tresc:string>";
         allowInDMs = true;
-        uzycieDelim = " ";
-        aliases = new String[] {"pw", "dm", "msg", "pv", "privee"};
-        allowPermLevelChange = false;
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        User doKogo = (User) context.getArgs()[0];
+    public void execute(@NotNull NewCommandContext context) {
         User sender = context.getSender();
-        String tresc = Arrays.stream(Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length))
-                .map(o -> o == null ? "" : o.toString()).collect(Collectors.joining(uzycieDelim));
+        User doKogo = context.getArguments().get("osoba").getAsUser();
+        String tresc = context.getArguments().get("tresc").getAsString();
         if (sender.equals(doKogo)) {
-            context.reply(context.getTranslated("priv.same.recipient"));
-            return false;
+            context.replyEphemeral(context.getTranslated("priv.same.recipient"));
+            return;
         }
+        context.defer(true);
         if (privDao.isZgloszone(sender.getId())) {
-            context.reply(context.getTranslated("priv.reported"));
-            return false;
+            context.sendMessage(context.getTranslated("priv.reported"));
+            return;
         }
         UserConfig uc = userDao.get(sender);
         if (!uc.isPrivWlaczone()) {
-            context.reply(context.getTranslated("priv.off"));
-            return false;
+            context.sendMessage(context.getTranslated("priv.off"));
+            return;
         }
         if (uc.isPrivBlacklist()) {
-            context.reply(context.getTranslated("priv.blacklist"));
-            return false;
+            context.sendMessage(context.getTranslated("priv.blacklist"));
+            return;
         }
         if (uc.getPrivIgnored().contains(doKogo.getId())) {
-            context.reply(context.getTranslated("priv.ignored"));
-            return false;
+            context.sendMessage(context.getTranslated("priv.ignored"));
+            return;
         }
         try {
             sender.openPrivateChannel().complete();
         } catch (Exception e) {
-            context.reply(context.getTranslated("priv.cant.receive.dm"));
-            return false;
+            context.sendMessage(context.getTranslated("priv.cant.receive.dm"));
+            return;
         }
         PrivateChannel ch;
         try {
@@ -94,20 +83,18 @@ public class PrivCommand extends Command {
             if (!uc2.isPrivWlaczone()) throw new KurwaException();
             if (uc2.isPrivBlacklist()) throw new KurwaException();
         } catch (Exception e) {
-            context.reply(context.getTranslated("priv.cant.send.dm"));
-            return false;
+            context.sendMessage(context.getTranslated("priv.cant.send.dm"));
+            return;
         }
         String id = StringUtil.generateId();
         try {
             ch.sendMessage(context.getTlumaczenia().get(context.getTlumaczenia().getLanguage(doKogo),
-                    "priv.message", sender.getAsTag(), sender.getId(), tresc,
-                    Ustawienia.instance.prefix, sender.getId(), Ustawienia.instance.prefix, id)).complete();
+                    "priv.message", sender.getAsTag(), sender.getId(), tresc, sender.getId(), id)).complete();
             privDao.save(new Priv(id, sender.getId(), doKogo.getId(), tresc, null));
-            context.reply(context.getTranslated("priv.success"));
+            context.sendMessage(context.getTranslated("priv.success"));
         } catch (Exception e) {
-            context.reply(context.getTranslated("priv.cant.send.dm"));
+            context.sendMessage(context.getTranslated("priv.cant.send.dm"));
         }
-        return true;
     }
 
     private static class KurwaException extends Exception { //sonarlint weź się przymknij

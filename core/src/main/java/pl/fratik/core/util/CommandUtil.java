@@ -17,12 +17,16 @@
 
 package pl.fratik.core.util;
 
+import net.dv8tion.jda.api.entities.ChannelType;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.NewCommand;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
+
+import java.util.EnumSet;
+import java.util.Set;
 
 public class CommandUtil {
 
@@ -67,6 +71,8 @@ public class CommandUtil {
                     optionType = OptionType.USER;
                     break;
                 case "channel":
+                case "textchannel":
+                case "voicechannel":
                     optionType = OptionType.CHANNEL;
                     break;
                 case "role":
@@ -88,6 +94,12 @@ public class CommandUtil {
             keyBase += "." + name;
             String translatedDescription = tlumaczenia.get(Language.DEFAULT, keyBase + ".description");
             options[i] = new OptionData(optionType, name, translatedDescription, required, autoComplete);
+            if (optionType == OptionType.CHANNEL) {
+                EnumSet<ChannelType> types = EnumSet.noneOf(ChannelType.class);
+                if (type.equals("textchannel")) types.addAll(Set.of(ChannelType.TEXT, ChannelType.NEWS));
+                if (type.equals("voicechannel")) types.add(ChannelType.VOICE);
+                options[i].setChannelTypes(types);
+            }
             command.updateOptionData(options[i]);
         }
         return options;

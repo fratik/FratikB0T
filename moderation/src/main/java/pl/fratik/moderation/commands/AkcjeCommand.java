@@ -20,16 +20,18 @@ package pl.fratik.moderation.commands;
 import com.google.common.eventbus.EventBus;
 import io.sentry.Sentry;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
+import net.dv8tion.jda.api.interactions.InteractionHook;
+import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
-import net.dv8tion.jda.api.interactions.components.Button;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.requests.ErrorResponse;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.command.PermLevel;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.command.SubCommand;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Kara;
@@ -41,7 +43,10 @@ import pl.fratik.moderation.entity.Case;
 import pl.fratik.moderation.entity.CaseDao;
 import pl.fratik.moderation.utils.ModLogBuilder;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -51,49 +56,35 @@ public class AkcjeCommand extends ModerationCommand {
     private final ShardManager shardManager;
     private final EventWaiter eventWaiter;
     private final EventBus eventBus;
-    private final ManagerKomend managerKomend;
     private final GuildDao guildDao;
 
-    public AkcjeCommand(CaseDao caseDao, ShardManager shardManager, EventWaiter eventWaiter, EventBus eventBus, ManagerKomend managerKomend, GuildDao guildDao) {
+    public AkcjeCommand(CaseDao caseDao, ShardManager shardManager, EventWaiter eventWaiter, EventBus eventBus, GuildDao guildDao) {
         super(true);
         this.caseDao = caseDao;
         this.shardManager = shardManager;
         this.eventWaiter = eventWaiter;
         this.eventBus = eventBus;
-        this.managerKomend = managerKomend;
         this.guildDao = guildDao;
         name = "akcje";
-        aliases = new String[] {"administracyjne", "adm", "listawarnow", "listakickow", "listabanow", "ostrzezenia", "kicki", "bany", "ilewarnów"};
-        permissions.add(Permission.MESSAGE_EMBED_LINKS);
-        permissions.add(Permission.MESSAGE_HISTORY);
-        category = CommandCategory.MODERATION;
-        uzycieDelim = " ";
-        uzycie = new Uzycie("czlonek", "user");
+        permissions = DefaultMemberPermissions.enabledFor(Permission.MANAGE_SERVER);
     }
 
-    @Override
-    public boolean execute(@NotNull CommandContext context) {
-        Message m = context.reply(context.getTranslated("generic.loading"));
-        User user = null;
-        Object[] args = context.getArgs();
-        if (args.length > 0 && args[0] != null) user = (User) args[0];
-        if (user == null) user = context.getSender();
-        return sendCases(context, user, caseDao.getCasesByMember(user, context.getGuild()), m);
+    @SubCommand(name = "dla", usage = "<osoba:user>")
+    public void dla(@NotNull NewCommandContext context) {
+        InteractionHook hook = context.defer(false);
+        User user = context.getArguments().get("osoba").getAsUser();
+        sendCases(context, user, caseDao.getCasesByMember(user, context.getGuild()), hook);
     }
 
-    @SubCommand(name = "admin", aliases = {"adm"})
-    public boolean adminMode(@NotNull CommandContext context) {
-        Message m = context.reply(context.getTranslated("generic.loading"));
-        User user = null;
-        Object[] args = context.getArgs();
-        if (args.length > 0 && args[0] != null) user = (User) args[0];
-        if (user == null) user = context.getSender();
-        User finalUser = user;
-        return sendCases(context, finalUser, caseDao.getCasesByGuild(context.getGuild()).stream()
-                .filter(c -> Objects.equals(c.getIssuerId(), finalUser.getIdLong())).collect(Collectors.toList()), m);
+    @SubCommand(name = "od", usage = "<osoba:user>")
+    public void adminMode(@NotNull NewCommandContext context) {
+        InteractionHook hook = context.defer(false);
+        User user = context.getArguments().get("osoba").getAsUser();
+        sendCases(context, user, caseDao.getCasesByGuild(context.getGuild()).stream()
+                .filter(c -> Objects.equals(c.getIssuerId(), user.getIdLong())).collect(Collectors.toList()), hook);
     }
 
-    public boolean sendCases(CommandContext context, User user, List<Case> mcases, Message m) {
+    public void sendCases(NewCommandContext context, User user, List<Case> mcases, InteractionHook m) {
         Collections.sort(mcases);
         List<Case> warnCases = mcases.stream().filter(c -> c.getType() == Kara.WARN).collect(Collectors.toList());
         List<Case> unwarnCases = mcases.stream().filter(c -> c.getType() == Kara.UNWARN).collect(Collectors.toList());
@@ -119,32 +110,33 @@ public class AkcjeCommand extends ModerationCommand {
                 .setDescription(context.getTranslated("akcje.embed.description")).setFooter("%s/%s", null));
         for (Case aCase : mcases) {
             EmbedBuilder eb = ModLogBuilder.generateEmbed(aCase, context.getGuild(), shardManager,
-                    context.getLanguage(), managerKomend, false, true);
+                    context.getLanguage(), false, true);
             eb.setFooter(Objects.requireNonNull(eb.build().getFooter()).getText() + " (%s/%s)", null);
             strony.add(eb);
         }
         new ClassicEmbedPaginator(eventWaiter, strony, context.getSender(), context.getLanguage(),
                 context.getTlumaczenia(), eventBus).setCustomFooter(true).create(m);
-        return true;
     }
 
     @SubCommand(name = "reset")
-    public boolean reset(CommandContext context) {
-        if (UserUtil.getPermlevel(context.getMember(), guildDao, shardManager, PermLevel.OWNER).getNum() < PermLevel.OWNER.getNum()) {
+    public boolean reset(NewCommandContext context) {
+        if (context.getGuild().getOwnerIdLong() != context.getSender().getIdLong()) {
             context.reply(context.getTranslated("akcje.reset.perms"));
             return false;
         }
-        Message msg = context.reply(context.getTranslated("akcje.reset.confirmation"), ActionRow.of(
-                Button.danger("YES", context.getTranslated("generic.yes")),
-                Button.secondary("NO", context.getTranslated("generic.no"))
-        ));
-        ButtonWaiter waiter = new ButtonWaiter(eventWaiter, context, msg.getIdLong(), ButtonWaiter.ResponseType.REPLY);
+        String content = context.getTranslated("akcje.reset.confirmation");
+        InteractionHook hook = context.reply(new MessageBuilder(content)
+                .setActionRows(ActionRow.of(
+                        Button.danger("YES", context.getTranslated("generic.yes")),
+                        Button.secondary("NO", context.getTranslated("generic.no"))
+                )).build());
+        ButtonWaiter waiter = new ButtonWaiter(eventWaiter, context, hook.getInteraction(), ButtonWaiter.ResponseType.REPLY);
         waiter.setTimeoutHandler(() -> {
-            msg.editMessage(msg.getContentRaw()).setActionRows(Collections.emptySet()).queue();
-            context.send(context.getTranslated("akcje.reset.cancelled"));
+            hook.editOriginal(content).setActionRows(Collections.emptySet()).queue();
+            hook.sendMessage(context.getTranslated("akcje.reset.cancelled")).queue();
         });
         waiter.setButtonHandler(e -> {
-            msg.editMessage(msg.getContentRaw()).setActionRows(Collections.emptySet()).queue();
+            hook.editOriginal(content).setActionRows(Collections.emptySet()).queue();
             if (!e.getComponentId().equals("YES")) {
                 e.getHook().editOriginal(context.getTranslated("akcje.reset.cancelled")).queue();
                 return;

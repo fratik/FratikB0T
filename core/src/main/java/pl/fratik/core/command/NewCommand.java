@@ -57,7 +57,6 @@ public abstract class NewCommand {
     }
 
     public CommandData generateCommandData(Tlumaczenia tlumaczenia) {
-        subcommands.clear();
         if (usage != null && hasSubcommands())
             throw new IllegalArgumentException("The base command can't be used if there are subcommands present");
         SlashCommandData data = generateBasicCommandData(tlumaczenia);
@@ -90,7 +89,6 @@ public abstract class NewCommand {
                                     subcommand.name(), subcommand.usage(), tlumaczenia));
                     if (subcommandGroupData != null) subcommandGroupData.addSubcommands(scd);
                     else mainSubs.add(scd);
-                    subcommands.put((subcommandGroupData != null ? subcommandGroupData.getName() + "/" : "") + subcommand.name(), method);
                 }
             }
             data.addSubcommandGroups(groups.values());
@@ -98,6 +96,21 @@ public abstract class NewCommand {
         }
         if (usage != null) data.addOptions(getOptions(tlumaczenia));
         return data;
+    }
+
+    public void registerSubcommands() {
+        subcommands.clear();
+        if (!hasSubcommands()) return;
+        for (Method method : getClass().getMethods()) {
+            if (method.isAnnotationPresent(SubCommand.class) && method.getParameterCount() == 1) {
+                String name = "";
+                SubCommand subcommand = method.getAnnotation(SubCommand.class);
+                if (method.isAnnotationPresent(SubCommandGroup.class))
+                    name += method.getAnnotation(SubCommandGroup.class).name() + "/";
+                name += subcommand.name();
+                subcommands.put(name, method);
+            }
+        }
     }
 
     protected SlashCommandData generateBasicCommandData(Tlumaczenia tlumaczenia) {
@@ -113,6 +126,10 @@ public abstract class NewCommand {
 
     public void updateOptionData(OptionData option) {
         // no-op, niech komendy które tego potrzebują to nadpiszą
+    }
+
+    public boolean permissionCheck(NewCommandContext context) {
+        return true;
     }
 
     @Getter

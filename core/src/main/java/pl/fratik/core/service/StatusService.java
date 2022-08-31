@@ -86,7 +86,6 @@ public class StatusService extends AbstractScheduledService {
                             .replace("{SHARDS}", String.valueOf(shardManager.getShards().size()))
                             .replace("{SERVERS:ALL}", String.valueOf(shardManager.getGuilds().size()))
                             .replace("{SERVERS:SHARD}", String.valueOf(jda.getGuilds().size()))
-                            .replace("{PREFIX}", ustawienia.prefix)
                             .replace("{SHARD}", String.valueOf(jda.getShardInfo().getShardId()))));
         }
         last++;

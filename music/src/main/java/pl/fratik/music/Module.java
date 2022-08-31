@@ -28,11 +28,12 @@ import org.slf4j.LoggerFactory;
 import pl.fratik.core.Globals;
 import pl.fratik.core.Ustawienia;
 import pl.fratik.core.cache.RedisCacheManager;
+import pl.fratik.core.command.NewCommand;
 import pl.fratik.core.entity.GuildDao;
-import pl.fratik.core.entity.MemberDao;
 import pl.fratik.core.event.ConnectedEvent;
 import pl.fratik.core.manager.ManagerArgumentow;
 import pl.fratik.core.manager.ManagerBazyDanych;
+import pl.fratik.core.manager.NewManagerKomend;
 import pl.fratik.core.moduly.Modul;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.EventWaiter;
@@ -48,10 +49,9 @@ import java.util.EnumSet;
 
 @SuppressWarnings("FieldCanBeLocal")
 public class Module implements Modul {
-    @Inject private ManagerKomend managerKomend;
+    @Inject private NewManagerKomend managerKomend;
     @Inject private EventWaiter eventWaiter;
     @Inject private GuildDao guildDao;
-    @Inject private MemberDao memberDao;
     @Inject private ShardManager shardManager;
     @Inject private EventBus eventBus;
     @Inject private Tlumaczenia tlumaczenia;
@@ -59,7 +59,7 @@ public class Module implements Modul {
     @Inject private ManagerBazyDanych managerBazyDanych;
     @Inject private RedisCacheManager redisCacheManager;
     private NowyManagerMuzyki managerMuzyki;
-    private ArrayList<Command> commands;
+    private ArrayList<NewCommand> commands;
     private QueueDao queueDao;
 
     public Module() {
@@ -108,7 +108,7 @@ public class Module implements Modul {
         commands.add(new VolumeCommand(managerMuzyki, guildDao));
         commands.add(new QueueCommand(managerMuzyki, eventWaiter, eventBus));
         commands.add(new PlaylistCommand(managerMuzyki, queueDao));
-        commands.add(new RepeatCommand(managerMuzyki, managerArgumentow, guildDao));
+        commands.add(new RepeatCommand(managerMuzyki, guildDao));
         commands.add(new LeaveCommand(managerMuzyki));
         commands.add(new NowplayingCommand(managerMuzyki));
         commands.add(new PauseCommand(managerMuzyki, guildDao));
@@ -117,7 +117,7 @@ public class Module implements Modul {
             commands.add(new TekstCommand(eventWaiter, eventBus, managerMuzyki));
         commands.add(new NodesCommand());
 
-        commands.forEach(managerKomend::registerCommand);
+        managerKomend.registerCommands(this, commands);
 
         if (shardManager.getShards().stream().anyMatch(s -> !s.getStatus().equals(JDA.Status.CONNECTED))) return true;
 
@@ -144,7 +144,8 @@ public class Module implements Modul {
             eventBus.unregister(this);
             managerMuzyki.shutdown();
         } catch (Exception ignored) {/*lul*/}
-        commands.forEach(managerKomend::unregisterCommand);
+
+        managerKomend.unregisterAll(this);
         return true;
     }
 }

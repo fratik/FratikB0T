@@ -17,8 +17,13 @@
 
 package pl.fratik.dev.commands;
 
+import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.command.*;
+import pl.fratik.core.command.CommandType;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
+import pl.fratik.core.util.UserUtil;
 
 import javax.annotation.Nonnull;
 import java.io.BufferedReader;
@@ -26,37 +31,44 @@ import java.io.InputStreamReader;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
-public class ShellCommand extends Command {
+public class ShellCommand extends NewCommand {
     public ShellCommand() {
         name = "shell";
-        permLevel = PermLevel.BOTOWNER;
-        category = CommandCategory.SYSTEM;
-        allowPermLevelChange = false;
+        usage = "<pokaz:bool> <kod:string>";
+        type = CommandType.SUPPORT_SERVER;
+        permissions = DefaultMemberPermissions.DISABLED;
     }
 
     @Override
-    public boolean execute(@NotNull @Nonnull CommandContext context) {
-        context.reply("<a:loading:503651397049516053> Wykonuję...", message -> {
-            try {
-                Process process = new ProcessBuilder
-                        (Arrays.asList(System.getenv("SHELL"), "-c", String.join(" ", context.getRawArgs())))
-                        .redirectErrorStream(true).start();
-                process.waitFor(15, TimeUnit.MINUTES);
-                BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-                StringBuilder builder = new StringBuilder();
-                if (reader.ready()) {
-                    String line;
-                    while ((line = reader.readLine()) != null) builder.append(line).append(System.lineSeparator());
-                    reader.close();
-                }
-                process.destroyForcibly();
-                String result = builder.toString();
-                if (result.length() > 1993) result = result.substring(0, 1993);
-                message.editMessage("```\n" + result + "```").queue();
-            } catch (Exception e) {
-                message.editMessage("Whoops! Coś nie pykło chyba: " + e.getMessage()).queue();
+    public void execute(@NotNull @Nonnull NewCommandContext context) {
+        context.deferAsync(!context.getArguments().get("pokaz").getAsBoolean());
+        try {
+            Process process = new ProcessBuilder
+                    (Arrays.asList(System.getenv("SHELL"), "-c", context.getArguments().get("kod").getAsString()))
+                    .redirectErrorStream(true).start();
+            process.waitFor(15, TimeUnit.MINUTES);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            StringBuilder builder = new StringBuilder();
+            if (reader.ready()) {
+                String line;
+                while ((line = reader.readLine()) != null) builder.append(line).append(System.lineSeparator());
+                reader.close();
             }
-        });
+            process.destroyForcibly();
+            String result = builder.toString();
+            if (result.length() > Message.MAX_CONTENT_LENGTH - 7) result = result.substring(0, Message.MAX_CONTENT_LENGTH - 7);
+            context.sendMessage("```\n" + result + "```");
+        } catch (Exception e) {
+            context.sendMessage("Whoops! Coś nie pykło chyba: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public boolean permissionCheck(NewCommandContext context) {
+        if (!UserUtil.isBotOwner(context.getSender().getIdLong())) {
+            context.replyEphemeral(context.getTranslated("generic.no.permissions"));
+            return false;
+        }
         return true;
     }
 }

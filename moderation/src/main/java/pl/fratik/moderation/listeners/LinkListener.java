@@ -54,16 +54,14 @@ public class LinkListener {
 
     private final GuildDao guildDao;
     private final Tlumaczenia tlumaczenia;
-    private final ManagerKomend managerKomend;
     private final ShardManager shardManager;
     private final CaseDao caseDao;
     private final Cache<GuildConfig> gcCache;
     private final EventBus eventBus;
 
-    public LinkListener(GuildDao guildDao, Tlumaczenia tlumaczenia, ManagerKomend managerKomend, ShardManager shardManager, CaseDao caseDao, RedisCacheManager redisCacheManager, EventBus eventBus) {
+    public LinkListener(GuildDao guildDao, Tlumaczenia tlumaczenia, ShardManager shardManager, CaseDao caseDao, RedisCacheManager redisCacheManager, EventBus eventBus) {
         this.guildDao = guildDao;
         this.tlumaczenia = tlumaczenia;
-        this.managerKomend = managerKomend;
         this.shardManager = shardManager;
         this.caseDao = caseDao;
         gcCache = redisCacheManager.new CacheRetriever<GuildConfig>(){}.getCache();
@@ -160,8 +158,7 @@ public class LinkListener {
         caseDao.createNew(null, c, false, e.getChannel(), tlumaczenia.getLanguage(e.getMember()));
         e.getChannel().sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(e.getMember()),
                 "antilink.notice", e.getAuthor().getAsMention(),
-                WarnUtil.countCases(caseDao.getCasesByMember(e.getMember()), e.getAuthor().getId()),
-                managerKomend.getPrefixes(e.getGuild()).get(0))).queue();
+                WarnUtil.countCases(caseDao.getCasesByMember(e.getMember()), e.getAuthor().getId()))).queue();
     }
 
     private boolean isAntilink(GuildChannel channel) {
@@ -203,7 +200,6 @@ public class LinkListener {
          * @return The Author of the Message.
          *
          * @see #isWebhookMessage()
-         * @see User#isFake()
          */
         @Nonnull
         User getAuthor() {

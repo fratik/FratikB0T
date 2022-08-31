@@ -62,10 +62,6 @@ public class NukepointsCommand extends NewCommand {
 
     @Override
     public void execute(@NotNull NewCommandContext context) {
-        if (!UserUtil.isBotOwner(context.getSender().getIdLong())) {
-            context.replyEphemeral(context.getTranslated("generic.no.permissions"));
-            return;
-        }
         String content = context.getTranslated("nukepoints.warning");
         InteractionHook hook = context.reply(new MessageBuilder(content).setActionRows(ActionRow.of(
                 Button.danger("YES", context.getTranslated("generic.yes")),
@@ -115,4 +111,12 @@ public class NukepointsCommand extends NewCommand {
         rw.create();
     }
 
+    @Override
+    public boolean permissionCheck(NewCommandContext context) {
+        if (!UserUtil.isBotOwner(context.getSender().getIdLong())) {
+            context.replyEphemeral(context.getTranslated("generic.no.permissions"));
+            return false;
+        }
+        return true;
+    }
 }

@@ -18,23 +18,21 @@
 package pl.fratik.commands.system;
 
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 
 import java.util.Random;
 
-public class RzutKosciaCommand extends Command {
+public class RzutKosciaCommand extends NewCommand {
     private static final Random random = new Random();
 
     public RzutKosciaCommand() {
         name = "rzutkoscia";
-        category = CommandCategory.FUN;
-        aliases = new String[] {"rzutk", "kostka", "rk", "rool", "roll"};
-        allowPermLevelChange = false;
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
+    public void execute(@NotNull NewCommandContext context) {
         context.reply(context.getTranslated("rzutkoscia.response", context.getSender().getAsMention(),
                 String.valueOf(random.nextInt(6) + 1), "\uD83D\uDC4C"));
-        return true;
     }
 }

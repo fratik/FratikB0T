@@ -23,6 +23,7 @@ import pl.fratik.core.moduly.Modul;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 
 public interface NewManagerKomend {
     void registerCommands(Modul modul, Collection<NewCommand> commands);
@@ -31,5 +32,6 @@ public interface NewManagerKomend {
     void unregisterAll();
     void unregisterAll(Modul modul);
     Map<Modul, Set<NewCommand>> getRegistered();
+    Stream<NewCommand> commandsStream();
     void shutdown();
 }

@@ -17,37 +17,33 @@
 
 package pl.fratik.commands.images;
 
-import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.User;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 import pl.fratik.core.Ustawienia;
-import pl.fratik.core.command.PermLevel;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.util.NetworkUtil;
 
 import java.io.IOException;
 import java.net.URLEncoder;
 
-public class HugCommand extends Command {
+public class HugCommand extends NewCommand {
     public HugCommand() {
         name = "hug";
-        category = CommandCategory.IMAGES;
-        uzycie = new Uzycie("uzytkownik", "user", true);
-        permLevel = PermLevel.EVERYONE;
-        permissions.add(Permission.MESSAGE_ATTACH_FILES);
+        usage = "<osoba:user>";
         cooldown = 5;
-        aliases = new String[] {"tulas", "przytul"};
-        allowPermLevelChange = false;
         allowInDMs = true;
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        User user = (User) context.getArgs()[0];
+    public void execute(@NotNull NewCommandContext context) {
+        User user = context.getArguments().get("osoba").getAsUser();
         if (context.getSender().getId().equals(user.getId())){
-            context.reply(context.getTranslated("hug.selfhug"));
-            return false;
+            context.replyEphemeral(context.getTranslated("hug.selfhug"));
+            return;
         }
+        context.deferAsync(false);
         try {
             JSONObject zdjecie = NetworkUtil.getJson(Ustawienia.instance.apiUrls.get("image-server") +
                             "/api/image/hug?avatarURL=" + URLEncoder.encode(
@@ -59,14 +55,12 @@ public class HugCommand extends Command {
                     Ustawienia.instance.apiKeys.get("image-server"));
             if (zdjecie == null || !zdjecie.getBoolean("success")) {
                 context.reply("Wystąpił błąd ze zdobyciem zdjęcia!");
-                return false;
+                return;
             }
             byte[] img = NetworkUtil.getBytesFromBufferArray(zdjecie.getJSONObject("image").getJSONArray("data"));
-            context.getMessageChannel().sendFile(img, "hug.png").reference(context.getMessage()).queue();
+            context.sendMessage("hug.png", img);
         } catch (IOException | NullPointerException e) {
-            context.reply(context.getTranslated("image.server.fail"));
+            context.sendMessage(context.getTranslated("image.server.fail"));
         }
-
-        return true;
     }
 }

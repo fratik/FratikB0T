@@ -19,13 +19,16 @@ package pl.fratik.moderation.commands;
 
 import lombok.Getter;
 import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.ChannelType;
+import net.dv8tion.jda.api.entities.GuildMessageChannel;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageHistory;
-import net.dv8tion.jda.api.exceptions.ErrorResponseException;
+import net.dv8tion.jda.api.interactions.InteractionHook;
+import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
+import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.utils.TimeUtil;
 import org.jetbrains.annotations.NotNull;
-import pl.fratik.core.command.PermLevel;
+import pl.fratik.core.command.NewCommandContext;
+import pl.fratik.core.util.ExpiringHashMap;
 import pl.fratik.moderation.listeners.LogListener;
 
 import java.util.ArrayList;
@@ -34,45 +37,35 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-public class PurgeCommand extends ModerationCommand { //TODO: 1000 wiadomosci dla premium
+public class PurgeCommand extends ModerationCommand {
 
     private final LogListener logListener;
 
-    @Getter private static HashMap<String, String> znanePurge = new HashMap<>();
+    @Getter private static HashMap<String, String> znanePurge;
 
     public PurgeCommand(LogListener logListener) {
         super(false);
         this.logListener = logListener;
         name = "purge";
-        category = CommandCategory.MODERATION;
-        uzycie = new Uzycie("ilość", "integer", true);
-        permLevel = PermLevel.MOD;
-        permissions.add(Permission.MESSAGE_HISTORY);
-        permissions.add(Permission.MESSAGE_MANAGE);
-        znanePurge = new HashMap<>(); //NOSONAR
-        aliases = new String[] {"usunwiad", "clear", "usunwiadomosci", "usun", "usunwiadomosciztegokanalu", "usuwam", "clearpruge", "czysc", "backspace", "delete"};
+        permissions = DefaultMemberPermissions.enabledFor(Permission.MESSAGE_MANAGE);
+        usage = "<ilosc:int>";
+        znanePurge = new ExpiringHashMap<>(30, TimeUnit.SECONDS); // NOSONAR
     }
 
     @Override
-    public boolean preExecute(CommandContext context) {
-        if (context.getMessageChannel().getType() != ChannelType.TEXT) {
-            context.reply(context.getTranslated("generic.text.only")); //todo - purge może być wspierane ale jestem leniwą prukwą
+    public boolean permissionCheck(NewCommandContext context) {
+        if (!(context.getChannel() instanceof GuildMessageChannel)) {
+            context.replyEphemeral(context.getTranslated("generic.text.only"));
             return false;
         }
-        return super.preExecute(context);
+        return super.permissionCheck(context);
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        logListener.getZnaneAkcje().add(context.getMessage().getId());
-        context.getMessage().delete().queue();
-        int ilosc = (int) context.getArgs()[0];
-        if (ilosc < 2 || ilosc > 100) {
-            context.reply(context.getTranslated("purge.no.limit"));
-            return false;
-        }
-        Message message = context.reply(context.getTranslated("purge.retrieving"));
-        CompletableFuture<MessageHistory> historia = context.getTextChannel().getHistoryBefore(context.getMessage(), ilosc).submit();
+    public void execute(@NotNull NewCommandContext context) {
+        int ilosc = context.getArguments().get("ilosc").getAsInt();
+        InteractionHook hook = context.defer(true);
+        CompletableFuture<MessageHistory> historia = context.getChannel().getHistoryBefore(hook.getInteraction().getIdLong(), ilosc).submit();
         boolean staraWiadomosc = false;
         long dwaTygodnieTemu = (System.currentTimeMillis() - TimeUnit.DAYS.toMillis(14) - TimeUtil.DISCORD_EPOCH)
                 << TimeUtil.TIMESTAMP_OFFSET;
@@ -88,44 +81,29 @@ public class PurgeCommand extends ModerationCommand { //TODO: 1000 wiadomosci dl
                 wiadomosciWszystkie.add(msg);
             }
         }
-        logListener.getZnaneAkcje().add(message.getId());
         if (staraWiadomosc) {
-            message.editMessage(context.getTranslated("purge.deleting.too.old", wiadomosciWszystkie.size(),
-                    wiadomosci.size() - wiadomosciWszystkie.size())).complete();
-            if (wiadomosciWszystkie.isEmpty()) return false;
+            context.sendMessage(context.getTranslated("purge.deleting.too.old", wiadomosciWszystkie.size(),
+                    wiadomosci.size() - wiadomosciWszystkie.size()));
+            if (wiadomosciWszystkie.isEmpty()) return;
             else if (wiadomosciWszystkie.size() == 1) {
                 wiadomosciWszystkie.get(0).delete().queue();
-                return true;
+                return;
             }
-        } else {
-            try {
-                message.editMessage(context.getTranslated("purge.deleting", ilosc)).complete();
-            } catch (ErrorResponseException e) {
-                try {
-                    message.getChannel().sendMessage(context.getTranslated("purge.deleting", ilosc))
-                            .reference(context.getMessage()).complete();
-                } catch (ErrorResponseException ignored) {}
-            }
-        }
+        } else if (!wiadomosciWszystkie.isEmpty()) context.sendMessage(context.getTranslated("purge.deleting", ilosc));
         znanePurge.put(context.getGuild().getId(), context.getSender().getId());
         if (wiadomosciWszystkie.isEmpty()) {
-            try {
-                message.editMessage(context.getTranslated("purge.deleting.empty")).complete();
-            } catch (ErrorResponseException e) {
-                try {
-                    message.getChannel().sendMessage(context.getTranslated("purge.deleting.empty"))
-                            .reference(context.getMessage()).complete();
-                } catch (ErrorResponseException ignored) {}
-            }
-            return false;
+            context.sendMessage(context.getTranslated("purge.deleting.empty"));
+            return;
         }
         if (wiadomosciWszystkie.size() == 1) {
             wiadomosciWszystkie.get(0).delete().queue();
-            return true;
+            return;
         }
-        context.getTextChannel().deleteMessages(wiadomosciWszystkie).queue();
-        logListener.getZnaneAkcje().add(message.getId());
-        message.delete().queueAfter(5, TimeUnit.SECONDS, null, i -> {});
-        return true;
+        context.getChannel().asGuildMessageChannel().deleteMessages(wiadomosciWszystkie).queue();
+    }
+
+    @Override
+    public void updateOptionData(OptionData option) {
+        if (option.getName().equals("ilosc")) option.setRequiredRange(2, 100);
     }
 }

@@ -19,6 +19,7 @@ package pl.fratik.moderation.listeners;
 
 import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.Subscribe;
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.MessageUpdateEvent;
@@ -26,13 +27,11 @@ import net.dv8tion.jda.api.sharding.ShardManager;
 import pl.fratik.core.Globals;
 import pl.fratik.core.cache.Cache;
 import pl.fratik.core.cache.RedisCacheManager;
-import pl.fratik.core.command.PermLevel;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.Kara;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.CommonUtil;
-import pl.fratik.core.util.UserUtil;
 import pl.fratik.moderation.entity.Case;
 import pl.fratik.moderation.entity.CaseDao;
 import pl.fratik.moderation.utils.WarnUtil;
@@ -44,15 +43,13 @@ public class AntiInviteListener {
 
     private final GuildDao guildDao;
     private final Tlumaczenia tlumaczenia;
-    private final ManagerKomend managerKomend;
     private final ShardManager shardManager;
     private final CaseDao caseDao;
     private final Cache<GuildConfig> gcCache;
 
-    public AntiInviteListener(GuildDao guildDao, Tlumaczenia tlumaczenia, ManagerKomend managerKomend, ShardManager shardManager, CaseDao caseDao, RedisCacheManager redisCacheManager) {
+    public AntiInviteListener(GuildDao guildDao, Tlumaczenia tlumaczenia, ShardManager shardManager, CaseDao caseDao, RedisCacheManager redisCacheManager) {
         this.guildDao = guildDao;
         this.tlumaczenia = tlumaczenia;
-        this.managerKomend = managerKomend;
         this.shardManager = shardManager;
         this.caseDao = caseDao;
         gcCache = redisCacheManager.new CacheRetriever<GuildConfig>(){}.getCache();
@@ -65,7 +62,7 @@ public class AntiInviteListener {
                 !CommonUtil.canTalk(e.getChannel())) return;
         if (!isAntiinvite(e.getGuild()) || isIgnored((GuildChannel) e.getChannel())) return;
         if (!e.getGuild().getSelfMember().canInteract(e.getMember())) return;
-        if (UserUtil.getPermlevel(e.getMember(), guildDao, shardManager, PermLevel.OWNER).getNum() >= 1) return;
+        if (e.getMember().hasPermission(Permission.MESSAGE_MANAGE) || e.getMember().hasPermission(Permission.MANAGE_SERVER)) return;
 
         if (containsInvite(e.getMessage().getContentRaw())) addKara(e.getMessage());
     }
@@ -77,7 +74,7 @@ public class AntiInviteListener {
                 !CommonUtil.canTalk(e.getChannel())) return;
         if (!isAntiinvite(e.getGuild()) || isIgnored((GuildChannel) e.getChannel())) return;
         if (!e.getGuild().getSelfMember().canInteract(e.getMember())) return;
-        if (UserUtil.getPermlevel(e.getMember(), guildDao, shardManager, PermLevel.OWNER).getNum() >= 1) return;
+        if (e.getMember().hasPermission(Permission.MESSAGE_MANAGE) || e.getMember().hasPermission(Permission.MANAGE_SERVER)) return;
 
         if (containsInvite(e.getMessage().getContentRaw())) addKara(e.getMessage());
     }
@@ -102,10 +99,9 @@ public class AntiInviteListener {
                 }
                 Case c = new Case.Builder(member, Instant.now(), Kara.WARN).setIssuerId(Globals.clientId)
                         .setReasonKey("antiinvite.reason").build();
-                caseDao.createNew(null, c, false, msg.getTextChannel(), tlumaczenia.getLanguage(member));
+                caseDao.createNew(null, c, false, msg.getChannel(), tlumaczenia.getLanguage(member));
                 msg.getChannel().sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(member),
-                        trans, msg.getAuthor().getAsMention(), WarnUtil.countCases(caseDao.getCasesByMember(member), member.getId()),
-                        managerKomend.getPrefixes(msg.getGuild()).get(0))).queue();
+                        trans, msg.getAuthor().getAsMention(), WarnUtil.countCases(caseDao.getCasesByMember(member), member.getId()))).queue();
             }
         } catch (Exception ignored) {
             // no i chuj, wylądował, wszystko poszło w pizdu

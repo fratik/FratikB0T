@@ -68,7 +68,7 @@ public class Ustawienia {
 
     public static class GamesClass {
         public Activity.ActivityType type = Activity.ActivityType.PLAYING;
-        public List<String> games = Arrays.asList("Shard {SHARD}/{SHARDS}", "v{VERSION}", "{USERS:ALL} użytkowników", "{SERVERS:ALL} serwerów", "{PREFIX}help", "{PREFIX}pop aby zawołać wsparcie bota", "{PREFIX}dashboard", "discord.gg/CZ8pXah \uD83D\uDE03");
+        public List<String> games = Arrays.asList("Shard {SHARD}/{SHARDS}", "v{VERSION}", "{USERS:ALL} użytkowników", "{SERVERS:ALL} serwerów", "/pop aby zawołać wsparcie bota", "/dashboard", "discord.gg/CZ8pXah \uD83D\uDE03");
     }
 
     public static class Emotki {

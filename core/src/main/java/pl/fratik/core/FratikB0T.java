@@ -211,7 +211,7 @@ class FratikB0T {
                 NetworkUtil.setUpContentInformationCache(redisCacheManager);
                 Tlumaczenia.setShardManager(shardManager);
                 Tlumaczenia tlumaczenia = new Tlumaczenia(userDao, guildDao, redisCacheManager);
-                managerKomend = new NewManagerKomendImpl(shardManager, tlumaczenia);
+                managerKomend = new NewManagerKomendImpl(shardManager, tlumaczenia, eventBus);
                 moduleManager = new ManagerModulowImpl(shardManager, mbd, guildDao, webhookManager, memberDao, userDao,
                         redisCacheManager, gbanDao, scheduleDao, managerKomend, managerArgumentow, eventWaiter,
                         tlumaczenia, eventBus);
@@ -226,7 +226,7 @@ class FratikB0T {
                 glownyService.awaitHealthy();
 
                 shardManager.setStatus(OnlineStatus.ONLINE);
-                shardManager.setActivity(Activity.playing("jebać interakcje! | v" + WERSJA));
+                shardManager.setActivity(Activity.playing("Dzień doberek! | v" + WERSJA));
                 statusService.startAsync();
                 scheduleService.startAsync();
 

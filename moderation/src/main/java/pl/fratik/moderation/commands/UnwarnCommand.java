@@ -17,9 +17,15 @@
 
 package pl.fratik.moderation.commands;
 
+import io.sentry.Sentry;
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
+import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.Globals;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.entity.Kara;
 import pl.fratik.core.util.UserUtil;
 import pl.fratik.moderation.entity.Case;
@@ -29,8 +35,7 @@ import pl.fratik.moderation.utils.WarnUtil;
 
 import java.time.Instant;
 import java.time.temporal.TemporalAccessor;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.List;
 
 public class UnwarnCommand extends ModerationCommand {
 
@@ -40,49 +45,44 @@ public class UnwarnCommand extends ModerationCommand {
         super(true);
         this.caseDao = caseDao;
         name = "unwarn";
-        category = CommandCategory.MODERATION;
-        uzycieDelim = " ";
-        LinkedHashMap<String, String> hmap = new LinkedHashMap<>();
-        hmap.put("uzytkownik", "member");
-        hmap.put("powod", "string");
-        hmap.put("[...]", "string");
-        uzycie = new Uzycie(hmap, new boolean[] {true, false, false});
-        aliases = new String[] {"usunwarna", "uniwarn", "odwarnuj", "odwajnowywuj", "odwarnowany", "odostrzezenie"};
+        usage = "<osoba:user> [powod:string] [ilosc:int]";
+        permissions = DefaultMemberPermissions.enabledFor(Permission.KICK_MEMBERS, Permission.BAN_MEMBERS);
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        String powod;
-        Member uzytkownik = (Member) context.getArgs()[0];
-        if (context.getArgs().length > 1 && context.getArgs()[1] != null)
-            powod = Arrays.stream(Arrays.copyOfRange(context.getArgs(), 1, context.getArgs().length))
-                    .map(e -> e == null ? "" : e).map(Objects::toString).collect(Collectors.joining(uzycieDelim));
-        else powod = context.getTranslated("unwarn.reason.default");
+    public void execute(@NotNull NewCommandContext context) {
+        Member uzytkownik = context.getArguments().get("osoba").getAsMember();
+        String powod = context.getArgumentOr("powod", context.getTranslated("unwarn.reason.default"), OptionMapping::getAsString);
+        if (uzytkownik == null) {
+            context.replyEphemeral(context.getTranslated("generic.no.member"));
+            return;
+        }
         if (uzytkownik.equals(context.getMember())) {
-            context.reply(context.getTranslated("unwarn.cant.unwarn.yourself"));
-            return false;
+            context.replyEphemeral(context.getTranslated("unwarn.cant.unwarn.yourself"));
+            return;
         }
         if (uzytkownik.getUser().isBot()) {
-            context.reply(context.getTranslated("unwarn.no.bot"));
-            return false;
+            context.replyEphemeral(context.getTranslated("unwarn.no.bot"));
+            return;
         }
         if (uzytkownik.isOwner()) {
-            context.reply(context.getTranslated("unwarn.cant.unwarn.owner"));
-            return false;
+            context.replyEphemeral(context.getTranslated("unwarn.cant.unwarn.owner"));
+            return;
         }
         if (!context.getMember().canInteract(uzytkownik)) {
-            context.reply(context.getTranslated("unwarn.user.cant.interact"));
-            return false;
+            context.replyEphemeral(context.getTranslated("unwarn.user.cant.interact"));
+            return;
         }
         if (!context.getGuild().getSelfMember().canInteract(uzytkownik)) {
-            context.reply(context.getTranslated("unwarn.bot.cant.interact"));
-            return false;
+            context.replyEphemeral(context.getTranslated("unwarn.bot.cant.interact"));
+            return;
         }
+        context.defer(false);
         List<Case> caseList = caseDao.getCasesByMember(uzytkownik);
         int cases = WarnUtil.countCases(caseList, uzytkownik.getId());
         try {
             if (cases < 0) {
-                context.reply(context.getTranslated("unwarn.too.many.unwarns.fixing"));
+                context.sendMessage(context.getTranslated("unwarn.too.many.unwarns.fixing"));
                 try {
                     TemporalAccessor timestamp = Instant.now();
                     Case c = new Case.Builder(uzytkownik, timestamp, Kara.WARN).setIssuerId(Globals.clientId)
@@ -93,36 +93,21 @@ public class UnwarnCommand extends ModerationCommand {
                     caseDao.createNew(null, c, false);
                     caseList.add(c);
                 } catch (Exception e1) {
-                    context.reply(context.getTranslated("unwarn.too.many.unwarns.cant.fix"));
-                    return false;
+                    context.sendMessage(context.getTranslated("unwarn.too.many.unwarns.cant.fix"));
+                    return;
                 }
-                context.reply(context.getTranslated("unwarn.too.many.unwarns.fixed"));
+                context.sendMessage(context.getTranslated("unwarn.too.many.unwarns.fixed"));
                 cases = WarnUtil.countCases(caseList, uzytkownik.getId());
             }
         } catch (Exception e) {
-            String prefix = context.getPrefix();
-            context.reply(context.getTranslated("unwarn.unexpected.error", prefix, prefix));
-            return false;
+            Sentry.capture(e);
+            context.sendMessage(context.getTranslated("unwarn.unexpected.error"));
+            return;
         }
-        int ileRazy = 1;
-        List<String> powodSplat = new ArrayList<>(Arrays.asList(powod.split(" ")));
-        if (!powodSplat.isEmpty()) {
-            String ileRazyStr = powodSplat.remove(0);
-            if (ileRazyStr.matches("^\\d+$")) {
-                int ileRazyA;
-                try {
-                    ileRazyA = Integer.parseInt(ileRazyStr);
-                } catch (Exception e) {
-                    ileRazyA = -1;
-                }
-                if (ileRazyA >= 1) ileRazy = ileRazyA;
-                else powodSplat.add(ileRazyStr);
-                powod = String.join(" ", powodSplat);
-            }
-        }
+        int ileRazy = context.getArgumentOr("ilosc", 1, OptionMapping::getAsInt);
         if (cases - ileRazy < 0) {
-            context.reply(context.getTranslated("unwarn.no.warns"));
-            return false;
+            context.sendMessage(context.getTranslated("unwarn.no.warns"));
+            return;
         }
         TemporalAccessor timestamp = Instant.now();
         Case aCase = new Case.Builder(uzytkownik, timestamp, Kara.UNWARN).setIleRazy(ileRazy)
@@ -130,10 +115,12 @@ public class UnwarnCommand extends ModerationCommand {
         ReasonUtils.parseFlags(aCase, powod);
         caseDao.createNew(null, aCase, false);
         caseList.add(aCase);
-        context.reply(context.getTranslated("unwarn.success", UserUtil.formatDiscrim(uzytkownik),
-                WarnUtil.countCases(caseList, uzytkownik.getId())), m -> {
-        });
-        return true;
+        context.sendMessage(context.getTranslated("unwarn.success", UserUtil.formatDiscrim(uzytkownik),
+                WarnUtil.countCases(caseList, uzytkownik.getId())));
     }
 
+    @Override
+    public void updateOptionData(OptionData option) {
+        if (option.getName().equals("ilosc")) option.setRequiredRange(1, Integer.MAX_VALUE);
+    }
 }

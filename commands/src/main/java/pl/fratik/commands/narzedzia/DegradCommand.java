@@ -17,60 +17,65 @@
 
 package pl.fratik.commands.narzedzia;
 
-import net.dv8tion.jda.api.sharding.ShardManager;
-import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.User;
-import net.dv8tion.jda.api.requests.restaction.MessageAction;
+import net.dv8tion.jda.api.interactions.InteractionHook;
+import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
+import net.dv8tion.jda.api.requests.restaction.WebhookMessageAction;
+import net.dv8tion.jda.api.sharding.ShardManager;
 import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pl.fratik.core.Globals;
 import pl.fratik.core.Ustawienia;
-import pl.fratik.core.command.PermLevel;
-import pl.fratik.core.util.CommonErrors;
+import pl.fratik.core.command.CommandType;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.util.UserUtil;
 
-import java.io.*;
+import java.io.IOException;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
-public class DegradCommand extends Command {
+public class DegradCommand extends NewCommand {
 
     private final ShardManager shardManager;
+    private final Logger logger;
 
     public DegradCommand(ShardManager shardManager) {
         this.shardManager = shardManager;
+        logger = LoggerFactory.getLogger(getClass());
         name = "degrad";
-        category = CommandCategory.UTILITY;
-        permLevel = PermLevel.ZGA;
-        permissions.add(Permission.MESSAGE_ATTACH_FILES);
-        uzycie = new Uzycie("gadmin", "user");
-        aliases = new String[] {"papa", "plynik"};
-        allowPermLevelChange = false;
+        type = CommandType.SUPPORT_SERVER;
+        permissions = DefaultMemberPermissions.DISABLED;
+        usage = "<gadmin:user>";
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        User gadmin = (User) context.getArgs()[0];
-        if (gadmin == null) {
-            CommonErrors.usage(context);
-            return false;
+    public void execute(@NotNull NewCommandContext context) {
+        if (!UserUtil.isZga(context.getSender(), shardManager)) {
+            context.replyEphemeral(context.getTranslated("generic.no.permissions"));
+            return;
         }
+        User gadmin = context.getArguments().get("gadmin").getAsUser();
         if (!Globals.inFratikDev) throw new IllegalStateException("bot nie na FDev");
         @SuppressWarnings("ConstantConditions") // sprawdzamy to wyżej
         Member czlonek = shardManager.getGuildById(Ustawienia.instance.botGuild).getMember(gadmin);
         if (czlonek == null) {
-            context.reply(context.getTranslated("degrad.no.member"));
-            return false;
+            context.replyEphemeral(context.getTranslated("degrad.no.member"));
+            return;
         }
         if (!UserUtil.isGadm(czlonek, shardManager)) {
-            context.reply(context.getTranslated("degrad.no.role"));
-            return false;
+            context.replyEphemeral(context.getTranslated("degrad.no.role"));
+            return;
         }
         if (context.getSender().getId().equals(czlonek.getUser().getId())) {
-            context.reply(context.getTranslated("degrad.selfdegrad"));
-            return false;
+            context.replyEphemeral(context.getTranslated("degrad.selfdegrad"));
+            return;
         }
+        InteractionHook hook = context.defer(false);
         byte[] zdjecie;
         try {
             zdjecie = IOUtils.toByteArray(getClass().getResourceAsStream("/image_degrad.jpg"));
@@ -78,15 +83,14 @@ public class DegradCommand extends Command {
             logger.warn("Zdjęcie z degradem nie znalezione!");
             zdjecie = null;
         }
-        MessageAction maction = context.getMessageChannel()
-                .sendMessage(context.getTranslated("degrad.inprogress", UserUtil.formatDiscrim(czlonek)))
-                .reference(context.getMessage());
+        WebhookMessageAction<Message> maction = hook
+                .sendMessage(context.getTranslated("degrad.inprogress", UserUtil.formatDiscrim(czlonek)));
         if (zdjecie != null) maction = maction.addFile(zdjecie, "degrad.jpg");
         maction.queue(msg -> czlonek.getGuild()
                 .removeRoleFromMember(czlonek, Objects.requireNonNull(czlonek.getGuild().getRoleById(Ustawienia.instance.gadmRole)))
                 .queueAfter(5, TimeUnit.SECONDS, success -> msg
                         .editMessage(context.getTranslated("degrad.success", UserUtil.formatDiscrim(czlonek)))
                         .queue()));
-        return true;
+
     }
 }

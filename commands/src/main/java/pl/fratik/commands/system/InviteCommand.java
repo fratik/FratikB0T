@@ -18,37 +18,30 @@
 package pl.fratik.commands.system;
 
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.Permission;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.Globals;
 import pl.fratik.core.Ustawienia;
-import pl.fratik.core.command.PermLevel;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.util.UserUtil;
 
-public class InviteCommand extends Command {
+public class InviteCommand extends NewCommand {
 
     public InviteCommand() {
         name = "invite";
-        category = CommandCategory.BASIC;
-        permLevel = PermLevel.EVERYONE;
-        aliases = new String[] {"dodajbota"};
-        permissions.add(Permission.MESSAGE_EMBED_LINKS);
-        allowPermLevelChange = false;
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
-        String invite = generateInviteLink(context.getEvent().getJDA().getSelfUser().getId());
+    public void execute(@NotNull NewCommandContext context) {
+        String invite = generateInviteLink(context.getSender().getJDA().getSelfUser().getId());
         String dc = Ustawienia.instance.botGuildInvite;
-
         EmbedBuilder eb = new EmbedBuilder();
-        eb.setAuthor(UserUtil.formatDiscrim(context.getEvent().getJDA().getSelfUser()), null, context.getEvent().getJDA().getSelfUser().getEffectiveAvatarUrl().replace(".webp", ".png"));
+        eb.setAuthor(UserUtil.formatDiscrim(context.getSender().getJDA().getSelfUser()), null, context.getSender().getJDA().getSelfUser().getEffectiveAvatarUrl().replace(".webp", ".png"));
         eb.setColor(UserUtil.getPrimColor(context.getMember().getUser()));
-        eb.setDescription(context.getTranslated("invite.description"));
+        eb.setDescription(context.getTranslated("invite.embed.description"));
         eb.addField(context.getTranslated("invite.addbot"), context.getTranslated("generic.click", invite), true);
         eb.addField(context.getTranslated("invite.joinfdev"), context.getTranslated("generic.click", dc), true);
         context.reply(eb.build());
-        return true;
     }
 
     private String generateInviteLink(String id) {

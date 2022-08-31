@@ -20,6 +20,7 @@ package pl.fratik.moderation.entity;
 import lombok.EqualsAndHashCode;
 import lombok.Setter;
 import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.channel.unions.MessageChannelUnion;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import net.dv8tion.jda.internal.JDAImpl;
 import net.dv8tion.jda.internal.entities.AbstractMessage;
@@ -108,18 +109,10 @@ public class LogMessage extends AbstractMessage {
 
     @NotNull
     @Override
-    public MessageChannel getChannel() {
+    public MessageChannelUnion getChannel() {
         GuildChannel ch = shardManager.getGuildChannelById(channelId);
-        if (!(ch instanceof MessageChannel)) throw new IllegalStateException("kanal nie istnieje!");
-        return (MessageChannel) ch;
-    }
-
-    @Nonnull
-    @Override
-    public TextChannel getTextChannel() {
-        TextChannel ch = shardManager.getTextChannelById(channelId);
-        if (ch == null) throw new IllegalStateException("kanal nie istnieje!");
-        return ch;
+        if (!(ch instanceof MessageChannelUnion)) throw new IllegalStateException("kanal nie istnieje!");
+        return (MessageChannelUnion) ch;
     }
 
     public long getAuthorId() {

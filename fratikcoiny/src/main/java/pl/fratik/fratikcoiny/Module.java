@@ -69,9 +69,11 @@ public class Module implements Modul {
         commands.add(new GiveCommand(memberDao));
         commands.add(new KasaCommand(memberDao));
         commands.add(new SklepCommand(guildDao, memberDao, eventWaiter, shardManager, eventBus));
+        commands.add(new SklepAdminCommand(guildDao, memberDao, eventWaiter, shardManager, eventBus));
         commands.add(new BlackjackCommand(memberDao, eventWaiter));
         commands.add(new SlotsCommand(memberDao));
         commands.add(new PremiaCommand(guildDao, memberDao, eventWaiter, eventBus));
+        commands.add(new PremiaAdminCommand(guildDao, memberDao, eventWaiter, eventBus));
         if (Chinczyk.canBeUsed()) commands.add(new ChinczykCommand(shardManager, eventBus, eventWaiter, chinczykStatsDao, chinczykStateDao, tlumaczenia));
 
         managerKomend.registerCommands(this, commands);

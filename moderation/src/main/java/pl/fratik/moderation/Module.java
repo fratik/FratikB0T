@@ -24,21 +24,20 @@ import gg.amy.pgorm.PgStore;
 import io.sentry.Sentry;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.events.StatusChangeEvent;
-import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.Globals;
 import pl.fratik.core.cache.RedisCacheManager;
+import pl.fratik.core.command.NewCommand;
 import pl.fratik.core.entity.GuildDao;
-import pl.fratik.core.entity.Kara;
 import pl.fratik.core.entity.ScheduleDao;
 import pl.fratik.core.entity.UserDao;
 import pl.fratik.core.event.ModuleLoadedEvent;
 import pl.fratik.core.manager.ManagerBazyDanych;
 import pl.fratik.core.manager.ManagerModulow;
+import pl.fratik.core.manager.NewManagerKomend;
 import pl.fratik.core.moduly.Modul;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.EventWaiter;
@@ -58,15 +57,12 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.EnumSet;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 public class Module implements Modul {
-    @Inject private ManagerKomend managerKomend;
+    @Inject private NewManagerKomend managerKomend;
     @Inject private EventWaiter eventWaiter;
     @Inject private GuildDao guildDao;
     @Inject private UserDao userDao;
@@ -78,7 +74,7 @@ public class Module implements Modul {
     @Inject private ManagerModulow managerModulow;
     @Inject private RedisCacheManager redisCacheManager;
 
-    private ArrayList<Command> commands;
+    private ArrayList<NewCommand> commands;
     private ModLogListener modLogListener;
     private LogListener logListener;
     private PrzeklenstwaListener przeklenstwaListener;
@@ -112,7 +108,7 @@ public class Module implements Modul {
         logger.info("Rozpoczynam migrację spraw!");
         try {
             AtomicReference<SQLException> sqlEx = new AtomicReference<>(); // pgStore to gówno i tylko loguje SQLException
-            managerBazyDanych.getPgStore().sql(new PgStore.SqlConsumer<Connection>() {
+            managerBazyDanych.getPgStore().sql(new PgStore.SqlConsumer<>() {
                 @Override
                 public void accept(Connection con) {
                     try {
@@ -169,23 +165,26 @@ public class Module implements Modul {
             });
             if (sqlEx.get() != null) throw sqlEx.get();
         } catch (Exception e) {
-            logger.error("Migracja nieudana!", e);
-            Sentry.capture(e);
-            return false;
+            if (e instanceof SQLException && ((SQLException) e).getSQLState().equals("42P01")) {
+                logger.warn("Prawdopodobnie nie znaleziono tabeli cases, więc ignoruję", e);
+            } else {
+                logger.error("Migracja nieudana!", e);
+                Sentry.capture(e);
+                return false;
+            }
         }
         caseDao = new CaseDao(managerBazyDanych, eventBus);
         purgeDao = new PurgeDao(managerBazyDanych, eventBus);
         ModLogBuilder.setTlumaczenia(tlumaczenia);
         ModLogBuilder.setGuildDao(guildDao);
-        ModLogBuilder.setManagerKomend(managerKomend);
         LogListener.setTlumaczenia(tlumaczenia);
-        modLogListener = new ModLogListener(shardManager, caseDao, guildDao, scheduleDao, tlumaczenia, managerKomend, redisCacheManager);
+        modLogListener = new ModLogListener(shardManager, caseDao, guildDao, scheduleDao, tlumaczenia, redisCacheManager);
         logListener = new LogListener(guildDao, purgeDao, redisCacheManager);
-        przeklenstwaListener = new PrzeklenstwaListener(guildDao, tlumaczenia, managerKomend, shardManager, caseDao, redisCacheManager);
-        linkListener = new LinkListener(guildDao, tlumaczenia, managerKomend, shardManager, caseDao, redisCacheManager, eventBus);
+        przeklenstwaListener = new PrzeklenstwaListener(guildDao, tlumaczenia, shardManager, caseDao, redisCacheManager);
+        linkListener = new LinkListener(guildDao, tlumaczenia, shardManager, caseDao, redisCacheManager, eventBus);
         autobanListener = new AutobanListener(guildDao, tlumaczenia, modLogListener);
-        antiInviteListener = new AntiInviteListener(guildDao, tlumaczenia, managerKomend, shardManager, caseDao, redisCacheManager);
-        antiRaidListener = new AntiRaidListener(guildDao, shardManager, eventBus, tlumaczenia, redisCacheManager, managerKomend);
+        antiInviteListener = new AntiInviteListener(guildDao, tlumaczenia, shardManager, caseDao, redisCacheManager);
+        antiRaidListener = new AntiRaidListener(guildDao, shardManager, eventBus, tlumaczenia, redisCacheManager);
 //        publishListener = new PublishListener(guildDao, tlumaczenia, managerKomend, shardManager, caseDao, redisCacheManager);
 
         eventBus.register(this);
@@ -201,26 +200,22 @@ public class Module implements Modul {
         commands = new ArrayList<>();
 
         commands.add(new PurgeCommand(logListener));
-        commands.add(new BanCommand(modLogListener, scheduleDao));
+        commands.add(new BanCommand(modLogListener));
         commands.add(new UnbanCommand(modLogListener));
         commands.add(new KickCommand(modLogListener));
         commands.add(new WarnCommand(caseDao));
         commands.add(new UnwarnCommand(caseDao));
-        commands.add(new AkcjeCommand(caseDao, shardManager, eventWaiter, eventBus, managerKomend, guildDao));
+        commands.add(new AkcjeCommand(caseDao, shardManager, eventWaiter, eventBus, guildDao));
         commands.add(new ReasonCommand(scheduleDao, caseDao));
-        commands.add(new RolesCommand());
-        commands.add(new HideCommand(guildDao, managerKomend));
-        commands.add(new LockCommand(guildDao, managerKomend));
-        commands.add(new MuteCommand(guildDao, modLogListener));
-        commands.add(new UnmuteCommand(guildDao, modLogListener));
+        commands.add(new MuteCommand(modLogListener));
+        commands.add(new UnmuteCommand(modLogListener));
         commands.add(new ZglosCommand(guildDao));
         commands.add(new RegulaminCommand());
         commands.add(new RolaCommand(guildDao));
         commands.add(new NotatkaCommand(caseDao));
-        commands.add(new RolementionCommand());
-        commands.add(new DowodCommand(guildDao, caseDao, managerKomend, eventWaiter, eventBus));
+        commands.add(new DowodCommand(guildDao, caseDao, eventWaiter, eventBus));
 
-        commands.forEach(managerKomend::registerCommand);
+        managerKomend.registerCommands(this, commands);
 
         if (managerModulow.getModules().get("api") != null)
             new PurgeForApi(managerModulow.getModules().get("api"), shardManager, purgeDao, guildDao);
@@ -234,7 +229,7 @@ public class Module implements Modul {
 
     @Override
     public boolean shutDown() {
-        commands.forEach(managerKomend::unregisterCommand);
+        managerKomend.unregisterCommands(commands);
         antiRaidListener.shutdown();
         try {
             eventBus.unregister(this);
@@ -250,29 +245,6 @@ public class Module implements Modul {
             /*lul*/
         }
         return true;
-    }
-
-    @Subscribe
-    private void onMemberJoin(GuildMemberJoinEvent e) {
-        if (!modLogListener.checkPermissions(e)) return;
-        Role rola = modLogListener.getMuteRole(e.getGuild());
-        if (rola == null) return;
-        List<Case> cList = caseDao.getCasesByMember(e.getMember()).stream().filter(c -> c.getType() == Kara.MUTE &&
-                c.isValid()).collect(Collectors.toList());
-        if (cList.size() > 1) {
-            for (Case aCase : cList) {
-                aCase.setValid(false);
-                aCase.setValidTo(Instant.now());
-                Case c = new Case.Builder(aCase.getGuildId(), aCase.getUserId(), Instant.now(), Kara.UNMUTE)
-                        .setIssuerId(Globals.clientId)
-                        .setReasonKey("modlog.reason.twomutesoneuser")
-                        .build();
-                caseDao.createNew(aCase, c, false);
-            }
-        } else if (cList.size() != 1) return;
-        e.getGuild().addRoleToMember(e.getMember(), rola)
-                .reason(tlumaczenia.get(tlumaczenia.getLanguage(e.getGuild()), "modlog.reason.audit.autoreturnmute",
-                        cList.get(0).getCaseNumber())).queue();
     }
 
     @Subscribe
