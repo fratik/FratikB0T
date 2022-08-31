@@ -148,7 +148,7 @@ public class TagCommand extends NewCommand {
                 strings.add(builder.substring(0, builder.length() - 4) + "`");
                 builder.setLength(0);
             }
-            builder.append(tag.getName()).append("`, `");
+            builder.append(tag.getName().toLowerCase()).append("`, `");
         }
         if (builder.length() > 4) strings.add(builder.substring(0, builder.length() - 4) + "`");
     }

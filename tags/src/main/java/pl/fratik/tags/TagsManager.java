@@ -19,6 +19,7 @@ package pl.fratik.tags;
 
 import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.Subscribe;
+import io.sentry.Sentry;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -78,7 +79,11 @@ public class TagsManager {
         for (Tags tags : tagsDao.getAll()) {
             Guild guild = shardManager.getGuildById(tags.getId());
             if (guild == null) continue;
-            syncGuild(guild.getId().equals(Ustawienia.instance.botGuild) ? e.getSupportGuildCommands() : null, tags, guild);
+            try {
+                syncGuild(guild.getId().equals(Ustawienia.instance.botGuild) ? e.getSupportGuildCommands() : null, tags, guild);
+            } catch (Exception ex) {
+                Sentry.capture(new IllegalArgumentException("Nie udało się utworzyć tagów dla serwera " + guild.getId(), ex));
+            }
         }
         logger.debug("Synchronizacja tagów ukończona");
     }
@@ -106,7 +111,7 @@ public class TagsManager {
                 if (user != null) createdBy = user.getAsTag();
             }
             try {
-                commands.add(Commands.slash(tag.getName(), tlumaczenia.get(language, "tag.command.description", createdBy)));
+                commands.add(Commands.slash(tag.getName().toLowerCase(), tlumaczenia.get(language, "tag.command.description", createdBy)));
             } catch (IllegalArgumentException ex) {
                 // ignoruj, nieprawidłowe tagi zostaną wylistowane w /tag list
             }
