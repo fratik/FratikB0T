@@ -26,7 +26,6 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.requests.ErrorResponse;
-import net.dv8tion.jda.api.requests.restaction.CommandListUpdateAction;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -98,9 +97,8 @@ public class TagsManager {
 
     private void syncGuild(Set<CommandData> existingCommands, Tags tags, Guild guild) {
         Language language = tlumaczenia.getLanguage(guild);
-        CommandListUpdateAction action = guild.updateCommands();
-        if (existingCommands != null) action = action.addCommands(existingCommands);
         Set<CommandData> commands = new HashSet<>();
+        if (existingCommands != null) commands.addAll(existingCommands);
         for (Iterator<Tag> iter = tags.getTagi().stream().sorted(Comparator.comparing(t -> t.getName().toLowerCase())).iterator(); iter.hasNext();) {
             Tag tag = iter.next();
             String createdBy = tag.getCreatedBy();
@@ -117,7 +115,7 @@ public class TagsManager {
             }
             if (commands.size() == 100) break;
         }
-        action.addCommands(commands).complete();
+        guild.updateCommands().addCommands(commands).complete();
     }
 
     @Nullable

@@ -71,7 +71,12 @@ public class TagCommand extends NewCommand {
         context.defer(false);
         tags.getTagi().add(new Tag(tagName, context.getSender().getId(), content));
         tagsDao.save(tags);
-        tagsManager.syncGuild(tags, context.getGuild());
+        try {
+            tagsManager.syncGuild(tags, context.getGuild());
+        } catch (Exception e) {
+            context.sendMessage(context.getTranslated("createtag.sync.fail"));
+            return;
+        }
         context.sendMessage(context.getTranslated("createtag.success"));
     }
 
@@ -100,7 +105,12 @@ public class TagCommand extends NewCommand {
                 .orElseThrow(IllegalStateException::new);
         tags.getTagi().remove(tag);
         tagsDao.save(tags);
-        tagsManager.syncGuild(tags, context.getGuild());
+        try {
+            tagsManager.syncGuild(tags, context.getGuild());
+        } catch (Exception e) {
+            context.sendMessage(context.getTranslated("deletetag.sync.fail"));
+            return;
+        }
         context.sendMessage(context.getTranslated("deletetag.success"));
     }
 
@@ -112,7 +122,7 @@ public class TagCommand extends NewCommand {
         List<Tag> valid = new ArrayList<>();
         List<Tag> invalid = new ArrayList<>();
         tags.getTagi().stream().sorted(Comparator.comparing(t -> t.getName().toLowerCase())).forEachOrdered(tag -> {
-            if (tag.getName().length() > 32 || !Checks.ALPHANUMERIC_WITH_DASH.matcher(tag.getName()).matches())
+            if (valid.size() >= 100 || tag.getName().length() > 32 || !Checks.ALPHANUMERIC_WITH_DASH.matcher(tag.getName()).matches())
                 invalid.add(tag);
             else valid.add(tag);
         });
@@ -147,6 +157,7 @@ public class TagCommand extends NewCommand {
             if (builder.length() + tag.getName().length() + 4 > MessageEmbed.VALUE_MAX_LENGTH) {
                 strings.add(builder.substring(0, builder.length() - 4) + "`");
                 builder.setLength(0);
+                builder.append("`");
             }
             builder.append(tag.getName().toLowerCase()).append("`, `");
         }
@@ -169,7 +180,12 @@ public class TagCommand extends NewCommand {
         tags.getTagi().remove(tag);
         tags.getTagi().add(new Tag(nowaNazwa, context.getSender().getId(), tag.getContent()));
         tagsDao.save(tags);
-        tagsManager.syncGuild(tags, context.getGuild());
+        try {
+            tagsManager.syncGuild(tags, context.getGuild());
+        } catch (Exception e) {
+            context.sendMessage(context.getTranslated("createtag.sync.fail"));
+            return;
+        }
         context.sendMessage(context.getTranslated("tag.edit.name.success"));
     }
 
@@ -188,6 +204,12 @@ public class TagCommand extends NewCommand {
         tags.getTagi().remove(tag);
         tags.getTagi().add(new Tag(tag.getName(), context.getSender().getId(), content));
         tagsDao.save(tags);
+        try {
+            tagsManager.syncGuild(tags, context.getGuild());
+        } catch (Exception e) {
+            context.sendMessage(context.getTranslated("createtag.sync.fail"));
+            return;
+        }
         context.sendMessage(context.getTranslated("tag.edit.content.success"));
     }
 

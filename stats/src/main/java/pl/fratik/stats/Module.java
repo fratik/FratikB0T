@@ -29,7 +29,7 @@ import net.dv8tion.jda.api.sharding.ShardManager;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.Globals;
 import pl.fratik.core.cache.RedisCacheManager;
-import pl.fratik.core.event.CommandDispatchEvent;
+import pl.fratik.core.event.CommandDispatchedEvent;
 import pl.fratik.core.event.ModuleLoadedEvent;
 import pl.fratik.core.manager.ManagerBazyDanych;
 import pl.fratik.core.manager.ManagerModulow;
@@ -163,7 +163,7 @@ public class Module implements Modul {
     }
 
     @Subscribe
-    private void onCommandDispatch(CommandDispatchEvent e) {
+    private void onCommandDispatch(CommandDispatchedEvent e) {
         komend++;
     }
 
