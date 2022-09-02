@@ -35,8 +35,9 @@ class Main {
             System.exit(1);
         }
 
+        Consumer<? super Throwable> defaultFailure = RestAction.getDefaultFailure();
         Consumer<Throwable> failure = e -> {
-            RestAction.getDefaultFailure().accept(e);
+            defaultFailure.accept(e);
             Sentry.capture(e);
         };
 
