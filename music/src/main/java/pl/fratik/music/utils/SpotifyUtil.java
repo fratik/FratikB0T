@@ -20,6 +20,7 @@ package pl.fratik.music.utils;
 import com.neovisionaries.i18n.CountryCode;
 import com.wrapper.spotify.SpotifyApi;
 import com.wrapper.spotify.exceptions.SpotifyWebApiException;
+import com.wrapper.spotify.exceptions.detailed.UnauthorizedException;
 import com.wrapper.spotify.model_objects.credentials.ClientCredentials;
 import com.wrapper.spotify.model_objects.specification.Album;
 import com.wrapper.spotify.model_objects.specification.Paging;
@@ -35,6 +36,7 @@ import pl.fratik.core.tlumaczenia.Language;
 import java.io.IOException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -47,6 +49,7 @@ public class SpotifyUtil {
     private static final Pattern ARTISTS_REGEX = Pattern.compile("^(https://open.spotify.com/artist/)([a-zA-Z0-9]+)(.*)$");
 
     private static final ScheduledExecutorService ses = Executors.newScheduledThreadPool(1);
+    private static boolean failed = false;
 
     static {
         Runtime.getRuntime().addShutdownHook(new Thread(ses::shutdown));
@@ -54,6 +57,7 @@ public class SpotifyUtil {
 
     @Getter
     private final SpotifyApi api;
+    private ScheduledFuture<?> schedule;
 
     public SpotifyUtil(SpotifyApi api) {
         this.api = api;
@@ -109,9 +113,20 @@ public class SpotifyUtil {
     }
 
     private <T, V extends AbstractDataRequest.Builder<T, ?>> T e(AbstractDataRequest.Builder<T, V> e) throws IOException, ParseException {
+        return e(e, 0);
+    }
+
+    private <T, V extends AbstractDataRequest.Builder<T, ?>> T e(AbstractDataRequest.Builder<T, V> e, int tries) throws IOException, ParseException {
+        if (failed) return null;
+        tries++;
+        if (tries > 5) return null;
         try {
             return e.build().execute();
         } catch (SpotifyWebApiException ex) {
+            if (ex instanceof UnauthorizedException) {
+                refreshAccessToken();
+                e(e, tries);
+            }
             Sentry.capture(ex);
             return null;
         }
@@ -119,15 +134,20 @@ public class SpotifyUtil {
 
     private static int failedTries = 0;
 
-    private void refreshAccessToken() {
+    private synchronized void refreshAccessToken() {
+        if (failed) return;
         try {
             ClientCredentials cr = api.clientCredentials().build().execute();
             api.setAccessToken(cr.getAccessToken());
-            ses.schedule(this::refreshAccessToken, cr.getExpiresIn() - 120, TimeUnit.SECONDS);
+            if (schedule != null) schedule.cancel(false);
+            schedule = ses.schedule(this::refreshAccessToken, cr.getExpiresIn() - 300, TimeUnit.SECONDS);
             failedTries = 0;
         } catch (Exception e) {
             failedTries++;
-            if (failedTries <= 5) ses.schedule(this::refreshAccessToken, 60, TimeUnit.SECONDS);
+            if (failedTries <= 5) {
+                if (schedule != null) schedule.cancel(false);
+                schedule = ses.schedule(this::refreshAccessToken, 60, TimeUnit.SECONDS);
+            } else failed = true;
         }
 
     }
