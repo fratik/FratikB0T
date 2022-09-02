@@ -88,7 +88,7 @@ public class WarnCommand extends ModerationCommand {
         aCase.setValidTo(durationResp.getDoKiedy());
         ReasonUtils.parseFlags(aCase, powod);
         caseDao.createNew(null, aCase, false, context.getChannel(), context.getLanguage());
-        context.reply(context.getTranslated("warn.success", UserUtil.formatDiscrim(uzytkownik),
+        context.sendMessage(context.getTranslated("warn.success", UserUtil.formatDiscrim(uzytkownik),
                 WarnUtil.countCases(caseDao.getCasesByMember(uzytkownik), uzytkownik.getId())));
     }
 }
