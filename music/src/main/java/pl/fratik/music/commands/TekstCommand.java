@@ -31,6 +31,8 @@ import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Node;
 import org.jsoup.nodes.TextNode;
 import org.jsoup.select.Elements;
+import org.jsoup.select.NodeTraversor;
+import org.jsoup.select.NodeVisitor;
 import pl.fratik.core.Ustawienia;
 import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.util.ClassicEmbedPaginator;
@@ -122,19 +124,27 @@ public class TekstCommand extends MusicCommand {
         String lyricsPath = song.getString("path");
         byte[] html = NetworkUtil.download("https://genius.com" + lyricsPath);
         Document doc = Jsoup.parse(new String(html, StandardCharsets.UTF_8));
-        Element slowaElement = doc.select(".lyrics p").get(0);
+        List<Element> elements = doc.select("div[data-lyrics-container]");
         StringBuilder slowa = new StringBuilder();
-        for (Node n : slowaElement.childNodes()) {
-            if (n instanceof TextNode) {
-                slowa.append(((TextNode) n).getWholeText());
-            } else if (n instanceof Element) {
-                if (((Element) n).tagName().equals("a")) slowa.append(((Element) n).wholeText());
-                if (((Element) n).tagName().equals("i"))
-                    slowa.append("_").append(((Element) n).wholeText()).append("_");
-                if (((Element) n).tagName().equals("b")) slowa.append(((Element) n).wholeText());
-            }
+        for (Element element : elements) {
+            NodeTraversor.traverse(new NodeVisitor() {
+                @Override
+                public void head(Node n, int depth) {
+                    if (n instanceof TextNode) {
+                        slowa.append(((TextNode) n).text());
+                    } else if (n instanceof Element) {
+                        if (((Element) n).tagName().equals("br")) slowa.append("\n");
+                        if (((Element) n).tagName().equals("a")) slowa.append(((Element) n).ownText());
+                        if (((Element) n).tagName().equals("i"))
+                            slowa.append("_").append(((Element) n).ownText()).append("_");
+                        if (((Element) n).tagName().equals("b")) slowa.append("**").append(((Element) n).ownText()).append("**");
+                    }
+                }
+                @Override public void tail(Node node, int depth) {}
+            }, element);
+            slowa.append("\n");
         }
-        return new Piosenka(imageLink, title, "https://genius.com" + lyricsPath, slowa.toString());
+        return new Piosenka(imageLink, title, "https://genius.com" + lyricsPath, slowa.substring(0, slowa.length() - 1));
     }
 
     private Piosenka requestTekstowo(String q) throws IOException {
