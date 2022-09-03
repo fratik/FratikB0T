@@ -87,7 +87,12 @@ class FratikB0T {
 
     FratikB0T(String token) {
         logger = LoggerFactory.getLogger(FratikB0T.class);
-        AsyncEventBus eventBus = new AsyncEventBus(Executors.newFixedThreadPool(16), EventBusErrorHandler.instance);
+        AsyncEventBus eventBus = new AsyncEventBus(Executors.newFixedThreadPool(16), EventBusErrorHandler.instance) {
+            @Override
+            public void post(Object event) {
+                super.post(event);
+            }
+        };
 
         logger.info("Ładuje jądro v{}...", Statyczne.CORE_VERSION);
         registerShutdownThread();

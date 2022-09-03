@@ -34,7 +34,6 @@ import org.slf4j.LoggerFactory;
 import pl.fratik.core.Ustawienia;
 import pl.fratik.core.cache.Cache;
 import pl.fratik.core.cache.RedisCacheManager;
-import pl.fratik.core.event.CommandSyncEvent;
 import pl.fratik.core.manager.NewManagerKomend;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
@@ -72,21 +71,6 @@ public class TagsManager {
         e.reply(tag.getContent()).complete();
     }
 
-    @Subscribe
-    public void onSync(CommandSyncEvent e) {
-        logger.debug("Rozpoczynam synchronizację tagów");
-        for (Tags tags : tagsDao.getAll()) {
-            Guild guild = shardManager.getGuildById(tags.getId());
-            if (guild == null) continue;
-            try {
-                syncGuild(guild.getId().equals(Ustawienia.instance.botGuild) ? e.getSupportGuildCommands() : null, tags, guild);
-            } catch (Exception ex) {
-                Sentry.capture(new IllegalArgumentException("Nie udało się utworzyć tagów dla serwera " + guild.getId(), ex));
-            }
-        }
-        logger.debug("Synchronizacja tagów ukończona");
-    }
-
     public void syncGuild(Tags tags, Guild guild) {
         if (guild.getId().equals(Ustawienia.instance.botGuild)) {
             managerKomend.sync();
@@ -96,9 +80,14 @@ public class TagsManager {
     }
 
     private void syncGuild(Set<CommandData> existingCommands, Tags tags, Guild guild) {
+        Set<CommandData> commands = generateCommands(tags, guild, 100);
+        if (existingCommands != null) commands.addAll(existingCommands);
+        guild.updateCommands().addCommands(commands).complete();
+    }
+
+    public Set<CommandData> generateCommands(Tags tags, Guild guild, int limit) {
         Language language = tlumaczenia.getLanguage(guild);
         Set<CommandData> commands = new HashSet<>();
-        if (existingCommands != null) commands.addAll(existingCommands);
         for (Iterator<Tag> iter = tags.getTagi().stream().sorted(Comparator.comparing(t -> t.getName().toLowerCase())).iterator(); iter.hasNext();) {
             Tag tag = iter.next();
             String createdBy = tag.getCreatedBy();
@@ -113,9 +102,9 @@ public class TagsManager {
             } catch (IllegalArgumentException ex) {
                 // ignoruj, nieprawidłowe tagi zostaną wylistowane w /tag list
             }
-            if (commands.size() == 100) break;
+            if (commands.size() == limit) break;
         }
-        guild.updateCommands().addCommands(commands).complete();
+        return commands;
     }
 
     @Nullable

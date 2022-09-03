@@ -20,6 +20,7 @@ package pl.fratik.core.manager.implementation;
 import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
+import io.sentry.Sentry;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -33,7 +34,6 @@ import pl.fratik.core.command.CommandType;
 import pl.fratik.core.command.NewCommand;
 import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.event.CommandDispatchedEvent;
-import pl.fratik.core.event.CommandSyncEvent;
 import pl.fratik.core.manager.NewManagerKomend;
 import pl.fratik.core.moduly.Modul;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
@@ -90,11 +90,30 @@ public class NewManagerKomendImpl implements NewManagerKomend {
                 else cmds.add(e);
             }
         }
+        Map<String, Set<CommandData>> extraMap = new HashMap<>();
         Guild guild = shardManager.getGuildById(Ustawienia.instance.botGuild);
-        if (guild == null) logger.warn("Nie znaleziono serwera {}", Ustawienia.instance.botGuild);
-        else guild.updateCommands().addCommands(guildCmds).complete();
+        for (Modul modul : commands.keySet()) {
+            Map<Guild, Set<CommandData>> extraCommands = modul.getExtraCommands(guildCmds.size());
+            for (Map.Entry<Guild, Set<CommandData>> entry : extraCommands.entrySet()) {
+                if (entry.getKey().equals(guild)) guildCmds.addAll(extraCommands.get(guild));
+                else extraMap.compute(entry.getKey().getId(), (k, v) -> {
+                    if (v == null) v = new HashSet<>();
+                    v.addAll(entry.getValue());
+                    return v;
+                });
+            }
+        }
+        if (guild != null) guild.updateCommands().addCommands(guildCmds).complete();
+        else logger.warn("Nie znaleziono serwera {}", Ustawienia.instance.botGuild);
+        for (Map.Entry<String, Set<CommandData>> entry : extraMap.entrySet()) {
+            try {
+                shardManager.getGuildById(entry.getKey()).updateCommands().addCommands(entry.getValue()).complete();
+            } catch (Exception ex) {
+                logger.error("Nie udało się dodać extra komend dla serwera " + entry.getKey(), ex);
+                Sentry.capture(new IllegalStateException("Nie udało się dodać extra komend dla serwera " + entry.getKey()));
+            }
+        }
         shardManager.getShardById(0).updateCommands().addCommands(cmds).complete();
-        eventBus.post(new CommandSyncEvent(cmds, guildCmds));
     }
 
     @Override

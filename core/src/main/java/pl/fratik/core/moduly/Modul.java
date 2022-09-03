@@ -17,7 +17,17 @@
 
 package pl.fratik.core.moduly;
 
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.interactions.commands.build.CommandData;
+
+import java.util.Map;
+import java.util.Set;
+
 public interface Modul {
+    default Map<Guild, Set<CommandData>> getExtraCommands(int supportServerCommands) {
+        return Map.of();
+    }
+
     boolean startUp();
     boolean shutDown();
 }

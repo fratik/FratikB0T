@@ -19,7 +19,12 @@ package pl.fratik.tags;
 
 import com.google.common.eventbus.EventBus;
 import com.google.inject.Inject;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.sharding.ShardManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import pl.fratik.core.Ustawienia;
 import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.command.NewCommand;
 import pl.fratik.core.manager.ManagerBazyDanych;
@@ -30,9 +35,13 @@ import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.EventWaiter;
 import pl.fratik.core.webhook.WebhookManager;
 import pl.fratik.tags.commands.TagCommand;
+import pl.fratik.tags.entity.Tags;
 import pl.fratik.tags.entity.TagsDao;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 @SuppressWarnings("FieldCanBeLocal")
 public class Module implements Modul {
@@ -51,6 +60,7 @@ public class Module implements Modul {
     private TagsDao tagsDao;
     private TagsManager tagsManager;
     private ArrayList<NewCommand> commands;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     public Module() {
         commands = new ArrayList<>();
@@ -67,6 +77,18 @@ public class Module implements Modul {
         managerKomend.registerCommands(this, commands);
         eventBus.register(tagsManager);
         return true;
+    }
+
+    @Override
+    public Map<Guild, Set<CommandData>> getExtraCommands(int supportServerCommands) {
+        Map<Guild, Set<CommandData>> map = new HashMap<>();
+        for (Tags tags : tagsDao.getAll()) {
+            Guild guild = shardManager.getGuildById(tags.getId());
+            if (guild == null) continue;
+            map.put(guild, tagsManager.generateCommands(tags, guild,
+                    guild.getId().equals(Ustawienia.instance.botGuild) ? 100 - supportServerCommands : 100));
+        }
+        return map;
     }
 
     @Override
