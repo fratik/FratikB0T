@@ -133,11 +133,23 @@ public class TekstCommand extends MusicCommand {
                     if (n instanceof TextNode) {
                         slowa.append(((TextNode) n).text());
                     } else if (n instanceof Element) {
-                        if (((Element) n).tagName().equals("br")) slowa.append("\n");
-                        if (((Element) n).tagName().equals("a")) slowa.append(((Element) n).ownText());
-                        if (((Element) n).tagName().equals("i"))
-                            slowa.append("_").append(((Element) n).ownText()).append("_");
-                        if (((Element) n).tagName().equals("b")) slowa.append("**").append(((Element) n).ownText()).append("**");
+                        Element e = (Element) n;
+                        switch (e.tagName()) {
+                            case "br":
+                                slowa.append("\n");
+                                break;
+                            case "a":
+                                slowa.append(e.ownText());
+                                break;
+                            case "i":
+                                slowa.append("_").append(e.ownText()).append("_");
+                                break;
+                            case "b":
+                                slowa.append("**").append(e.ownText()).append("**");
+                                break;
+                            default:
+                                break;
+                        }
                     }
                 }
                 @Override public void tail(Node node, int depth) {}
