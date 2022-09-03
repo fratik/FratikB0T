@@ -187,7 +187,7 @@ public class TekstCommand extends MusicCommand {
         String title = przeboj.attr("title");
         byte[] hrefPobrane = NetworkUtil.download("https://www.tekstowo.pl" + przeboj.attr("href"));
         Document tekst = Jsoup.parse(new String(hrefPobrane, StandardCharsets.UTF_8));
-        Element slowaElement = tekst.select(".song-text").get(0);
+        Element slowaElement = tekst.select(".song-text>.inner-text").get(0);
         StringBuilder slowa = new StringBuilder();
         for (Node n : slowaElement.childNodes()) {
             if (n instanceof TextNode) {
