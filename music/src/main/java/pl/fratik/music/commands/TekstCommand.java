@@ -20,6 +20,7 @@ package pl.fratik.music.commands;
 import com.google.common.eventbus.EventBus;
 import lombok.AllArgsConstructor;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.jetbrains.annotations.NotNull;
@@ -82,14 +83,15 @@ public class TekstCommand extends MusicCommand {
                     return;
                 }
             }
-            if (p.slowa.length() >= 2000) {
+            if (p.slowa.length() > MessageEmbed.DESCRIPTION_MAX_LENGTH) {
                 List<EmbedBuilder> pages = new ArrayList<>();
                 StringBuilder sb = new StringBuilder();
                 for (String slowaChunk : p.slowa.split("\n\n")) {
-                    if (sb.length() + slowaChunk.length() + "\n\n".length() >= 2000) {
+                    String nextPage = context.getTranslated("tekst.next.page");
+                    if (sb.length() + slowaChunk.length() + "\n\n".length() + nextPage.length() > MessageEmbed.DESCRIPTION_MAX_LENGTH) {
                         pages.add(new EmbedBuilder().setTitle(p.title, p.website)
                                 .setThumbnail(p.imageLink).setColor(CommonUtil.getPrimColorFromImageUrl(p.imageLink))
-                                .setDescription(sb).appendDescription(context.getTranslated("tekst.next.page")));
+                                .setDescription(sb).appendDescription(nextPage));
                         sb = new StringBuilder(slowaChunk).append("\n\n");
                         continue;
                     }
@@ -142,17 +144,33 @@ public class TekstCommand extends MusicCommand {
                                 slowa.append(e.ownText());
                                 break;
                             case "i":
-                                slowa.append("_").append(e.ownText()).append("_");
+                                slowa.append("_");
                                 break;
                             case "b":
-                                slowa.append("**").append(e.ownText()).append("**");
+                                slowa.append("**");
                                 break;
                             default:
                                 break;
                         }
                     }
                 }
-                @Override public void tail(Node node, int depth) {}
+
+                @Override
+                public void tail(Node n, int depth) {
+                    if (n instanceof Element) {
+                        Element e = (Element) n;
+                        switch (e.tagName()) {
+                            case "i":
+                                slowa.append("_");
+                                break;
+                            case "b":
+                                slowa.append("**");
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                }
             }, element);
             slowa.append("\n");
         }

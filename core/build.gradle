@@ -68,7 +68,7 @@ dependencies {
     api 'org.nanohttpd:nanohttpd:2.3.1'
 //    api 'org.eclipse.jgit:org.eclipse.jgit:4.7.0.201704051617-r'
     api 'org.jline:jline:3.21.0'
-    api 'org.jsoup:jsoup:1.14.3'
+    api 'org.jsoup:jsoup:1.15.3'
     api 'com.github.queer:async-postgres-jsonb-orm:e348e109f8'
     api 'joda-time:joda-time:2.11.0'
     api 'org.ocpsoft.prettytime:prettytime:4.0.6.Final'
