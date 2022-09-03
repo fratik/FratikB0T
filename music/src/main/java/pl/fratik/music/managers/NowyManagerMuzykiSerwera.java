@@ -21,14 +21,15 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason;
 import lavalink.client.io.LavalinkSocket;
 import lavalink.client.io.Link;
-import lavalink.client.io.jda.JdaLavalink;
-import lavalink.client.io.jda.JdaLink;
 import lavalink.client.player.IPlayer;
 import lavalink.client.player.event.PlayerEventListenerAdapter;
 import lombok.Getter;
 import lombok.Setter;
 import net.dv8tion.jda.api.MessageBuilder;
-import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.AudioChannel;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.MessageChannel;
+import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.events.GenericEvent;
 import net.dv8tion.jda.api.events.guild.voice.GenericGuildVoiceEvent;
 import net.dv8tion.jda.api.exceptions.InsufficientPermissionException;
@@ -42,6 +43,8 @@ import pl.fratik.music.entity.Piosenka;
 import pl.fratik.music.entity.Queue;
 import pl.fratik.music.entity.QueueDao;
 import pl.fratik.music.entity.RepeatMode;
+import pl.fratik.music.lavalink.CustomLavalink;
+import pl.fratik.music.lavalink.CustomLink;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -57,7 +60,7 @@ public class NowyManagerMuzykiSerwera implements ManagerMuzykiSerwera {
     private static final Logger LOGGER = LoggerFactory.getLogger(NowyManagerMuzykiSerwera.class);
     private final NowyManagerMuzyki nowyManagerMuzyki;
     private final Guild guild;
-    private final JdaLavalink lavaClient;
+    private final CustomLavalink lavaClient;
     private final Tlumaczenia tlumaczenia;
     private final QueueDao queueDao;
     private final GuildDao guildDao;
@@ -73,11 +76,11 @@ public class NowyManagerMuzykiSerwera implements ManagerMuzykiSerwera {
     private boolean exception;
     @Getter private List<String> skips;
     private boolean paused;
-    private JdaLink link;
+    private CustomLink link;
     private ScheduledFuture<?> future;
     private Listener lisner;
 
-    NowyManagerMuzykiSerwera(NowyManagerMuzyki nowyManagerMuzyki, Guild guild, JdaLavalink lavaClient, Tlumaczenia tlumaczenia, QueueDao queueDao, GuildDao guildDao, ScheduledExecutorService executorService) {
+    NowyManagerMuzykiSerwera(NowyManagerMuzyki nowyManagerMuzyki, Guild guild, CustomLavalink lavaClient, Tlumaczenia tlumaczenia, QueueDao queueDao, GuildDao guildDao, ScheduledExecutorService executorService) {
         this.nowyManagerMuzyki = nowyManagerMuzyki;
         this.guild = guild;
         this.lavaClient = lavaClient;
@@ -119,6 +122,7 @@ public class NowyManagerMuzykiSerwera implements ManagerMuzykiSerwera {
     public void connect(AudioChannel channel) {
         this.channel = channel;
         link = lavaClient.getLink(guild);
+        link.setMms(this);
         if (init) throw new IllegalStateException("Już połączony!");
         player = link.getPlayer();
         LOGGER.debug("Otwieram połączenie audio, wyczekuj VoiceServerUpdate");

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2020 FratikB0T Contributors
+ * Copyright (C) 2019-2022 FratikB0T Contributors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,45 +15,42 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package lavalink.client.io.jda;
+package pl.fratik.music.lavalink;
 
+import lavalink.client.io.GuildUnavailableException;
 import lavalink.client.io.Link;
+import lombok.Setter;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.exceptions.InsufficientPermissionException;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pl.fratik.music.managers.ManagerMuzykiSerwera;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+public class CustomLink extends Link {
+    private final CustomLavalink lavalink;
+    private final Logger log;
+    @Setter private ManagerMuzykiSerwera mms;
 
-public class JdaLink extends Link {
-
-    private static final Logger log = LoggerFactory.getLogger(JdaLink.class);
-    private final JdaLavalink lavalink;
-
-    protected JdaLink(JdaLavalink lavalink, String guildId) {
+    protected CustomLink(CustomLavalink lavalink, String guildId) {
         super(lavalink, guildId);
         this.lavalink = lavalink;
+        log = LoggerFactory.getLogger(getClass());
     }
 
-    public void connect(@Nonnull AudioChannel voiceChannel) {
-        connect(voiceChannel, true);
+    public void connect(@NotNull AudioChannel audioChannel) {
+        connect(audioChannel, true);
     }
 
-    /**
-     * Eventually connect to a channel. Takes care of disconnecting from an existing connection
-     *
-     * @param channel Channel to connect to
-     */
     @SuppressWarnings("WeakerAccess")
-    void connect(@Nonnull AudioChannel channel, boolean checkChannel) {
+    void connect(@NotNull AudioChannel channel, boolean checkChannel) {
         if (!channel.getGuild().equals(getJda().getGuildById(guild)))
-            throw new IllegalArgumentException("The provided VoiceChannel is not a part of the Guild that this AudioManager handles." +
-                    "Please provide a VoiceChannel from the proper Guild");
+            throw new IllegalArgumentException("The provided AudioChannel is not a part of the Guild that this AudioManager handles." +
+                    "Please provide an AudioChannel from the proper Guild");
         if (channel.getJDA().isUnavailable(channel.getGuild().getIdLong()))
-            throw new IllegalStateException("Cannot open an Audio Connection with an unavailable guild. " +
+            throw new GuildUnavailableException("Cannot open an Audio Connection with an unavailable guild. " +
                     "Please wait until this Guild is available to open a connection.");
         final Member self = channel.getGuild().getSelfMember();
         if (!self.hasPermission(channel, Permission.VOICE_CONNECT) && !self.hasPermission(channel, Permission.VOICE_MOVE_OTHERS))
@@ -67,8 +64,13 @@ public class JdaLink extends Link {
             return;
 
         if (voiceState.inAudioChannel()) {
-            final int userLimit = channel instanceof VoiceChannel ? ((VoiceChannel) channel).getUserLimit() : 0;
-            // userLimit is 0 if no limit is set!
+            int userLimit = 0; // userLimit is 0 if no limit is set!
+
+            if (channel instanceof VoiceChannel) {
+                VoiceChannel vc = (VoiceChannel) channel;
+                userLimit = vc.getUserLimit();
+            }
+
             if (!self.isOwner() && !self.hasPermission(Permission.ADMINISTRATOR)) {
                 if (userLimit > 0                                                      // If there is a userlimit
                         && userLimit <= channel.getMembers().size()                    // if that userlimit is reached
@@ -82,44 +84,35 @@ public class JdaLink extends Link {
         queueAudioConnect(channel.getIdLong());
     }
 
-    @SuppressWarnings("WeakerAccess")
-    @Nonnull
     public JDA getJda() {
         return lavalink.getJdaFromSnowflake(String.valueOf(guild));
     }
 
     @Override
     protected void removeConnection() {
-        // JDA handles this for us
+        // JDA podobno to ogarnia
     }
 
     @Override
     protected void queueAudioDisconnect() {
         Guild g = getJda().getGuildById(guild);
 
-        if (g != null) {
-            getJda().getDirectAudioController().disconnect(g);
-        } else {
-            log.warn("Attempted to disconnect, but guild {} was not found", guild);
-        }
+        if (g != null) getJda().getDirectAudioController().disconnect(g);
     }
 
     @Override
     protected void queueAudioConnect(long channelId) {
-        VoiceChannel vc = getJda().getVoiceChannelById(channelId);
-        if (vc != null) {
-            getJda().getDirectAudioController().connect(vc);
+        AudioChannel channel = getJda().getChannelById(AudioChannel.class, channelId);
+        if (channel != null) {
+            getJda().getDirectAudioController().connect(channel);
         } else {
-            log.warn("Attempted to connect, but voice channel {} was not found", channelId);
+            log.warn("Attempted to connect, but AudioChannel {} was not found", channelId);
         }
     }
 
-    /**
-     * @return the Guild, or null if it doesn't exist
-     */
-    @SuppressWarnings("WeakerAccess")
-    @Nullable
-    public Guild getGuild() {
-        return getJda().getGuildById(guild);
+    @Override
+    public void onVoiceWebSocketClosed(int code, String reason, boolean byRemote) {
+        Guild g = getJda().getGuildById(guild);
+        if (g != null && byRemote) new Thread(mms::nodeDisconnected, "AsyncNodeDisconnectedCaller").start();
     }
 }

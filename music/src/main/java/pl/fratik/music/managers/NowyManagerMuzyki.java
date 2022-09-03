@@ -27,12 +27,9 @@ import io.sentry.event.interfaces.ExceptionInterface;
 import lavalink.client.LavalinkUtil;
 import lavalink.client.io.LavalinkSocket;
 import lavalink.client.io.Link;
-import lavalink.client.io.jda.JdaLavalink;
-import lavalink.client.io.jda.JdaLink;
 import lombok.Getter;
 import lombok.Setter;
 import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.events.GenericEvent;
 import net.dv8tion.jda.api.events.guild.voice.GenericGuildVoiceEvent;
 import net.dv8tion.jda.api.hooks.VoiceDispatchInterceptor;
 import net.dv8tion.jda.api.sharding.ShardManager;
@@ -51,6 +48,7 @@ import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.NetworkUtil;
 import pl.fratik.music.entity.Queue;
 import pl.fratik.music.entity.QueueDao;
+import pl.fratik.music.lavalink.CustomLavalink;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
@@ -63,7 +61,7 @@ import java.util.function.Consumer;
 
 public class NowyManagerMuzyki {
 
-    @Getter private final JdaLavalink lavaClient;
+    @Getter private final CustomLavalink lavaClient;
     private final EventBus eventBus;
     private final GuildDao guildDao;
     private static final Logger logger = LoggerFactory.getLogger(NowyManagerMuzyki.class);
@@ -82,19 +80,8 @@ public class NowyManagerMuzyki {
         this.shardManager = shardManager;
         this.guildDao = guildDao;
         logger.info("Startuje Lavalink");
-        lavaClient = new JdaLavalink(Long.toString(Globals.clientId), shardManager.getShardsTotal(), shardManager::getShardById) {
-            @Override
-            protected JdaLink buildNewLink(String guildId) {
-                return new JdaLink(this, guildId) {
-                    @Override
-                    public void onVoiceWebSocketClosed(int code, String reason, boolean byRemote) {
-                        Guild g = shardManager.getGuildById(guildId);
-                        if (g != null && byRemote) new Thread(() -> getManagerMuzykiSerwera(g).nodeDisconnected(),
-                                "AsyncNodeDisconnectedCaller").start();
-                    }
-                };
-            }
-        };
+        lavaClient = new CustomLavalink(shardManager, Long.toString(Globals.clientId));
+        eventBus.register(lavaClient);
         this.eventBus = eventBus;
         eventBus.register(this);
 
@@ -211,18 +198,16 @@ public class NowyManagerMuzyki {
                 //nic
             }
         }
-        eventBus.unregister(this);
         lavaClient.shutdown();
+        eventBus.unregister(lavaClient);
+        eventBus.unregister(this);
     }
 
     @Subscribe
     @AllowConcurrentEvents
-    public void onEvent(GenericEvent e) {
-        if (e instanceof GenericGuildVoiceEvent) {
-            ManagerMuzykiSerwera mms = getManagerMuzykiSerwera(((GenericGuildVoiceEvent) e).getGuild(), false);
-            if (mms != null) mms.onEvent(e);
-        }
-        lavaClient.onEvent(e);
+    public void onEvent(GenericGuildVoiceEvent e) {
+        ManagerMuzykiSerwera mms = getManagerMuzykiSerwera(e.getGuild(), false);
+        if (mms != null) mms.onEvent(e);
     }
 
     public void destroy(String id) {

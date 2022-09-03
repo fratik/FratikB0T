@@ -63,7 +63,8 @@ public class PlayCommand extends MusicCommand {
             context.replyEphemeral(context.getTranslated("play.not.connected"));
             return;
         }
-        if (managerMuzyki.getLavaClient().getLink(context.getGuild()).getState() == Link.State.CONNECTED &&
+        if (Optional.ofNullable(managerMuzyki.getLavaClient().getExistingLink(context.getGuild()))
+                .map(Link::getState).orElse(null) == Link.State.CONNECTED &&
                 selfVS != null && !Objects.equals(memVS.getChannel(), selfVS.getChannel())) {
             context.replyEphemeral(context.getTranslated("music.different.channels"));
             return;
@@ -159,10 +160,8 @@ public class PlayCommand extends MusicCommand {
                         } catch (Exception ignored) {
                         }
                     }
-                    if (dodanePiosenki == 0) mms.disconnect();
-                    else {
-                        if (!mms.isPlaying()) mms.play();
-                    }
+                    if (dodanePiosenki == 0 && !mms.isPlaying()) mms.disconnect();
+                    else if (!mms.isPlaying()) mms.play();
                     context.sendMessage(context.getTranslated("play.queued.multiple", dodanePiosenki));
                     return;
                 }
@@ -196,6 +195,7 @@ public class PlayCommand extends MusicCommand {
                 context.sendMessage(context.getTranslated("play.queued.playlist", audioTrackList.size()));
             }
             context.sendMessage(context.getTranslated("play.queued", audioTrackList.get(0).getInfo().title));
+            if (!mms.isPlaying()) mms.play();
         });
     }
 
