@@ -71,7 +71,6 @@ public class PurgeCommand extends ModerationCommand {
                 << TimeUtil.TIMESTAMP_OFFSET;
         List<Message> wiadomosciWszystkie = new ArrayList<>();
         List<Message> wiadomosci = historia.join().getRetrievedHistory();
-        for (Message msg : wiadomosci) logListener.pushMessage(msg);
         for (Message msg : wiadomosci) {
             if (wiadomosciWszystkie.size() != ilosc) {
                 if (msg.getIdLong() < dwaTygodnieTemu) {
