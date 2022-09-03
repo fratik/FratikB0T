@@ -29,9 +29,16 @@ import net.dv8tion.jda.api.interactions.components.Modal;
 import net.dv8tion.jda.api.interactions.components.text.TextInput;
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.cache.Cache;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.entity.GuildDao;
-import pl.fratik.core.util.*;
+import pl.fratik.core.entity.UserConfig;
+import pl.fratik.core.entity.UserDao;
+import pl.fratik.core.util.ButtonWaiter;
+import pl.fratik.core.util.EventWaiter;
+import pl.fratik.core.util.ModalWaiter;
+import pl.fratik.core.util.UserUtil;
 import pl.fratik.music.managers.ManagerMuzykiSerwera;
 import pl.fratik.music.managers.NowyManagerMuzyki;
 import pl.fratik.music.managers.SearchManager;
@@ -48,18 +55,29 @@ public class YoutubeCommand extends MusicCommand {
     private final SearchManager searchManager;
     private final EventWaiter eventWaiter;
     private final GuildDao guildDao;
+    private final UserDao userDao;
+    private final Cache<UserConfig> userCache;
 
-    public YoutubeCommand(NowyManagerMuzyki managerMuzyki, SearchManager searchManager, EventWaiter eventWaiter, GuildDao guildDao) {
+    public YoutubeCommand(NowyManagerMuzyki managerMuzyki, SearchManager searchManager, EventWaiter eventWaiter, GuildDao guildDao, UserDao userDao, RedisCacheManager rcm) {
         this.managerMuzyki = managerMuzyki;
         this.searchManager = searchManager;
         this.eventWaiter = eventWaiter;
         this.guildDao = guildDao;
+        this.userDao = userDao;
+        this.userCache = rcm.new CacheRetriever<UserConfig>(){}.getCache();
         name = "youtube";
         usage = "<tekst:string>";
     }
 
     @Override
     public void execute(@NotNull NewCommandContext context) {
+        UserConfig userConfig = userCache.get(context.getSender().getId(), userDao::get);
+        if (!userConfig.isYtWarningSeen()) {
+            context.replyEphemeral(context.getTranslated("youtube.warning"));
+            userConfig.setYtWarningSeen(true);
+            userDao.save(userConfig);
+            return;
+        }
         AudioChannel kanal = null;
         if (context.getMember().getVoiceState() != null) kanal = context.getMember().getVoiceState().getChannel();
         if (context.getMember().getVoiceState() == null || !context.getMember().getVoiceState().inAudioChannel() ||

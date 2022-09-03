@@ -26,8 +26,12 @@ import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.AudioChannel;
 import net.dv8tion.jda.api.entities.GuildVoiceState;
 import org.jetbrains.annotations.NotNull;
+import pl.fratik.core.cache.Cache;
+import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.entity.GuildDao;
+import pl.fratik.core.entity.UserConfig;
+import pl.fratik.core.entity.UserDao;
 import pl.fratik.core.util.CommonUtil;
 import pl.fratik.core.util.UserUtil;
 import pl.fratik.music.managers.ManagerMuzykiSerwera;
@@ -45,18 +49,29 @@ public class PlayCommand extends MusicCommand {
     private final SearchManager searchManager;
     private final GuildDao guildDao;
     private final SpotifyUtil spotifyUtil;
+    private final UserDao userDao;
+    private final Cache<UserConfig> userCache;
 
-    public PlayCommand(NowyManagerMuzyki managerMuzyki, SearchManager searchManager, GuildDao guildDao, SpotifyUtil spotifyUtil) {
+    public PlayCommand(NowyManagerMuzyki managerMuzyki, SearchManager searchManager, GuildDao guildDao, SpotifyUtil spotifyUtil, UserDao userDao, RedisCacheManager rcm) {
         this.managerMuzyki = managerMuzyki;
         this.searchManager = searchManager;
         this.guildDao = guildDao;
         this.spotifyUtil = spotifyUtil;
+        this.userDao = userDao;
+        this.userCache = rcm.new CacheRetriever<UserConfig>(){}.getCache();
         name = "play";
         usage = "<link:string>";
     }
 
     @Override
     public void execute(@NotNull NewCommandContext context) {
+        UserConfig userConfig = userCache.get(context.getSender().getId(), userDao::get);
+        if (!userConfig.isYtWarningSeen()) {
+            context.replyEphemeral(context.getTranslated("youtube.warning"));
+            userConfig.setYtWarningSeen(true);
+            userDao.save(userConfig);
+            return;
+        }
         GuildVoiceState memVS = context.getMember().getVoiceState();
         GuildVoiceState selfVS = context.getGuild().getSelfMember().getVoiceState();
         if (memVS == null || !memVS.inAudioChannel()) {

@@ -30,6 +30,7 @@ import pl.fratik.core.Ustawienia;
 import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.command.NewCommand;
 import pl.fratik.core.entity.GuildDao;
+import pl.fratik.core.entity.UserDao;
 import pl.fratik.core.event.ConnectedEvent;
 import pl.fratik.core.manager.ManagerArgumentow;
 import pl.fratik.core.manager.ManagerBazyDanych;
@@ -52,6 +53,7 @@ public class Module implements Modul {
     @Inject private NewManagerKomend managerKomend;
     @Inject private EventWaiter eventWaiter;
     @Inject private GuildDao guildDao;
+    @Inject private UserDao userDao;
     @Inject private ShardManager shardManager;
     @Inject private EventBus eventBus;
     @Inject private Tlumaczenia tlumaczenia;
@@ -102,9 +104,9 @@ public class Module implements Modul {
 
         commands = new ArrayList<>();
 
-        commands.add(new PlayCommand(managerMuzyki, searchManager, guildDao, spotifyUtil));
+        commands.add(new PlayCommand(managerMuzyki, searchManager, guildDao, spotifyUtil, userDao, redisCacheManager));
         commands.add(new SkipCommand(managerMuzyki, guildDao, redisCacheManager));
-        commands.add(new YoutubeCommand(managerMuzyki, searchManager, eventWaiter, guildDao));
+        commands.add(new YoutubeCommand(managerMuzyki, searchManager, eventWaiter, guildDao, userDao, redisCacheManager));
         commands.add(new VolumeCommand(managerMuzyki, guildDao));
         commands.add(new QueueCommand(managerMuzyki, eventWaiter, eventBus));
         commands.add(new PlaylistCommand(managerMuzyki, queueDao));
