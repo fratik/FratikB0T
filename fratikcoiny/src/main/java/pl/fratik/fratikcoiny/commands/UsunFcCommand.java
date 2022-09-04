@@ -32,7 +32,7 @@ public class UsunFcCommand extends MoneyCommand {
     public UsunFcCommand(MemberDao memberDao) {
         this.memberDao = memberDao;
         name = "usunfc";
-        usage = "<osoba:user> <ile:number>";
+        usage = "<osoba:user> <ile:int>";
     }
 
     @Override
