@@ -144,10 +144,7 @@ public class NowyManagerMuzykiSerwera implements ManagerMuzykiSerwera {
                 if (czekam == 1000) {
                     LOGGER.error("{}: Nie udało się połączyć po 5s!", guild.getId());
                     announceChannel.sendMessage("Nie udało się połączyć po 5s! Anuluje!").queue();
-                    kolejka.clear();
-                    player = null;
-                    link.resetPlayer();
-                    link.disconnect();
+                    disconnect();
                     return;
                 }
             } catch (InterruptedException e) {
