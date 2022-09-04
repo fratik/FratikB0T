@@ -110,7 +110,7 @@ public class NewManagerKomendImpl implements NewManagerKomend {
                 shardManager.getGuildById(entry.getKey()).updateCommands().addCommands(entry.getValue()).complete();
             } catch (Exception ex) {
                 logger.error("Nie udało się dodać extra komend dla serwera " + entry.getKey(), ex);
-                Sentry.capture(new IllegalStateException("Nie udało się dodać extra komend dla serwera " + entry.getKey()));
+                Sentry.capture(new IllegalStateException("Nie udało się dodać extra komend dla serwera " + entry.getKey(), ex));
             }
         }
         shardManager.getShardById(0).updateCommands().addCommands(cmds).complete();
