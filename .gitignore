@@ -76,3 +76,4 @@ build
 **/build
 plugins
 start.sh
+purgePassword.txt

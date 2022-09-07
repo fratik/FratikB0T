@@ -35,6 +35,8 @@ import org.slf4j.LoggerFactory;
 import pl.fratik.core.Ustawienia;
 import pl.fratik.core.cache.Cache;
 import pl.fratik.core.cache.RedisCacheManager;
+import pl.fratik.core.crypto.AES;
+import pl.fratik.core.crypto.CryptoException;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.event.PluginMessageEvent;
@@ -64,15 +66,17 @@ public class LogListener {
     @Setter private static Tlumaczenia tlumaczenia;
     private final Cache<List<LogMessage>> cache;
     private final Cache<GuildConfig> gcCache;
+    private final String password;
     @Getter private final List<String> znaneAkcje = new ArrayList<>();
 
     private static final Logger log = LoggerFactory.getLogger(LogListener.class);
 
-    public LogListener(GuildDao guildDao, PurgeDao purgeDao, RedisCacheManager redisCacheManager) {
+    public LogListener(GuildDao guildDao, PurgeDao purgeDao, RedisCacheManager redisCacheManager, String password) {
         this.guildDao = guildDao;
         this.purgeDao = purgeDao;
         cache = redisCacheManager.new CacheRetriever<List<LogMessage>>(){}.setCanHandleErrors(true).getCache(900);
         gcCache = redisCacheManager.new CacheRetriever<GuildConfig>(){}.getCache();
+        this.password = password;
     }
 
     @Subscribe
@@ -192,10 +196,14 @@ public class LogListener {
             purge.getWiadomosci().addAll(messages.stream().map(m -> {
                 if (m != null) {
                     //noinspection ConstantConditions (jak jest edited musi byc getTimeEdited)
-                    return new WiadomoscImpl(m.getId(),
-                            new pl.fratik.api.entity.User(m.getAuthor()), m.getContentRaw(),
-                            m.getTimeCreated().toInstant().toEpochMilli(),
-                            m.isEdited() ? m.getTimeEdited().toInstant().toEpochMilli() : null);
+                    try {
+                        return new WiadomoscImpl(m.getId(),
+                                new pl.fratik.api.entity.User(m.getAuthor()), AES.encryptAsB64(m.getContentRaw(), password),
+                                m.getTimeCreated().toInstant().toEpochMilli(),
+                                m.isEdited() ? m.getTimeEdited().toInstant().toEpochMilli() : null);
+                    } catch (CryptoException e) {
+                        throw new IllegalStateException("Nie udało się zaszyfrować wiadomośći!", e);
+                    }
                 } else {
                     return new FakeWiadomosc();
                 }

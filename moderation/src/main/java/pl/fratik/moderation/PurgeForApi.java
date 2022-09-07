@@ -28,6 +28,7 @@ import pl.fratik.api.entity.Successes;
 import pl.fratik.api.entity.User;
 import pl.fratik.api.internale.Exchange;
 import pl.fratik.core.command.PermLevel;
+import pl.fratik.core.crypto.AES;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.moduly.Modul;
 import pl.fratik.core.util.UserUtil;
@@ -36,12 +37,14 @@ import pl.fratik.moderation.entity.PurgeDao;
 import pl.fratik.moderation.entity.PurgePrivacy;
 import pl.fratik.moderation.entity.Wiadomosc;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.List;
 
 class PurgeForApi {
-    PurgeForApi(Modul modul, ShardManager shardManager, PurgeDao purgeDao, GuildDao guildDao) {
+    PurgeForApi(Modul modul, ShardManager shardManager, PurgeDao purgeDao, GuildDao guildDao, String password) {
         RoutingHandler routes;
         try {
             routes = (RoutingHandler) modul.getClass().getDeclaredMethod("getRoutes").invoke(modul);
@@ -77,6 +80,9 @@ class PurgeForApi {
                     Exchange.body().sendJson(ex, new Exceptions.GenericException("Brak uprawnień"), 403);
                     return;
                 }
+            }
+            for (Wiadomosc w : purge.getWiadomosci()) {
+                ((Purge.ResolvedWiadomosc) w).setContent(new String(AES.decryptFromB64(w.getContent(),password), StandardCharsets.UTF_8));
             }
             try { //próbujemy uaktualnić obiekty użytkowników, jeżeli się nie powiedzie to trudno
                 if (purge.getPurgedBy() != null) {
@@ -204,6 +210,18 @@ class PurgeForApi {
                             purge.setPurgedBy(new User(xd));
                         }
                     }
+                    int size = purge.getWiadomosci().size();
+                    purge.setWiadomosci(new AbstractList<>() {
+                        @Override
+                        public int size() {
+                            return size;
+                        }
+
+                        @Override
+                        public Wiadomosc get(int index) {
+                            return null;
+                        }
+                    });
                 }
             } catch (Exception e) {
                 // nic nie robimy

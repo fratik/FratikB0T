@@ -26,11 +26,13 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.events.StatusChangeEvent;
 import net.dv8tion.jda.api.sharding.ShardManager;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.Globals;
 import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.crypto.AES;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.ScheduleDao;
 import pl.fratik.core.entity.UserDao;
@@ -42,23 +44,27 @@ import pl.fratik.core.moduly.Modul;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.EventWaiter;
 import pl.fratik.core.util.GsonUtil;
+import pl.fratik.core.util.StringUtil;
 import pl.fratik.moderation.commands.*;
-import pl.fratik.moderation.entity.Case;
-import pl.fratik.moderation.entity.CaseDao;
-import pl.fratik.moderation.entity.LogMessage;
-import pl.fratik.moderation.entity.PurgeDao;
+import pl.fratik.moderation.entity.*;
 import pl.fratik.moderation.events.UpdateCaseEvent;
 import pl.fratik.moderation.listeners.*;
 import pl.fratik.moderation.utils.Migration;
 import pl.fratik.moderation.utils.ModLogBuilder;
 
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.CharBuffer;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class Module implements Modul {
@@ -86,6 +92,7 @@ public class Module implements Modul {
     private AutobanListener autobanListener;
 //    private PublishListener publishListener;
     private boolean connected;
+    private Logger logger = LoggerFactory.getLogger(getClass());
 
     public Module() {
         commands = new ArrayList<>();
@@ -93,7 +100,6 @@ public class Module implements Modul {
 
     @Override
     public boolean startUp() {
-        Logger logger = LoggerFactory.getLogger(getClass());
         LogMessage.setShardManager(shardManager);
         EnumSet<Permission> permList = Permission.getPermissions(Globals.permissions);
         permList.add(Permission.VIEW_AUDIT_LOGS);
@@ -175,11 +181,45 @@ public class Module implements Modul {
         }
         caseDao = new CaseDao(managerBazyDanych, eventBus);
         purgeDao = new PurgeDao(managerBazyDanych, eventBus);
+        String password;
+        try {
+            File file = new File("purgePassword.txt");
+            if (!file.exists()) {
+                logger.info("Nie wykryto hasła purge'ów. Rozpoczynam migrację (aka szyfrowanie). Aby przerwać, zatrzymaj proces i umieść hasło w pliku purgePassword.txt.");
+                Thread.sleep(6000);
+                try (FileWriter fw = new FileWriter(file, StandardCharsets.UTF_8)) {
+                    fw.write(password = StringUtil.generateId(64, true, true, true, true));
+                    fw.flush();
+                }
+                List<Purge> allPurges = purgeDao.getAll();
+                for (Purge purge : allPurges) {
+                    for (Wiadomosc wiadomosc : purge.getWiadomosci()) {
+                        if (wiadomosc instanceof Purge.ResolvedWiadomosc) {
+                            ((Purge.ResolvedWiadomosc) wiadomosc).setContent(AES.encryptAsB64(wiadomosc.getContent(), password));
+                        }
+                    }
+                }
+                for (Purge purge : allPurges) {
+                    purgeDao.save(purge);
+                }
+            } else {
+                password = readPassword(file);
+            }
+        } catch (IOException e) {
+            logger.error("Nie udało się utworzyć hasła purge'ów!", e);
+            return false;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
+        } catch (Exception e) {
+            logger.error("Szyfrowanie nieudane!", e);
+            return false;
+        }
         ModLogBuilder.setTlumaczenia(tlumaczenia);
         ModLogBuilder.setGuildDao(guildDao);
         LogListener.setTlumaczenia(tlumaczenia);
         modLogListener = new ModLogListener(shardManager, caseDao, guildDao, scheduleDao, tlumaczenia, redisCacheManager);
-        logListener = new LogListener(guildDao, purgeDao, redisCacheManager);
+        logListener = new LogListener(guildDao, purgeDao, redisCacheManager, password);
         przeklenstwaListener = new PrzeklenstwaListener(guildDao, tlumaczenia, shardManager, caseDao, redisCacheManager);
         linkListener = new LinkListener(guildDao, tlumaczenia, shardManager, caseDao, redisCacheManager, eventBus);
         autobanListener = new AutobanListener(guildDao, tlumaczenia, modLogListener);
@@ -218,13 +258,30 @@ public class Module implements Modul {
         managerKomend.registerCommands(this, commands);
 
         if (managerModulow.getModules().get("api") != null)
-            new PurgeForApi(managerModulow.getModules().get("api"), shardManager, purgeDao, guildDao);
+            new PurgeForApi(managerModulow.getModules().get("api"), shardManager, purgeDao, guildDao, password);
 
         if (shardManager.getShards().stream().anyMatch(s -> s.getStatus() != JDA.Status.CONNECTED)) return true;
         if (connected) return true;
         connected = true;
         fixCases();
         return true;
+    }
+
+    @NotNull
+    private static String readPassword(File file) throws IOException {
+        String password;
+        try (FileReader fr = new FileReader(file, StandardCharsets.UTF_8)) {
+            CharBuffer cb = CharBuffer.allocate(1024);
+            int read;
+            while ((read = fr.read()) != -1) {
+                cb.put((char) read);
+            }
+            read = cb.position();
+            cb.rewind();
+            cb.limit(read);
+            password = cb.toString();
+        }
+        return password;
     }
 
     @Override
@@ -250,7 +307,11 @@ public class Module implements Modul {
     @Subscribe
     private void onModuleLoad(ModuleLoadedEvent e) {
         if (e.getName().equals("api")) {
-            new PurgeForApi(e.getModule(), shardManager, purgeDao, guildDao);
+            try {
+                new PurgeForApi(e.getModule(), shardManager, purgeDao, guildDao, readPassword(new File("purgePassword.txt")));
+            } catch (IOException ex) {
+                logger.error("Nie udało się odczytać hasła!", ex);
+            }
         }
     }
 
