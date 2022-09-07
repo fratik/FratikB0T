@@ -19,7 +19,6 @@ package pl.fratik.music.commands;
 
 import com.google.common.eventbus.EventBus;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo;
-import lombok.Setter;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import org.jetbrains.annotations.NotNull;
@@ -30,7 +29,6 @@ import pl.fratik.core.util.TimeUtil;
 import pl.fratik.music.entity.Piosenka;
 import pl.fratik.music.managers.ManagerMuzykiSerwera;
 import pl.fratik.music.managers.NowyManagerMuzyki;
-import pl.fratik.music.managers.SearchManager;
 
 import java.awt.*;
 import java.util.ArrayList;
@@ -43,7 +41,6 @@ public class QueueCommand extends MusicCommand {
     private final EventWaiter eventWaiter;
     private final EventBus eventBus;
     private static final String QUEMLI = "queue.embed.live";
-    @Setter private static SearchManager searchManager;
 
     public QueueCommand(NowyManagerMuzyki managerMuzyki, EventWaiter eventWaiter, EventBus eventBus) {
         this.managerMuzyki = managerMuzyki;
@@ -74,7 +71,6 @@ public class QueueCommand extends MusicCommand {
         EmbedBuilder eb = new EmbedBuilder();
         eb.setAuthor(context.getTranslated("queue.embed.header"), info.uri);
         eb.setTitle(info.title, piosenka.getAudioTrack().getInfo().uri);
-        piosenka.fillThumbnailURL(searchManager);
         eb.setImage(piosenka.getThumbnailURL());
         eb.addField(context.getTranslated("queue.embed.added.by"), piosenka.getRequester(), true);
         eb.addField(context.getTranslated("queue.embed.length"), info.isStream ?

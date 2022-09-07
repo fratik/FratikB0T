@@ -19,12 +19,10 @@ package pl.fratik.music.entity;
 
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import pl.fratik.core.tlumaczenia.Language;
-import pl.fratik.music.managers.SearchManager;
 
 public interface Piosenka {
     AudioTrack getAudioTrack();
     String getRequester();
     Language getRequesterLanguage();
     String getThumbnailURL();
-    void fillThumbnailURL(SearchManager searchManager);
 }

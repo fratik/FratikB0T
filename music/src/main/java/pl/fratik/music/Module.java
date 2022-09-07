@@ -41,7 +41,6 @@ import pl.fratik.core.util.EventWaiter;
 import pl.fratik.music.commands.*;
 import pl.fratik.music.entity.QueueDao;
 import pl.fratik.music.managers.NowyManagerMuzyki;
-import pl.fratik.music.managers.SearchManager;
 import pl.fratik.music.serializer.QueueDeserializer;
 import pl.fratik.music.utils.SpotifyUtil;
 
@@ -82,10 +81,7 @@ public class Module implements Modul {
         NowyManagerMuzyki.setQueueDao(queueDao);
         managerMuzyki = new NowyManagerMuzyki(shardManager, eventBus, guildDao);
         API.setMm(managerMuzyki);
-        SearchManager searchManager = new SearchManager(Ustawienia.instance.apiKeys.get("yt"), Ustawienia.instance.apiKeys.get("yt2"), managerMuzyki, redisCacheManager);
         MusicCommand.setManagerMuzyki(managerMuzyki);
-        QueueCommand.setSearchManager(searchManager);
-        NowplayingCommand.setSearchManager(searchManager);
         QueueDeserializer.setManagerMuzyki(managerMuzyki);
         QueueDeserializer.setShardManager(shardManager);
 
@@ -104,9 +100,8 @@ public class Module implements Modul {
 
         commands = new ArrayList<>();
 
-        commands.add(new PlayCommand(managerMuzyki, searchManager, guildDao, spotifyUtil, userDao, redisCacheManager));
+        commands.add(new PlayCommand(managerMuzyki, guildDao, spotifyUtil, , ));
         commands.add(new SkipCommand(managerMuzyki, guildDao, redisCacheManager));
-        commands.add(new YoutubeCommand(managerMuzyki, searchManager, eventWaiter, guildDao, userDao, redisCacheManager));
         commands.add(new VolumeCommand(managerMuzyki, guildDao));
         commands.add(new QueueCommand(managerMuzyki, eventWaiter, eventBus));
         commands.add(new PlaylistCommand(managerMuzyki, queueDao));
