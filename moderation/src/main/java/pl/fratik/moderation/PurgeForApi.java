@@ -82,7 +82,8 @@ class PurgeForApi {
                 }
             }
             for (Wiadomosc w : purge.getWiadomosci()) {
-                ((Purge.ResolvedWiadomosc) w).setContent(new String(AES.decryptFromB64(w.getContent(),password), StandardCharsets.UTF_8));
+                if (w.getContent() != null) ((Purge.ResolvedWiadomosc) w)
+                        .setContent(new String(AES.decryptFromB64(w.getContent(),password), StandardCharsets.UTF_8));
             }
             try { //próbujemy uaktualnić obiekty użytkowników, jeżeli się nie powiedzie to trudno
                 if (purge.getPurgedBy() != null) {

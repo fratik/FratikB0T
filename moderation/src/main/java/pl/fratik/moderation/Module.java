@@ -195,7 +195,8 @@ public class Module implements Modul {
                 for (Purge purge : allPurges) {
                     for (Wiadomosc wiadomosc : purge.getWiadomosci()) {
                         if (wiadomosc instanceof Purge.ResolvedWiadomosc) {
-                            ((Purge.ResolvedWiadomosc) wiadomosc).setContent(AES.encryptAsB64(wiadomosc.getContent(), password));
+                            if (wiadomosc.getContent() != null) ((Purge.ResolvedWiadomosc) wiadomosc)
+                                    .setContent(AES.encryptAsB64(wiadomosc.getContent(), password));
                         }
                     }
                 }
