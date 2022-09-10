@@ -36,6 +36,7 @@ import pl.fratik.core.crypto.AES;
 import pl.fratik.core.entity.GuildDao;
 import pl.fratik.core.entity.ScheduleDao;
 import pl.fratik.core.entity.UserDao;
+import pl.fratik.core.event.ConnectedEvent;
 import pl.fratik.core.event.ModuleLoadedEvent;
 import pl.fratik.core.manager.ManagerBazyDanych;
 import pl.fratik.core.manager.ManagerModulow;
@@ -92,7 +93,9 @@ public class Module implements Modul {
     private AutobanListener autobanListener;
 //    private PublishListener publishListener;
     private boolean connected;
-    private Logger logger = LoggerFactory.getLogger(getClass());
+    private final Logger logger = LoggerFactory.getLogger(getClass());
+    private final Object lock = new Object();
+    private volatile boolean migrated;
 
     public Module() {
         commands = new ArrayList<>();
@@ -181,41 +184,6 @@ public class Module implements Modul {
         }
         caseDao = new CaseDao(managerBazyDanych, eventBus);
         purgeDao = new PurgeDao(managerBazyDanych, eventBus);
-        String password;
-        try {
-            File file = new File("purgePassword.txt");
-            if (!file.exists()) {
-                logger.info("Nie wykryto hasła purge'ów. Rozpoczynam migrację (aka szyfrowanie). Aby przerwać, zatrzymaj proces i umieść hasło w pliku purgePassword.txt.");
-                Thread.sleep(6000);
-                try (FileWriter fw = new FileWriter(file, StandardCharsets.UTF_8)) {
-                    fw.write(password = StringUtil.generateId(64, true, true, true, true));
-                    fw.flush();
-                }
-                List<Purge> allPurges = purgeDao.getAll();
-                for (Purge purge : allPurges) {
-                    for (Wiadomosc wiadomosc : purge.getWiadomosci()) {
-                        if (wiadomosc instanceof Purge.ResolvedWiadomosc) {
-                            if (wiadomosc.getContent() != null) ((Purge.ResolvedWiadomosc) wiadomosc)
-                                    .setContent(AES.encryptAsB64(wiadomosc.getContent(), password));
-                        }
-                    }
-                }
-                for (Purge purge : allPurges) {
-                    purgeDao.save(purge);
-                }
-            } else {
-                password = readPassword(file);
-            }
-        } catch (IOException e) {
-            logger.error("Nie udało się utworzyć hasła purge'ów!", e);
-            return false;
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return false;
-        } catch (Exception e) {
-            logger.error("Szyfrowanie nieudane!", e);
-            return false;
-        }
         ModLogBuilder.setTlumaczenia(tlumaczenia);
         ModLogBuilder.setGuildDao(guildDao);
         LogListener.setTlumaczenia(tlumaczenia);
@@ -257,9 +225,6 @@ public class Module implements Modul {
         commands.add(new DowodCommand(guildDao, caseDao, eventWaiter, eventBus));
 
         managerKomend.registerCommands(this, commands);
-
-        if (managerModulow.getModules().get("api") != null)
-            new PurgeForApi(managerModulow.getModules().get("api"), shardManager, purgeDao, guildDao, password);
 
         if (shardManager.getShards().stream().anyMatch(s -> s.getStatus() != JDA.Status.CONNECTED)) return true;
         if (connected) return true;
@@ -307,12 +272,56 @@ public class Module implements Modul {
 
     @Subscribe
     private void onModuleLoad(ModuleLoadedEvent e) {
+        synchronized (lock) {
+            if (!migrated) return;
+        }
         if (e.getName().equals("api")) {
             try {
                 new PurgeForApi(e.getModule(), shardManager, purgeDao, guildDao, readPassword(new File("purgePassword.txt")));
             } catch (IOException ex) {
                 logger.error("Nie udało się odczytać hasła!", ex);
             }
+        }
+    }
+
+    @Subscribe
+    public void onStart(ConnectedEvent event) {
+        String password;
+        try {
+            File file = new File("purgePassword.txt");
+            if (!file.exists()) {
+                logger.info("Nie wykryto hasła purge'ów. Rozpoczynam migrację (aka szyfrowanie). Aby przerwać, zatrzymaj proces i umieść hasło w pliku purgePassword.txt.");
+                Thread.sleep(6000);
+                try (FileWriter fw = new FileWriter(file, StandardCharsets.UTF_8)) {
+                    fw.write(password = StringUtil.generateId(64, true, true, true, true));
+                    fw.flush();
+                }
+                List<Purge> allPurges = purgeDao.getAll();
+                for (Purge purge : allPurges) {
+                    for (Wiadomosc wiadomosc : purge.getWiadomosci()) {
+                        if (wiadomosc instanceof Purge.ResolvedWiadomosc) {
+                            if (wiadomosc.getContent() != null) ((Purge.ResolvedWiadomosc) wiadomosc)
+                                    .setContent(AES.encryptAsB64(wiadomosc.getContent(), password));
+                        }
+                    }
+                }
+                for (Purge purge : allPurges) {
+                    purgeDao.save(purge);
+                }
+            } else {
+                password = readPassword(file);
+            }
+            synchronized (lock) {
+                migrated = true;
+                if (managerModulow.getModules().get("api") != null)
+                    new PurgeForApi(managerModulow.getModules().get("api"), shardManager, purgeDao, guildDao, password);
+            }
+        } catch (IOException e) {
+            logger.error("Nie udało się utworzyć hasła purge'ów!", e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } catch (Exception e) {
+            logger.error("Szyfrowanie nieudane!", e);
         }
     }
 
