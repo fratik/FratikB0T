@@ -100,7 +100,7 @@ public class Module implements Modul {
 
         commands = new ArrayList<>();
 
-        commands.add(new PlayCommand(managerMuzyki, guildDao, spotifyUtil, , ));
+        commands.add(new PlayCommand(managerMuzyki, guildDao, spotifyUtil, userDao, redisCacheManager));
         commands.add(new SkipCommand(managerMuzyki, guildDao, redisCacheManager));
         commands.add(new VolumeCommand(managerMuzyki, guildDao));
         commands.add(new QueueCommand(managerMuzyki, eventWaiter, eventBus));
