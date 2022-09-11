@@ -77,7 +77,7 @@ public class CoronastatsCommand extends NewCommand {
                 addFields(eb, context, staty);
                 pages.add(new FutureTask<>(() -> eb));
             } catch (IOException e) {
-                context.reply(context.getTranslated("coronastats.api.error"));
+                context.sendMessage(context.getTranslated("coronastats.api.error"));
                 return;
             }
             pages.add(new FutureTask<>(() -> {
@@ -116,7 +116,7 @@ public class CoronastatsCommand extends NewCommand {
                     }
                     pages.add(new FutureTask<>(() -> eb));
                 } catch (JSONException e) {
-                    context.reply(context.getTranslated("coronastats.unknown.country"));
+                    context.sendMessage(context.getTranslated("coronastats.unknown.country"));
                     return;
                 }
                 pages.add(new FutureTask<>(() -> {
@@ -146,7 +146,7 @@ public class CoronastatsCommand extends NewCommand {
                     return eb;
                 }));
             } catch (IOException e) {
-                context.reply(context.getTranslated("coronastats.api.error"));
+                context.sendMessage(context.getTranslated("coronastats.api.error"));
                 return;
             }
         }
