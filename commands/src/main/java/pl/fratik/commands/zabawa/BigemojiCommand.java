@@ -37,7 +37,7 @@ public class BigemojiCommand extends NewCommand {
 
     @Override
     public void execute(@NotNull NewCommandContext context) {
-        if (context.getArguments().get("emotka").getMentions().getCustomEmojis().isEmpty()) {
+        if (context.getArguments().get("emotki").getMentions().getCustomEmojis().isEmpty()) {
             context.replyEphemeral(context.getTranslated("bigemoji.no.emojis"));
             return;
         }
