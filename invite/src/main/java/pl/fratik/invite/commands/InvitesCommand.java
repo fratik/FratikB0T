@@ -61,7 +61,7 @@ public class InvitesCommand extends SharedInvitesCommand {
                         dao.getLeaveInvites(), dao.getTotalInvites()
                 ), false);
 
-        context.reply(eb.build());
+        context.sendMessage(eb.build());
         return true;
     }
 }
