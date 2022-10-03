@@ -45,7 +45,7 @@ public class BigemojiCommand extends NewCommand {
         try {
             StringBuilder sb = new StringBuilder(Ustawienia.instance.apiUrls.get("image-server"));
             sb.append("/api/polacz?");
-            for (CustomEmoji emotka : context.getArguments().get("emotka").getMentions().getCustomEmojis()) {
+            for (CustomEmoji emotka : context.getArguments().get("emotki").getMentions().getCustomEmojis()) {
                 sb.append("zdjecie[]=");
                 sb.append(URLEncoder.encode(emotka.getImageUrl(), StandardCharsets.UTF_8));
                 sb.append("&");
