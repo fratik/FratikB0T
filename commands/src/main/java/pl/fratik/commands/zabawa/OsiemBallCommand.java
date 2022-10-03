@@ -17,7 +17,9 @@
 
 package pl.fratik.commands.zabawa;
 
+import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.interactions.InteractionHook;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.NewCommand;
 import pl.fratik.core.command.NewCommandContext;
@@ -26,7 +28,7 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 public class OsiemBallCommand extends NewCommand {
-    private static final Random random = new Random();
+    private static final Random RANDOM = new Random();
 
     public OsiemBallCommand() {
         name = "8ball";
@@ -36,12 +38,22 @@ public class OsiemBallCommand extends NewCommand {
     @Override
     public void execute(@NotNull NewCommandContext context) {
         String[] odpowiedzi = context.getTranslated("8ball.responses").split(";");
-        String odp = odpowiedzi[random.nextInt(odpowiedzi.length)];
+        String odp = odpowiedzi[RANDOM.nextInt(odpowiedzi.length)];
         if (!context.getArguments().get("pytanie").getAsString().endsWith("?")) {
             context.replyEphemeral(context.getTranslated("8ball.not.a.question"));
             return;
         }
-        InteractionHook hook = context.reply("\uD83E\uDD14");
-        hook.editOriginal(odp).queueAfter(3, TimeUnit.SECONDS);
+
+        EmbedBuilder eb = new EmbedBuilder();
+        eb.setTitle("\uD83E\uDD14\uD83E\uDD14\uD83E\uDD14");
+        eb.setAuthor(context.getSender().getAsTag(), null, context.getSender().getEffectiveAvatarUrl());
+
+        InteractionHook hook = context.reply(eb.build());
+
+        eb.setTitle(null);
+        eb.setDescription(context.getArgumentOr("pytanie", "", OptionMapping::toString));
+        eb.addField("Odpowiedź", odp, false);
+
+        hook.editOriginalEmbeds(eb.build()).queueAfter(3, TimeUnit.SECONDS);
     }
 }
