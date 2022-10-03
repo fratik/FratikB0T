@@ -19,10 +19,10 @@ package pl.fratik.commands.zabawa;
 
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.interactions.InteractionHook;
-import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.NewCommand;
 import pl.fratik.core.command.NewCommandContext;
+import pl.fratik.core.util.UserUtil;
 
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -45,14 +45,16 @@ public class OsiemBallCommand extends NewCommand {
         }
 
         EmbedBuilder eb = new EmbedBuilder();
-        eb.setTitle("\uD83E\uDD14\uD83E\uDD14\uD83E\uDD14");
+        eb.setColor(UserUtil.getPrimColor(context.getSender()));
         eb.setAuthor(context.getSender().getAsTag(), null, context.getSender().getEffectiveAvatarUrl());
+        eb.setDescription(context.getArguments().get("pytanie").getAsString());
+
+        eb.addField(context.getTranslated("8ball.response"), "\uD83E\uDD14\uD83E\uDD14\uD83E\uDD14", false);
 
         InteractionHook hook = context.reply(eb.build());
 
-        eb.setTitle(null);
-        eb.setDescription(context.getArgumentOr("pytanie", "", OptionMapping::toString));
-        eb.addField("Odpowiedź", odp, false);
+        eb.clearFields();
+        eb.addField(context.getTranslated("8ball.response"), odp, false);
 
         hook.editOriginalEmbeds(eb.build()).queueAfter(3, TimeUnit.SECONDS);
     }
