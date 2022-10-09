@@ -66,6 +66,7 @@ public class SpotifyStatsCommand extends NewCommand {
 
     @Override
     public void execute(NewCommandContext context) {
+        context.defer(false);
         UserCredentials user = spotifyUtil.getUser(context.getSender().getId());
 
         if (user == null) {
@@ -74,7 +75,7 @@ public class SpotifyStatsCommand extends NewCommand {
             eb.setTimestamp(Instant.now());
             String link = String.format("https://accounts.spotify.com/authorize?response_type=code&client_id=%s&scope=user-top-read&redirect_uri=%s/api/spotify/callback", spotifyUtil.getApi().getClientId(), Ustawienia.instance.botUrl);
             eb.setDescription(context.getTranslated("spotifystats.noconnected", link));
-            context.reply(eb.build());
+            context.sendMessage(eb.build());
             return;
         }
 

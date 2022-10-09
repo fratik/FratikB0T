@@ -42,7 +42,7 @@ public class EmbedCommand extends NewCommand {
     public void execute(NewCommandContext context) {
         EmbedBuilder eb = cem.getEmbed(context.getArguments().get("code").getAsString());
         if (eb == null) {
-            context.sendMessage(context.getTranslated("embed.notfound"));
+            context.reply(context.getTranslated("embed.notfound"));
             return;
         }
         try {
@@ -50,9 +50,9 @@ public class EmbedCommand extends NewCommand {
             //FIXME z rebase: nie uzywac tu webhook managera, normalnie odpowiedziec w systemie slashow
 
             //FIXME: Dobrze fratik
-            context.sendMessage(eb.build());
+            context.reply(eb.build());
         } catch (Exception e) {
-            context.sendMessage(context.getTranslated("embed.error", e.getMessage()));
+            context.reply(context.getTranslated("embed.error", e.getMessage()));
         }
     }
 

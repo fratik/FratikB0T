@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
+@Deprecated
 public class WebhookManager {
 
     private final GuildDao guildDao;

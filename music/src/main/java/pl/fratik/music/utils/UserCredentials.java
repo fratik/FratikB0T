@@ -47,6 +47,7 @@ public class UserCredentials {
         refreshAccessToken();
     }
 
+    // FIXME: Nie trzeba cały czas odświeżać. Przy użyciu tokena można sprawdzić czy jest on przedawniony - jeżeli tak, odśwież go
     public void refreshAccessToken() {
         try {
             AuthorizationCodeCredentials cr = api.authorizationCodeRefresh(Ustawienia.instance.apiKeys.get("spotifyId"), Ustawienia.instance.apiKeys.get("spotifySecret"), api.getRefreshToken()).build().execute();
