@@ -24,17 +24,16 @@ import io.sentry.Sentry;
 import lombok.AllArgsConstructor;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.MessageBuilder;
-import net.dv8tion.jda.api.entities.Emoji;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.User;
-import net.dv8tion.jda.api.events.interaction.ButtonClickEvent;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
-import net.dv8tion.jda.api.interactions.components.Button;
-import org.jetbrains.annotations.NotNull;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import pl.fratik.core.Ustawienia;
-import pl.fratik.core.command.Command;
-import pl.fratik.core.command.CommandContext;
-import pl.fratik.core.command.PermLevel;
+import pl.fratik.core.command.CommandType;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.DynamicEmbedPaginator;
@@ -43,6 +42,7 @@ import pl.fratik.core.util.UserUtil;
 import pl.fratik.music.utils.SpotifyUtil;
 import pl.fratik.music.utils.UserCredentials;
 
+
 import java.awt.*;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -50,7 +50,7 @@ import java.util.List;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 
-public class SpotifyStatsCommand extends Command {
+public class SpotifyStatsCommand extends NewCommand {
 
     private final SpotifyUtil spotifyUtil;
     private final EventWaiter eventWaiter;
@@ -58,15 +58,14 @@ public class SpotifyStatsCommand extends Command {
 
     public SpotifyStatsCommand(SpotifyUtil spotifyUtil, EventWaiter eventWaiter, EventBus eventBus) {
         name = "spotifystats";
-        aliases = new String[] {"spotify"};
-        permLevel = PermLevel.GADMIN;
+        type = CommandType.SUPPORT_SERVER;
         this.spotifyUtil = spotifyUtil;
         this.eventWaiter = eventWaiter;
         this.eventBus = eventBus;
     }
 
     @Override
-    public boolean execute(@NotNull CommandContext context) {
+    public void execute(NewCommandContext context) {
         UserCredentials user = spotifyUtil.getUser(context.getSender().getId());
 
         if (user == null) {
@@ -76,18 +75,17 @@ public class SpotifyStatsCommand extends Command {
             String link = String.format("https://accounts.spotify.com/authorize?response_type=code&client_id=%s&scope=user-top-read&redirect_uri=%s/api/spotify/callback", spotifyUtil.getApi().getClientId(), Ustawienia.instance.botUrl);
             eb.setDescription(context.getTranslated("spotifystats.noconnected", link));
             context.reply(eb.build());
-            return false;
+            return;
         }
 
-        new SpotifyWaiter(context.getSender(), eventWaiter, user, context.send(context.getTranslated("generic.loading")), context.getLanguage(), context.getTlumaczenia(), eventBus).start();
-        return true;
+        new SpotifyWaiter(context.getSender(), eventWaiter, user, context.sendMessage(context.getTranslated("generic.loading")), context.getLanguage(), context.getTlumaczenia(), eventBus).start();
     }
 
     public static class SpotifyWaiter {
 
-        private static final Button ONEB = Button.primary("SPOTIFY-ONE", Emoji.fromMarkdown("\u0031\u20E3"));
-        private static final Button TWOB = Button.primary("SPOTIFY-TWO", Emoji.fromMarkdown("\u0032\u20E3"));
-        private static final Button THREEB = Button.primary("SPOTIFY-THREE", Emoji.fromMarkdown("\u0033\u20E3"));
+        private static final Button ONEB = Button.primary("SPOTIFY-ONE", Emoji.fromUnicode("\u0031\u20E3"));
+        private static final Button TWOB = Button.primary("SPOTIFY-TWO", Emoji.fromUnicode("\u0032\u20E3"));
+        private static final Button THREEB = Button.primary("SPOTIFY-THREE", Emoji.fromUnicode("\u0033\u20E3"));
 
         private final User user;
         private final EventWaiter eventWaiter;
@@ -117,11 +115,11 @@ public class SpotifyStatsCommand extends Command {
         }
 
         public void waitForMessage() {
-            eventWaiter.waitForEvent(ButtonClickEvent.class, this::checkMessage,
+            eventWaiter.waitForEvent(ButtonInteractionEvent.class, this::checkMessage,
                     this::event, 60, TimeUnit.SECONDS, this::clearReactions);
         }
 
-        public void event(ButtonClickEvent event) {
+        public void event(ButtonInteractionEvent event) {
             event.deferEdit().queue();
             switch (event.getComponentId()) {
                 case "SPOTIFY-ONE":
@@ -196,7 +194,7 @@ public class SpotifyStatsCommand extends Command {
             }
         }
 
-        public boolean checkMessage(ButtonClickEvent event) {
+        public boolean checkMessage(ButtonInteractionEvent event) {
             if (event.getMessageIdLong() == botMsg.getIdLong() && !event.getUser().isBot() && event.getUser().getId().equals(user.getId())) {
                 switch (event.getComponentId()) {
                     case "SPOTIFY-ONE":

@@ -1,6 +1,6 @@
 {
   "name": "commands",
   "main": "pl.fratik.commands.Module",
-  "peerDependencies": ["music", "invite", "moderation"],
+  "peerDependencies": ["music", "invite", "moderation", "api"],
   "coreVersion": "@core.version@"
 }

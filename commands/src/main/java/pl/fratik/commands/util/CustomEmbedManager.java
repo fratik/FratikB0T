@@ -39,7 +39,7 @@ import java.util.Random;
 
 public class CustomEmbedManager {
 
-    private final static Random RADOM = new Random();
+    private final Random RADOM = new Random();
 
     private final Cache<EmbedBuilder> embeds;
 
@@ -62,7 +62,7 @@ public class CustomEmbedManager {
                 return;
             }
             if (requester == null) {
-                Exchange.body().sendErrorCode(ex, Exceptions.Codes.NO_REQUESTER_ID);
+                Exchange.body().sendErrorCode(ex, Exceptions.Codes.PURGE_NO_REQUESTER_ID);
                 return;
             }
 

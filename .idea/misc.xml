@@ -18,4 +18,7 @@
   <component name="ProjectRootManager" version="2" languageLevel="JDK_17" default="true" project-jdk-name="17" project-jdk-type="JavaSDK">
     <output url="file://$PROJECT_DIR$/classes" />
   </component>
+  <component name="TaskProjectConfiguration">
+    <server type="YouTrack" url="https://issues.fratikbot.pl" />
+  </component>
 </project>

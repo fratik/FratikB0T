@@ -17,50 +17,43 @@
 
 package pl.fratik.commands.system;
 
-import club.minnced.discord.webhook.send.WebhookEmbedBuilder;
 import net.dv8tion.jda.api.EmbedBuilder;
 import pl.fratik.commands.util.CustomEmbedManager;
-import pl.fratik.core.Ustawienia;
-import pl.fratik.core.command.Command;
-import pl.fratik.core.command.CommandContext;
-import pl.fratik.core.command.PermLevel;
-import pl.fratik.core.entity.Uzycie;
+import pl.fratik.core.command.CommandType;
+import pl.fratik.core.command.NewCommand;
+import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.webhook.WebhookManager;
 
-public class EmbedCommand extends Command {
+public class EmbedCommand extends NewCommand {
 
     private final CustomEmbedManager cem;
     private final WebhookManager webhookManager;
 
     public EmbedCommand(CustomEmbedManager cem, WebhookManager webhookManager) {
         name = "embed";
-        uzycieDelim = " ";
-        uzycie = new Uzycie("code", "string", false);
-        permLevel = PermLevel.GADMIN; // TODO
+        type = CommandType.SUPPORT_SERVER;
+        usage = "<code:string>";
         cooldown = 5;
         this.cem = cem;
         this.webhookManager = webhookManager;
     }
 
     @Override
-    public boolean execute(CommandContext context) {
-        if (context.getArgs().length == 0 || context.getArgs()[0] == null) {
-            context.send(context.getTranslated("embed.info", Ustawienia.instance.botUrl));
-            return false;
-        }
-        EmbedBuilder eb = cem.getEmbed((String) context.getArgs()[0]);
+    public void execute(NewCommandContext context) {
+        EmbedBuilder eb = cem.getEmbed(context.getArguments().get("code").getAsString());
         if (eb == null) {
-            context.send(context.getTranslated("embed.notfound"));
-            return false;
+            context.sendMessage(context.getTranslated("embed.notfound"));
+            return;
         }
         try {
 //            webhookManager.send(WebhookEmbedBuilder.fromJDA(eb.build()).build(), context.getTextChannel(), context.getMember());
             //FIXME z rebase: nie uzywac tu webhook managera, normalnie odpowiedziec w systemie slashow
+
+            //FIXME: Dobrze fratik
+            context.sendMessage(eb.build());
         } catch (Exception e) {
-            context.send(context.getTranslated("embed.error", e.getMessage()));
-            return false;
+            context.sendMessage(context.getTranslated("embed.error", e.getMessage()));
         }
-        return true;
     }
 
 }

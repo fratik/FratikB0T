@@ -25,6 +25,7 @@ mainClassName = 'pl.fratik.commands.Module'
 build.dependsOn jar
 
 dependencies {
+    implementation project(":api")
     implementation project(":core")
     implementation project(":music")
     implementation project(":invite")

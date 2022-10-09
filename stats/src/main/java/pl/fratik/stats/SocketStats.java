@@ -18,11 +18,9 @@
 package pl.fratik.stats;
 
 import com.google.common.eventbus.Subscribe;
+import net.dv8tion.jda.api.entities.ChannelType;
 import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.events.channel.text.TextChannelCreateEvent;
-import net.dv8tion.jda.api.events.channel.text.TextChannelDeleteEvent;
-import net.dv8tion.jda.api.events.channel.voice.VoiceChannelCreateEvent;
-import net.dv8tion.jda.api.events.channel.voice.VoiceChannelDeleteEvent;
+import net.dv8tion.jda.api.events.channel.ChannelCreateEvent;
 import net.dv8tion.jda.api.events.guild.GuildJoinEvent;
 import net.dv8tion.jda.api.events.guild.GuildLeaveEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
@@ -32,7 +30,7 @@ import pl.fratik.api.SocketAdapter;
 import pl.fratik.api.SocketManager;
 import pl.fratik.core.cache.Cache;
 import pl.fratik.core.cache.RedisCacheManager;
-import pl.fratik.core.event.CommandDispatchEvent;
+import pl.fratik.core.event.CommandDispatchedEvent;
 import pl.fratik.core.util.NamedThreadFactory;
 import pl.fratik.stats.entity.CommandCountStats;
 import pl.fratik.stats.entity.GuildCountStats;
@@ -110,11 +108,19 @@ public class SocketStats implements SocketAdapter {
 
     @Subscribe public void onNewGuild(GuildJoinEvent e) { updateGuildCount(); }
     @Subscribe public void onLeftGuild(GuildLeaveEvent e) { updateGuildCount(); }
-    @Subscribe public void onChannelCreate(TextChannelCreateEvent e) { updateTextCount(); }
-    @Subscribe public void onChannelDelete(TextChannelDeleteEvent e) { updateTextCount(); }
-    @Subscribe public void onChannelCreate(VoiceChannelCreateEvent e) { updateVoiceCount(); }
-    @Subscribe public void onChannelDelete(VoiceChannelDeleteEvent e) { updateVoiceCount(); }
-    @Subscribe public void onCommand(CommandDispatchEvent e) { updateCommandCount(); }
+    @Subscribe public void onTextChannelCreate(ChannelCreateEvent e) {
+        if (e.getChannelType() == ChannelType.TEXT) updateTextCount();
+    }
+    @Subscribe public void onTextChannelDelete(ChannelCreateEvent e) {
+        if (e.getChannelType() == ChannelType.TEXT) updateTextCount();
+    }
+    @Subscribe public void onVoiceChannelCreate(ChannelCreateEvent e) {
+        if (e.getChannelType() == ChannelType.VOICE) updateTextCount();
+    }
+    @Subscribe public void onChannelDelete(ChannelCreateEvent e) {
+        if (e.getChannelType() == ChannelType.VOICE) updateTextCount();
+    }
+    @Subscribe public void onCommand(CommandDispatchedEvent e) { updateCommandCount(); }
     @Subscribe public void onMemberJoin(GuildMemberJoinEvent e) { updateMemberCount(); }
     @Subscribe public void onMemberLeave(GuildMemberRemoveEvent e) { updateMemberCount(); }
 
