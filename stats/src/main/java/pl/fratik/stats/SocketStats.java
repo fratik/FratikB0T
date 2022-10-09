@@ -106,20 +106,21 @@ public class SocketStats implements SocketAdapter {
                 shardManager.getGuilds().stream().map(Guild::getMemberCount).reduce(Integer::sum).orElse(0));
     }
 
-    @Subscribe public void onNewGuild(GuildJoinEvent e) { updateGuildCount(); }
-    @Subscribe public void onLeftGuild(GuildLeaveEvent e) { updateGuildCount(); }
-    @Subscribe public void onTextChannelCreate(ChannelCreateEvent e) {
-        if (e.getChannelType() == ChannelType.TEXT) updateTextCount();
+    @Subscribe public void onNewGuild(GuildJoinEvent e) {
+        updateGuildCount();
     }
-    @Subscribe public void onTextChannelDelete(ChannelCreateEvent e) {
-        if (e.getChannelType() == ChannelType.TEXT) updateTextCount();
+    @Subscribe public void onLeftGuild(GuildLeaveEvent e) {
+        updateGuildCount();
     }
-    @Subscribe public void onVoiceChannelCreate(ChannelCreateEvent e) {
-        if (e.getChannelType() == ChannelType.VOICE) updateTextCount();
+    @Subscribe public void onChannelCreate(ChannelCreateEvent e) {
+        if (e.getChannelType() == ChannelType.TEXT) updateTextCount();
+        if (e.getChannelType() == ChannelType.VOICE) updateVoiceCount();
     }
     @Subscribe public void onChannelDelete(ChannelCreateEvent e) {
-        if (e.getChannelType() == ChannelType.VOICE) updateTextCount();
+        if (e.getChannelType() == ChannelType.TEXT) updateTextCount();
+        if (e.getChannelType() == ChannelType.VOICE) updateVoiceCount();
     }
+
     @Subscribe public void onCommand(CommandDispatchedEvent e) { updateCommandCount(); }
     @Subscribe public void onMemberJoin(GuildMemberJoinEvent e) { updateMemberCount(); }
     @Subscribe public void onMemberLeave(GuildMemberRemoveEvent e) { updateMemberCount(); }
