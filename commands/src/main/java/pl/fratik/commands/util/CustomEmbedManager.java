@@ -39,7 +39,7 @@ import java.util.Random;
 
 public class CustomEmbedManager {
 
-    private final Random RADOM = new Random();
+    private final Random random = new Random();
 
     private final Cache<EmbedBuilder> embeds;
 
@@ -76,7 +76,7 @@ public class CustomEmbedManager {
                 if (colorElement != null) eb.setColor(Color.decode(colorElement.getAsString()));
 
                 eb.setFooter(user.getAsTag(), user.getEffectiveAvatarUrl());
-                int code = RADOM.nextInt(1_000_000);
+                int code = random.nextInt(1_000_000);
                 embeds.put(String.valueOf(code), eb);
                 Exchange.body().sendJson(ex, new JSONObject().put("success", true).put("code", code).toString());
             } catch (Exception e) {

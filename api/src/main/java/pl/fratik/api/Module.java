@@ -334,7 +334,7 @@ public class Module implements Modul {
             List<pl.fratik.api.entity.Role> roles = new ArrayList<>();
             for (Role r : guild.getRoles()) {
                 roles.add(new pl.fratik.api.entity.Role(r.getName(), r.getId(), r.getPermissionsRaw(),
-                        r.getPositionRaw(), r.isManaged()));
+                        r.getPositionRaw(), r.isManaged(), r.getColorRaw()));
             }
             Exchange.body().sendJson(ex, roles);
         });

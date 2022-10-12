@@ -26,4 +26,5 @@ public class Role {
     private final long permissions;
     private final int rawPosition;
     private final boolean managed;
+    private final int color;
 }
