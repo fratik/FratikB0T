@@ -39,7 +39,8 @@ public class Guild {
                                 guild.getSelfMember().getRoles().get(0).getId(),
                                 guild.getSelfMember().getRoles().get(0).getPermissionsRaw(),
                                 guild.getSelfMember().getRoles().get(0).getPositionRaw(),
-                                guild.getSelfMember().getRoles().get(0).isManaged()) : null,
+                                guild.getSelfMember().getRoles().get(0).isManaged(),
+                                guild.getSelfMember().getRoles().get(0).getColorRaw()) : null,
                 guild.getMemberCount(),
                 guild.getRoles().size(), guild.getTextChannels().size(), guild.getVoiceChannels().size(),
                 guild.getTimeCreated().toInstant().toEpochMilli());
