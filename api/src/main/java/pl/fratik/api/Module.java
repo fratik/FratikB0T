@@ -77,6 +77,7 @@ import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.*;
 
+import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -85,6 +86,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.*;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -334,7 +336,8 @@ public class Module implements Modul {
             List<pl.fratik.api.entity.Role> roles = new ArrayList<>();
             for (Role r : guild.getRoles()) {
                 roles.add(new pl.fratik.api.entity.Role(r.getName(), r.getId(), r.getPermissionsRaw(),
-                        r.getPositionRaw(), r.isManaged(), r.getColorRaw()));
+                    r.getPositionRaw(), r.isManaged(),
+                    Optional.ofNullable(r.getColor()).orElse(new Color(0x1FFFFFFF)).getRGB()));
             }
             Exchange.body().sendJson(ex, roles);
         });

@@ -19,6 +19,9 @@ package pl.fratik.api.entity;
 
 import lombok.Data;
 
+import java.awt.*;
+import java.util.Optional;
+
 @Data
 public class Guild {
     private final String name;
@@ -40,7 +43,7 @@ public class Guild {
                                 guild.getSelfMember().getRoles().get(0).getPermissionsRaw(),
                                 guild.getSelfMember().getRoles().get(0).getPositionRaw(),
                                 guild.getSelfMember().getRoles().get(0).isManaged(),
-                                guild.getSelfMember().getRoles().get(0).getColorRaw()) : null,
+                                Optional.ofNullable(guild.getSelfMember().getRoles().get(0).getColor()).orElse(new Color(0x1FFFFFFF)).getRGB()) : null,
                 guild.getMemberCount(),
                 guild.getRoles().size(), guild.getTextChannels().size(), guild.getVoiceChannels().size(),
                 guild.getTimeCreated().toInstant().toEpochMilli());
