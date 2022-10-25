@@ -40,34 +40,43 @@ public class ShipCommand extends NewCommand {
 
     public ShipCommand() {
         name = "ship";
-        usage = "<co:string> <z_czym:string>";
-        cooldown = 5;
+        usage = "<co:string> [z_czym:string]";
     }
 
     @Override
     public void execute(@NotNull NewCommandContext context) {
-        OptionMapping coMapping = context.getArguments().get("co");
-        OptionMapping zCzymMapping = context.getArguments().get("z_czym");
-        String rzecz1 = coMapping.getAsString();
         String wyswietlana1 = null;
-        String rzecz2 = zCzymMapping.getAsString();
         String wyswietlana2 = null;
+
+        OptionMapping coMapping = context.getArguments().get("co");
+        OptionMapping zCzymMapping = context.getArguments().getOrDefault("z_czym", null);
+
+        String rzecz1 = coMapping.getAsString();
+        String rzecz2 = zCzymMapping != null ? zCzymMapping.getAsString() : context.getSender().getAsMention();
+
         if (rzecz1.startsWith("<@") && rzecz1.endsWith(">") && coMapping.getMentions().getUsers().size() == 1) {
             rzecz1 = coMapping.getMentions().getUsers().get(0).getAsTag();
             wyswietlana1 = coMapping.getMentions().getUsers().get(0).getAsMention();
         }
-        if (rzecz2.startsWith("<@") && rzecz1.endsWith(">") && zCzymMapping.getMentions().getUsers().size() == 1) {
-            rzecz2 = zCzymMapping.getMentions().getUsers().get(0).getAsTag();
-            wyswietlana2 = zCzymMapping.getMentions().getUsers().get(0).getAsMention();
+
+        if (zCzymMapping != null) {
+            if (rzecz2.startsWith("<@") && rzecz1.endsWith(">") && zCzymMapping.getMentions().getUsers().size() == 1) {
+                rzecz2 = zCzymMapping.getMentions().getUsers().get(0).getAsTag();
+                wyswietlana2 = zCzymMapping.getMentions().getUsers().get(0).getAsMention();
+            }
+        } else {
+            rzecz2 = context.getSender().getAsTag();
+            wyswietlana2 = context.getSender().getAsMention();
         }
+
         ship(rzecz1, rzecz2, context, wyswietlana1, wyswietlana2);
     }
 
-    private boolean ship(String rzecz1,
-                         String rzecz2,
-                         NewCommandContext context,
-                         String wyswietlana1,
-                         String wyswietlana2) {
+    private void ship(String rzecz1,
+                      String rzecz2,
+                      NewCommandContext context,
+                      String wyswietlana1,
+                      String wyswietlana2) {
         EmbedBuilder eb = context.getBaseEmbed(null, null);
         eb.setTitle("Ship");
         eb.setColor(Color.pink);
@@ -76,7 +85,7 @@ public class ShipCommand extends NewCommand {
 
         if (rzecz1.equalsIgnoreCase(rzecz2)) {
             context.replyEphemeral(context.getTranslated("ship.same"));
-            return false;
+            return;
         }
 
         shipFormat = String.format(shipFormat,
@@ -95,7 +104,6 @@ public class ShipCommand extends NewCommand {
         desc.append(String.format(loadingScreen, generateProgressBar(procent, true), text));
         eb.setDescription(desc);
         context.reply(eb.build());
-        return true;
     }
 
     private String getText(int procent, Tlumaczenia tlumaczenia, Language lang) {
