@@ -69,7 +69,7 @@ public class AchievementCommand extends NewCommand {
         if (!option.getName().equals("ikona")) return;
 
         for (Material value : Material.values()) {
-            if (option.getChoices().size() == OptionData.MAX_CHOICES) continue;
+            if (option.getChoices().size() == OptionData.MAX_CHOICES) break;
             option.addChoice(value.getName(), value.getId());
         }
     }
