@@ -17,6 +17,11 @@
 
 package pl.fratik.commands.zabawa;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
+import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.NewCommand;
 import pl.fratik.core.command.NewCommandContext;
@@ -28,9 +33,11 @@ import java.util.Random;
 public class AchievementCommand extends NewCommand {
     private static final Random RANDOM = new Random();
 
+    private static final String URL = "https://skinmc.net/en/achievement/%s/%s/%s";
+
     public AchievementCommand() {
         name = "achievement";
-        usage = "<tekst:string>";
+        usage = "[górny_tekst:string] <dolny_tekst:string> [ikona:string]";
         cooldown = 5;
         allowInDMs = true;
     }
@@ -38,20 +45,66 @@ public class AchievementCommand extends NewCommand {
     @Override
     public void execute(@NotNull NewCommandContext context) {
         String tekst = context.getArguments().get("tekst").getAsString();
-        int rnd = RANDOM.nextInt(39) + 1;
+
+        String yellowText = context.getArgumentOr("górny_tekst", context.getTranslated("achievement.msg"), OptionMapping::getAsString);
+        String whiteText = context.getArguments().get("dolny_tekst").getAsString();
+        int icon = context.getArgumentOr("ikona", RANDOM.nextInt(25) + 1, OptionMapping::getAsInt);
 
         if (tekst.length() > 22) {
             context.replyEphemeral(context.getTranslated("achievement.maxsize"));
             return;
         }
+
         context.deferAsync(false);
-        String url = "https://www.minecraftskinstealer.com/achievement/a.php?i=" + rnd + "&h=" +
-                NetworkUtil.encodeURIComponent(context.getTranslated("achievement.msg")) + "&t=" +
-                NetworkUtil.encodeURIComponent(tekst);
+
         try {
-            context.sendMessage("achievement.png", NetworkUtil.download(url));
+            context.sendMessage("achievement.png", NetworkUtil.download(String.format(URL, yellowText, whiteText, icon)));
         } catch (IOException e) {
             context.sendMessage(context.getTranslated("image.server.fail"));
         }
     }
+
+    @Override
+    public void updateOptionData(OptionData option) {
+        if (!option.getName().equals("ikona")) return;
+
+        for (Material value : Material.values()) {
+            if (option.getChoices().size() == OptionData.MAX_CHOICES) continue;
+            option.addChoice(value.getName(), value.getId());
+        }
+    }
+
+    @RequiredArgsConstructor
+    @Getter
+    enum Material {
+        STONE(1, "Kamień"),
+        GRASS(2, "Ziemia"),
+        WOODEN_PLANK(3, "Drewniana deska"),
+        CRAFINT_TABLE(4, "Crafting"),
+        FURNACE(5, "Piecyk"),
+        CHEST(6, "Piec"),
+        BED(7, "Łóżko"),
+        COAL(8, "Węgiel"),
+        IRON(9, "Żelazo"),
+        GOLD(10, "Złoto"),
+        DIAMOND(11, "Diament"),
+        SIGN(12, "Tabliczka"),
+        BOOK(13, "Książka"),
+        WOODEN_DOOR(14, "Drzwi"),
+        IRON_DOOR(15, "Żelazne Drzwi"),
+        REDSTONE(16, "Redstone"),
+        RAIL(17, "Szyny"),
+        BOW(18, "Łuk"),
+        ARROW(19, "Strzała"),
+        IRON_SWORD(20, "Żelazny miecz"),
+        DIAMOND_SWORD(21, "Diamentowy miecz"),
+        IRON_CHESTPLATE(22, "Żelazny napiersnik"),
+        DIAMOND_CHESTPLATE(23, "Diamentowy napiersnik"),
+        TNT(24, "TNT"),
+        FLINT_AND_STEEL(25, "Zapalniczka");
+
+        private final int id;
+        private final String name;
+    }
+
 }
