@@ -27,6 +27,7 @@ import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.util.NetworkUtil;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.Random;
 public class AchievementCommand extends NewCommand {
     private static final Random RANDOM = new Random();
@@ -54,7 +55,9 @@ public class AchievementCommand extends NewCommand {
         context.deferAsync(false);
 
         try {
-            context.sendMessage("achievement.png", NetworkUtil.download(String.format(URL, yellowText, whiteText, icon)));
+            context.sendMessage("achievement.png", NetworkUtil.download(String.format(URL, icon,
+                NetworkUtil.encodeURIComponent(yellowText),
+                NetworkUtil.encodeURIComponent(whiteText))));
         } catch (IOException e) {
             context.sendMessage(context.getTranslated("image.server.fail"));
         }
