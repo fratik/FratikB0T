@@ -35,7 +35,7 @@ public class AchievementCommand extends NewCommand {
 
     public AchievementCommand() {
         name = "achievement";
-        usage = "[górny_tekst:string] <dolny_tekst:string> [ikona:string]";
+        usage = "<ikona:string> [górny_tekst:string] <dolny_tekst:string>";
         cooldown = 5;
         allowInDMs = true;
     }
