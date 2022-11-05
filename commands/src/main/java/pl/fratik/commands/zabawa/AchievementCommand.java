@@ -17,7 +17,6 @@
 
 package pl.fratik.commands.zabawa;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
@@ -29,7 +28,6 @@ import pl.fratik.core.util.NetworkUtil;
 
 import java.io.IOException;
 import java.util.Random;
-
 public class AchievementCommand extends NewCommand {
     private static final Random RANDOM = new Random();
 
@@ -70,7 +68,7 @@ public class AchievementCommand extends NewCommand {
 
         for (Material value : Material.values()) {
             if (option.getChoices().size() == OptionData.MAX_CHOICES) break;
-            option.addChoice(value.getName(), value.getId());
+            option.addChoice(value.getName(), String.valueOf(value.getId()));
         }
     }
 
