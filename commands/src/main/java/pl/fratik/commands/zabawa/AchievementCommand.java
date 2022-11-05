@@ -42,13 +42,11 @@ public class AchievementCommand extends NewCommand {
 
     @Override
     public void execute(@NotNull NewCommandContext context) {
-        String tekst = context.getArguments().get("tekst").getAsString();
-
         String yellowText = context.getArgumentOr("górny_tekst", context.getTranslated("achievement.msg"), OptionMapping::getAsString);
         String whiteText = context.getArguments().get("dolny_tekst").getAsString();
         int icon = context.getArgumentOr("ikona", RANDOM.nextInt(25) + 1, OptionMapping::getAsInt);
 
-        if (tekst.length() > 22) {
+        if (whiteText.length() > 22 || yellowText.length() > 22) {
             context.replyEphemeral(context.getTranslated("achievement.maxsize"));
             return;
         }
