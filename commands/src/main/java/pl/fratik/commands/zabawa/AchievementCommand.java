@@ -69,41 +69,40 @@ public class AchievementCommand extends NewCommand {
 
         for (Material value : Material.values()) {
             if (option.getChoices().size() == OptionData.MAX_CHOICES) break;
-            option.addChoice(value.getName(), String.valueOf(value.getId()));
+            option.addChoice(value.name().toLowerCase(), String.valueOf(value.getId()));
         }
     }
 
     @RequiredArgsConstructor
     @Getter
     enum Material {
-        STONE(20, "Kamień"),
-        GRASS(1, "Ziemia"),
-        WOODEN_PLANK(21, "Drewniana deska"),
-        CRAFINT_TABLE(13, "Crafting"),
-        FURNACE(18, "Piecyk"),
-        CHEST(17, "Skrzynia"),
-        BED(9, "Łóżko"),
-        COAL(31, "Węgiel"),
-        IRON(22, "Żelazo"),
-        GOLD(23, "Złoto"),
-        DIAMOND(2, "Diament"),
-        SIGN(11, "Tabliczka"),
-        BOOK(19, "Książka"),
-        WOODEN_DOOR(24, "Drzwi"),
-        IRON_DOOR(25, "Żelazne Drzwi"),
-        REDSTONE(14, "Redstone"),
-        RAIL(12, "Szyny"),
-        BOW(33, "Łuk"),
-        ARROW(34, "Strzała"),
-        IRON_SWORD(32, "Żelazny miecz"),
-        DIAMOND_SWORD(3, "Diamentowy miecz"),
-        IRON_CHESTPLATE(35, "Żelazny napiersnik"),
-        DIAMOND_CHESTPLATE(26, "Diamentowy napiersnik"),
-        TNT(6, "TNT"),
-        FLINT_AND_STEEL(27, "Zapalniczka");
+        STONE(20),
+        GRASS(1),
+        WOODEN_PLANK(21),
+        CRAFINT_TABLE(13),
+        FURNACE(18),
+        CHEST(17),
+        BED(9),
+        COAL(31),
+        IRON(22),
+        GOLD(23),
+        DIAMOND(2),
+        SIGN(11),
+        BOOK(19),
+        WOODEN_DOOR(24),
+        IRON_DOOR(25),
+        REDSTONE(14),
+        RAIL(12),
+        BOW(33),
+        ARROW(34),
+        IRON_SWORD(32),
+        DIAMOND_SWORD(3),
+        IRON_CHESTPLATE(35),
+        DIAMOND_CHESTPLATE(26),
+        TNT(6),
+        FLINT_AND_STEEL(27);
 
         private final int id;
-        private final String name;
     }
 
 }
