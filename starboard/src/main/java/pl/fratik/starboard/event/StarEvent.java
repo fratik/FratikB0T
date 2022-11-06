@@ -20,6 +20,8 @@ package pl.fratik.starboard.event;
 import lombok.Getter;
 import lombok.Setter;
 import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
 import org.jetbrains.annotations.Nullable;
 import pl.fratik.starboard.entity.StarData;
 

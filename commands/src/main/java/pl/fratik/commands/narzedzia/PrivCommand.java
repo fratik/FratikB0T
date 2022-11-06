@@ -17,8 +17,8 @@
 
 package pl.fratik.commands.narzedzia;
 
-import net.dv8tion.jda.api.entities.PrivateChannel;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.entities.channel.concrete.PrivateChannel;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.commands.entity.Priv;
 import pl.fratik.commands.entity.PrivDao;

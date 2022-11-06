@@ -24,6 +24,7 @@ import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.audit.ActionType;
 import net.dv8tion.jda.api.audit.AuditLogEntry;
 import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.guild.GenericGuildEvent;
 import net.dv8tion.jda.api.events.guild.GuildBanEvent;
 import net.dv8tion.jda.api.events.guild.GuildUnbanEvent;
@@ -32,6 +33,8 @@ import net.dv8tion.jda.api.events.guild.member.GuildMemberUpdateEvent;
 import net.dv8tion.jda.api.events.role.GenericRoleEvent;
 import net.dv8tion.jda.api.events.role.RoleDeleteEvent;
 import net.dv8tion.jda.api.sharding.ShardManager;
+import net.dv8tion.jda.api.utils.messages.MessageCreateData;
+import net.dv8tion.jda.api.utils.messages.MessageEditData;
 import pl.fratik.core.Globals;
 import pl.fratik.core.cache.Cache;
 import pl.fratik.core.cache.RedisCacheManager;
@@ -323,7 +326,7 @@ public class ModLogListener {
 
     private Case sendCaseMessage(Case aCase, TextChannel mlogchan) {
         if (mlogchan == null) return aCase;
-        Message toSend = ModLogBuilder.generate(aCase, mlogchan.getGuild(), shardManager,
+        MessageCreateData toSend = ModLogBuilder.generate(aCase, mlogchan.getGuild(), shardManager,
                 tlumaczenia.getLanguage(mlogchan.getGuild()), true, false, false);
         try {
             Message msg = mlogchan.sendMessage(toSend).complete();
@@ -337,11 +340,11 @@ public class ModLogListener {
 
     private Case updateCaseMessage(Case aCase, TextChannel mlogchan) {
         if (mlogchan == null || aCase.getMessageId() == null) return aCase;
-        Message toSend = ModLogBuilder.generate(aCase, mlogchan.getGuild(), shardManager,
+        MessageCreateData toSend = ModLogBuilder.generate(aCase, mlogchan.getGuild(), shardManager,
                 tlumaczenia.getLanguage(mlogchan.getGuild()), true, false, false);
         try {
             mlogchan.retrieveMessageById(aCase.getMessageId())
-                    .flatMap(m -> m.editMessage(toSend).override(true)).complete();
+                    .flatMap(m -> m.editMessage(MessageEditData.fromCreateData(toSend)).setReplace(true)).complete();
         } catch (Exception e) {
             if (!aCase.isNeedsUpdate()) return sendCaseMessage(aCase, mlogchan);
         }
@@ -350,7 +353,7 @@ public class ModLogListener {
 
     private Case sendDm(Case aCase, User user, Guild g) {
         if (aCase.getIssuerId() == null) return aCase;
-        Message toSend = ModLogBuilder.generate(aCase, g, shardManager, tlumaczenia.getLanguage(user),
+        MessageCreateData toSend = ModLogBuilder.generate(aCase, g, shardManager, tlumaczenia.getLanguage(user),
                 true, false, true);
         try {
             Message msg = user.openPrivateChannel().flatMap(chan -> chan.sendMessage(toSend)).complete();
@@ -364,11 +367,11 @@ public class ModLogListener {
 
     private Case updateDm(Case aCase, User user, Guild g) {
         if (aCase.getIssuerId() == null || aCase.getDmMsgId() == null || user == null) return aCase;
-        Message toSend = ModLogBuilder.generate(aCase, g, shardManager, tlumaczenia.getLanguage(user),
+        MessageCreateData toSend = ModLogBuilder.generate(aCase, g, shardManager, tlumaczenia.getLanguage(user),
                 true, false, true);
         try {
             user.openPrivateChannel().flatMap(chan -> chan.retrieveMessageById(aCase.getDmMsgId()))
-                    .flatMap(m -> m.editMessage(toSend).override(true)).complete();
+                    .flatMap(m -> m.editMessage(MessageEditData.fromCreateData(toSend)).setReplace(true)).complete();
         } catch (Exception ignored) {
             // ignoruj
         }

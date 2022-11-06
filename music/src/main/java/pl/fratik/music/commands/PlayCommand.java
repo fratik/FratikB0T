@@ -23,7 +23,7 @@ import io.sentry.Sentry;
 import io.sentry.event.User;
 import lavalink.client.io.Link;
 import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.AudioChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.AudioChannel;
 import net.dv8tion.jda.api.entities.GuildVoiceState;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.cache.Cache;

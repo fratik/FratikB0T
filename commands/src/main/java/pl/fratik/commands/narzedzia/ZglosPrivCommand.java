@@ -94,18 +94,18 @@ public class ZglosPrivCommand extends NewCommand {
             return;
         }
         Message msg = hook.editOriginal(context.getTranslated("zglospriv.confirmation"))
-                .setActionRows(ActionRow.of(
+                .setComponents(ActionRow.of(
                         Button.danger("YES", context.getTranslated("generic.yes")),
                         Button.secondary("NO", context.getTranslated("generic.no"))
                 )).complete();
         ButtonWaiter waiter = new ButtonWaiter(eventWaiter, context, msg.getIdLong(), ButtonWaiter.ResponseType.REPLY);
         waiter.setTimeoutHandler(() -> {
-            msg.editMessage(msg.getContentRaw()).setActionRows(Collections.emptySet()).queue();
+            msg.editMessage(msg.getContentRaw()).setComponents(Collections.emptySet()).queue();
             hook.sendMessage(context.getTranslated("zglospriv.cancelled")).setEphemeral(true).queue();
         });
         String finalPowod = powod;
         waiter.setButtonHandler(e -> {
-            msg.editMessage(msg.getContentRaw()).setActionRows(Collections.emptySet()).queue();
+            msg.editMessage(msg.getContentRaw()).setComponents(Collections.emptySet()).queue();
             if (e.getComponentId().equals("NO")) {
                 e.getHook().editOriginal(context.getTranslated("zglospriv.cancelled")).queue();
                 return;
@@ -129,7 +129,7 @@ public class ZglosPrivCommand extends NewCommand {
             Role popRole = Objects.requireNonNull(botgild.getRoleById(Ustawienia.instance.popRole));
             popRole.getManager().setMentionable(true).complete();
             Objects.requireNonNull(shardManager.getTextChannelById(Ustawienia.instance.zglosPrivChannel))
-                    .sendMessage(popRole.getAsMention()).mention(popRole).setEmbeds(eb.build()).setActionRows(
+                    .sendMessage(popRole.getAsMention()).mention(popRole).setEmbeds(eb.build()).setComponents(
                             ActionRow.of(
                                     Button.success("CLOSE", "Uniewinnij"),
                                     Button.danger("ACTION", "Ukarz")

@@ -21,10 +21,10 @@ import com.google.common.eventbus.Subscribe;
 import lavalink.client.LavalinkUtil;
 import lavalink.client.io.Lavalink;
 import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.entities.AudioChannel;
 import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.events.ReconnectedEvent;
+import net.dv8tion.jda.api.entities.channel.middleman.AudioChannel;
 import net.dv8tion.jda.api.events.guild.GuildLeaveEvent;
+import net.dv8tion.jda.api.events.session.SessionRecreateEvent;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,12 +74,14 @@ public class CustomLavalink extends Lavalink<CustomLink> {
     }
     
     @Subscribe
-    public void onReconnect(ReconnectedEvent e) {
+    public void onReconnect(SessionRecreateEvent e) {
         getLinksMap().forEach((guildId, link) -> {
             try {
                 //Note: We also ensure that the link belongs to the JDA object
                 if (link.getLastChannel() != null && e.getJDA().getGuildById(guildId) != null) {
-                    link.connect(e.getJDA().getChannelById(AudioChannel.class, link.getLastChannel()), false);
+                    AudioChannel ac = e.getJDA().getChannelById(AudioChannel.class, link.getLastChannel());
+                    if (ac == null) return;
+                    link.connect(ac, false);
                 }
             } catch (Exception ex) {
                 log.error("Caught exception while trying to reconnect link " + link, ex);

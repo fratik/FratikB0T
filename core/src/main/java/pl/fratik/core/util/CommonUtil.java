@@ -18,6 +18,10 @@
 package pl.fratik.core.util;
 
 import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.channel.ChannelType;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import net.dv8tion.jda.internal.entities.AbstractMessage;
 import org.json.JSONObject;

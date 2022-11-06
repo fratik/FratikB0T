@@ -25,15 +25,16 @@ import lavalink.client.player.IPlayer;
 import lavalink.client.player.event.PlayerEventListenerAdapter;
 import lombok.Getter;
 import lombok.Setter;
-import net.dv8tion.jda.api.MessageBuilder;
-import net.dv8tion.jda.api.entities.AudioChannel;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.AudioChannel;
 import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.MessageChannel;
-import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
 import net.dv8tion.jda.api.events.GenericEvent;
 import net.dv8tion.jda.api.events.guild.voice.GenericGuildVoiceEvent;
 import net.dv8tion.jda.api.exceptions.InsufficientPermissionException;
 import net.dv8tion.jda.api.hooks.VoiceDispatchInterceptor;
+import net.dv8tion.jda.api.requests.restaction.MessageCreateAction;
+import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.fratik.core.entity.GuildDao;
@@ -359,8 +360,11 @@ public class NowyManagerMuzykiSerwera implements ManagerMuzykiSerwera {
         @Override
         public void onTrackStart(IPlayer player, AudioTrack track) {
             if (mms.repeatMode != RepeatMode.OFF) return;
-            mms.announceChannel.sendMessage(new MessageBuilder(mms.tlumaczenia.get(mms.getAktualnaPiosenka().getRequesterLanguage(), "play.playing",
-                    mms.getAktualnaPiosenka().getAudioTrack().getInfo().title, mms.getAktualnaPiosenka().getRequester())).build()).queue();
+            MessageCreateBuilder messageCreateBuilder = new MessageCreateBuilder();
+            messageCreateBuilder.setContent(mms.tlumaczenia.get(mms.getAktualnaPiosenka().getRequesterLanguage(), "play.playing",
+                mms.getAktualnaPiosenka().getAudioTrack().getInfo().title, mms.getAktualnaPiosenka().getRequester()));
+
+            mms.announceChannel.sendMessage(messageCreateBuilder.build()).queue();
             try {
                 String muzycznyKanal = mms.guildDao.get(mms.guild).getKanalMuzyczny();
                 TextChannel ch = mms.guild.getTextChannelById(muzycznyKanal);

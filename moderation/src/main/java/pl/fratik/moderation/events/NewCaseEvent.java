@@ -18,7 +18,7 @@
 package pl.fratik.moderation.events;
 
 import lombok.*;
-import net.dv8tion.jda.api.entities.MessageChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.moderation.entity.Case;
 

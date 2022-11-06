@@ -17,7 +17,6 @@
 
 package pl.fratik.punkty.komendy;
 
-import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Role;
@@ -25,6 +24,7 @@ import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
+import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.CommandType;
 import pl.fratik.core.command.NewCommand;
@@ -63,13 +63,16 @@ public class NukepointsCommand extends NewCommand {
     @Override
     public void execute(@NotNull NewCommandContext context) {
         String content = context.getTranslated("nukepoints.warning");
-        InteractionHook hook = context.reply(new MessageBuilder(content).setActionRows(ActionRow.of(
-                Button.danger("YES", context.getTranslated("generic.yes")),
-                Button.secondary("NO", context.getTranslated("generic.no"))
-        )).build());
+        MessageCreateBuilder msgBuilder = new MessageCreateBuilder();
+        msgBuilder.setContent(content);
+        msgBuilder.setComponents(ActionRow.of(
+            Button.danger("YES", context.getTranslated("generic.yes")),
+            Button.secondary("NO", context.getTranslated("generic.no"))
+        ));
+        InteractionHook hook = context.reply(msgBuilder.build());
         ButtonWaiter rw = new ButtonWaiter(eventWaiter, context, hook.getInteraction(), ButtonWaiter.ResponseType.REPLY);
         rw.setButtonHandler(e -> new Thread(() -> {
-            hook.editOriginal(content).setActionRows(Collections.emptySet()).queue();
+            hook.editOriginal(content).setComponents(Collections.emptySet()).queue();
             if (e.getComponentId().equals("YES")) {
                 licznikPunktow.emptyCache();
                 licznikPunktow.setLock(true);
@@ -106,7 +109,7 @@ public class NukepointsCommand extends NewCommand {
                 e.getHook().editOriginal(context.getTranslated("nukepoints.cancel")).queue();
         }, "nukepoints-runner").start());
         rw.setTimeoutHandler(() -> {
-            hook.editOriginal(context.getTranslated("nukepoints.cancel")).setActionRows(Collections.emptySet()).queue();
+            hook.editOriginal(context.getTranslated("nukepoints.cancel")).setComponents(Collections.emptySet()).queue();
         });
         rw.create();
     }

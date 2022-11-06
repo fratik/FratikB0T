@@ -19,7 +19,6 @@ package pl.fratik.fratikcoiny.commands;
 
 import com.google.common.eventbus.EventBus;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.Role;
@@ -27,6 +26,8 @@ import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.sharding.ShardManager;
+import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
+import net.dv8tion.jda.api.utils.messages.MessageEditData;
 import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.command.SubCommand;
 import pl.fratik.core.entity.GuildConfig;
@@ -65,9 +66,9 @@ public class SklepAdminCommand extends SklepSharedCommand {
         EmbedBuilder eb = generateEmbed(Typ.DODAWANIE, rola, opis, kasa, 0, false,
                 context.getTlumaczenia(), context.getLanguage());
 
-        MessageBuilder mb = new MessageBuilder();
+        MessageCreateBuilder mb = new MessageCreateBuilder();
         mb.setEmbeds(eb.build());
-        mb.setActionRows(ActionRow.of(
+        mb.setComponents(ActionRow.of(
                 Button.success("ADD", context.getTranslated("sklep.przycisk.dodaj")),
                 Button.danger("CANCEL", context.getTranslated("sklep.przycisk.anuluj"))
         ));
@@ -75,7 +76,7 @@ public class SklepAdminCommand extends SklepSharedCommand {
         Message msgTmp = context.sendMessage(mb.build());
         ButtonWaiter rw = new ButtonWaiter(eventWaiter, context, msgTmp.getIdLong(), ButtonWaiter.ResponseType.REPLY);
         rw.setButtonHandler(event -> {
-            msgTmp.editMessage(msgTmp).setActionRows(Collections.emptySet()).queue();
+            msgTmp.editMessageComponents(Collections.emptyList()).queue();
             if (event.getComponentId().equals("ADD")) {
                 GuildConfig gc2 = guildDao.get(event.getGuild());
                 Map<String, Long> roleDoKupienia = gc.getRoleDoKupienia();
@@ -91,7 +92,7 @@ public class SklepAdminCommand extends SklepSharedCommand {
                 event.getHook().editOriginal(context.getTranslated("sklep.ustaw.canceled")).queue();
         });
         rw.setTimeoutHandler(() -> {
-            msgTmp.editMessage(msgTmp).setActionRows(Collections.emptySet()).queue();
+            msgTmp.editMessageComponents(Collections.emptySet()).queue();
             context.sendMessage(context.getTranslated("sklep.ustaw.canceled"));
         });
         rw.create();
@@ -118,9 +119,9 @@ public class SklepAdminCommand extends SklepSharedCommand {
                 gc.getRoleDoKupienia().get(rola.getId()), 0, false,
                 context.getTlumaczenia(), context.getLanguage());
 
-        MessageBuilder mb = new MessageBuilder();
+        MessageCreateBuilder mb = new MessageCreateBuilder();
         mb.setEmbeds(eb.build());
-        mb.setActionRows(ActionRow.of(
+        mb.setComponents(ActionRow.of(
                 Button.secondary("DELETE", context.getTranslated("sklep.przycisk.usun")),
                 Button.danger("CANCEL", context.getTranslated("sklep.przycisk.anuluj"))
         ));
@@ -129,7 +130,7 @@ public class SklepAdminCommand extends SklepSharedCommand {
 
         ButtonWaiter rw = new ButtonWaiter(eventWaiter, context, msgTmp.getIdLong(), ButtonWaiter.ResponseType.REPLY);
         rw.setButtonHandler(event -> {
-            msgTmp.editMessage(msgTmp).setActionRows(Collections.emptySet()).queue();
+            msgTmp.editMessageComponents(Collections.emptySet()).queue();
             if (event.getComponentId().equals("DELETE")) {
                 GuildConfig gc2 = guildDao.get(event.getGuild());
                 Map<String, Long> roleDoKupienia = gc.getRoleDoKupienia();
@@ -145,7 +146,7 @@ public class SklepAdminCommand extends SklepSharedCommand {
                 event.getHook().editOriginal(context.getTranslated("sklep.usun.canceled")).queue();
         });
         rw.setTimeoutHandler(() -> {
-            msgTmp.editMessage(msgTmp).setActionRows(Collections.emptySet()).queue();
+            msgTmp.editMessageComponents(Collections.emptyList()).queue();
             context.sendMessage(context.getTranslated("sklep.usun.canceled"));
         });
         rw.create();

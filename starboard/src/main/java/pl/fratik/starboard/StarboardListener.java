@@ -21,6 +21,9 @@ import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.Subscribe;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
 import net.dv8tion.jda.api.events.message.react.MessageReactionRemoveAllEvent;
@@ -234,8 +237,7 @@ public class StarboardListener {
         if (!StarManager.checkPermissions(starboardChannel)) return;
         if (event.getStarboardMessageId() == null) {
             if (event.getGwiazdki() < starDataDao.get(event.getMessage().getGuild()).getStarThreshold()) return;
-            starboardChannel.sendMessageEmbeds(embedRenderer(event.getMessage(), event.getGwiazdki()))
-                    .override(true).queue(msg -> {
+            starboardChannel.sendMessageEmbeds(embedRenderer(event.getMessage(), event.getGwiazdki())).queue(msg -> {
                         StarsData std = starDataDao.get(event.getMessage().getGuild());
                         std.getStarData().get(event.getMessage().getId()).setStarboardMessageId(msg.getId());
                         starDataDao.save(std);
@@ -252,9 +254,8 @@ public class StarboardListener {
                             starDataDao.save(std);
                             return;
                         }
-                        message.editMessageEmbeds(embedRenderer(event.getMessage(), event.getGwiazdki())).override(true).queue();
-                        }, ignored -> starboardChannel.sendMessageEmbeds(embedRenderer(event.getMessage(), event.getGwiazdki()))
-                            .override(true).queue(msg -> {
+                        message.editMessageEmbeds(embedRenderer(event.getMessage(), event.getGwiazdki())).setReplace(true).queue();
+                        }, ignored -> starboardChannel.sendMessageEmbeds(embedRenderer(event.getMessage(), event.getGwiazdki())).queue(msg -> {
                                 StarsData std = starDataDao.get(event.getMessage().getGuild());
                                 std.getStarData().get(event.getMessage().getId()).setStarboardMessageId(msg.getId());
                                 starDataDao.save(std);

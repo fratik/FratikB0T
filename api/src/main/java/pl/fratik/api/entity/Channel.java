@@ -18,7 +18,7 @@
 package pl.fratik.api.entity;
 
 import lombok.Data;
-import net.dv8tion.jda.api.entities.ChannelType;
+import net.dv8tion.jda.api.entities.channel.ChannelType;
 
 @Data
 public class Channel {

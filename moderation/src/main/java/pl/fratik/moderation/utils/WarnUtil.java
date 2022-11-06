@@ -21,7 +21,7 @@ import com.google.common.collect.MapMaker;
 import io.sentry.Sentry;
 import io.sentry.event.User;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.MessageChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
 import pl.fratik.core.Globals;
 import pl.fratik.core.entity.GuildConfig;
 import pl.fratik.core.entity.GuildDao;
@@ -34,6 +34,7 @@ import pl.fratik.moderation.listeners.ModLogListener;
 
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
@@ -81,7 +82,7 @@ public class WarnUtil {
                 listener.getKnownCases().put(ModLogListener.generateKey(member), nc);
                 boolean errored = false;
                 try {
-                    member.getGuild().ban(member, 0).reason(tlumaczenia.get(lang,
+                    member.getGuild().ban(member.getUser(), 0, TimeUnit.MILLISECONDS).reason(tlumaczenia.get(lang,
                             "modlog.auto.tempban.audit.reason", cases,
                             gc.getDlugoscTymczasowegoBanaZaWarny())).complete();
                     channel.sendMessage(tlumaczenia.get(lang, "modlog.auto.tempban.notice",
@@ -102,7 +103,7 @@ public class WarnUtil {
                 listener.getKnownCases().put(ModLogListener.generateKey(member), nc);
                 boolean errored = false;
                 try {
-                    member.getGuild().ban(member, 0).reason(tlumaczenia.get(lang,
+                    member.getGuild().ban(member, 0, TimeUnit.MILLISECONDS).reason(tlumaczenia.get(lang,
                             "modlog.auto.ban.audit.reason", cases)).complete();
                     channel.sendMessage(tlumaczenia.get(lang, "modlog.auto.ban.notice",
                             member.getUser().getAsTag(), cases)).complete();

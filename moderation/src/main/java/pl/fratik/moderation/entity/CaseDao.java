@@ -23,6 +23,7 @@ import com.google.common.eventbus.EventBus;
 import gg.amy.pgorm.PgMapper;
 import gg.amy.pgorm.PgStore;
 import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.entity.Dao;
 import pl.fratik.core.event.DatabaseUpdateEvent;

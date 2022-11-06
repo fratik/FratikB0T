@@ -18,7 +18,7 @@
 package pl.fratik.moderation.commands;
 
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.entity.GuildDao;

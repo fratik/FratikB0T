@@ -17,11 +17,11 @@
 
 package pl.fratik.commands.narzedzia;
 
-import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle;
+import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
 import pl.fratik.core.command.NewCommand;
 import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.command.SubCommand;
@@ -73,34 +73,38 @@ public class UstawieniaCommand extends NewCommand {
                 case PRIV_TOGGLE: {
                     uc.setPrivWlaczone(!uc.isPrivWlaczone());
                     if (uc.isPrivWlaczone()) e.getHook().editOriginal("Pomyślnie włączono wiadomości prywatne /priv")
-                            .setActionRows(Set.of()).queue();
-                    else e.getHook().editOriginal("Pomyślnie wyłączono wiadomości prywatne /priv").setActionRows(Set.of()).queue();
+                            .setComponents(Set.of()).queue();
+                    else e.getHook().editOriginal("Pomyślnie wyłączono wiadomości prywatne /priv").setComponents(Set.of()).queue();
                     break;
                 }
                 case LVLUP_MSG_TOGGLE: {
                     uc.setLvlupMessages(!uc.isLvlupMessages());
                     if (uc.isLvlupMessages()) e.getHook().editOriginal("Pomyślnie włączono wiadomości o zdobyciu wyższego poziomu")
-                            .setActionRows(Set.of()).queue();
+                            .setComponents(Set.of()).queue();
                     else e.getHook().editOriginal("Pomyślnie wyłączono wiadomości o zdobyciu wyższego poziomu")
-                            .setActionRows(Set.of()).queue();
+                            .setComponents(Set.of()).queue();
                     break;
                 }
                 case LVLUP_MSG_DM_TOGGLE: {
                     uc.setLvlUpOnDM(!uc.isLvlUpOnDM());
                     if (uc.isLvlUpOnDM()) e.getHook().editOriginal("Pomyślnie włączono wiadomości o zdobyciu wyższego poziomu w DM")
-                            .setActionRows(Set.of()).queue();
+                            .setComponents(Set.of()).queue();
                     else e.getHook().editOriginal("Pomyślnie wyłączono wiadomości o zdobyciu wyższego poziomu w DM")
-                            .setActionRows(Set.of()).queue();
+                            .setComponents(Set.of()).queue();
                     break;
                 }
             }
             userDao.save(uc);
         });
-        bw.setTimeoutHandler(() -> hook.editOriginal(context.getTranslated("ustawienia.timeout")).setActionRows(Set.of()).queue());
+        bw.setTimeoutHandler(() -> hook.editOriginal(context.getTranslated("ustawienia.timeout")).setComponents(Set.of()).queue());
         bw.create();
-        context.sendMessage(new MessageBuilder("Witamy w nowym, niekompletnym systemie konfiguracji użytkownika. " +
-                "Kiedyś to będzie działać dobrze, ale na razie ~~pobaw się tymi paroma guzikami~~ możesz zmienić tylko te ustawienia.")
-                .setActionRows(ActionRow.of(buttons)).build());
+
+        MessageCreateBuilder messageBuilder = new MessageCreateBuilder();
+        messageBuilder.setContent("Witamy w nowym, niekompletnym systemie konfiguracji użytkownika. " +
+            "Kiedyś to będzie działać dobrze, ale na razie ~~pobaw się tymi paroma guzikami~~ możesz zmienić tylko te ustawienia.");
+        messageBuilder.setComponents(ActionRow.of(buttons));
+
+        context.sendMessage(messageBuilder.build());
     }
 
     @SubCommand(name = "serwer")

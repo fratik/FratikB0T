@@ -20,7 +20,6 @@ package pl.fratik.moderation.commands;
 import com.google.common.eventbus.EventBus;
 import io.sentry.Sentry;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
@@ -30,6 +29,7 @@ import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.requests.ErrorResponse;
 import net.dv8tion.jda.api.sharding.ShardManager;
+import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.command.SubCommand;
@@ -125,18 +125,19 @@ public class AkcjeCommand extends ModerationCommand {
             return false;
         }
         String content = context.getTranslated("akcje.reset.confirmation");
-        InteractionHook hook = context.reply(new MessageBuilder(content)
-                .setActionRows(ActionRow.of(
-                        Button.danger("YES", context.getTranslated("generic.yes")),
-                        Button.secondary("NO", context.getTranslated("generic.no"))
-                )).build());
+        MessageCreateBuilder builder = new MessageCreateBuilder();
+        builder.setComponents(ActionRow.of(
+            Button.danger("YES", context.getTranslated("generic.yes")),
+            Button.secondary("NO", context.getTranslated("generic.no"))
+        ));
+        InteractionHook hook = context.reply(builder.build());
         ButtonWaiter waiter = new ButtonWaiter(eventWaiter, context, hook.getInteraction(), ButtonWaiter.ResponseType.REPLY);
         waiter.setTimeoutHandler(() -> {
-            hook.editOriginal(content).setActionRows(Collections.emptySet()).queue();
+            hook.editOriginal(content).setComponents(Collections.emptySet()).queue();
             hook.sendMessage(context.getTranslated("akcje.reset.cancelled")).queue();
         });
         waiter.setButtonHandler(e -> {
-            hook.editOriginal(content).setActionRows(Collections.emptySet()).queue();
+            hook.editOriginal(content).setComponents(Collections.emptySet()).queue();
             if (!e.getComponentId().equals("YES")) {
                 e.getHook().editOriginal(context.getTranslated("akcje.reset.cancelled")).queue();
                 return;
