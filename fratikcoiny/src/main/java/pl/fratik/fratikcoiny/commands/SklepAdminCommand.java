@@ -23,11 +23,11 @@ import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
-import net.dv8tion.jda.api.utils.messages.MessageEditData;
 import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.command.SubCommand;
 import pl.fratik.core.entity.GuildConfig;
@@ -46,13 +46,13 @@ public class SklepAdminCommand extends SklepSharedCommand {
         permissions = DefaultMemberPermissions.enabledFor(Permission.MANAGE_ROLES, Permission.MANAGE_SERVER);
     }
 
-    @SubCommand(name="ustaw", usage = "<rola:role> <kwota:number>")
+    @SubCommand(name="ustaw", usage = "<rola:role> <kwota:int> [opis:string]")
     public boolean dodaj(NewCommandContext context) {
         context.defer(false);
         GuildConfig gc = guildDao.get(context.getGuild());
         Role rola = context.getArguments().get("rola").getAsRole();
-        long kasa = context.getArguments().get("kwota").getAsLong();
-        String opis = null;
+        long kasa = context.getArguments().get("kwota").getAsInt();
+        String opis = context.getArgumentOr("opis", null, OptionMapping::getAsString);
         if (gc.getRoleDoKupienia().containsKey(rola.getId())) {
             context.sendMessage(context.getTranslated("sklep.ustaw.alreadyset"));
             return false;
