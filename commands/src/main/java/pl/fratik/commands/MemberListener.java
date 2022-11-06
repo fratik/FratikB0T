@@ -69,9 +69,9 @@ class MemberListener {
         for (Map.Entry<String, String> ch : gc.getPozegnania().entrySet()) {
             TextChannel cha = e.getGuild().getTextChannelById(ch.getKey());
             if (cha == null) continue;
-            cha.sendMessage(ch.getValue()
-                    .replaceAll("\\{\\{user}}", e.getUser().getAsTag())
-                    .replaceAll("\\{\\{server}}", e.getGuild().getName())).queue();
+            contentCheck(cha, ch.getValue()
+                .replace("\\{\\{user}}", e.getUser().getAsTag())
+                .replace("\\{\\{server}}", e.getGuild().getName())).queue();
         }
     }
 
@@ -136,10 +136,17 @@ class MemberListener {
                 matcher.appendTail(buf);
                 cnt = buf.toString();
             }
-            MessageCreateAction ma = cha.sendMessage(cnt);
+            MessageCreateAction ma = contentCheck(cha, cnt);
             if (hasMentions) ma.mention(e.getMember()).queue();
             else ma.queue();
         }
+    }
+
+    private MessageCreateAction contentCheck(MessageChannel guildChannel, String content) {
+        if (content.length() > Message.MAX_CONTENT_LENGTH) {
+            content = content.substring(0, Message.MAX_CONTENT_LENGTH);
+        }
+        return guildChannel.sendMessage(content);
     }
 
     private GuildConfig getGuildConfig(Guild guild) {
