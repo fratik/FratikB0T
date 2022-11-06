@@ -24,21 +24,25 @@ import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.NewCommand;
 import pl.fratik.core.command.NewCommandContext;
+import pl.fratik.core.tlumaczenia.Language;
+import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.NetworkUtil;
 
 import java.io.IOException;
-import java.net.URI;
 import java.util.Random;
 public class AchievementCommand extends NewCommand {
     private static final Random RANDOM = new Random();
 
     private static final String URL = "https://skinmc.net/en/achievement/%s/%s/%s";
 
-    public AchievementCommand() {
+    private final Tlumaczenia tlumaczenia;
+
+    public AchievementCommand(Tlumaczenia tlumaczenia) {
         name = "achievement";
         usage = "<ikona:string> <dolny_tekst:string> [górny_tekst:string]";
         cooldown = 5;
         allowInDMs = true;
+        this.tlumaczenia = tlumaczenia;
     }
 
     @Override
@@ -69,7 +73,7 @@ public class AchievementCommand extends NewCommand {
 
         for (Material value : Material.values()) {
             if (option.getChoices().size() == OptionData.MAX_CHOICES) break;
-            option.addChoice(value.name().toLowerCase(), String.valueOf(value.getId()));
+            option.addChoice(tlumaczenia.get(Language.DEFAULT, String.format("achievement.ikona.%s.name", value.name().toLowerCase())), String.valueOf(value.getId()));
         }
     }
 

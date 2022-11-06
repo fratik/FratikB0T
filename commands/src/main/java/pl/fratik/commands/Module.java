@@ -132,7 +132,7 @@ public class Module implements Modul {
         commands.add(new ZglosPrivCommand(privDao, eventWaiter, eventBus, shardManager, tlumaczenia));
         commands.add(new IgnoreCommand(userDao));
         commands.add(new BlacklistPrivCommand(userDao));
-        commands.add(new AchievementCommand());
+        commands.add(new AchievementCommand(tlumaczenia));
         commands.add(new EmojifyCommand());
         commands.add(new SprawdzuprawnieniaCommand());
         commands.add(new UstawPowitanieCommand(guildDao));
