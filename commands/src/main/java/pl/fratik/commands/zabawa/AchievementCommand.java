@@ -83,7 +83,7 @@ public class AchievementCommand extends NewCommand {
         STONE(20),
         GRASS(1),
         WOODEN_PLANK(21),
-        CRAFINT_TABLE(13),
+        CRAFTING_TABLE(13),
         FURNACE(18),
         CHEST(17),
         BED(9),
