@@ -71,7 +71,6 @@ public class SklepCommand extends SklepSharedCommand {
             EmbedBuilder eb = generateEmbed(Typ.KUPOWANIE, rola, gc.getRoleDoKupieniaOpisy().get(rola.getId()),
                     kasa, mc.getFratikCoiny(), false, context.getTlumaczenia(), context.getLanguage());
             context.sendMessage(eb.build());
-            context.sendMessage(context.getTranslated("sklep.kup.brakhajsu"));
             return;
         }
         EmbedBuilder eb = generateEmbed(Typ.KUPOWANIE, rola, gc.getRoleDoKupieniaOpisy().get(rola.getId()),
