@@ -52,7 +52,7 @@ public class SklepCommand extends SklepSharedCommand {
         context.defer(false);
         GuildConfig gc = guildDao.get(context.getGuild());
 
-        Role rola = context.getArguments().get("role").getAsRole();
+        Role rola = context.getArguments().get("rola").getAsRole();
 
         if (!gc.getRoleDoKupienia().containsKey(rola.getId())) {
             context.sendMessage(context.getTranslated("sklep.kup.cantbuythis"));
