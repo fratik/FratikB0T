@@ -1509,7 +1509,7 @@ public class Chinczyk {
     }
 
     private MessageEditData generateControlMessage(Player player) {
-        MessageEditBuilder mb = new MessageEditBuilder();
+        MessageEditBuilder mb = new MessageEditBuilder().setReplace(true);
         List<ItemComponent> leaveComponents = new ArrayList<>();
         leaveComponents.add(Button.danger(LEAVE, t.get(player.getLanguage(), "chinczyk.control.leave")));
         if (player.confirmLeave)
