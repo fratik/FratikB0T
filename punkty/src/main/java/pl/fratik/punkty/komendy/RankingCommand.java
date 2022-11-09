@@ -132,8 +132,8 @@ public class RankingCommand extends NewCommand {
         FutureTask<EmbedBuilder> futureSummary = new FutureTask<>(() -> {
             EmbedBuilder eb = new EmbedBuilder();
             eb.setColor(primColor);
-            eb.setTitle(String.format("ranking.%s.header", type));
-            eb.setDescription(summary.toString());
+            eb.setTitle(context.getTranslated(String.format("ranking.%s.header", type)));
+            eb.setDescription(summary);
             eb.setThumbnail(context.getGuild().getIconUrl());
             return eb;
         });
