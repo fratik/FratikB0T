@@ -92,7 +92,6 @@ public class RankingCommand extends NewCommand {
         }
         Map<String, Long> dane = new LinkedHashMap<>();
         for (MemberConfig c : mc) dane.put(c.getUserId(), c.getFratikCoiny());
-
         send("fratikcoin", eventWaiter, eventBus, dane, context, hook);
     }
 
@@ -106,23 +105,41 @@ public class RankingCommand extends NewCommand {
 
         List<FutureTask<EmbedBuilder>> pages = new ArrayList<>();
 
+        StringBuilder summary = new StringBuilder();
+
         int index = 1;
         for (Map.Entry<String, ? extends Number> entry : datas.entrySet()) {
             final int findalIndex = index;
             FutureTask<EmbedBuilder> task = new FutureTask<>(() -> {
                 User uzytkownik = context.getShardManager().retrieveUserById(entry.getKey()).complete();
 
+                summary.append(findalIndex).append(". ").append(uzytkownik.getAsMention()).append(": ").append(entry.getValue());
+
                 EmbedBuilder eb = new EmbedBuilder();
                 eb.setColor(primColor);
-                eb.setAuthor(uzytkownik.getAsTag(), uzytkownik.getEffectiveAvatarUrl());
+                eb.setAuthor(uzytkownik.getAsTag(), null);
                 eb.setTitle(context.getTranslated("ranking.ranking", findalIndex));
                 eb.setDescription(context.getTranslated(String.format("ranking.ranking.%s", type), entry.getValue()));
+                eb.setImage(uzytkownik.getEffectiveAvatar().getUrl(2048));
+                eb.setThumbnail(context.getGuild().getIconUrl());
 
                 return eb;
             });
             pages.add(task);
             index++;
         }
+
+
+        FutureTask<EmbedBuilder> futureSummary = new FutureTask<>(() -> {
+            EmbedBuilder eb = new EmbedBuilder();
+            eb.setColor(primColor);
+            eb.setTitle(String.format("ranking.%s.header", type));
+            eb.setDescription(summary.toString());
+            eb.setThumbnail(context.getGuild().getIconUrl());
+            return eb;
+        });
+
+        pages.add(futureSummary);
 
         new DynamicEmbedPaginator(eventWaiter, pages, context.getSender(), context.getLanguage(), context.getTlumaczenia(), eventBus)
             .create(hook);
