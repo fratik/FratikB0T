@@ -113,7 +113,7 @@ public class RankingCommand extends NewCommand {
             FutureTask<EmbedBuilder> task = new FutureTask<>(() -> {
                 User uzytkownik = context.getShardManager().retrieveUserById(entry.getKey()).complete();
 
-                summary.append(findalIndex).append(". ").append(uzytkownik.getAsMention()).append(": ").append(entry.getValue());
+                summary.append(findalIndex).append(". ").append(uzytkownik.getAsMention()).append(": ").append(entry.getValue()).append("\n");
 
                 EmbedBuilder eb = new EmbedBuilder();
                 eb.setColor(primColor);
@@ -126,9 +126,8 @@ public class RankingCommand extends NewCommand {
                 return eb;
             });
             pages.add(task);
-            index++;
+            if (++index == 10) break;
         }
-
 
         FutureTask<EmbedBuilder> futureSummary = new FutureTask<>(() -> {
             EmbedBuilder eb = new EmbedBuilder();
