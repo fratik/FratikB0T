@@ -296,7 +296,7 @@ public class Chinczyk {
         t = context.getTlumaczenia();
         l = context.getLanguage();
         eventBus.register(this);
-        updateMainMessage();
+        updateMainMessage(true);
         timeout = executor.schedule(this::timeout, 2, TimeUnit.MINUTES);
     }
     
@@ -960,7 +960,7 @@ public class Chinczyk {
                         } catch (Exception ex) {
                             errored(ex);
                         }
-                        updateMainMessage();
+                        updateMainMessage(true);
                         break;
                     }
                 }
@@ -975,7 +975,7 @@ public class Chinczyk {
                     if (isEveryoneReady()) status = Status.WAITING;
                     else status = Status.WAITING_FOR_PLAYERS;
                     e.deferEdit().queue();
-                    updateMainMessage();
+                    updateMainMessage(false);
                     updateControlMessage(player);
                     break;
                 }
@@ -1003,7 +1003,7 @@ public class Chinczyk {
                             return;
                         }
                     }
-                    updateMainMessage();
+                    updateMainMessage(true);
                     break;
                 }
                 case END_MOVE: {
@@ -1053,7 +1053,7 @@ public class Chinczyk {
                                 }
                             }
                         }
-                        updateMainMessage();
+                        updateMainMessage(false);
                         updateControlMessage(player);
                         break;
                     }
@@ -1151,7 +1151,7 @@ public class Chinczyk {
                     endCallback.accept(this);
                 } catch (Exception ignored) {
                 }
-                updateMainMessage();
+                updateMainMessage(true);
                 updateControlMessages();
                 return;
             }
@@ -1173,7 +1173,7 @@ public class Chinczyk {
             rolled = null;
             if (isTimeout.get() == Boolean.FALSE && timeout != null && !timeout.isCancelled() && !timeout.cancel(false)) return;
             timeout = executor.schedule(this::timeout, rules.contains(Rules.LONGER_TIMEOUT) ? 15 : 1, TimeUnit.MINUTES);
-            updateMainMessage();
+            updateMainMessage(isTimeout.get() == Boolean.TRUE || eventStorage.getLastEvent() == null || eventStorage.getLastEvent().getType() != null);
             updateControlMessages();
         } finally {
             lock.unlock();
@@ -1222,7 +1222,7 @@ public class Chinczyk {
                     }
                     l = selectedLanguage;
                     e.deferEdit().queue();
-                    updateMainMessage();
+                    updateMainMessage(false);
                     updateControlMessages();
                     return;
                 }
@@ -1264,7 +1264,7 @@ public class Chinczyk {
                 rules.clear();
                 rules.addAll(setRules);
                 e.deferEdit().queue();
-                updateMainMessage();
+                updateMainMessage(false);
             } catch (Exception ex) {
                 errored(ex);
             } finally {
@@ -1292,7 +1292,7 @@ public class Chinczyk {
             try {
                 skin = selectedSkin;
                 boardBase = new SoftReference<>(null);
-                updateMainMessage();
+                updateMainMessage(true);
             } finally {
                 lock.unlock();
             }
@@ -1314,7 +1314,7 @@ public class Chinczyk {
                 if (!e.isFromGuild() || e.getGuild().getSelfMember().hasPermission((GuildChannel) e.getChannel(),
                         Permission.MESSAGE_ADD_REACTION))
                     e.getMessage().addReaction(Emoji.fromUnicode("\uD83D\uDC40")).onErrorMap(err -> null).complete();
-                updateMainMessage();
+                updateMainMessage(false);
             } finally {
                 lock.unlock();
             }
@@ -1322,7 +1322,7 @@ public class Chinczyk {
         SpecialSkins skin = SpecialSkins.fromPassword(e.getMessage().getContentRaw());
         if (skin != null && skin.isAvailable() && !availableSkins.containsKey(skin.getValue())) {
             availableSkins.put(skin.getValue(), skin);
-            updateMainMessage();
+            updateMainMessage(false);
         }
         if (!availableSkins.containsKey("custom:") && e.getMessage().getContentRaw().equals("custom:") &&
                 e.getMessage().getAttachments().size() == 1 && UserUtil.isStaff(e.getAuthor(), e.getJDA().getShardManager())) {
@@ -1341,7 +1341,7 @@ public class Chinczyk {
                 if (image == null) throw new NullPointerException();
                 CustomBgSkin bgSkin = new CustomBgSkin(image);
                 availableSkins.put(bgSkin.getValue(), bgSkin);
-                updateMainMessage();
+                updateMainMessage(false);
             } catch (Exception ex) {
                 LoggerFactory.getLogger(getClass()).error("Nie udało się pobrać zdjęcia!", ex);
                 if (canReact.getAsBoolean()) e.getMessage().addReaction(Emoji.fromUnicode("\u274C")).onErrorMap(i -> null).queue();
@@ -1386,10 +1386,10 @@ public class Chinczyk {
     @Subscribe
     public void onNameUpdate(UserUpdateNameEvent e) {
         if (message == null) return;
-        if (players.values().stream().anyMatch(p -> p.getUser().equals(e.getUser()))) updateMainMessage();
+        if (players.values().stream().anyMatch(p -> p.getUser().equals(e.getUser()))) updateMainMessage(true);
     }
 
-    private void updateMainMessage() {
+    private void updateMainMessage(boolean rerenderBoard) {
         lock.lock();
         try {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -1405,9 +1405,14 @@ public class Chinczyk {
                 threadCreated = true;
             } else {
                 MessageCreateData msg = generateMessage(fileName);
-                MessageEditAction ma = message.editMessage(MessageEditData.fromCreateData(msg))
-                    // Trzeba teraz za każdym editem dodawać zdjęcie
-                    .setFiles(FileUpload.fromData(board, fileName));
+
+                MessageEditBuilder editBuilder = new MessageEditBuilder();
+                editBuilder.setEmbeds(msg.getEmbeds());
+                editBuilder.setContent(msg.getContent());
+                editBuilder.setComponents(msg.getComponents());
+                if (rerenderBoard) editBuilder.setFiles(FileUpload.fromData(board, fileName));
+
+                MessageEditAction ma = message.editMessage(editBuilder.build());
                 message = ma.onErrorFlatMap(ErrorResponse.UNKNOWN_MESSAGE::test,
                         e -> channel.sendMessage(msg).addFiles(FileUpload.fromData(board, fileName))).complete();
             }
