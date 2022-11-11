@@ -37,6 +37,7 @@ import java.awt.*;
 import java.util.List;
 import java.util.*;
 import java.util.concurrent.FutureTask;
+import java.util.function.Function;
 
 public class RankingCommand extends NewCommand {
     private final PunktyDao punktyDao;
@@ -63,17 +64,9 @@ public class RankingCommand extends NewCommand {
             return;
         }
         InteractionHook hook = context.defer(false);
-        send("points", eventWaiter, eventBus, punktyDao.getTopkaPunktow(context.getGuild()), context, hook);
-    }
-
-    @SubCommand(name="poziom")
-    public void poziom(@NotNull NewCommandContext context) {
-        if (!licznik.punktyWlaczone(context.getGuild())) {
-            context.replyEphemeral(context.getTranslated("punkty.off"));
-            return;
-        }
-        InteractionHook hook = context.defer(false);
-        send("levels", eventWaiter, eventBus, punktyDao.getTopkaPoziomow(context.getGuild()), context, hook);
+        send("points", punktyDao.getTopkaPunktow(context.getGuild()), context, hook,
+                i -> context.getTranslated("ranking.ranking.points", i, LicznikPunktow.calculateLvl(i)),
+                i -> context.getTranslated("ranking.ranking.points.summary", i, LicznikPunktow.calculateLvl(i)));
     }
 
     @SubCommand(name="fratikcoin")
@@ -92,10 +85,12 @@ public class RankingCommand extends NewCommand {
         }
         Map<String, Long> dane = new LinkedHashMap<>();
         for (MemberConfig c : mc) dane.put(c.getUserId(), c.getFratikCoiny());
-        send("fratikcoin", eventWaiter, eventBus, dane, context, hook);
+        send("fratikcoin", dane, context, hook,
+                i -> context.getTranslated("ranking.ranking.fratikcoin", i),
+                Object::toString);
     }
 
-    private void send(String type, EventWaiter eventWaiter, EventBus eventBus, Map<String, ? extends Number> datas, NewCommandContext context, InteractionHook hook) {
+    private <T> void send(String type, Map<String, T> datas, NewCommandContext context, InteractionHook hook, Function<T, String> dataMapper, Function<T, String> summaryMapper) {
         if (datas.isEmpty()) {
             hook.sendMessage(context.getTranslated("ranking.empty")).queue();
             return;
@@ -108,25 +103,25 @@ public class RankingCommand extends NewCommand {
         StringBuilder summary = new StringBuilder();
 
         int index = 1;
-        for (Map.Entry<String, ? extends Number> entry : datas.entrySet()) {
-            final int findalIndex = index;
+        for (Map.Entry<String, T> entry : datas.entrySet()) {
+            summary.append(index).append(". ").append(User.fromId(entry.getKey()).getAsMention()).append(": ")
+                    .append(summaryMapper.apply(entry.getValue())).append("\n");
+            final int finalIndex = index;
             FutureTask<EmbedBuilder> task = new FutureTask<>(() -> {
                 User uzytkownik = context.getShardManager().retrieveUserById(entry.getKey()).complete();
-
-                summary.append(findalIndex).append(". ").append(uzytkownik.getAsMention()).append(": ").append(entry.getValue()).append("\n");
 
                 EmbedBuilder eb = new EmbedBuilder();
                 eb.setColor(primColor);
                 eb.setAuthor(uzytkownik.getAsTag(), null);
-                eb.setTitle(context.getTranslated("ranking.ranking", findalIndex));
-                eb.setDescription(context.getTranslated(String.format("ranking.ranking.%s", type), entry.getValue()));
+                eb.setTitle(context.getTranslated("ranking.ranking", finalIndex));
+                eb.setDescription(dataMapper.apply(entry.getValue()));
                 eb.setImage(uzytkownik.getEffectiveAvatar().getUrl(2048));
                 eb.setThumbnail(context.getGuild().getIconUrl());
 
                 return eb;
             });
             pages.add(task);
-            if (++index == 10) break;
+            if (index++ == 10) break;
         }
 
         FutureTask<EmbedBuilder> futureSummary = new FutureTask<>(() -> {

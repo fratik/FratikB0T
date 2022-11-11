@@ -609,7 +609,9 @@ public class Chinczyk {
             if (status == Status.IN_PROGRESS) {
                 Player player = players.get(turn);
                 player.setStatus(PlayerStatus.LEFT);
-                if (player.getControlHook() != null) player.getControlHook().editOriginal(MessageEditData.fromContent(t.get(player.getLanguage(), "chinczyk.left.timeout"))).complete();
+                if (player.getControlHook() != null) player.getControlHook()
+                        .editOriginal(new MessageEditBuilder().setContent(t.get(player.getLanguage(),
+                                "chinczyk.left.timeout")).setReplace(true).build()).complete();
                 player.setControlHook(null);
                 rolled = null;
                 eventStorage.add(new Event(Event.Type.LEFT_GAME, player, null, null, null, false));
@@ -912,7 +914,8 @@ public class Chinczyk {
                             e.deferReply(true).complete();
                             Player player = p.get();
                             if (player.getControlHook() != null)
-                                player.getControlHook().editOriginal(MessageEditData.fromContent(t.get(player.getLanguage(), "chinczyk.invalid"))).queue();
+                                player.getControlHook().editOriginal(new MessageEditBuilder()
+                                        .setContent(t.get(player.getLanguage(), "chinczyk.invalid")).setReplace(true).build()).queue();
                             Message control = e.getHook().sendMessage(MessageCreateData.fromEditData(generateControlMessage(player))).setEphemeral(true).complete();
                             player.setControlHook(e.getHook());
                             player.setControlMessageId(control.getIdLong());
@@ -920,7 +923,9 @@ public class Chinczyk {
                             if (ex.getErrorResponse() == UNKNOWN_INTERACTION) {
                                 Player player = p.get();
                                 if (player.getControlHook() != null) {
-                                    player.getControlHook().editOriginal(MessageEditData.fromContent(t.get(player.getLanguage(), "chinczyk.interaction.crashed"))).queue();
+                                    player.getControlHook().editOriginal(new MessageEditBuilder()
+                                            .setContent(t.get(player.getLanguage(), "chinczyk.interaction.crashed"))
+                                            .setReplace(true).build()).queue();
                                     player.setControlHook(null);
                                 }
                             } else errored(ex);
@@ -1500,7 +1505,8 @@ public class Chinczyk {
                     String controlKey;
                     if (status == Status.IN_PROGRESS) controlKey = "chinczyk.control.shutting.down.saving";
                     else controlKey = "chinczyk.control.shutting.down";
-                    p.getControlHook().editOriginal(MessageEditData.fromContent(t.get(p.getLanguage(), controlKey))).queue();
+                    p.getControlHook().editOriginal(new MessageEditBuilder().setContent(t.get(p.getLanguage(), controlKey))
+                            .setReplace(true).build()).queue();
                     p.setControlHook(null);
                 }
             }
@@ -1759,7 +1765,7 @@ public class Chinczyk {
                 }
                 try {
                     if (Objects.equals(this.controlHook, controlHook)) this.controlHook = null;
-                    MessageEditBuilder messageEditBuilder = new MessageEditBuilder();
+                    MessageEditBuilder messageEditBuilder = new MessageEditBuilder().setReplace(true);
                     messageEditBuilder.setContent(t.get(getLanguage(), "chinczyk.control.expired"));
                     controlHook.editOriginal(messageEditBuilder.build()).complete();
                 } finally {
