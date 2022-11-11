@@ -70,8 +70,8 @@ class MemberListener {
             TextChannel cha = e.getGuild().getTextChannelById(ch.getKey());
             if (cha == null) continue;
             contentCheck(cha, ch.getValue()
-                .replace("\\{\\{user}}", e.getUser().getAsTag())
-                .replace("\\{\\{server}}", e.getGuild().getName())).queue();
+                .replace("{{user}}", e.getUser().getAsTag())
+                .replace("{{server}}", e.getGuild().getName())).queue();
         }
     }
 
@@ -98,7 +98,7 @@ class MemberListener {
             if (cha == null || !CommonUtil.canTalk(cha)) continue;
             boolean hasMentions = ch.getValue().contains("{{mention}}");
             String cnt = ch.getValue()
-                    .replace("{{{user}}", e.getMember().getUser().getAsTag())
+                    .replace("{{user}}", e.getMember().getUser().getAsTag())
                     .replace("{{mention}}", e.getMember().getAsMention())
                     .replace("{{server}}", e.getGuild().getName());
             Matcher matcher = INVITE_TAG_REGEX.matcher(cnt);
