@@ -24,14 +24,17 @@ import io.sentry.Sentry;
 import lombok.*;
 import lombok.experimental.Delegate;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.channel.ChannelType;
+import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
+import net.dv8tion.jda.api.entities.channel.unions.MessageChannelUnion;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.channel.ChannelDeleteEvent;
 import net.dv8tion.jda.api.events.guild.GuildLeaveEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
-import net.dv8tion.jda.api.events.interaction.component.SelectMenuInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.component.StringSelectInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageBulkDeleteEvent;
 import net.dv8tion.jda.api.events.message.MessageDeleteEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
@@ -43,11 +46,17 @@ import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.ItemComponent;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.buttons.ButtonStyle;
-import net.dv8tion.jda.api.interactions.components.selections.SelectMenu;
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption;
+import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
 import net.dv8tion.jda.api.requests.ErrorResponse;
-import net.dv8tion.jda.api.requests.restaction.MessageAction;
+import net.dv8tion.jda.api.requests.restaction.MessageCreateAction;
+import net.dv8tion.jda.api.requests.restaction.MessageEditAction;
 import net.dv8tion.jda.api.sharding.ShardManager;
+import net.dv8tion.jda.api.utils.FileUpload;
+import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
+import net.dv8tion.jda.api.utils.messages.MessageCreateData;
+import net.dv8tion.jda.api.utils.messages.MessageEditBuilder;
+import net.dv8tion.jda.api.utils.messages.MessageEditData;
 import okhttp3.Response;
 import org.apache.batik.anim.dom.SAXSVGDocumentFactory;
 import org.apache.batik.util.XMLResourceDescriptor;
@@ -112,7 +121,7 @@ public class Chinczyk {
     private static final int REPLAY_TEXT_LINES = 3;
     private static final int REPLAY_TEXT_MARGIN = 100;
     private final User executer;
-    private final MessageChannel channel;
+    private final MessageChannelUnion channel;
     private final EventBus eventBus;
     private final EnumMap<Place, Player> players;
     private final Tlumaczenia t;
@@ -315,7 +324,7 @@ public class Chinczyk {
                 throw new IOException("nieznany użytkownik", e);
             }
             long channelId = readLong(is);
-            if ((channel = sm.getTextChannelById(channelId)) == null)
+            if ((channel = (MessageChannelUnion) sm.getTextChannelById(channelId)) == null)
                 throw new IOException("nieznany kanał " + channelId);
             executor = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("Chinczyk-" + getChannel().getId()));
             this.endCallback = obj -> {
@@ -601,7 +610,8 @@ public class Chinczyk {
                 Player player = players.get(turn);
                 player.setStatus(PlayerStatus.LEFT);
                 if (player.getControlHook() != null) player.getControlHook()
-                        .editOriginal(new MessageBuilder(t.get(player.getLanguage(), "chinczyk.left.timeout")).build()).complete();
+                        .editOriginal(new MessageEditBuilder().setContent(t.get(player.getLanguage(),
+                                "chinczyk.left.timeout")).setReplace(true).build()).complete();
                 player.setControlHook(null);
                 rolled = null;
                 eventStorage.add(new Event(Event.Type.LEFT_GAME, player, null, null, null, false));
@@ -678,8 +688,8 @@ public class Chinczyk {
         }
     }
 
-    public Message generateMessage(String fileName) {
-        MessageBuilder mb = new MessageBuilder();
+    public MessageCreateData generateMessage(String fileName) {
+        MessageCreateBuilder mb = new MessageCreateBuilder();
         Language l;
         if (turn != null) l = players.get(turn).getLanguage();
         else l = this.l;
@@ -713,7 +723,7 @@ public class Chinczyk {
                     eb.addField(t.get(l, "chinczyk.embed.rules"), renderRulesString(), false);
                 if (cheats)
                     eb.addField(t.get(l, "chinczyk.cheats.enabled.title"), t.get(l, "chinczyk.cheats.enabled.description"), false);
-                mb.setActionRows(rulesMenu, ActionRow.of(placeComponents), ActionRow.of(controlComponents), skinMenu, langMenu);
+                mb.setComponents(rulesMenu, ActionRow.of(placeComponents), ActionRow.of(controlComponents), skinMenu, langMenu);
                 break;
             }
             case IN_PROGRESS: {
@@ -726,7 +736,7 @@ public class Chinczyk {
                     eb.appendDescription(t.get(l, "chinczyk.turn", players.get(turn).getUser().getAsMention()));
                 else eb.appendDescription(t.get(l, "chinczyk.turn.rolled", players.get(turn).getUser().getAsMention(), rolled));
                 eb.setColor(turn.bgColor);
-                mb.setActionRows(ActionRow.of(
+                mb.setComponents(ActionRow.of(
                         Button.of(ButtonStyle.PRIMARY, NEW_CONTROL_MESSAGE, t.get(l, "chinczyk.button.new.msg"))
                 ));
                 break;
@@ -766,8 +776,8 @@ public class Chinczyk {
                     .withDefault(lang == currentLang)
                     .withEmoji(lang.getEmoji()));
         }
-        
-        return ActionRow.of(SelectMenu.create(LANGUAGE)
+
+        return ActionRow.of(StringSelectMenu.create(LANGUAGE)
                 .setPlaceholder(t.get(currentLang, "language.change.placeholder"))
                 .setRequiredRange(1, 1)
                 .addOptions(options)
@@ -784,7 +794,7 @@ public class Chinczyk {
                     .withDefault(rules.contains(r)));
             values++;
         }
-        return ActionRow.of(SelectMenu.create(RULES)
+        return ActionRow.of(StringSelectMenu.create(RULES)
                 .setPlaceholder(t.get(l, "chinczyk.rules.placeholder"))
                 .setRequiredRange(0, values)
                 .setDisabled(!players.isEmpty())
@@ -799,7 +809,7 @@ public class Chinczyk {
                     .withEmoji(skin.getEmoji())
                     .withDefault(this.skin == skin));
         }
-        return ActionRow.of(SelectMenu.create(SKIN)
+        return ActionRow.of(StringSelectMenu.create(SKIN)
                 .setPlaceholder(t.get(l, "chinczyk.skin.placeholder"))
                 .setRequiredRange(1, 1)
                 .addOptions(options)
@@ -904,17 +914,18 @@ public class Chinczyk {
                             e.deferReply(true).complete();
                             Player player = p.get();
                             if (player.getControlHook() != null)
-                                player.getControlHook().editOriginal(new MessageBuilder(t.get(player.getLanguage(),
-                                        "chinczyk.invalid")).build()).queue();
-                            Message control = e.getHook().sendMessage(generateControlMessage(player)).setEphemeral(true).complete();
+                                player.getControlHook().editOriginal(new MessageEditBuilder()
+                                        .setContent(t.get(player.getLanguage(), "chinczyk.invalid")).setReplace(true).build()).queue();
+                            Message control = e.getHook().sendMessage(MessageCreateData.fromEditData(generateControlMessage(player))).setEphemeral(true).complete();
                             player.setControlHook(e.getHook());
                             player.setControlMessageId(control.getIdLong());
                         } catch (ErrorResponseException ex) {
                             if (ex.getErrorResponse() == UNKNOWN_INTERACTION) {
                                 Player player = p.get();
                                 if (player.getControlHook() != null) {
-                                    player.getControlHook().editOriginal(new MessageBuilder(t.get(player.getLanguage(),
-                                            "chinczyk.interaction.crashed")).build()).queue();
+                                    player.getControlHook().editOriginal(new MessageEditBuilder()
+                                            .setContent(t.get(player.getLanguage(), "chinczyk.interaction.crashed"))
+                                            .setReplace(true).build()).queue();
                                     player.setControlHook(null);
                                 }
                             } else errored(ex);
@@ -945,7 +956,7 @@ public class Chinczyk {
                         try {
                             e.deferReply(true).complete();
                             Player player = new Player(place, e.getUser(), e.getHook());
-                            Message control = e.getHook().sendMessage(generateControlMessage(player)).setEphemeral(true).complete();
+                            Message control = e.getHook().sendMessage(MessageCreateData.fromEditData(generateControlMessage(player))).setEphemeral(true).complete();
                             if (thread != null) thread.addThreadMember(e.getMember()).onErrorMap(ex -> null).complete();
                             player.setControlMessageId(control.getIdLong());
                             players.put(place, player);
@@ -1187,14 +1198,14 @@ public class Chinczyk {
         try {
             endCallback.accept(this);
         } catch (Exception ignored) {}
-        if (message != null) message.editMessage(t.get(l, key == null ? "chinczyk.aborted" : key)).override(true).queue();
+        if (message != null) message.editMessage(t.get(l, key == null ? "chinczyk.aborted" : key)).setReplace(true).queue();
         try {
             updateControlMessages();
         } catch (Exception ignored) {}
     }
 
     @Subscribe
-    public void onMenu(SelectMenuInteractionEvent e) {
+    public void onMenu(StringSelectInteractionEvent e) {
         if (!e.getChannel().equals(getChannel())) return;
         if (e.getComponentId().equals(LANGUAGE)) {
             if (status != Status.WAITING && status != Status.WAITING_FOR_PLAYERS) return;
@@ -1391,18 +1402,24 @@ public class Chinczyk {
             byte[] board = baos.toByteArray();
             String fileName = FILE_NAME + ".png";
             if (message == null) {
-                message = channel.sendMessage(generateMessage(fileName)).addFile(board, fileName).complete();
+                message = channel.sendMessage(generateMessage(fileName)).addFiles(FileUpload.fromData(board, fileName)).complete();
                 if ((!threadCreated && thread == null) && channel.getType() == ChannelType.TEXT)
                     thread = message.createThreadChannel(t.get(l, "chinczyk.thread.name"))
                             .setAutoArchiveDuration(ThreadChannel.AutoArchiveDuration.TIME_1_HOUR)
                             .onErrorMap(err -> null).complete();
                 threadCreated = true;
             } else {
-                Message msg = generateMessage(fileName);
-                MessageAction ma = message.editMessage(msg);
-                if (rerenderBoard) ma = ma.retainFiles(Collections.emptySet()).addFile(board, fileName);
+                MessageCreateData msg = generateMessage(fileName);
+
+                MessageEditBuilder editBuilder = new MessageEditBuilder();
+                editBuilder.setEmbeds(msg.getEmbeds());
+                editBuilder.setContent(msg.getContent());
+                editBuilder.setComponents(msg.getComponents());
+                if (rerenderBoard) editBuilder.setFiles(FileUpload.fromData(board, fileName));
+
+                MessageEditAction ma = message.editMessage(editBuilder.build());
                 message = ma.onErrorFlatMap(ErrorResponse.UNKNOWN_MESSAGE::test,
-                        e -> channel.sendMessage(msg).addFile(board, fileName)).complete();
+                        e -> channel.sendMessage(msg).addFiles(FileUpload.fromData(board, fileName))).complete();
             }
             if (status == Status.ENDED) {
                 new Thread(() -> {
@@ -1434,12 +1451,12 @@ public class Chinczyk {
     }
 
     private void sendReplay(BoardReplayRenderer renderer, ByteArrayOutputStream powtorka) {
-        MessageAction ma;
+        MessageCreateAction ma;
         if (thread == null) ma = message.reply(t.get(l, "chinczyk.replay"));
         else ma = thread.sendMessage(t.get(l, "chinczyk.replay"));
         try {
             //noinspection ResultOfMethodCallIgnored
-            ma.addFile(powtorka.toByteArray(), "chinczykreplay." + renderer.getFormatExtension());
+            ma.addFiles(FileUpload.fromData(powtorka.toByteArray(), "chinczykreplay." + renderer.getFormatExtension()));
         } catch (Exception ex) {
             return; // za duży, ignoruj
         }
@@ -1462,7 +1479,7 @@ public class Chinczyk {
         status = Status.ERRORED;
         String text = t.get(l, "chinczyk.errored");
         if (message != null)
-            message.editMessage(text).override(true).onErrorFlatMap(ErrorResponse.UNKNOWN_MESSAGE::test,
+            message.editMessage(text).setReplace(true).onErrorFlatMap(ErrorResponse.UNKNOWN_MESSAGE::test,
                     ex -> channel.sendMessage(text)).complete();
         try {
             eventBus.unregister(this);
@@ -1482,13 +1499,14 @@ public class Chinczyk {
             String key;
             if (status == Status.IN_PROGRESS) key = "chinczyk.shutting.down.saving";
             else key = "chinczyk.shutting.down";
-            message.editMessage(t.get(l, key)).override(true).complete();
+            message.editMessage(t.get(l, key)).setReplace(true).complete();
             for (Player p : players.values()) {
                 if (p.isPlaying() && p.getControlHook() != null) {
                     String controlKey;
                     if (status == Status.IN_PROGRESS) controlKey = "chinczyk.control.shutting.down.saving";
                     else controlKey = "chinczyk.control.shutting.down";
-                    p.getControlHook().editOriginal(new MessageBuilder(t.get(p.getLanguage(), controlKey)).build()).queue();
+                    p.getControlHook().editOriginal(new MessageEditBuilder().setContent(t.get(p.getLanguage(), controlKey))
+                            .setReplace(true).build()).queue();
                     p.setControlHook(null);
                 }
             }
@@ -1501,8 +1519,8 @@ public class Chinczyk {
         }
     }
 
-    private Message generateControlMessage(Player player) {
-        MessageBuilder mb = new MessageBuilder();
+    private MessageEditData generateControlMessage(Player player) {
+        MessageEditBuilder mb = new MessageEditBuilder().setReplace(true);
         List<ItemComponent> leaveComponents = new ArrayList<>();
         leaveComponents.add(Button.danger(LEAVE, t.get(player.getLanguage(), "chinczyk.control.leave")));
         if (player.confirmLeave)
@@ -1516,20 +1534,18 @@ public class Chinczyk {
                     List<ItemComponent> controlComp = new ArrayList<>();
                     controlComp.add(Button.success(READY, t.get(player.getLanguage(), "chinczyk.control.ready")));
                     controlComp.addAll(leaveComponents);
-                    mb.setActionRows(
+                    mb.setComponents(
                             ActionRow.of(controlComp),
                             generateLanguageMenu(player.getLanguage())
                     );
-                    if (player.isConfirmLeave())
-                        mb.append('\n').append(t.get(player.getLanguage(), "chinczyk.control.leave.text"));
+                    if (player.isConfirmLeave()) mb.setContent(mb.getContent() + "\n" + t.get(player.getLanguage(), "chinczyk.control.leave.text"));
                 } else if (player.getStatus() == PlayerStatus.READY) {
                     mb.setContent(t.get(player.getLanguage(), "chinczyk.control.start.waiting"));
-                    mb.setActionRows(
+                    mb.setComponents(
                             leave,
                             generateLanguageMenu(player.getLanguage())
                     );
-                    if (player.isConfirmLeave())
-                        mb.append('\n').append(t.get(player.getLanguage(), "chinczyk.control.leave.text"));
+                    if (player.isConfirmLeave()) mb.setContent(mb.getContent() + "\n" + t.get(player.getLanguage(), "chinczyk.control.leave.text"));
                 } else if (player.getStatus() == PlayerStatus.LEFT) {
                     mb.setContent(t.get(player.getLanguage(), "chinczyk.left"));
                 } else throw new IllegalStateException("?");
@@ -1542,9 +1558,8 @@ public class Chinczyk {
                 }
                 if (turn != player.getPlace()) {
                     mb.setContent(t.get(player.getLanguage(), "chinczyk.awaiting.turn"));
-                    mb.setActionRows(leave);
-                    if (player.isConfirmLeave())
-                        mb.append('\n').append(t.get(player.getLanguage(), "chinczyk.control.leave.text"));
+                    mb.setComponents(leave);
+                    if (player.isConfirmLeave()) mb.setContent(mb.getContent() + "\n" + t.get(player.getLanguage(), "chinczyk.control.leave.text"));
                     break;
                 }
                 if (rolled == null) {
@@ -1565,18 +1580,18 @@ public class Chinczyk {
                         ));
                     }
                     actionRows.add(leave);
-                    mb.setActionRows(actionRows);
+                    mb.setComponents(actionRows);
                 } else {
                     Map<Integer, Piece> canMove = Arrays.stream(player.getPieces()).filter(Piece::canMove)
                             .collect(Collectors.toMap(p -> p.index + 1, p -> p));
                     if (canMove.isEmpty()) {
                         mb.setContent(t.get(player.getLanguage(), "chinczyk.awaiting.move.cant", rolled));
-                        mb.setActionRows(ActionRow.of(
+                        mb.setComponents(ActionRow.of(
                                 Button.primary(END_MOVE, t.get(player.getLanguage(), "chinczyk.button.end.move"))
                         ), leave);
                     } else {
                         mb.setContent(t.get(player.getLanguage(), "chinczyk.awaiting.move", rolled));
-                        mb.setActionRows(ActionRow.of(
+                        mb.setComponents(ActionRow.of(
                                 Button.primary(MOVE_PREFIX + "0", "#1").withDisabled(!canMove.containsKey(1)),
                                 Button.primary(MOVE_PREFIX + "1", "#2").withDisabled(!canMove.containsKey(2)),
                                 Button.primary(MOVE_PREFIX + "2", "#3").withDisabled(!canMove.containsKey(3)),
@@ -1584,8 +1599,7 @@ public class Chinczyk {
                         ), leave);
                     }
                 }
-                if (player.isConfirmLeave())
-                    mb.append('\n').append(t.get(player.getLanguage(), "chinczyk.control.leave.text"));
+                if (player.isConfirmLeave()) mb.setContent(mb.getContent() + "\n" + t.get(player.getLanguage(), "chinczyk.control.leave.text"));
                 break;
             }
             case ENDED: {
@@ -1642,7 +1656,7 @@ public class Chinczyk {
         return null;
     }
 
-    public MessageChannel getChannel() {
+    public MessageChannelUnion getChannel() {
         return channel;
     }
 
@@ -1751,8 +1765,9 @@ public class Chinczyk {
                 }
                 try {
                     if (Objects.equals(this.controlHook, controlHook)) this.controlHook = null;
-                    Message msg = new MessageBuilder(t.get(getLanguage(), "chinczyk.control.expired")).build();
-                    controlHook.editOriginal(msg).complete();
+                    MessageEditBuilder messageEditBuilder = new MessageEditBuilder().setReplace(true);
+                    messageEditBuilder.setContent(t.get(getLanguage(), "chinczyk.control.expired"));
+                    controlHook.editOriginal(messageEditBuilder.build()).complete();
                 } finally {
                     lock.unlock();
                 }

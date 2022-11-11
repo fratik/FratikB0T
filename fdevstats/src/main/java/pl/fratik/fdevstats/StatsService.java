@@ -20,7 +20,7 @@ package pl.fratik.fdevstats;
 import com.google.common.util.concurrent.AbstractScheduledService;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.VoiceChannel;
+import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import pl.fratik.core.Statyczne;
 import pl.fratik.core.Ustawienia;

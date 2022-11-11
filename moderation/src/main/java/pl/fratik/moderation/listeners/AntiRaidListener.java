@@ -39,6 +39,7 @@ import pl.fratik.core.util.CommonUtil;
 
 import javax.crypto.IllegalBlockSizeException;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -127,7 +128,7 @@ public class AntiRaidListener {
         if (proc.size() >= 3) {
             boolean success;
             try {
-                e.getGuild().ban(e.getAuthor(), 0, "Raid").complete();
+                e.getGuild().ban(e.getAuthor(), 0, TimeUnit.MILLISECONDS).reason("Raid").complete();
                 success = true;
             } catch (Exception err) {
                 success = false;
@@ -138,7 +139,7 @@ public class AntiRaidListener {
         if (pingiNaWiadomosc >= 3) {
             boolean success;
             try {
-                e.getGuild().ban(e.getAuthor(), 0, "Raid").complete();
+                e.getGuild().ban(e.getAuthor(), 0, TimeUnit.MILLISECONDS).reason("Raid").complete();
                 success = true;
             } catch (Exception err) {
                 success = false;
@@ -151,7 +152,7 @@ public class AntiRaidListener {
                         .anyMatch(Role::isMentionable))) {
             boolean success;
             try {
-                e.getGuild().ban(e.getAuthor(), 0, "Raid").complete();
+                e.getGuild().ban(e.getAuthor(), 0, TimeUnit.MILLISECONDS).reason("Raid").complete();
                 success = true;
             } catch (Exception err) {
                 success = false;
@@ -193,7 +194,7 @@ public class AntiRaidListener {
         if (proc.size() >= 2) {
             boolean success;
             try {
-                e.getGuild().ban(e.getAuthor(), 0, "Raid").complete();
+                e.getGuild().ban(e.getAuthor(), 0, TimeUnit.MILLISECONDS).reason("Raid").complete();
                 success = true;
             } catch (Exception err) {
                 success = false;
@@ -204,7 +205,7 @@ public class AntiRaidListener {
         if (lastC.stream().filter(c -> c != null && c.length() <= 3).count() >= 3) {
             boolean success;
             try {
-                e.getGuild().ban(e.getAuthor(), 0, "Raid").complete();
+                e.getGuild().ban(e.getAuthor(), 0, TimeUnit.MILLISECONDS).reason("Raid").complete();
                 success = true;
             } catch (Exception err) {
                 success = false;
@@ -214,7 +215,7 @@ public class AntiRaidListener {
         if (pingiNaWiadomosc >= 2) {
             boolean success;
             try {
-                e.getGuild().ban(e.getAuthor(), 0, "Raid").complete();
+                e.getGuild().ban(e.getAuthor(), 0, TimeUnit.MILLISECONDS).reason("Raid").complete();
                 success = true;
             } catch (Exception err) {
                 success = false;
@@ -228,7 +229,7 @@ public class AntiRaidListener {
                         .anyMatch(Role::isMentionable))) {
             boolean success;
             try {
-                e.getGuild().ban(e.getAuthor(), 0, "Raid").complete();
+                e.getGuild().ban(e.getAuthor(), 0, TimeUnit.MILLISECONDS).reason("Raid").complete();
                 success = true;
             } catch (Exception err) {
                 success = false;

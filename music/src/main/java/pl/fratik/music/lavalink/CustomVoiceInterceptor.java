@@ -18,8 +18,8 @@
 package pl.fratik.music.lavalink;
 
 import lavalink.client.io.Link;
-import net.dv8tion.jda.api.entities.AudioChannel;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.channel.middleman.AudioChannel;
 import net.dv8tion.jda.api.hooks.VoiceDispatchInterceptor;
 import org.json.JSONObject;
 

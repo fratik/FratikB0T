@@ -19,13 +19,13 @@ package pl.fratik.fratikcoiny.commands;
 
 import com.google.common.eventbus.EventBus;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.sharding.ShardManager;
+import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
 import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.command.SubCommand;
 import pl.fratik.core.entity.GuildConfig;
@@ -52,7 +52,7 @@ public class SklepCommand extends SklepSharedCommand {
         context.defer(false);
         GuildConfig gc = guildDao.get(context.getGuild());
 
-        Role rola = context.getArguments().get("role").getAsRole();
+        Role rola = context.getArguments().get("rola").getAsRole();
 
         if (!gc.getRoleDoKupienia().containsKey(rola.getId())) {
             context.sendMessage(context.getTranslated("sklep.kup.cantbuythis"));
@@ -71,15 +71,14 @@ public class SklepCommand extends SklepSharedCommand {
             EmbedBuilder eb = generateEmbed(Typ.KUPOWANIE, rola, gc.getRoleDoKupieniaOpisy().get(rola.getId()),
                     kasa, mc.getFratikCoiny(), false, context.getTlumaczenia(), context.getLanguage());
             context.sendMessage(eb.build());
-            context.sendMessage(context.getTranslated("sklep.kup.brakhajsu"));
             return;
         }
         EmbedBuilder eb = generateEmbed(Typ.KUPOWANIE, rola, gc.getRoleDoKupieniaOpisy().get(rola.getId()),
                 kasa, mc.getFratikCoiny(), false, context.getTlumaczenia(), context.getLanguage());
 
-        MessageBuilder mb = new MessageBuilder();
+        MessageCreateBuilder mb = new MessageCreateBuilder();
         mb.setEmbeds(eb.build());
-        mb.setActionRows(ActionRow.of(
+        mb.setComponents(ActionRow.of(
                 Button.success("BUY", context.getTranslated("sklep.przycisk.kup")),
                 Button.danger("CANCEL", context.getTranslated("sklep.przycisk.anuluj"))
         ));
@@ -87,7 +86,7 @@ public class SklepCommand extends SklepSharedCommand {
         Message msgTmp = context.sendMessage(mb.build());
         ButtonWaiter rw = new ButtonWaiter(eventWaiter, context, msgTmp.getIdLong(), ButtonWaiter.ResponseType.REPLY);
         rw.setButtonHandler(event -> {
-            msgTmp.editMessage(msgTmp).setActionRows(Collections.emptySet()).queue();
+            msgTmp.editMessageComponents(Collections.emptySet()).queue();
             if (event.getComponentId().equals("BUY")) {
                 try {
                     context.getGuild().addRoleToMember(context.getMember(), rola).queue(aVoid -> {
@@ -108,7 +107,7 @@ public class SklepCommand extends SklepSharedCommand {
                 event.getHook().editOriginal(context.getTranslated("sklep.kup.canceled")).queue();
         });
         rw.setTimeoutHandler(() -> {
-            msgTmp.editMessage(msgTmp).setActionRows(Collections.emptySet()).queue();
+            msgTmp.editMessageComponents(Collections.emptySet()).queue();
             context.sendMessage(context.getTranslated("sklep.kup.canceled"));
         });
         rw.create();
@@ -135,9 +134,9 @@ public class SklepCommand extends SklepSharedCommand {
         EmbedBuilder eb = generateEmbed(Typ.SPRZEDAZ, rola, gc.getRoleDoKupieniaOpisy().get(rola.getId()),
                 kasa, mc.getFratikCoiny(), true, context.getTlumaczenia(), context.getLanguage());
 
-        MessageBuilder mb = new MessageBuilder();
+        MessageCreateBuilder mb = new MessageCreateBuilder();
         mb.setEmbeds(eb.build());
-        mb.setActionRows(ActionRow.of(
+        mb.setComponents(ActionRow.of(
                 Button.success("SELL", context.getTranslated("sklep.przycisk.sprzedaj")),
                 Button.danger("CANCEL", context.getTranslated("sklep.przycisk.anuluj"))
         ));
@@ -145,7 +144,7 @@ public class SklepCommand extends SklepSharedCommand {
 
         ButtonWaiter rw = new ButtonWaiter(eventWaiter, context, msgTmp.getIdLong(), ButtonWaiter.ResponseType.REPLY);
         rw.setButtonHandler(event -> {
-            msgTmp.editMessage(msgTmp).setActionRows(Collections.emptySet()).queue();
+            msgTmp.editMessageComponents(Collections.emptyList()).queue();
             if (event.getComponentId().equals("SELL")) {
                 context.getGuild().removeRoleFromMember(context.getMember(), rola)
                         .queue(
@@ -161,7 +160,7 @@ public class SklepCommand extends SklepSharedCommand {
                 event.getHook().editOriginal(context.getTranslated("sklep.sprzedaj.canceled")).queue();
         });
         rw.setTimeoutHandler(() -> {
-            msgTmp.editMessage(msgTmp).setActionRows(Collections.emptySet()).queue();
+            msgTmp.editMessageComponents(Collections.emptyList()).queue();
             context.sendMessage(context.getTranslated("sklep.sprzedaj.canceled"));
         });
         rw.create();

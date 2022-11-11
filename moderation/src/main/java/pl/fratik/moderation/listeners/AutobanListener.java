@@ -29,6 +29,7 @@ import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.moderation.entity.Case;
 
 import java.time.Instant;
+import java.util.concurrent.TimeUnit;
 
 public class AutobanListener {
 
@@ -51,9 +52,8 @@ public class AutobanListener {
             Case aCase = new Case.Builder(e.getMember(), Instant.now(), Kara.BAN).setIssuerId(Globals.clientId)
                     .setReasonKey("autoban.case.reason").build();
             modLogListener.getKnownCases().put(ModLogListener.generateKey(e.getMember()), aCase);
-            e.getGuild().ban(e.getMember(), 0,
-                    tlumaczenia.get(tlumaczenia.getLanguage(e.getGuild()), "autoban.audit.reason"))
-                    .reason(tlumaczenia.get(tlumaczenia.getLanguage(e.getGuild()), "autoban.audit.reason")).complete();
+            e.getGuild().ban(e.getMember(), 0, TimeUnit.MILLISECONDS)
+                .reason(tlumaczenia.get(tlumaczenia.getLanguage(e.getGuild()), "autoban.audit.reason")).complete();
         }
     }
 }

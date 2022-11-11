@@ -22,15 +22,17 @@ import com.google.common.eventbus.Subscribe;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.channel.ChannelType;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.guild.GuildBanEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
-import net.dv8tion.jda.api.interactions.components.Modal;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.interactions.components.text.TextInput;
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
+import net.dv8tion.jda.api.interactions.modals.Modal;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.commands.entity.Blacklist;
@@ -209,7 +211,7 @@ public class PopCommand extends NewCommand {
                                     context.getTranslated("pop.request.modal.input"), TextInputStyle.PARAGRAPH)
                                     .setRequiredRange(15, 1000).build()
                     ).build()).complete();
-            msg.editMessage(context.getTranslated("pop.continue.modal")).setActionRows(Set.of()).queue(null, x -> {});
+            msg.editMessage(context.getTranslated("pop.continue.modal")).setComponents(Set.of()).queue(null, x -> {});
 
         });
         bw.setTimeoutHandler(() -> msg.editMessage(context.getTranslated("pop.aborted")).queue(null, x -> {}));

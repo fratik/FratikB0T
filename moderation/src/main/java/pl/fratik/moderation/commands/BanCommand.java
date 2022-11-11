@@ -35,6 +35,7 @@ import pl.fratik.moderation.listeners.ModLogListener;
 import pl.fratik.moderation.utils.ReasonUtils;
 
 import java.time.Instant;
+import java.util.concurrent.TimeUnit;
 
 public class BanCommand extends ModerationCommand {
 
@@ -96,7 +97,7 @@ public class BanCommand extends ModerationCommand {
         aCase.setValidTo(banDo);
         modLogListener.getKnownCases().put(ModLogListener.generateKey(uzytkownik, context.getGuild()), aCase);
         try {
-            context.getGuild().ban(uzytkownik, 0, aCase.getReason(context)).reason(aCase.getReason(context)).complete();
+            context.getGuild().ban(uzytkownik, 0, TimeUnit.MILLISECONDS).reason(aCase.getReason(context)).complete();
             context.sendMessage(context.getTranslated("ban.success", UserUtil.formatDiscrim(uzytkownik)));
         } catch (HierarchyException e) {
             context.sendMessage(context.getTranslated("ban.failed.hierarchy"));

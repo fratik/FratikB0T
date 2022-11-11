@@ -27,6 +27,9 @@ import net.dv8tion.jda.api.interactions.commands.CommandInteraction;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.sharding.ShardManager;
+import net.dv8tion.jda.api.utils.FileUpload;
+import net.dv8tion.jda.api.utils.messages.MessageCreateData;
+import net.dv8tion.jda.api.utils.messages.MessageEditData;
 import pl.fratik.core.tlumaczenia.Language;
 import pl.fratik.core.tlumaczenia.Tlumaczenia;
 import pl.fratik.core.util.UserUtil;
@@ -83,6 +86,10 @@ public class NewCommandContext {
     }
 
     public InteractionHook reply(Message message) {
+        return reply(MessageCreateData.fromMessage(message));
+    }
+
+    public InteractionHook reply(MessageCreateData message) {
         return interaction.reply(message).complete();
     }
 
@@ -99,7 +106,7 @@ public class NewCommandContext {
     }
 
     public InteractionHook replyEphemeral(Message message) {
-        return interaction.reply(message).setEphemeral(true).complete();
+        return interaction.reply(MessageCreateData.fromMessage(message)).setEphemeral(true).complete();
     }
 
     public InteractionHook replyEphemeral(Collection<MessageEmbed> embeds) {
@@ -110,12 +117,16 @@ public class NewCommandContext {
         return interaction.getHook().sendMessage(content).complete();
     }
 
+    public Message sendMessage(MessageCreateData builder) {
+        return interaction.getHook().sendMessage(builder).complete();
+    }
+
     public Message sendMessage(String content, ActionRow actionRow) {
-        return interaction.getHook().sendMessage(content).addActionRows(actionRow).complete();
+        return interaction.getHook().sendMessage(content).setComponents(actionRow).complete();
     }
 
     public Message sendMessage(Message message) {
-        return interaction.getHook().sendMessage(message).complete();
+        return interaction.getHook().sendMessage(MessageCreateData.fromMessage(message)).complete();
     }
 
     public Message sendMessage(Collection<MessageEmbed> embeds) {
@@ -127,7 +138,7 @@ public class NewCommandContext {
     }
 
     public Message sendMessage(String fileName, byte[] data) {
-        return interaction.getHook().sendFile(data, fileName).complete();
+        return interaction.getHook().sendFiles(FileUpload.fromData(data, fileName)).complete();
     }
 
     public Message editOriginal(String content) {
@@ -135,7 +146,7 @@ public class NewCommandContext {
     }
 
     public Message editOriginal(Message message) {
-        return interaction.getHook().editOriginal(message).complete();
+        return interaction.getHook().editOriginal(MessageEditData.fromMessage(message)).complete();
     }
 
     public Message editOriginal(Collection<MessageEmbed> embeds) {

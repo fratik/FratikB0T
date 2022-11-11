@@ -18,6 +18,7 @@
 package pl.fratik.core.entity;
 
 import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 
 import java.lang.annotation.ElementType;

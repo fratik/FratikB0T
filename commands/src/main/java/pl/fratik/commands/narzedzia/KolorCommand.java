@@ -23,6 +23,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.interactions.InteractionHook;
+import net.dv8tion.jda.api.utils.FileUpload;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -109,12 +110,11 @@ public class KolorCommand extends NewCommand {
             eb.addField("RGB", String.join(", ", rgb), true);
             eb.addField("Hex", "#" + CommonUtil.asHex(color), true);
             if (getCssName(color) != null) eb.addField("CSS", getCssName(color), true);
-            hook.editOriginalEmbeds(eb.build()).addFile(baos.toByteArray(), CommonUtil.asHex(color) + ".png").queue();
+            hook.editOriginalEmbeds(eb.build()).setFiles(FileUpload.fromData(baos.toByteArray(), CommonUtil.asHex(color) + ".png")).queue();
             baos.close();
         } catch (IOException e) {
             context.sendMessage(context.getTranslated("kolor.failed"));
         }
-        return;
     }
 
     private String getCssName(Color color) {

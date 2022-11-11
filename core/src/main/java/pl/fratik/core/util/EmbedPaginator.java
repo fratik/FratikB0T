@@ -22,8 +22,8 @@ import io.sentry.Sentry;
 import lombok.AccessLevel;
 import lombok.Getter;
 import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
@@ -31,8 +31,10 @@ import net.dv8tion.jda.api.exceptions.PermissionException;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
-import net.dv8tion.jda.api.requests.restaction.MessageAction;
-import net.dv8tion.jda.api.requests.restaction.WebhookMessageAction;
+import net.dv8tion.jda.api.requests.restaction.MessageCreateAction;
+import net.dv8tion.jda.api.requests.restaction.MessageEditAction;
+import net.dv8tion.jda.api.requests.restaction.WebhookMessageCreateAction;
+import net.dv8tion.jda.api.utils.messages.MessageEditData;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -90,12 +92,12 @@ public abstract class EmbedPaginator {
     protected abstract int getPageCount();
 
     protected void rerender() throws LoadingException {
-        addReactions(message.editMessageEmbeds(currentEmbed = render(pageNo))).override(true).queue();
+        addReactions(message.editMessageEmbeds(currentEmbed = render(pageNo))).setReplace(true).queue();
     }
 
     public void create(InteractionHook hook) {
         try {
-            WebhookMessageAction<Message> action = hook.sendMessageEmbeds(currentEmbed = render(pageNo));
+            WebhookMessageCreateAction<Message> action = hook.sendMessageEmbeds(currentEmbed = render(pageNo));
             action = addReactions(action);
             action.queue(msg -> {
                 message = msg;
@@ -111,15 +113,13 @@ public abstract class EmbedPaginator {
 
     public void create(MessageChannel channel, String referenceMessageId) {
         try {
-            MessageAction action = channel.sendMessageEmbeds(currentEmbed = render(pageNo));
-            if (referenceMessageId != null) action = action.referenceById(referenceMessageId);
-            action = addReactions(action);
-            action.override(true).queue(msg -> {
+            MessageCreateAction action = channel.sendMessageEmbeds(currentEmbed = render(pageNo));
+            if (referenceMessageId != null) action = action.setMessageReference(referenceMessageId);
+            action = addReactions(action, false);
+            action.queue(msg -> {
                 message = msg;
                 messageId = msg.getIdLong();
-                if (getPageCount() != 1) {
-                    waitForReaction();
-                }
+                if (getPageCount() != 1) waitForReaction();
             });
         } catch (Exception e) {
             handleException(e, channel);
@@ -158,12 +158,10 @@ public abstract class EmbedPaginator {
     public void create(Message message) {
         eventBus.post(new PluginMessageEvent("core", PMSTO, PMZAADD + message.getId()));
         try {
-            addReactions(message.editMessageEmbeds(currentEmbed = render(pageNo))).override(true).queue(msg -> {
+            addReactions(message.editMessageEmbeds(currentEmbed = render(pageNo))).setReplace(true).queue(msg -> {
                 this.message = msg;
                 messageId = msg.getIdLong();
-                if (getPageCount() != 1) {
-                    waitForReaction();
-                }
+                if (getPageCount() != 1) waitForReaction();
             });
         } catch (LoadingException e) {
             handleException(e, message.getChannel());
@@ -178,22 +176,27 @@ public abstract class EmbedPaginator {
         create(channel, referenceMessage == null ? null : referenceMessage.getId());
     }
 
-    private MessageAction addReactions(MessageAction action) {
+    private MessageEditAction addReactions(MessageEditAction action) {
         return addReactions(action, false);
     }
 
-    private MessageAction addReactions(MessageAction action, boolean disabled) {
+    private MessageCreateAction addReactions(MessageCreateAction action, boolean disabled) {
         if (getPageCount() == 1) return action;
-        return action.setActionRows(getActionRows(disabled));
+        return action.setComponents(getActionRows(disabled));
     }
 
-    private WebhookMessageAction<Message> addReactions(WebhookMessageAction<Message> action) {
+    private MessageEditAction addReactions(MessageEditAction action, boolean disabled) {
+        if (getPageCount() == 1) return action;
+        return action.setComponents(getActionRows(disabled));
+    }
+
+    private WebhookMessageCreateAction<Message> addReactions(WebhookMessageCreateAction<Message> action) {
         return addReactions(action, false);
     }
 
-    private WebhookMessageAction<Message> addReactions(WebhookMessageAction<Message> action, boolean disabled) {
+    private WebhookMessageCreateAction<Message> addReactions(WebhookMessageCreateAction<Message> action, boolean disabled) {
         if (getPageCount() == 1) return action;
-        return action.addActionRows(getActionRows(disabled));
+        return action.setComponents(getActionRows(disabled));
     }
 
     private List<ActionRow> getActionRows(boolean disabled) {
@@ -261,7 +264,7 @@ public abstract class EmbedPaginator {
                 return;
             case "CHOOSE_PAGE":
                 if (addPaginator()) {
-                    addReactions(message.editMessage(message), true).override(true).queue();
+                    addReactions(message.editMessage(MessageEditData.fromMessage(message)), true).setReplace(true).queue();
                     doKtorej = event.getChannel().sendMessage(tlumaczenia.get(language, "paginator.waiting.for.pageno")).complete();
                     eventWaiter.waitForEvent(MessageReceivedEvent.class, this::checkMessage,
                             this::handleMessage, timeout, TimeUnit.SECONDS, this::clearReactions);
@@ -278,10 +281,10 @@ public abstract class EmbedPaginator {
 
         eventBus.post(new PluginMessageEvent("core", PMSTO, PMZAADD + message.getId()));
         try {
-            addReactions(message.editMessageEmbeds(currentEmbed = render(pageNo))).override(true).queue(msg -> waitForReaction());
+            addReactions(message.editMessageEmbeds(currentEmbed = render(pageNo))).setReplace(true).queue(msg -> waitForReaction());
         } catch (LoadingException e) {
             pageNo = oldPageNo;
-            addReactions(message.editMessageEmbeds(currentEmbed)).override(true).queue(msg -> waitForReaction());
+            addReactions(message.editMessageEmbeds(currentEmbed)).setReplace(true).queue(msg -> waitForReaction());
         }
     }
 
@@ -295,10 +298,10 @@ public abstract class EmbedPaginator {
         eventBus.post(new PluginMessageEvent("core", PMSTO, PMZAADD + event.getMessage().getId()));
         event.getMessage().delete().queue();
         try {
-            addReactions(message.editMessageEmbeds(currentEmbed = render(pageNo))).override(true).queue(msg -> waitForReaction());
+            addReactions(message.editMessageEmbeds(currentEmbed = render(pageNo))).setReplace(true).queue(msg -> waitForReaction());
         } catch (LoadingException e) {
             pageNo = oldPageNo;
-            addReactions(message.editMessageEmbeds(currentEmbed)).override(true).queue(msg -> waitForReaction());
+            addReactions(message.editMessageEmbeds(currentEmbed)).setReplace(true).queue(msg -> waitForReaction());
         }
     }
 
@@ -341,7 +344,7 @@ public abstract class EmbedPaginator {
     }
 
     private void clearActions(Message botMsg) {
-        botMsg.editMessageEmbeds(currentEmbed).setActionRows(Collections.emptySet()).queue();
+        botMsg.editMessageEmbeds(currentEmbed).setComponents(Collections.emptySet()).queue();
     }
 
     public EmbedPaginator setCustomFooter(boolean customFooter) {

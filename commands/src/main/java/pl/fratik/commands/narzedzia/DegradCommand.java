@@ -22,8 +22,9 @@ import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
-import net.dv8tion.jda.api.requests.restaction.WebhookMessageAction;
+import net.dv8tion.jda.api.requests.restaction.WebhookMessageCreateAction;
 import net.dv8tion.jda.api.sharding.ShardManager;
+import net.dv8tion.jda.api.utils.FileUpload;
 import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -83,9 +84,9 @@ public class DegradCommand extends NewCommand {
             logger.warn("Zdjęcie z degradem nie znalezione!");
             zdjecie = null;
         }
-        WebhookMessageAction<Message> maction = hook
+        WebhookMessageCreateAction<Message> maction = hook
                 .sendMessage(context.getTranslated("degrad.inprogress", UserUtil.formatDiscrim(czlonek)));
-        if (zdjecie != null) maction = maction.addFile(zdjecie, "degrad.jpg");
+        if (zdjecie != null) maction = maction.addFiles(FileUpload.fromData(zdjecie, "degrad.jpg"));
         maction.queue(msg -> czlonek.getGuild()
                 .removeRoleFromMember(czlonek, Objects.requireNonNull(czlonek.getGuild().getRoleById(Ustawienia.instance.gadmRole)))
                 .queueAfter(5, TimeUnit.SECONDS, success -> msg

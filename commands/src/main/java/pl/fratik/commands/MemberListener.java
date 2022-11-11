@@ -21,10 +21,13 @@ import com.google.common.eventbus.AllowConcurrentEvents;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.channel.ChannelType;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberRemoveEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
-import net.dv8tion.jda.api.requests.restaction.MessageAction;
+import net.dv8tion.jda.api.requests.restaction.MessageCreateAction;
 import pl.fratik.core.cache.Cache;
 import pl.fratik.core.cache.RedisCacheManager;
 import pl.fratik.core.entity.GuildConfig;
@@ -66,9 +69,9 @@ class MemberListener {
         for (Map.Entry<String, String> ch : gc.getPozegnania().entrySet()) {
             TextChannel cha = e.getGuild().getTextChannelById(ch.getKey());
             if (cha == null) continue;
-            cha.sendMessage(ch.getValue()
-                    .replaceAll("\\{\\{user}}", e.getUser().getAsTag())
-                    .replaceAll("\\{\\{server}}", e.getGuild().getName())).queue();
+            contentCheck(cha, ch.getValue()
+                .replace("\\{\\{user}}", e.getUser().getAsTag())
+                .replace("\\{\\{server}}", e.getGuild().getName())).queue();
         }
     }
 
@@ -133,10 +136,17 @@ class MemberListener {
                 matcher.appendTail(buf);
                 cnt = buf.toString();
             }
-            MessageAction ma = cha.sendMessage(cnt);
+            MessageCreateAction ma = contentCheck(cha, cnt);
             if (hasMentions) ma.mention(e.getMember()).queue();
             else ma.queue();
         }
+    }
+
+    private MessageCreateAction contentCheck(MessageChannel guildChannel, String content) {
+        if (content.length() > Message.MAX_CONTENT_LENGTH) {
+            content = content.substring(0, Message.MAX_CONTENT_LENGTH);
+        }
+        return guildChannel.sendMessage(content);
     }
 
     private GuildConfig getGuildConfig(Guild guild) {

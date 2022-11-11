@@ -17,8 +17,10 @@
 
 package pl.fratik.fratikcoiny.commands;
 
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
+import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.entity.MemberConfig;
@@ -33,6 +35,7 @@ public class UsunFcCommand extends MoneyCommand {
         this.memberDao = memberDao;
         name = "usunfc";
         usage = "<osoba:user> <ile:int>";
+        permissions = DefaultMemberPermissions.enabledFor(Permission.MANAGE_SERVER);
     }
 
     @Override

@@ -30,7 +30,7 @@ group 'pl.fratik'
 
 mainClassName = 'pl.fratik.core.Main'
 
-def jdaVersion = '5.0.0-alpha.17'
+def jdaVersion = '5.0.0-alpha.22'
 
 build.dependsOn shadowJar
 

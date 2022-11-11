@@ -21,6 +21,7 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
+import net.dv8tion.jda.api.utils.FileUpload;
 import org.jetbrains.annotations.NotNull;
 import pl.fratik.core.command.NewCommand;
 import pl.fratik.core.command.NewCommandContext;
@@ -57,10 +58,9 @@ public class AvatarCommand extends NewCommand {
         eb.setColor(UserUtil.getPrimColor(osoba));
 
         try {
-            hook
-                    .sendFile(NetworkUtil.download(url), name)
-                    .addEmbeds(eb.setImage("attachment://" + name).build())
-                    .queue();
+            hook.sendFiles(FileUpload.fromData(NetworkUtil.download(url), name))
+                .addEmbeds(eb.setImage("attachment://" + name).build())
+                .queue();
         } catch (IOException e) {
             context.sendMessage(eb.setImage(url).build());
         }

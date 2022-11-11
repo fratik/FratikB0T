@@ -17,10 +17,10 @@
 
 package pl.fratik.core.util;
 
-import net.dv8tion.jda.api.entities.ChannelType;
 import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.entities.channel.ChannelType;
+import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
@@ -58,7 +58,7 @@ class TextPaginator {
     }
 
     public void create(MessageChannel channel) {
-        channel.sendMessage(render(1)).override(true).queue(msg -> {
+        channel.sendMessage(render(1)).queue(msg -> {
             this.message = msg;
             messageId = msg.getIdLong();
             if (pages.size() != 1) {
@@ -71,7 +71,7 @@ class TextPaginator {
     public void create(Message message) {
         this.message = message;
         messageId = message.getIdLong();
-        message.editMessage(render(1)).override(true).queue(msg -> {
+        message.editMessage(render(1)).queue(msg -> {
             if (pages.size() != 1) {
                 addReactions(msg);
                 waitForReaction();
@@ -141,7 +141,7 @@ class TextPaginator {
             event.getReaction().removeReaction(event.getUser()).queue();
         } catch (PermissionException ignored) {/*lul*/}
 
-        message.editMessage(render(pageNo)).override(true).queue(msg -> waitForReaction());
+        message.editMessage(render(pageNo)).setReplace(true).queue(msg -> waitForReaction());
     }
 
     private void handleMessage(MessageReceivedEvent event) {

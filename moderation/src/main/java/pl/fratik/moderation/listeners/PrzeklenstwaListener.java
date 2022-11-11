@@ -22,10 +22,12 @@ import com.google.common.eventbus.Subscribe;
 import com.google.gson.reflect.TypeToken;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.channel.ChannelType;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import net.dv8tion.jda.api.events.message.GenericMessageEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.MessageUpdateEvent;
-import net.dv8tion.jda.api.requests.restaction.MessageAction;
+import net.dv8tion.jda.api.requests.restaction.MessageCreateAction;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import pl.fratik.core.Globals;
 import pl.fratik.core.cache.Cache;
@@ -98,12 +100,12 @@ public class PrzeklenstwaListener {
                 Case c = new Case.Builder(e.getMember(), Instant.now(), Kara.WARN).setIssuerId(Globals.clientId)
                         .setReasonKey("antiswear.reason").build();
                 caseDao.createNew(null, c, false, e.getChannel(), tlumaczenia.getLanguage(e.getMember()));
-                MessageAction m = e.getChannel().sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(e.getMember()),
+                MessageCreateAction m = e.getChannel().sendMessage(tlumaczenia.get(tlumaczenia.getLanguage(e.getMember()),
                         "antiswear.notice", e.getAuthor().getAsMention(),
                         WarnUtil.countCases(caseDao.getCasesByMember(e.getMember()), e.getAuthor().getId())));
                 boolean deleteSwearMessage = gc.isDeleteSwearMessage();
                 if (deleteSwearMessage) m.queue();
-                else m.reference(e.getMessage()).queue();
+                else m.setMessageReference(e.getMessage()).queue();
                 if (deleteSwearMessage) {
                     try {
                         e.getMessage().delete().complete();
@@ -161,7 +163,7 @@ public class PrzeklenstwaListener {
         /**
          * The Author of the Message received as {@link net.dv8tion.jda.api.entities.Member Member} object.
          * <br>This will be {@code null} in case of Message being received in
-         * a {@link net.dv8tion.jda.api.entities.PrivateChannel PrivateChannel}
+         * a {@link net.dv8tion.jda.api.entities.channel.concrete.PrivateChannel PrivateChannel}
          * or {@link #isWebhookMessage() isWebhookMessage()} returning {@code true}.
          *
          * @return The Author of the Message as null-able Member object.

@@ -20,7 +20,7 @@ package pl.fratik.api;
 import com.google.common.eventbus.EventBus;
 import lombok.Getter;
 import lombok.Setter;
-import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import org.jetbrains.annotations.NotNull;

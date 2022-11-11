@@ -22,6 +22,9 @@ import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import io.sentry.Sentry;
 import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.channel.ChannelType;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
@@ -340,12 +343,12 @@ public class LicznikPunktow {
                                 .replace("{{user}}", UserUtil.formatDiscrim(event.getMember()))
                                 .replace("{{level}}", String.valueOf(event.getLevel()))
                                 .replace("{{guild}}", event.getMember().getGuild().getName()))
-                                .setActionRows(ar)
+                                .setComponents(ar)
                                 .queue(null, kurwa -> {});
                     } else {
                         ch.sendMessage(tlumaczenia.get(l,
                                 "generic.lvlup.channel", event.getMember().getUser().getName(),
-                                event.getLevel())).setActionRows(ar).queue(null, kurwa -> {});
+                                event.getLevel())).setComponents(ar).queue(null, kurwa -> {});
                     }
                 } catch (Exception e) {
                     /*lul*/
@@ -371,18 +374,18 @@ public class LicznikPunktow {
                             return;
                         event.getChannel().sendMessage(tlumaczenia.get(finalLang,
                                 "generic.lvlup.withrole", event.getMember().getUser().getName(),
-                                rola.getName(), event.getLevel())).setActionRows(finalAr).queue();
+                                rola.getName(), event.getLevel())).setComponents(finalAr).queue();
                     }, throwable -> {
                         if (event.getChannel() instanceof TextChannel && !((TextChannel) event.getChannel()).canTalk())
                             return;
                         event.getChannel().sendMessage(tlumaczenia.get(finalLang,
                                 "generic.lvlup.withrole.failed", event.getMember().getUser().getName(),
-                                rola.getName(), event.getLevel())).setActionRows(finalAr).queue();
+                                rola.getName(), event.getLevel())).setComponents(finalAr).queue();
                     });
         } catch (Exception e) {
             event.getChannel().sendMessage(tlumaczenia.get(l,
                     "generic.lvlup.withrole.failed", event.getMember().getUser().getName(),
-                    rola.getName(), event.getLevel())).setActionRows(ar).queue();
+                    rola.getName(), event.getLevel())).setComponents(ar).queue();
         }
     }
 

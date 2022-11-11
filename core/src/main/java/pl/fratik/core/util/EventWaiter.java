@@ -19,7 +19,7 @@ package pl.fratik.core.util;
 
 import com.google.common.eventbus.Subscribe;
 import net.dv8tion.jda.api.events.Event;
-import net.dv8tion.jda.api.events.ShutdownEvent;
+import net.dv8tion.jda.api.events.session.ShutdownEvent;
 import net.dv8tion.jda.internal.utils.Checks;
 
 import java.util.HashMap;

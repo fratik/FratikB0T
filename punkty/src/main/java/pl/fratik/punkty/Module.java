@@ -64,7 +64,7 @@ public class Module implements Modul {
 
         commands.add(new StatsCommand(licznik));
         commands.add(new LvlupCommand(licznik));
-        commands.add(new RankingCommand(punktyDao, licznik, memberDao));
+        commands.add(new RankingCommand(punktyDao, licznik, memberDao, eventBus, eventWaiter));
         commands.add(new GlobalstatyCommand());
         commands.add(new GurCommand(eventWaiter, shardManager, eventBus));
         commands.add(new GsrCommand(eventWaiter, shardManager, eventBus));

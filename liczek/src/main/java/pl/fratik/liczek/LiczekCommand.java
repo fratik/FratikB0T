@@ -18,7 +18,7 @@
 package pl.fratik.liczek;
 
 import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
 import pl.fratik.core.command.NewCommand;
 import pl.fratik.core.command.NewCommandContext;

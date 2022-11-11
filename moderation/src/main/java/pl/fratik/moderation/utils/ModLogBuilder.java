@@ -19,13 +19,13 @@ package pl.fratik.moderation.utils;
 
 import lombok.Setter;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.requests.ErrorResponse;
 import net.dv8tion.jda.api.sharding.ShardManager;
+import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
+import net.dv8tion.jda.api.utils.messages.MessageCreateData;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import pl.fratik.core.entity.GuildConfig;
@@ -54,7 +54,7 @@ public class ModLogBuilder {
     @Setter private static GuildDao guildDao;
 
     @NotNull
-    public static Message generate(@NotNull Case aCase, // UŻYWA COMPLETE!
+    public static MessageCreateData generate(@NotNull Case aCase, // UŻYWA COMPLETE!
                                    @NotNull Guild guild,
                                    @NotNull ShardManager sm,
                                    @NotNull Language lang,
@@ -97,7 +97,7 @@ public class ModLogBuilder {
     }
 
     @NotNull
-    public static Message generate(@NotNull Case aCase,
+    public static MessageCreateData generate(@NotNull Case aCase,
                                    @NotNull Guild guild,
                                    @NotNull Language lang,
                                    boolean modlog,
@@ -139,40 +139,43 @@ public class ModLogBuilder {
     }
 
     @NotNull
-    public static Message generate(Kara kara,
-                                   User karany,
-                                   String moderator,
-                                   String reason,
-                                   Color kolor,
-                                   long caseNumber,
-                                   boolean valid,
-                                   boolean dm,
-                                   TemporalAccessor validTo,
-                                   TemporalAccessor timestamp,
-                                   int ileRazy,
-                                   Language lang,
-                                   Guild guild,
-                                   boolean hasProof,
-                                   List<Dowod> dowody) {
-        MessageBuilder mb = new MessageBuilder(generateEmbed(kara, karany, moderator, reason, kolor, caseNumber, valid,
-                validTo, timestamp, ileRazy, lang, guild, hasProof));
+    public static MessageCreateData generate(Kara kara,
+                                             User karany,
+                                             String moderator,
+                                             String reason,
+                                             Color kolor,
+                                             long caseNumber,
+                                             boolean valid,
+                                             boolean dm,
+                                             TemporalAccessor validTo,
+                                             TemporalAccessor timestamp,
+                                             int ileRazy,
+                                             Language lang,
+                                             Guild guild,
+                                             boolean hasProof,
+                                             List<Dowod> dowody) {
+        StringBuilder contentBuilder = new StringBuilder();
+        MessageCreateBuilder mb = new MessageCreateBuilder();
+        mb.addEmbeds(generateEmbed(kara, karany, moderator, reason, kolor, caseNumber, valid,
+            validTo, timestamp, ileRazy, lang, guild, hasProof).build());
+
         if (dm) {
             mb.setContent(tlumaczenia.get(lang, "modlog.dm.msg", guild.getName()));
             if (hasProof && !dowody.isEmpty()) {
-                mb.append("\n\n");
-                mb.append(tlumaczenia.get(lang, "modlog.dm.attached.proof" + (dowody.size() > 1 ? ".multi" : "")));
-                mb.append("\n\n");
+                contentBuilder.append("\n\n");
+                contentBuilder.append(tlumaczenia.get(lang, "modlog.dm.attached.proof" + (dowody.size() > 1 ? ".multi" : "")));
+                contentBuilder.append("\n\n");
                 for (int i = 0; i < dowody.size(); i++) {
                     String moreStr = tlumaczenia.get(lang, "modlog.dm.proof.more", dowody.size() - i);
-                    if (mb.length() + 3 + dowody.get(i).getContent().length() >= (1900 - moreStr.length())) {
-                        mb.append(moreStr);
-                        mb.append("\n\n"); // setLength -2 wywali te znaki
+                    if (contentBuilder.length() + 3 + dowody.get(i).getContent().length() >= (1900 - moreStr.length())) {
+                        contentBuilder.append(moreStr);
+                        contentBuilder.append("\n\n"); // setLength -2 wywali te znaki
                         break;
                     }
-                    mb.append(dowody.get(i).getContent());
-                    mb.append("\n\n");
+                    contentBuilder.append(dowody.get(i).getContent());
+                    contentBuilder.append("\n\n");
                 }
-                mb.getStringBuilder().setLength(mb.length() - 2);
+                contentBuilder.delete(contentBuilder.length() - 2, contentBuilder.length());
             }
         }
         return mb.build();

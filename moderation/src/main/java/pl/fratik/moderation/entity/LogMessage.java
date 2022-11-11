@@ -20,6 +20,7 @@ package pl.fratik.moderation.entity;
 import lombok.EqualsAndHashCode;
 import lombok.Setter;
 import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import net.dv8tion.jda.api.entities.channel.unions.MessageChannelUnion;
 import net.dv8tion.jda.api.sharding.ShardManager;
 import net.dv8tion.jda.internal.JDAImpl;
@@ -29,7 +30,10 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.util.Objects;
+import java.util.TimeZone;
 
 @EqualsAndHashCode(callSuper = false)
 public class LogMessage extends AbstractMessage {
@@ -40,8 +44,8 @@ public class LogMessage extends AbstractMessage {
     private final String authorAvatar; //tylko jesli webhook
     private final String authorName; //tylko jesli webhook
     private final long channelId;
-    private final OffsetDateTime createdTime;
-    private final OffsetDateTime editedTime;
+    private final long createdTime;
+    private final long editedTime;
     private final boolean isWebhook;
 
     public LogMessage(Message message) {
@@ -49,8 +53,8 @@ public class LogMessage extends AbstractMessage {
         this.id = message.getIdLong();
         this.guildId = message.getGuild().getIdLong();
         this.channelId = message.getChannel().getIdLong();
-        this.createdTime = message.getTimeCreated();
-        this.editedTime = message.isEdited() ? message.getTimeEdited() : null;
+        this.createdTime = message.getTimeCreated().toInstant().toEpochMilli();
+        this.editedTime = message.isEdited() ? Objects.requireNonNull(message.getTimeEdited()).toInstant().toEpochMilli() : -1;
         this.isWebhook = message.isWebhookMessage();
         this.authorId = message.getAuthor().getIdLong();
         if (isWebhook) {
@@ -122,17 +126,17 @@ public class LogMessage extends AbstractMessage {
     @NotNull
     @Override
     public OffsetDateTime getTimeCreated() {
-        return createdTime;
+        return OffsetDateTime.ofInstant(Instant.ofEpochMilli(createdTime), TimeZone.getTimeZone("GMT").toZoneId());
     }
 
     @Override
     public OffsetDateTime getTimeEdited() {
-        return editedTime;
+        return OffsetDateTime.ofInstant(Instant.ofEpochMilli(editedTime), TimeZone.getTimeZone("GMT").toZoneId());
     }
 
     @Override
     public boolean isEdited() {
-        return editedTime != null;
+        return editedTime != -1;
     }
 
     @Override

@@ -63,7 +63,7 @@ public abstract class SklepSharedCommand extends NewCommand {
                 eb.addField(tlumaczenia.get(l, "sklep.embed.cena.sprzedazy"), String.valueOf((int) Math.floor((double) cena / 2)), true);
                 eb.addField(tlumaczenia.get(l, "sklep.embed.hajs"), String.valueOf(hajs), true);
                 if (hajs < cena) {
-                    eb.setFooter(tlumaczenia.get(l, "sklep.embed.zamalokasy"), null);
+                    eb.setDescription(tlumaczenia.get(l, "sklep.embed.zamalokasy"));
                     eb.setColor(Color.RED);
                     return eb;
                 }
