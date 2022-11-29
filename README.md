@@ -49,7 +49,7 @@ Po pierwszym uruchomieniu bot utworzy plik `config.json`, należy go ustawić.
 
 ## Specjalne podziękowania
 Rdzeń wzorowany na Kyoko v2.  
-Dashboard (Open Source wkrótce) dla wersji 3 stworzony przez [SebeeDev](https://github.com/SebeeDev). 
+Dashboard dla wersji 3 stworzony przez [SebeeDev](https://github.com/SebeeDev). 
 
 ## Serwer Discord
 [![https://discord.com/api/guilds/345655892882096139/embed.png?style=banner4](https://discord.com/api/guilds/345655892882096139/embed.png?style=banner4)](https://discord.gg/CZ8pXah)
