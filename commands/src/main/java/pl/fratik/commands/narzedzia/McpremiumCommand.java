@@ -45,7 +45,6 @@ public class McpremiumCommand extends NewCommand {
     public void execute(@NotNull NewCommandContext context) {
         String uuid;
         String name;
-        List<String> listaNazw = new ArrayList<>();
         String nick = context.getArguments().get("nick").getAsString();
         context.deferAsync(false);
         try {
@@ -53,30 +52,6 @@ public class McpremiumCommand extends NewCommand {
             uuid = Objects.requireNonNull(jOb).getString("id");
             name = Objects.requireNonNull(jOb).getString("name");
             JSONArray lista = NetworkUtil.getJsonArray("https://api.mojang.com/user/profiles/" + uuid + "/names");
-            boolean first = true;
-            if (lista != null) {
-                List<JSONObject> tak = new ArrayList<>();
-                for (Object xd : lista) tak.add((JSONObject) xd);
-                Collections.reverse(tak);
-                for (JSONObject obj : tak) {
-                    StringBuilder sb = new StringBuilder();
-                    if (first) sb.append("**");
-                    sb.append(MarkdownSanitizer.escape(obj.getString("name")));
-                    if (first) sb.append("**");
-                    first = false;
-                    if (obj.has("changedToAt")) {
-                        long timestamp = obj.getLong("changedToAt");
-                        Date zmienioneO = new Date(timestamp);
-                        SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy '@' HH:mm z", context.getLanguage().getLocale());
-                        sb.append(" ").append(context.getTranslated("mcpremium.changed.to.at", sdf.format(zmienioneO)));
-                    }
-                    listaNazw.add(sb.toString());
-                    if (listaNazw.size() >= 10) {
-                        listaNazw.add(context.getTranslated("mcstatus.embed.players.more", tak.size() - listaNazw.size()));
-                        break;
-                    }
-                }
-            }
         } catch (Exception e) {
             context.sendMessage(context.getTranslated("mcpremium.failed", nick));
             Sentry.capture(new EventBuilder().withMessage(e.getMessage())
@@ -89,10 +64,6 @@ public class McpremiumCommand extends NewCommand {
         eb.addField("UUID", formatUuid(uuid), false);
         eb.addField(context.getTranslated("mcpremium.namemc"), "[namemc.com](https://namemc.com/profile/" + uuid + ")", false);
         eb.setFooter(context.getTranslated("mcpremium.infonick", name), null);
-        if (listaNazw.size() > 1) {
-            eb.addField(context.getTranslated("mcpremium.namehistory"), String.join("\n", listaNazw),
-                    false);
-        }
         eb.setThumbnail("https://minotar.net/helm/" + name + "/2048.png");
         eb.setImage("https://minotar.net/armor/body/" + name + "/124.png");
         context.reply(eb.build());
