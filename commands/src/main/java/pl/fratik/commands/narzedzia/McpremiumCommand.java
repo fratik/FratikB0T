@@ -21,17 +21,15 @@ import io.sentry.Sentry;
 import io.sentry.event.EventBuilder;
 import io.sentry.event.interfaces.ExceptionInterface;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.utils.MarkdownSanitizer;
 import org.jetbrains.annotations.NotNull;
-import org.json.JSONArray;
 import org.json.JSONObject;
 import pl.fratik.core.command.NewCommand;
 import pl.fratik.core.command.NewCommandContext;
 import pl.fratik.core.util.NetworkUtil;
 import pl.fratik.core.util.UserUtil;
 
-import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Objects;
+import java.util.UUID;
 
 public class McpremiumCommand extends NewCommand {
 
@@ -51,7 +49,6 @@ public class McpremiumCommand extends NewCommand {
             JSONObject jOb = NetworkUtil.getJson("https://api.mojang.com/users/profiles/minecraft/" + NetworkUtil.encodeURIComponent(nick));
             uuid = Objects.requireNonNull(jOb).getString("id");
             name = Objects.requireNonNull(jOb).getString("name");
-            JSONArray lista = NetworkUtil.getJsonArray("https://api.mojang.com/user/profiles/" + uuid + "/names");
         } catch (Exception e) {
             context.sendMessage(context.getTranslated("mcpremium.failed", nick));
             Sentry.capture(new EventBuilder().withMessage(e.getMessage())
