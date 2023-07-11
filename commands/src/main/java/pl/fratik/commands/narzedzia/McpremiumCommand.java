@@ -63,7 +63,7 @@ public class McpremiumCommand extends NewCommand {
         eb.setFooter(context.getTranslated("mcpremium.infonick", name), null);
         eb.setThumbnail("https://minotar.net/helm/" + name + "/2048.png");
         eb.setImage("https://minotar.net/armor/body/" + name + "/124.png");
-        context.reply(eb.build());
+        context.sendMessage(eb.build());
         return;
     }
 
