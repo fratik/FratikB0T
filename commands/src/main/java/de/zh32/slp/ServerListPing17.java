@@ -18,18 +18,14 @@
 package de.zh32.slp;
 
 import com.google.gson.Gson;
-import com.google.gson.TypeAdapter;
-import com.google.gson.annotations.JsonAdapter;
-import com.google.gson.stream.JsonReader;
-import com.google.gson.stream.JsonToken;
-import com.google.gson.stream.JsonWriter;
-import lombok.Getter;
-import lombok.Setter;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
+import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
 
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -40,11 +36,10 @@ public class ServerListPing17 {
 
     private InetSocketAddress host;
     private int timeout = 7000;
-    private final Gson gson = new Gson();
+    private Gson gson;
 
     public ServerListPing17(InetSocketAddress host) {
         this.host = host;
-        DescriptionAdapter.setGson(gson);
     }
 
     public void setAddress(InetSocketAddress host) {
@@ -109,7 +104,7 @@ public class ServerListPing17 {
             ByteArrayOutputStream b = new ByteArrayOutputStream();
             DataOutputStream handshake = new DataOutputStream(b);
             handshake.writeByte(0x00); //packet id for handshake
-            writeVarInt(handshake, 4); //protocol version
+            writeVarInt(handshake, -1); //protocol version
             writeVarInt(handshake, this.host.getHostString().length()); //host length
             handshake.writeBytes(this.host.getHostString()); //host string
             handshake.writeShort(host.getPort()); //port
@@ -164,6 +159,11 @@ public class ServerListPing17 {
             dataInputStream.readLong(); //read response
             long peng = System.currentTimeMillis();
 
+            int protocol = new Gson().fromJson(json, JsonObject.class).get("version").getAsJsonObject().get("protocol").getAsInt();
+            if (protocol >= 735)
+                gson = GsonComponentSerializer.colorDownsamplingGson().populator().apply(new GsonBuilder().disableHtmlEscaping()).create();
+            else gson = GsonComponentSerializer.gson().populator().apply(new GsonBuilder().disableHtmlEscaping()).create();
+
             response = gson.fromJson(json, StatusResponse.class);
             response.setTime((int) (peng - now));
 
@@ -178,14 +178,13 @@ public class ServerListPing17 {
 
 
     public static class StatusResponse {
-        @JsonAdapter(value = DescriptionAdapter.class, nullSafe = false)
-        private Description description;
+        private TextComponent description;
         private Players players;
         private Version version;
         private String favicon;
         private int time;
 
-        public Description getDescription() {
+        public TextComponent getDescription() {
             return description;
         }
 
@@ -254,47 +253,5 @@ public class ServerListPing17 {
         public String getProtocol() {
             return protocol;
         }
-    }
-
-    @Getter
-    public static class Description {
-        private List<Extra> extra;
-        private String text;
-    }
-
-    @Getter
-    public static class Extra {
-        private String text;
-        private String color;
-        private boolean bold;
-        private boolean italic;
-        private boolean underlined;
-        private boolean strikethrough;
-        private boolean obfuscated;
-    }
-
-    static class DescriptionAdapter extends TypeAdapter<Description> {
-
-        @Setter()
-        private static Gson gson;
-
-        @Override
-        public void write(JsonWriter out, Description value) {
-            throw new UnsupportedOperationException("bo po chuj");
-        }
-
-        @Override
-        public Description read(JsonReader in) throws IOException {
-            Description desc = new Description();
-            if (in.peek() == JsonToken.BEGIN_OBJECT) {
-                desc = gson.getAdapter(Description.class).read(in);
-            }
-            if (in.peek() == JsonToken.STRING) {
-                desc.text = in.nextString();
-                desc.extra = new ArrayList<>();
-            }
-            return desc;
-        }
-
     }
 }
