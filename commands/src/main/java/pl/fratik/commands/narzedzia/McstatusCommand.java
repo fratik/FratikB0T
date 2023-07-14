@@ -18,9 +18,10 @@
 package pl.fratik.commands.narzedzia;
 
 import de.zh32.slp.ServerListPing17;
-import me.vankka.reserializer.discord.DiscordSerializer;
+import dev.vankka.mcdiscordreserializer.discord.DiscordSerializer;
+import dev.vankka.mcdiscordreserializer.discord.DiscordSerializerOptions;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.kyori.text.serializer.legacy.LegacyComponentSerializer;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.jetbrains.annotations.NotNull;
 import org.xbill.DNS.Lookup;
 import org.xbill.DNS.Record;
@@ -35,6 +36,8 @@ import java.net.InetSocketAddress;
 import java.util.regex.Pattern;
 
 public class McstatusCommand extends NewCommand {
+
+    private DiscordSerializer discordSerializer = new DiscordSerializer(DiscordSerializerOptions.defaults().withEmbedLinks(true));
 
     public McstatusCommand() {
         name = "mcstatus";
@@ -76,7 +79,7 @@ public class McstatusCommand extends NewCommand {
             eb.addField(context.getTranslated("mcstatus.embed.players"), players.toString(), false);
             eb.addField(context.getTranslated("mcstatus.embed.version"),
                     replaceMinecraftFormatting(resp.getVersion().getName()), false);
-            eb.addField(context.getTranslated("mcstatus.embed.motd"), formatMotd(resp.getDescription()), false);
+            eb.addField(context.getTranslated("mcstatus.embed.motd"), discordSerializer.serialize(resp.getDescription()), false);
             eb.addField(context.getTranslated("mcstatus.embed.ip"), ip + ":" + port, false);
             eb.setFooter(resp.getTime() + " ms", null);
             eb.setThumbnail("https://eu.mc-api.net/v3/server/favicon/" + ip + ":" + port);
@@ -133,30 +136,8 @@ public class McstatusCommand extends NewCommand {
         return xd;
     }
 
-    private String formatMotd(ServerListPing17.Description motd) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(replaceMinecraftFormatting(motd.getText()));
-        if (motd.getExtra() != null) {
-            for (ServerListPing17.Extra extra : motd.getExtra()) {
-                if (extra.isObfuscated()) continue;
-                if (extra.isBold()) sb.append("**");
-                if (extra.isItalic()) sb.append("_");
-                if (extra.isStrikethrough()) sb.append("~~");
-                if (extra.isUnderlined()) sb.append("__");
-                sb.append(extra.getText());
-                if (extra.isUnderlined()) sb.append("__");
-                if (extra.isStrikethrough()) sb.append("~~");
-                if (extra.isItalic()) sb.append("_");
-                if (extra.isBold()) sb.append("**");
-                sb.append("\u200b");
-            }
-        }
-        return sb.toString();
-    }
-
     private String replaceMinecraftFormatting(String text) {
-        return DiscordSerializer.serialize(LegacyComponentSerializer.legacy().deserialize(text,
-                text.contains("\uFFFD") ? '\uFFFD' : '\u00A7'), true);
+        return discordSerializer.serialize(LegacyComponentSerializer.legacy(text.contains("\uFFFD") ? '\uFFFD' : '§').deserialize(text));
     }
 
 }
